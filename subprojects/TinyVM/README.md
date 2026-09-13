@@ -2,7 +2,8 @@
 
 This directory recovers Henrik's 2025 TinyVM learning experiment as a small,
 buildable baseline for future mutation. It is experimental prior art, not part
-of Flowcore's canonical Graph IR and not a supported runtime.
+of Flowcore's canonical Graph IR or a standalone graph runtime. Its governed
+Flowcore integration is documented below.
 
 The original `~/Development/tinyvm` source tree is no longer present. This
 edition was reconstructed on 2026-08-26 from two surviving backtraces and the
@@ -86,6 +87,13 @@ admitted slices cover empty programs plus provider-free typed literals,
 conversions, unary/binary arithmetic, comparisons, local definitions,
 assignments, structured branches, loops and returns. Other valid plans receive
 a structured unsupported result until their lowering rules land.
+
+The current Gate 6 slice additionally admits executable source graphs with one
+authorized startup provider and serial fresh receiver activations. Receiver
+pipelines and fan-out are specialized from graph schedule v1 and compared
+differentially with LLVM. Parallel, persistent, finite-stream and aggregate
+graph contracts remain explicit unsupported results; they are not silently
+converted to serial behavior.
 
 The first governed runtime-provider slice admits only the exact pure tuples
 `libc.so.6:abs(c_int)->c_int` and

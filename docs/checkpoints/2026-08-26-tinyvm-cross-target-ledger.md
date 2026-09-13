@@ -363,3 +363,22 @@ the already captured recovered-ISA boundary.
   `2026-08-26-tinyvm-cross-target-bootstrap-result.md`.
 - Closure preserves explicit non-claims: complete self-hosting, Stage 1 and
   FlowOpenOffice remain future gates described by the validated gap inventory.
+
+## Gate 6 reactivation — 2026-09-13
+
+### Serial source-graph parity — `tinyvm-serial-graph-runtime-parity-v1`
+
+- TinyVM now consumes the executable source graph and its independently
+  validated graph schedule v1 from the backend-neutral artifact.
+- The admitted contract is one exactly authorized `startup_once` provider plus
+  fresh one-input source-function receivers. Static receiver pipelines and
+  fan-out execute through the existing typed callable compiler, preserving
+  provider authorization and deterministic artifact identity.
+- LLVM and TinyVM differential parity covers observable graph output and result;
+  TinyVM lowering is deterministic across repeated lowering of the same file.
+- A valid parallel schedule v4 is rejected with a structured `unsupported`
+  result and no partial TinyVM artifact. Persistent v3, finite-stream v2 and
+  aggregate payload contracts remain future slices.
+- This checkpoint does not claim a general TinyVM activation runtime: wire,
+  signal, port, queue, persistent-state and parallel-wave identities remain
+  outside the current bytecode runtime contract.

@@ -49,7 +49,6 @@ public:
 
     void compile() {
         const auto& plan = required_object(root_, "lowering_plan");
-        if (optional(plan, "source_graph")) throw Unsupported("native source graph execution is not yet admitted by TinyVM");
         const auto plan_version = integer(required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version");
         if (plan_version == 2) for (const auto& value : required_array(plan, "functions", "$.lowering_plan")) {
             const auto& function = object(value, "$.lowering_plan.functions[]");
@@ -95,6 +94,7 @@ public:
             return a == b ? integer(required(*left, "id", "$.operation"), "$.operation.id") < integer(required(*right, "id", "$.operation"), "$.operation.id") : a < b;
         });
         if (required_argument_count_) emit_argument_guard();
+        if (optional(plan, "source_graph")) compile_graph(*optional(plan, "source_graph"));
         if (blocks_.empty()) emit_return_zero();
         else if (plan_version == 2) {
             std::vector<Integer> entries; for (const auto& [identity,function] : callables_) if (function.entry && function.available) entries.push_back(identity);
@@ -132,6 +132,93 @@ private:
     bool uses_arguments_ = false;
     std::uint64_t operation_ = UINT64_MAX, block_ = 1, symbol_ = UINT64_MAX;
     std::uint32_t line_ = 1;
+
+    static bool same_provider(const Object& left, const Object& right) {
+        for (const auto* key : {"contract", "library", "convention", "symbol", "effect", "parameter_types", "return_type", "evidence"})
+            if (string(required(left, key, "$.provider"), "$.provider") != string(required(right, key, "$.provider"), "$.provider")) return false;
+        return true;
+    }
+    bool authorized_graph_provider(const Object& provider) const {
+        const auto* authorization = optional(root_, "authorization");
+        if (!authorization) return false;
+        const auto& authorization_object = object(*authorization, "$.authorization");
+        for (const auto& capability : required_array(authorization_object, "capabilities", "$.authorization")) {
+            const auto& item = object(capability, "$.authorization.capabilities[]");
+            if (optional(item, "status") && string(*optional(item, "status"), "$.authorization.capabilities[].status") != "authorized") continue;
+            if (same_provider(provider, item)) return true;
+        }
+        return false;
+    }
+    std::size_t invoke_graph_callable(Integer function_id, std::size_t input) {
+        if (!callables_.contains(function_id) || !callables_.at(function_id).available)
+            throw Unsupported("graph receiver function definition is unavailable");
+        const auto& callable = callables_.at(function_id);
+        if (callable.parameters.size() != 1) throw Unsupported("graph receiver requires one input parameter");
+        const auto parameter_type = carrier(callable.parameters.front().second);
+        if (slot_types_.at(input) != parameter_type) throw Unsupported("graph receiver input carrier mismatch");
+        const auto parameter = symbol_slot(callable.parameters.front().first);
+        slot_types_[parameter] = parameter_type;
+        emit(TV1_MOVE, parameter, input, 0);
+        auto result = slot();
+        slot_types_[result] = carrier(callable.result);
+        std::vector<std::size_t> return_jumps;
+        auto* previous_result = function_result_;
+        auto* previous_jumps = function_return_jumps_;
+        function_result_ = &result;
+        function_return_jumps_ = &return_jumps;
+        if (!compile_block(callable.body)) throw Unsupported("graph receiver has a path without a result");
+        const auto continuation = static_cast<std::int64_t>(code.size());
+        for (const auto jump : return_jumps) code[jump].a = continuation;
+        function_result_ = previous_result;
+        function_return_jumps_ = previous_jumps;
+        return result;
+    }
+    std::size_t emit_graph_provider(const Object& provider, Integer activation_id) {
+        if (!authorized_graph_provider(provider)) throw Unsupported("graph provider is not exactly authorized by the backend artifact");
+        const auto operation_id = static_cast<Integer>(1000000) + activation_id;
+        const auto expression_id = operation_id + 1000000;
+        Object operation{{"id", operation_id}, {"kind", "external_call"}, {"expression_id", expression_id},
+                         {"statement_id", activation_id}, {"scope_id", Integer{0}}, {"block_id", Integer{0}},
+                         {"callee", ""}, {"callee_symbol_id", Integer{-1}}, {"arguments", Array{}},
+                         {"operands", Array{}}, {"provider", provider}};
+        compile_operation(operation);
+        return call_results_.at(expression_id);
+    }
+    void compile_graph(const Value& graph_value) {
+        const auto& graph = object(graph_value, "$.lowering_plan.source_graph");
+        const auto& schedule = required_object(root_, "graph_schedule", "$.graph_schedule");
+        if (integer(required(schedule, "version", "$.graph_schedule"), "$.graph_schedule.version") != 1 ||
+            string(required(schedule, "policy", "$.graph_schedule"), "$.graph_schedule.policy") != "fifo_per_root_source_order_v1")
+            throw Unsupported("TinyVM graph lowering currently requires the serial fresh-activation schedule");
+        std::map<std::string, const Object*> providers, receivers;
+        for (const auto& value : required_array(graph, "providers", "$.source_graph")) {
+            const auto& item = object(value, "$.source_graph.providers[]");
+            providers.emplace(string(required(item, "node_id", "$.source_graph.providers[]"), "$.source_graph.providers[].node_id"), &item);
+        }
+        for (const auto& value : required_array(graph, "receivers", "$.source_graph")) {
+            const auto& item = object(value, "$.source_graph.receivers[]");
+            receivers.emplace(string(required(item, "node_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].node_id"), &item);
+        }
+        std::map<Integer, std::size_t> values;
+        for (const auto& value : required_array(schedule, "steps", "$.graph_schedule")) {
+            const auto& step = object(value, "$.graph_schedule.steps[]");
+            const auto id = integer(required(step, "activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].activation_id");
+            const auto kind = string(required(step, "kind", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].kind");
+            const auto node = string(required(step, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
+            operation_ = static_cast<std::uint64_t>(id) + 1; block_ = 1; symbol_ = UINT64_MAX; line_ = static_cast<std::uint32_t>(id + 1);
+            if (kind == "startup") {
+                if (!providers.count(node) || values.size()) throw Unsupported("TinyVM graph requires one startup provider");
+                const auto& provider = object(required(*providers.at(node), "provider", "$.source_graph.providers[]"), "$.source_graph.providers[].provider");
+                values.emplace(id, emit_graph_provider(provider, id));
+            } else if (kind == "receiver") {
+                const auto input = integer(required(step, "input_activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].input_activation_id");
+                if (!values.count(input) || !receivers.count(node)) throw Unsupported("TinyVM graph receiver input identity is unavailable");
+                const auto function = integer(required(*receivers.at(node), "function_symbol_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].function_symbol_id");
+                values.emplace(id, invoke_graph_callable(function, values.at(input)));
+            } else throw Unsupported("TinyVM graph schedule contains an unsupported activation kind");
+        }
+        if (values.empty()) throw Unsupported("TinyVM graph schedule has no activations");
+    }
 
     static std::uint32_t carrier(std::string_view type) {
         if (type == "bool" || type == "Bool") return TINYVM_CARRIER_I1;

@@ -1,7 +1,7 @@
 # TinyVM as a Flowcore backend
 
-**Status:** proposed execution plan  
-**Date:** 2026-08-26  
+**Status:** active maturation plan
+**Date:** 2026-09-13
 **Scope:** parity with the currently admitted LLVM backend surface, followed by
 shared expansion  
 **Recovered baseline:** `tinyvm-recovered-poc-2026-08-26`  
@@ -242,6 +242,23 @@ unsupported result. No authorized tuple can be substituted by symbol name.
 **Exit:** reusable functions and admitted graph regions run through TinyVM with
 the same observable contracts as the reference CPU/LLVM path.
 
+### Current admitted slice — 2026-09-13
+
+`flowtinylower` now admits a bounded serial source-graph projection when the
+backend-neutral artifact carries graph schedule v1
+(`fifo_per_root_source_order_v1`, `fresh_single_input_v1`). The slice requires
+one exactly authorized `startup_once` provider and invokes the existing typed
+callable lowering for each fresh one-input receiver activation. Static
+pipelines and fan-out are covered by the schedule, and the resulting TinyVM
+artifact is deterministic and differentially checked against LLVM.
+
+This is a compiler-time graph specialization, not yet a general TinyVM
+activation runtime: wire, signal and port identities remain in the validated
+input artifact and provenance, rather than in runtime activation records.
+Parallel schedule v4, persistent schedule v3, finite-stream schedule v2 and
+aggregate payloads remain explicit unsupported boundaries until their runtime
+state and delivery contracts are implemented.
+
 ## Gate 7 — parity corpus and adversarial proof
 
 Build a single backend-neutral acceptance corpus containing:
@@ -328,6 +345,7 @@ artifacts sufficient to test the next consumer without running its producer.
   distributed execution and safety certification are not implied by parity
   with today's LLVM backend.
 
-The first implementation slice is Gate 0: complete ISA conformance and engine
-differential tests. It changes no public Flowcore artifact and creates the
-reliable reference needed before ISA mutation.
+The recovered implementation began with Gate 0: complete ISA conformance and
+engine differential tests. The current graph checkpoint above is the first
+Gate 6 implementation slice; it preserves the same refusal-first discipline
+while expanding only the admitted serial contract.
