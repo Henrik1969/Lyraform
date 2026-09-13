@@ -559,6 +559,16 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (!left || !right) return std::nullopt;
         return *left + *right;
     };
+    std::optional<std::pair<int, BindingRequirement>> text_concat_provider;
+    for (const auto& [symbol_id, requirement] : provider_functions)
+        if (requirement.parameter_types == "Text,Text" && requirement.return_type == "Text" && requirement.effect == "memory") {
+            if (text_concat_provider) {
+                text_concat_provider.reset();
+                break;
+            }
+            text_concat_provider = std::make_pair(symbol_id, requirement);
+        }
+    std::map<int, std::pair<int, BindingRequirement>> runtime_text_concats;
     for (const auto& [expression_id, expression] : expressions) {
         if (text(field(*expression, "kind")) != "string_literal") continue;
         if (!valid_utf8(text(field(field(*expression, "payload"), "value_text"))))
@@ -585,8 +595,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         const bool right_text = expression_is_text(integer(field(payload, "right")));
         if (text(field(payload, "operator")) == "+" && left_text != right_text)
             add_diagnostic("FLOWANALYST_TEXT_CSTRING_CONFUSION", "Text concatenation does not implicitly accept c_string", -1, "expression:" + std::to_string(expression_id));
-        if (text(field(payload, "operator")) == "+" && left_text && right_text && !constant_text(expression_id))
-            add_diagnostic("FLOWANALYST_TEXT_DYNAMIC_CONCAT", "v0.1 Text concatenation requires compile-time-known operands", -1, "expression:" + std::to_string(expression_id));
+        if (text(field(payload, "operator")) == "+" && left_text && right_text && !constant_text(expression_id)) {
+            if (text_concat_provider)
+                runtime_text_concats.emplace(expression_id, *text_concat_provider);
+            else
+                add_diagnostic("FLOWANALYST_TEXT_DYNAMIC_CONCAT", "Text concatenation requires the declared bounded Text runtime capability", -1, "expression:" + std::to_string(expression_id));
+        }
     }
     for (const auto& [expression_id, expression] : expressions) if (text(field(*expression, "kind")) == "field_access") {
         const auto* payload = field(*expression, "payload");
@@ -759,6 +773,38 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         for (const auto& [block_id, block] : blocks) for (const auto& member : list(field(*block, "statements"))) if (integer(&member) == statement_id) return block_id;
         return -1;
     };
+    for (const auto& [expression_id, provider] : runtime_text_concats) {
+        int statement_id = -1;
+        int scope_id = -1;
+        for (const auto& [candidate_id, statement] : statements) {
+            const auto kind = text(field(*statement, "kind"));
+            const auto* payload = field(*statement, "payload");
+            const int candidate_expression = kind == "let" ? integer(field(payload, "initializer_expression")) :
+                (kind == "return" ? integer(field(payload, "value_expression")) : -1);
+            if (candidate_expression == expression_id) { statement_id = candidate_id; scope_id = statement_scopes.count(candidate_id) ? statement_scopes.at(candidate_id) : -1; break; }
+        }
+        if (statement_id < 0) continue;
+        LoweringOperation operation;
+        operation.expression = expression_id;
+        operation.statement = statement_id;
+        operation.scope = scope_id;
+        operation.block = containing_block(statement_id);
+        operation.function_symbol = containing_function(scope_id);
+        operation.callee_symbol = provider.first;
+        operation.callee = "text_concat";
+        operation.kind = "external_call";
+        const auto* payload = field(*expressions.at(expression_id), "payload");
+        operation.arguments = {integer(field(payload, "left")), integer(field(payload, "right"))};
+        operation.contract = provider.second.contract;
+        operation.evidence = provider.second.evidence;
+        operation.library = provider.second.library;
+        operation.convention = provider.second.convention;
+        operation.symbol = provider.second.symbol;
+        operation.effect = provider.second.effect;
+        operation.parameter_types = provider.second.parameter_types;
+        operation.return_type = provider.second.return_type;
+        lowering_operations.push_back(std::move(operation));
+    }
     for (const auto& [statement_id, statement] : statements) {
         if (text(field(*statement, "kind")) != "expression") continue;
         const auto* payload = field(*statement, "payload");
@@ -809,6 +855,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     for (const auto& site : call_sites) if (provider_functions.count(site.callee_symbol))
         called_provider_symbols.insert(site.callee_symbol);
     called_provider_symbols.insert(text_output_symbols.begin(), text_output_symbols.end());
+    for (const auto& [expression_id, provider] : runtime_text_concats) { (void)expression_id; called_provider_symbols.insert(provider.first); }
     if (graph_native) for (const auto& provider : graph_providers) called_provider_symbols.insert(integer(field(provider, "function_symbol_id")));
     for (const auto symbol : called_provider_symbols) binding_requirements.push_back(provider_functions.at(symbol));
     for (const auto& site : call_sites) {
@@ -1027,8 +1074,9 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
         const bool folded_text = kind == "binary" && text(field(field(expression, "payload"), "operator")) == "+" &&
             expression_is_text(expression_id) && constant_text(expression_id).has_value();
+        const bool runtime_text = runtime_text_concats.count(expression_id) != 0;
         std::cout << "{\"expression_id\":" << expression_id << ",\"kind\":"
-                  << quote(carrier_conversion ? "conversion" : (writable_storage ? "writable_storage" : (ordinary_call ? "call_result" : (folded_text ? "string_literal" : kind))));
+                  << quote(carrier_conversion ? "conversion" : (writable_storage ? "writable_storage" : (ordinary_call || runtime_text ? "call_result" : (folded_text ? "string_literal" : kind))));
         if (carrier_conversion) {
             std::cout << ",\"type\":" << quote(declared_type) << ",\"from_type\":" << quote(identifier_type)
                       << ",\"conversion\":\"explicit_typed_initializer\",\"operand\":";
@@ -1036,6 +1084,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         } else if (writable_storage) {
             std::cout << ",\"type\":\"c_pointer\",\"storage\":{\"bytes\":" << literal
                       << ",\"access\":\"read_write\",\"lifetime\":\"call\"}";
+        } else if (runtime_text) {
+            std::cout << ",\"type\":\"Text\",\"callee_symbol_id\":" << runtime_text_concats.at(expression_id).first;
         } else
         if (kind == "integer_literal") {
             std::cout << ",\"type\":" << quote(declared_type.empty() ? "c_int" : declared_type) << ",\"value\":" << quote(literal);

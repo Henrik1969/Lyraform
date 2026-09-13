@@ -1,0 +1,14 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/text.flow"
+
+program text_runtime
+
+fn join(left : Text, right : Text): Text {
+    value : Text(left + right)
+    return value
+}
+
+main {
+    value : Text(join("Lyra", "form — Igor"))
+    print value
+}

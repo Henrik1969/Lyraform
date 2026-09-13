@@ -1,0 +1,20 @@
+unit std_abi_text
+
+abi text_runtime {
+    library "libflowtext.so"
+    convention c
+
+    type Text {
+        repr "const char*"
+        ownership owned
+        access read
+        lifetime value
+        nullable false
+        terminator nul
+    }
+
+    extern fn concat(left : Text, right : Text): Text {
+        symbol "flow_text_concat"
+        effect memory
+    }
+}

@@ -13,6 +13,7 @@ add_custom_target(flowcore_architecture_check
     VERBATIM)
 
 add_subdirectory(reference/clock)
+add_subdirectory(reference/text)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Provenance
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-provenance)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Packages

@@ -255,9 +255,23 @@ add_test(NAME text_value_boundary
         FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
         FLOWBIND_BIN=$<TARGET_FILE:flowbind>
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
-        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-value.sh)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-value.sh)
 set_tests_properties(text_value_boundary PROPERTIES
     DEPENDS "profile_free_generic_lowering")
+
+add_test(NAME text_runtime_boundary
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-runtime.sh)
+set_tests_properties(text_runtime_boundary PROPERTIES
+    DEPENDS "text_value_boundary")
 
 add_test(NAME namespace_ambiguity
     COMMAND ${CMAKE_COMMAND} -E env
@@ -317,6 +331,21 @@ add_test(NAME tinyvm_text_boundary_parity
 set_tests_properties(tinyvm_text_boundary_parity PROPERTIES
     DEPENDS "text_value_boundary;tinyvm_governed_provider_parity")
 
+add_test(NAME tinyvm_runtime_text_refusal
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
+        FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
+        FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-runtime-text-refusal.sh)
+set_tests_properties(tinyvm_runtime_text_refusal PROPERTIES
+    DEPENDS "text_runtime_boundary")
+
 # Canonical installed shape. Debian packaging consumes this staged install and
 # splits runtime, development, and documentation payloads without depending on
 # the source-tree layout.
@@ -336,6 +365,7 @@ install(TARGETS
 
 install(TARGETS
     flowgraph_runtime
+    flowtext_runtime
     flowparallel_cpu_runtime
     TokenTree_static
     symboltable_static

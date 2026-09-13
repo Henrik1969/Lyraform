@@ -97,6 +97,8 @@ The current generic chain admits the following bounded slice:
   remain printable as Text;
 - empty Text values are materialized as non-null NUL-terminated views for an
   authorized call, and non-ASCII UTF-8 bytes survive LLVM/native lowering;
+- the declared `text_runtime` provider owns bounded `Text + Text` results up to
+  4096 UTF-8 bytes; provider exhaustion is surfaced as an explicit LLVM trap;
 - `print` resolves only to a declared `puts_text(Text): c_int` capability;
 - Text operation identity, provider identity, and Text carrier type survive
   Flowparallel, Flowoptimize, Flowbind, and Flowlower;
@@ -105,10 +107,11 @@ The current generic chain admits the following bounded slice:
 - c_string-to-Text initializers, c_string printing, dynamic Text concatenation,
   and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
 
-This slice deliberately does not claim general runtime Text allocation or
-general function-return ownership yet. Dynamic concatenation,
-bounded-storage failure, and parity for runtime-created Text values remain
-admission gates for the complete v0.1 contract.
+This slice deliberately does not claim general runtime allocation policy or
+TinyVM ownership for runtime-created Text. The native bounded concat path is
+one admitted provider shape; broader dynamic concatenation, portable failure
+outcomes, and parity for runtime-created Text values remain admission gates for
+the complete v0.1 contract.
 
 ## Open review questions
 

@@ -297,6 +297,7 @@ private:
                 throw std::runtime_error("native symbol has conflicting provider libraries or ABI declarations: " + p.symbol);
             if (inserted) out << declaration.str();
         }
+        out << "declare void @llvm.trap()\n";
     }
     std::string callable_name(const Callable& function) const {
         if (function.symbol < 0) throw std::runtime_error("invalid callable symbol identity");
@@ -502,6 +503,13 @@ private:
                 std::vector<std::pair<std::string,std::string>> args; for(std::size_t i=0;i<params.size();++i) args.push_back(expression(operands[i],out,params[i]));
                 const auto result="%flow_call_"+std::to_string(op->id); out<<"  "<<result<<" = call "<<llvm_type(p.result)<<" @"<<p.symbol<<"(";
                 for(std::size_t i=0;i<args.size();++i){if(i)out<<", ";out<<args[i].first<<" "<<args[i].second;} out<<")\n";
+                if (p.result == "Text") {
+                    out << "  %flow_text_valid_" << op->id << " = icmp ne ptr " << result << ", null\n"
+                        << "  br i1 %flow_text_valid_" << op->id << ", label %flow_text_ok_" << op->id << ", label %flow_text_fail_" << op->id << "\n"
+                        << "flow_text_fail_" << op->id << ":\n  call void @llvm.trap()\n  unreachable\n"
+                        << "flow_text_ok_" << op->id << ":\n";
+                }
+                call_results_[op->expression]={llvm_type(p.result),result};
                 if(op->result_symbol>=0) out<<"  store "<<llvm_type(p.result)<<" "<<result<<", ptr "<<slot(op->result_symbol)<<"\n";
             } else if(op->kind=="branch") {
                 auto [type,condition]=expression(*op->operand,out); if(type!="i1"||condition.empty()) throw std::runtime_error("unsupported structured branch condition");

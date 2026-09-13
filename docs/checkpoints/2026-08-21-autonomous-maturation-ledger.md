@@ -1318,3 +1318,29 @@ slice clearly distinguished until that gate passes.
 Define the bounded runtime Text storage contract and implement one owned
 concatenation path with explicit exhaustion behavior. Then add the corresponding
 LLVM/TinyVM differential and failure evidence. State remains CONTINUE.
+
+## 2026-09-13 bounded runtime Text checkpoint
+
+- Added the declared `text_runtime` ABI and provider-owned `Text + Text` path.
+  `flow_text_concat` copies both NUL-terminated inputs into fresh heap storage,
+  caps the combined UTF-8 byte length at **4096**, and returns failure on null,
+  overflow, or allocation exhaustion.
+- Flowanalyst admits dynamic Text concatenation only when exactly one declared
+  `Text,Text -> Text` memory capability exists. Otherwise the source-linked
+  `FLOWANALYST_TEXT_DYNAMIC_CONCAT` refusal remains in force.
+- Flowlower emits the authorized provider call and traps through `llvm.trap`
+  when a non-null Text result contract is violated. A returned provider-owned
+  value survives an ordinary Text function return and prints natively.
+- Evidence: `tools/test-text-runtime.sh` passed successful concat and a 4097-byte
+  exhaustion case; `tools/test-tinyvm-runtime-text-refusal.sh` passed the
+  structured TinyVM refusal; the fresh complete suite passed **85/85** in 36.44s.
+- The TinyVM refusal is intentional: its current runtime provider cannot yet
+  register provider-owned result bytes as portable artifact-visible string
+  handles. No false parity claim is made.
+
+## Exact next action
+
+Extend TinyVM's governed runtime provider with owned result-string storage and
+an explicit exhaustion trap/outcome, then add LLVM/TinyVM differential evidence
+for bounded runtime concat. Keep artifact-visible host pointers prohibited.
+State remains CONTINUE.
