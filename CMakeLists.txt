@@ -596,8 +596,9 @@ add_test(NAME tinyvm_memory_parity
 set_tests_properties(tinyvm_memory_parity PROPERTIES
     DEPENDS "flowcore_stdlib_boundary;tinyvm_runtime_text_parity")
 
-add_test(NAME tinyvm_install_shape
+    add_test(NAME tinyvm_install_shape
     COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
         FLOWCORE_BUILD=${CMAKE_BINARY_DIR}
         CMAKE_COMMAND_PATH=${CMAKE_COMMAND}
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-install-shape.sh)

@@ -466,7 +466,8 @@ the already captured recovered-ISA boundary.
 - This keeps `tinyvm-portable` an explicit selectable backend in an installed
   toolchain instead of leaving the runtime only in the source/build tree.
 - The staged install-shape test passes for all three TinyVM tools, both target
-  policies, the public headers and separated TinyVM documentation; no fallback
-  is inferred when a target or provider is unavailable.
+  policies, the public headers and separated TinyVM documentation; it also
+  resolves `tinyvm-portable` and executes an installed empty artifact. No
+  fallback is inferred when a target or provider is unavailable.
 - The focused aggregate parity test and complete canonical suite passed;
   canonical CTest is now 102/102 green.
