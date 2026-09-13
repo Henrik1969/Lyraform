@@ -34,21 +34,23 @@ From the canonical checkout:
 ./tools/check-onboarding-prerequisites.sh   PASS
 ./igor doctor                              PASS
 ./igor --build-dir /tmp/lyraform-onboarding-build test
-                                            81/81 PASS
+                                            103/103 PASS
 bash -n tools/check-onboarding-prerequisites.sh
                                             PASS
 git diff --check                           PASS
 ```
 
-The fresh onboarding build compiled 146 targets and the canonical CTest suite
-passed all 81 tests in 35.89 seconds on the verified Linux x86-64 environment.
+The fresh GCC onboarding build compiled 148 targets and the canonical CTest
+suite passed all 103 tests in 50.57 seconds on the verified Linux x86-64
+environment. A fresh Clang 18.1.3 ASan/UBSan build also passed 103/103 with
+`ASAN_OPTIONS=detect_leaks=0`; LeakSanitizer is unavailable under this
+environment's ptrace-based process supervision.
 
-After the first Text slice, a fresh `/tmp/lyraform-text-build` compiled 115
-targets and the complete CTest graph passed 82/82 in 34.51 seconds. After the
-TinyVM parity gate was added, the same fresh build passed 83/83 in 36.68
-seconds. After the bounded runtime Text gate was added, it passed 85/85 in
-36.26 seconds. The two pager tests were rerun after a compatibility repair for
-empty legacy `c_string` values and also passed.
+The categorized compatibility-interpreter run is intentionally split from the
+native chain: normal mode is 83/138 with 55 expected native-chain refusals;
+support-inclusive mode is 99/154 with the same 55 refusals. Native-chain mode
+passed all 97 pass-corpus programs and all 57 negative/support fixtures. The
+matching 57/57 boundary suite passed under Valgrind 3.22.0.
 
 ## Current scope
 
@@ -69,7 +71,7 @@ tools/test-text-value.sh
   PASS: semantic Text artifacts, Flowbind authorization, LLVM/native output,
         empty/non-ASCII values, c_string confusion, dynamic concat, and invalid UTF-8 refusals
 tools/run-flowcore-pass-corpus.sh
-  Flowcore pass corpus: 92 programs passed semantic and lowering boundaries
+  Flowcore pass corpus: 97 programs passed semantic and lowering boundaries
 tools/test-tinyvm-text-parity.sh
   PASS: the admitted compile-time Text slice has LLVM/TinyVM output parity
 tools/test-text-runtime.sh

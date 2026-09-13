@@ -41,7 +41,7 @@ run_case() {
     "$bind" --policy "$policy" < "$tmpdir/$name.semantic.json" > "$tmpdir/$name.binding.json"
     "$prepare" --binding-report "$tmpdir/$name.binding.json" "$tmpdir/$name.optimized.json" > "$tmpdir/$name.lowering.json"
     "$llvm_lower" --emit-llvm "$tmpdir/$name.ll" --binding-report "$tmpdir/$name.binding.json" < "$tmpdir/$name.optimized.json" >/dev/null
-    clang "$tmpdir/$name.ll" "$text_runtime" -o "$tmpdir/$name.llvm"
+    clang ${FLOWTEXT_CXX_FLAGS:-} "$tmpdir/$name.ll" "$text_runtime" -o "$tmpdir/$name.llvm"
     "$tiny_lower" "$tmpdir/$name.lowering.json" "$tmpdir/$name.tvm" >/dev/null
     "$tiny_validate" "$tmpdir/$name.tvm" | grep -q '"status":"valid"'
     "$tmpdir/$name.llvm" > "$tmpdir/$name.llvm.out"

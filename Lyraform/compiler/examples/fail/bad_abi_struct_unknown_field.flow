@@ -1,4 +1,17 @@
-import "../../std/abi/testabi.flow"
+abi testabi {
+    library "./build/libflowmini_testabi.so"
+    convention c
+
+    struct Point {
+        x : c_int
+        y : c_int
+    }
+
+    extern fn point_sum(p : Point): c_int {
+        symbol "point_sum"
+        effect pure
+    }
+}
 
 program bad_abi_struct_unknown_field
 

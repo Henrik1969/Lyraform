@@ -295,7 +295,9 @@ def validate_statement_payload(statement: dict, context: str) -> None:
     elif kind in {"break", "continue"}:
         require_exact_fields(payload, set(), context)
     elif kind == "expression":
-        require_exact_fields(payload, {"expression"}, context)
+        require_exact_fields(payload, {"expression", "print"}, context)
+        if not isinstance(payload.get("print"), bool):
+            raise TypeError(f"{context}: expression payload field 'print' must be boolean")
         canonical_expressions = statement_optional_id(payload, "expression", context)
     elif kind == "flow":
         require_exact_fields(payload, {"expressions"}, context)

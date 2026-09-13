@@ -48,19 +48,20 @@ Expected current baseline:
 AST golden tests:          28 / 28
 Symbol projection tests:   14 / 14
 Frontend bundle tests:      8 golden / 1 isolated / 19 negative
-downstream sibling CTest:   PASS
+fresh GCC 13.3 CTest:       103 / 103
+fresh Clang 18.1 CTest:     103 / 103
 flowcat ELF example:        PASS
 ```
 
 ## Current categorized-suite note
 
-On 2026-09-13, the CMake `flowmini_suite` categorized runner exposed a
-pre-existing compatibility gap in the published `main` tree: an untouched
-pre-rename checkout passed 78 of 128 examples, while the renamed v0.29 tree
-passed 79 of 128. The failures are concentrated in legacy ABI/profile examples
-that the current parser rejects; this is not presented as a passing gate here.
-The authoritative root CTest suite and the focused AST, SymbolTable, and
-frontend-bundle gates remain green as recorded above.
+On 2026-09-13, the normal compatibility-interpreter run had 138 cases: 83
+passed and 55 migrated native-chain pass examples were refused as expected
+interpreter incompatibilities. With support files included it had 154 cases:
+99 passed and the same 55 expected native-chain refusals. The canonical
+native-chain/support mode separately passed all 97 pass-corpus programs and
+all 57 negative/support fixtures (57/57). These modes must not be collapsed
+into one total.
 
 These normal gates form the Flowmini Tier 2 integration baseline. Before
 declaring a greater architectural border closed, run and record the additional
@@ -86,7 +87,15 @@ Diagnostic `.contains` files are substring checks. They should contain stable di
 ```
 
 `--run-support` executes importable support units as expected failures when used
-as root sources. The current support-inclusive firetest result is 94/94.
+as root sources. The current native-chain support-inclusive firetest is 97 pass
+programs plus 57/57 categorized negative/support checks. The legacy
+interpreter-inclusive run is 154 total, 99 pass, and 55 expected native-chain
+refusals.
+
+The Clang ASan/UBSan CTest gate is 103/103 when run with
+`ASAN_OPTIONS=detect_leaks=0`; LeakSanitizer cannot run under this environment's
+ptrace-based process supervision. The matching native/support categorized
+boundary is 57/57 under Valgrind 3.22.0.
 
 Compiler, sanitizer, Valgrind, support-inclusive, and concurrency results are
 checkpoint evidence rather than permanent properties of the branch. A new

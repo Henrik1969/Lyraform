@@ -39,7 +39,7 @@ fi
 "$optimize" < "$tmpdir/parallel.json" > "$tmpdir/optimized.json"
 "$bind" --policy "$policy" < "$tmpdir/semantic.json" > "$tmpdir/binding.json"
 "$lower" --emit-llvm "$tmpdir/text.ll" --binding-report "$tmpdir/binding.json" < "$tmpdir/optimized.json" > "$tmpdir/lowering.json"
-clang "$tmpdir/text.ll" "$text_runtime" -o "$tmpdir/text"
+clang ${FLOWTEXT_CXX_FLAGS:-} "$tmpdir/text.ll" "$text_runtime" -o "$tmpdir/text"
 printf '%s\n' 'Lyraform' 'Lyraform — Igor' 'Lyraform / tester' 'Lyraform — Igor' > "$tmpdir/expected"
 "$tmpdir/text" > "$tmpdir/output"
 cmp -s "$tmpdir/expected" "$tmpdir/output"
@@ -54,7 +54,7 @@ printf '%s\n' '", "x"))' '    print value' '}' >> "$tmpdir/overflow.flow"
 "$bind" --policy "$policy" < "$tmpdir/overflow.semantic.json" > "$tmpdir/overflow.binding.json"
 set +e
 "$lower" --emit-llvm "$tmpdir/overflow.ll" --binding-report "$tmpdir/overflow.binding.json" < "$tmpdir/overflow.optimized.json" >/dev/null
-clang "$tmpdir/overflow.ll" "$text_runtime" -o "$tmpdir/overflow"
+clang ${FLOWTEXT_CXX_FLAGS:-} "$tmpdir/overflow.ll" "$text_runtime" -o "$tmpdir/overflow"
 "$tmpdir/overflow" >/dev/null 2>&1
 overflow_status=$?
 set -e

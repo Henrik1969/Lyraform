@@ -55,7 +55,7 @@ cd "$root/Lyraform/compiler"
 "$prepare" --binding-report "$tmpdir/binding.json" < "$tmpdir/optimization.json" > "$tmpdir/backend.json"
 "$lower" --emit-llvm "$tmpdir/program.ll" < "$tmpdir/backend.json" > "$tmpdir/lowering.json"
 clang -c "$tmpdir/program.ll" -o "$tmpdir/program.o"
-"$cxx" "$tmpdir/program.o" "$runtime" "$tmpdir/provider.so" "-Wl,-rpath,$(dirname "$runtime")" "-Wl,-rpath,$(dirname "$tmpdir/provider.so")" -o "$tmpdir/program"
+"$cxx" ${FLOWGRAPH_LINK_FLAGS:-} "$tmpdir/program.o" "$runtime" "$tmpdir/provider.so" "-Wl,-rpath,$(dirname "$runtime")" "-Wl,-rpath,$(dirname "$tmpdir/provider.so")" -o "$tmpdir/program"
 
 FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
 test ! -s "$tmpdir/output"

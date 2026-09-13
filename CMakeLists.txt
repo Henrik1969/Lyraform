@@ -271,6 +271,7 @@ add_test(NAME text_runtime_boundary
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
         FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        "FLOWTEXT_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-runtime.sh)
 set_tests_properties(text_runtime_boundary PROPERTIES
     DEPENDS "text_value_boundary")
@@ -279,6 +280,8 @@ add_test(NAME text_runtime_tagged_api
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        FLOWTEXT_CC=${CMAKE_C_COMPILER}
+        "FLOWTEXT_C_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-runtime-api.sh)
 set_tests_properties(text_runtime_tagged_api PROPERTIES
     DEPENDS "text_runtime_boundary")
@@ -297,6 +300,7 @@ add_test(NAME text_recovery_boundary
         FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
         FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        "FLOWTEXT_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-recovery.sh)
 set_tests_properties(text_recovery_boundary PROPERTIES
     DEPENDS "text_runtime_tagged_api;tinyvm_memory_parity")
@@ -315,6 +319,7 @@ add_test(NAME text_outcome_boundary
         FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
         FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        "FLOWTEXT_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-outcome.sh)
 set_tests_properties(text_outcome_boundary PROPERTIES
     DEPENDS "text_recovery_boundary")
@@ -749,6 +754,7 @@ add_test(NAME native_aggregate_graph
         FLOWTESTABI_LIBRARY=$<TARGET_FILE:flowmini_testabi>
         FLOWGRAPH_RUNTIME=$<TARGET_FILE:flowgraph_runtime>
         FLOWGRAPH_CXX=${CMAKE_CXX_COMPILER}
+        "FLOWGRAPH_LINK_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-native-aggregate-graph.sh)
 
 add_test(NAME native_parallel_graph
@@ -763,6 +769,7 @@ add_test(NAME native_parallel_graph
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
         FLOWGRAPH_RUNTIME=$<TARGET_FILE:flowgraph_runtime>
         FLOWGRAPH_CXX=${CMAKE_CXX_COMPILER}
+        "FLOWGRAPH_LINK_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-native-parallel-graph.sh)
 
 add_test(NAME native_aggregate_parallel_graph
@@ -779,6 +786,7 @@ add_test(NAME native_aggregate_parallel_graph
         FLOWTESTABI_LIBRARY=$<TARGET_FILE:flowmini_testabi>
         FLOWGRAPH_RUNTIME=$<TARGET_FILE:flowgraph_runtime>
         FLOWGRAPH_CXX=${CMAKE_CXX_COMPILER}
+        "FLOWGRAPH_LINK_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-native-aggregate-parallel-graph.sh)
 
 add_test(NAME flowmini_support_boundary

@@ -4,6 +4,7 @@ set -eu
 root=${FLOWCORE_ROOT:?}
 runtime=${FLOWTEXT_RUNTIME:?}
 cc=${CC:-cc}
+cc=${FLOWTEXT_CC:-$cc}
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
@@ -36,6 +37,6 @@ int main(void) {
     return 0;
 }
 EOF
-"$cc" -std=c11 -I"$root/Flowtools/reference/text" "$tmpdir/probe.c" "$runtime" -o "$tmpdir/probe"
+"$cc" ${FLOWTEXT_C_FLAGS:-} -std=c11 -I"$root/Flowtools/reference/text" "$tmpdir/probe.c" "$runtime" -o "$tmpdir/probe"
 LD_LIBRARY_PATH=$(dirname "$runtime")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} "$tmpdir/probe"
 echo 'Runtime Text tagged API: PASS (codes, owned success, and cleanup)'

@@ -149,8 +149,8 @@ Current verified baseline:
 ```text
 clean configure: PASS
 clean build: PASS
-registered tests: 81
-CTest: 81/81 PASS
+registered tests: 103
+CTest: 103/103 PASS
 ```
 
 The project remains experimental despite passing its current tests.

@@ -2134,3 +2134,34 @@ Flowparallel rejects a parallel policy selected for finite streams or
 persistent receivers before publishing an executable schedule. Streams retain
 their dynamic FIFO contract, and persistent receivers retain serialized state
 commit semantics; neither is silently coerced into a worker wave.
+
+## 2026-09-13 maturity-baseline repair checkpoint
+
+- Reconciled the AST statement contract: printed expression statements now
+  validate and golden-test their explicit boolean `print` payload marker;
+  `flowmini_ast_golden_tests` passes **28/28** and SymbolTable projection
+  passes **14/14**. Frontend bundle evidence remains **8 golden / 1 isolated /
+  19 negative**.
+- Repaired the two ABI negative fixtures so they exercise their intended
+  missing-field and unknown-field diagnostics without importing an unrelated
+  unsupported aggregate-return declaration. Both expected diagnostics now
+  pass in the categorized suite.
+- Routed configured sanitizer/link flags through Text LLVM links, the tagged C
+  probe, and all native aggregate/parallel graph links. A fresh GCC build and
+  CTest pass **103/103**; a fresh Clang 18.1.3 ASan/UBSan build also passes
+  **103/103** with `detect_leaks=0`, required because this runner supervises
+  children under ptrace. The targeted affected boundary is **9/9**.
+- Fixed a real UBSan defect found by that gate: TinyVM's
+  `flow_text_concat_status` thunk now uses the provider's enum-returning
+  function-pointer type. The full Clang instrumented graph passes after the
+  correction.
+- Current categorized evidence is now explicit: legacy interpreter mode is
+  **83/138**, support-inclusive legacy mode **99/154**, while native-chain mode
+  passes **97** pass-corpus programs and **57/57** negative/support fixtures;
+  those 55 legacy native-only refusals are not hidden behind a CTest total.
+  The native-chain/support boundary is **57/57** under Valgrind 3.22.0.
+
+The repaired baseline is evidence for the bounded reusable slice, not closure
+of the remaining TinyVM parity, compatibility-bridge, or production-readiness
+gates. State remains CONTINUE until the checkpoint is committed, pushed, and
+the remaining maturity work is separately reconciled.

@@ -33,7 +33,7 @@ cd "$root/Lyraform/compiler"
 "$prepare" --binding-report "$tmpdir/binding.json" < "$tmpdir/optimization.json" > "$tmpdir/backend.json"
 "$lower" --emit-llvm "$tmpdir/program.ll" < "$tmpdir/backend.json" > "$tmpdir/lowering.json"
 clang -c "$tmpdir/program.ll" -o "$tmpdir/program.o"
-"$cxx" "$tmpdir/program.o" "$runtime" "$provider_library" "-Wl,-rpath,$(dirname "$runtime")" "-Wl,-rpath,$(dirname "$provider_library")" -o "$tmpdir/program"
+"$cxx" ${FLOWGRAPH_LINK_FLAGS:-} "$tmpdir/program.o" "$runtime" "$provider_library" "-Wl,-rpath,$(dirname "$runtime")" "-Wl,-rpath,$(dirname "$provider_library")" -o "$tmpdir/program"
 
 FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" >/dev/null 2> "$tmpdir/trace"
 jq -e '.graph_schedule.version == 4 and .graph_schedule.parallel_waves[1].activation_ids == [1,2]' "$tmpdir/execution.json" >/dev/null

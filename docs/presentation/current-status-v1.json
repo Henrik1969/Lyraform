@@ -8,14 +8,14 @@
     "production_ready": false
   },
   "source_state": {
-    "as_of": "2026-09-07",
+    "as_of": "2026-09-13",
     "branch": "main",
-    "commit": "8b5f838fcd5b4add1094e462f23990f468c16d8e"
+    "commit": "fd2f5210e20b52e4f3ca88de9b7afb40be9f2138"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
-    "status": "complete",
-    "result": "Installed compiler tools compile new supported source and generated native bindings without rebuilding; exact evidence authorization, native scalar graph activation and Flow-owned pager behavior are verified."
+    "status": "bounded_slice_verified",
+    "result": "The reusable chain is verified for its admitted bounded surface: installed compiler tools compile newly supported source, exact evidence authorization and native/TinyVM boundary behavior pass; broader language and backend parity remain unfinished."
   },
   "verified_capabilities": [
     "Deterministic and independently validated TinyVM executable artifacts",
@@ -34,16 +34,16 @@
   "verification": {
     "gcc_superbuild": "pass",
     "canonical_ctest": {
-      "passed": 81,
-      "total": 81
+      "passed": 103,
+      "total": 103
     },
     "callable_artifact_deterministic": true,
     "callable_observable_result": "LLVM = TinyVM switch = TinyVM computed = 1",
-    "clang_superbuild": "pass (81/81)",
-    "gcc_asan_ubsan": "pass (81/81), documented detect_leaks=0 environmental exclusion",
-    "valgrind": "zero errors in six compiler stages, native pager and 53 negative/support cases",
-    "native_pass_corpus": 91,
-    "concurrent_frontend_captures": 64
+    "clang_superbuild": "pass (103/103)",
+    "gcc_asan_ubsan": "not run as a coherent matrix; Clang ASan/UBSan pass (103/103) with detect_leaks=0 ptrace exclusion",
+    "valgrind": "57/57 native-chain negative/support boundary cases pass",
+    "native_pass_corpus": 97,
+    "concurrent_frontend_captures": 32
   },
   "explicit_non_claims": [
     "Flowmini is not self-hosted",

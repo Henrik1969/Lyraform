@@ -131,7 +131,8 @@
             "id": 0,
             "kind": "expression",
             "payload": {
-                "expression": 0
+                "expression": 0,
+                "print": true
             },
             "expression_ids": [
                 0
