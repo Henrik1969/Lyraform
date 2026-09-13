@@ -1,0 +1,16 @@
+unit std_abi_ctype
+
+abi ctype {
+    library "libc.so.6"
+    convention c
+
+    extern fn tolower(value : c_int): c_int {
+        symbol "tolower"
+        effect pure
+    }
+
+    extern fn toupper(value : c_int): c_int {
+        symbol "toupper"
+        effect pure
+    }
+}

@@ -1,0 +1,19 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/ctype.flow"
+
+program abi_ctype_main
+
+main {
+    lower : c_int(tolower(65))
+    upper : c_int(toupper(122))
+    lower_expected : c_int(97)
+    upper_expected : c_int(90)
+    status : c_int(0)
+
+    if lower == lower_expected {
+        puts("tolower ok") -> status
+    }
+    if upper == upper_expected {
+        puts("toupper ok") -> status
+    }
+}

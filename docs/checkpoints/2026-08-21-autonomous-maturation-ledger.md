@@ -1598,3 +1598,22 @@ unsupported carriers. State remains CONTINUE.
 Select another library-oriented capability with a distinct failure or resource
 contract, while keeping the complete canonical suite and onboarding evidence
 reconciled. State remains CONTINUE.
+
+## 2026-09-13 ctype scalar library checkpoint
+
+- Added `std/abi/ctype.flow` with exact `tolower(c_int):c_int` and
+  `toupper(c_int):c_int` contracts over `libc.so.6`.
+- Added the newly named `abi_ctype_main` fixture and a dedicated policy,
+  binding, LLVM-link, and TinyVM execution gate. Both backends print the same
+  conversion evidence and require the complete provider tuples.
+- Updated the standard-library matrix, TinyVM parity inventory, and onboarding
+  focused-gate command. Focused evidence: `ctype_library_boundary` passed
+  **1/1**; the complete canonical build and CTest suite passed **92/92** in
+  38.14 seconds. The pass corpus independently reports **95/95** programs
+  through semantic and lowering boundaries.
+
+## Exact next action
+
+Continue broadening the library surface with a bounded interface that adds a
+distinct resource or failure contract, while retaining exact LLVM/TinyVM
+parity and explicit refusal for unsupported carriers. State remains CONTINUE.
