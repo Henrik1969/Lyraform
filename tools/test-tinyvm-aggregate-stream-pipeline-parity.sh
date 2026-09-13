@@ -87,4 +87,11 @@ jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/tiny.report.json"
 "$tiny_lower" "$tmpdir/tiny.backend.json" "$tmpdir/program-again.tvm" >/dev/null
 cmp "$tmpdir/program.tvm" "$tmpdir/program-again.tvm"
 
+jq '.graph_schedule.stream_contract = "finite_scalar_stream_pipeline_v1"' "$tmpdir/tiny.backend.json" > "$tmpdir/mismatched.backend.json"
+if "$tiny_lower" "$tmpdir/mismatched.backend.json" "$tmpdir/mismatched.tvm" > "$tmpdir/mismatched.report.json" 2>/dev/null; then
+    echo 'TinyVM unexpectedly admitted a scalar/aggregate stream-contract mismatch' >&2
+    exit 1
+fi
+test ! -e "$tmpdir/mismatched.tvm"
+
 echo 'TinyVM aggregate stream pipeline parity: PASS'

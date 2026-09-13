@@ -2293,7 +2293,8 @@ aggregate stream shapes remain unimplemented.
   fresh receiver activations while preserving activation and signal identities.
 - Added `tinyvm_aggregate_stream_pipeline_parity`, covering native LLVM,
   TinyVM switch, TinyVM computed execution, exact provider policy, aggregate
-  layout metadata, and deterministic bytecode.
+  layout metadata, deterministic bytecode, and refusal of a scalar/aggregate
+  stream-contract mutation before artifact emission.
 - The complete canonical graph passes **107/107** under GCC in **60.09s** and
   **107/107** under Clang 18.1.3 ASan/UBSan in **105.98s** with the documented
   `detect_leaks=0` ptrace-compatible settings. The focused pipeline test passes
