@@ -1862,3 +1862,17 @@ provenance laws. State remains CONTINUE.
 Continue Gate 6 with the next receiver/graph boundary while preserving exact
 carrier width, root scheduling, activation provenance, and bounded execution.
 State remains CONTINUE.
+
+## 2026-09-13 native graph borrowed-string checkpoint
+
+- Extended the executable graph gate with a borrowed `c_string` provider and
+  receiver fan-out. The captured pointer reaches both observers through one
+  receiver output activation without being confused with a raw `c_pointer`.
+- The complete admitted scalar graph carrier set now has executable evidence;
+  focused native graph evidence passed **1/1**.
+
+## Exact next action
+
+Continue Gate 6 with the next graph/runtime boundary while preserving explicit
+borrowed-string lifetime, fresh activation, fan-out identity, and failure laws.
+State remains CONTINUE.

@@ -8,21 +8,24 @@ cat > "$tmpdir/provider.c" <<'C'
 #include <stdio.h>
 #include <stddef.h>
 static int calls;
+static const char graph_text[] = "graph text";
 extern int flow_graph_raise(int code);
 int input_value(void) { ++calls; return 3; }
 int other_value(void) { ++calls; return 8; }
 long wide_value(void) { return 4294967297L; }
 unsigned long ulong_value(void) { return 4294967297UL; }
 size_t size_value(void) { return (size_t)4294967298UL; }
+const char *text_value(void) { return graph_text; }
 int failing_value(void) { return flow_graph_raise(23); }
 int input_count(void) { return calls; }
 int observe_value(int value) { printf("%d\n", value); return 0; }
 int observe_long(long value) { printf("%ld\n", value); return 0; }
 int observe_ulong(unsigned long value) { printf("%lu\n", value); return 0; }
 int observe_size(size_t value) { printf("%zu\n", value); return 0; }
+int observe_text(const char *value) { printf("%s\n", value); return 0; }
 C
 clang -shared -fPIC "$tmpdir/provider.c" -o "$tmpdir/provider.so"
-jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"ulong",symbol:"ulong_value",effect:"readonly",parameters:[],return_type:"c_ulong"},{name:"size",symbol:"size_value",effect:"readonly",parameters:[],return_type:"c_size_t"},{name:"failure",symbol:"failing_value",effect:"failure",parameters:[],return_type:"c_int"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"},{name:"observe_ulong",symbol:"observe_ulong",effect:"io",parameters:[{name:"value",type:"c_ulong"}],return_type:"c_int"},{name:"observe_size",symbol:"observe_size",effect:"io",parameters:[{name:"value",type:"c_size_t"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
+jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"ulong",symbol:"ulong_value",effect:"readonly",parameters:[],return_type:"c_ulong"},{name:"size",symbol:"size_value",effect:"readonly",parameters:[],return_type:"c_size_t"},{name:"text",symbol:"text_value",effect:"readonly",parameters:[],return_type:"c_string"},{name:"failure",symbol:"failing_value",effect:"failure",parameters:[],return_type:"c_int"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"},{name:"observe_ulong",symbol:"observe_ulong",effect:"io",parameters:[{name:"value",type:"c_ulong"}],return_type:"c_int"},{name:"observe_size",symbol:"observe_size",effect:"io",parameters:[{name:"value",type:"c_size_t"}],return_type:"c_int"},{name:"observe_text",symbol:"observe_text",effect:"io",parameters:[{name:"value",type:"c_string"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/spec.json" --flow-output "$tmpdir/provider.flow" --policy-output "$tmpdir/policy" --manifest-output "$tmpdir/manifest.json" >/dev/null
 cat > "$tmpdir/selection.json" <<'JSON'
 {"format":"flowcore.graph_provider_map","version":1,"providers":[{"implementation":"injected.batch","source_callable":"host.input","activation":"startup_once","output_port":"out"}]}
@@ -244,6 +247,51 @@ assert all([
     enters[4]['input_signal_id'] == enters[3]['output_signal_id'],
     enters[5]['input_signal_id'] == enters[4]['output_signal_id'],
     len({r['delivery_id'] for r in receiver_enters}) == 4])
+PY
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+compile
+# A borrowed c_string is an admitted graph carrier with explicit pointer
+# semantics. Fan-out reuses the captured string pointer without re-executing
+# the receiver, while raw c_pointer remains refused below.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+cat > "$tmpdir/text.flow" <<'FLOW'
+import "provider.flow" as host
+program text_native_graph
+producer source : injected.text
+node receiver : fn identity_text
+node left : fn observe_text_graph
+node right : fn observe_text_graph
+wire source.out => receiver.in
+wire receiver.out => left.in
+wire receiver.out => right.in
+fn identity_text(value : c_string): c_string {
+    return value
+}
+fn observe_text_graph(value : c_string): c_string {
+    result : c_int(0)
+    host.observe_text(value) -> result
+    return value
+}
+main {
+    return 0
+}
+FLOW
+cp "$tmpdir/text.flow" "$tmpdir/program.flow"
+jq '.providers += [{implementation:"injected.text",source_callable:"host.text",activation:"startup_once",output_port:"out"}]' \
+    "$tmpdir/selection.json" > "$tmpdir/text.selection.json"
+mv "$tmpdir/text.selection.json" "$tmpdir/selection.json"
+compile
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf 'graph text\ngraph text\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+enters = [r for r in records if r['event'] == 'enter']
+assert [r['node_id'] for r in enters] == ['source', 'receiver', 'left', 'right']
+assert enters[1]['input_signal_id'] == enters[0]['output_signal_id']
+assert enters[2]['input_signal_id'] == enters[3]['input_signal_id'] == enters[1]['output_signal_id']
+assert len({r['delivery_id'] for r in enters[1:]}) == 3
 PY
 mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
 compile
