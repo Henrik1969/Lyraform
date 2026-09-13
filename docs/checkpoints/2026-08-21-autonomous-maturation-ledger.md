@@ -1662,3 +1662,19 @@ Continue with the first unfinished mission gate: mature resource failure and
 partial-transfer semantics around the admitted file boundary, or add a
 structured refusal gate that proves unsupported `sendfile` input cannot reach
 either backend. State remains CONTINUE.
+
+## 2026-09-13 file I/O failure checkpoint
+
+- Extended `abi_file_io_main` with a `/dev/full` write and explicit negative
+  result branch. LLVM and TinyVM both report `write failure ok` while still
+  closing the acquired descriptor.
+- Focused evidence: `file_io_boundary` passed **1/1** with bounded success,
+  EOF, error-result, cleanup, and structured `sendfile` refusal coverage. The
+  complete canonical CTest suite passed **94/94** in 38.63 seconds.
+
+## Exact next action
+
+Continue the first unfinished mission gate with partial-transfer and stronger
+initialized-byte semantics, keeping `sendfile` refused until its offset and
+transfer contract can be represented without raw host pointers. State remains
+CONTINUE.
