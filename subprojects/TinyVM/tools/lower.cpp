@@ -57,15 +57,19 @@ public:
                 const auto bytes = integer(required(layout, "size", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].size");
                 bool packed_ints = status == "verified" && bytes > 0 && bytes <= 8;
                 std::int64_t expected_size = 0;
+                std::int64_t expected_alignment = 1;
                 for (const auto& field : required_array(layout, "fields", "$.aggregate_abi_layouts[]")) {
                     const auto& field_object = object(field, "$.aggregate_abi_layouts[].fields[]");
                     const auto field_type = string(required(field_object, "type", "$.aggregate_abi_layouts[].fields[]"), "$.aggregate_abi_layouts[].fields[].type");
                     packed_ints = packed_ints && (field_type == "c_int" || field_type == "c_long" || field_type == "c_ulong" || field_type == "c_size_t");
                     const auto offset = integer(required(field_object, "offset", "$.aggregate_abi_layouts[].fields[]"), "$.aggregate_abi_layouts[].fields[].offset");
                     if (offset != expected_size) packed_ints = false;
-                    expected_size += field_type == "c_int" ? 4 : (field_type == "c_long" || field_type == "c_ulong" || field_type == "c_size_t" ? 8 : 0);
+                    const auto field_size = field_type == "c_int" ? 4 : (field_type == "c_long" || field_type == "c_ulong" || field_type == "c_size_t" ? 8 : 0);
+                    expected_size += field_size;
+                    expected_alignment = std::max(expected_alignment, static_cast<std::int64_t>(field_size));
                 }
-                packed_ints = packed_ints && expected_size == bytes;
+                const auto alignment = integer(required(layout, "alignment", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].alignment");
+                packed_ints = packed_ints && expected_size == bytes && alignment == expected_alignment;
                 if (packed_ints) aggregate_types_.insert(string(required(layout, "name", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].name"));
             }
         }

@@ -2247,3 +2247,20 @@ TinyVM activation/runtime and compatibility-bridge gates.
 State remains CONTINUE. The next ordered work is TinyVM activation/runtime and
 compatibility-bridge maturity, followed by the remaining definition-of-done
 reconciliation.
+
+## 2026-09-13 TinyVM aggregate-proof hardening checkpoint
+
+- TinyVM aggregate lowering now independently checks the declared alignment in
+  addition to verified status, supported integer field carriers, contiguous
+  offsets, and total payload size. A forged alignment proof is refused before
+  bytecode emission.
+- Added the hostile-alignment mutation to `tinyvm_aggregate_parity`. The
+  focused test passes **1/1** under GCC and **1/1** under Clang ASan/UBSan.
+- Repeated complete graphs after the change: GCC **104/104** in **45.66s** and
+  Clang 18.1.3 ASan/UBSan **104/104** in **105.06s**, using the documented
+  ptrace-compatible leak settings.
+
+State remains CONTINUE. The remaining TinyVM work is the documented general
+activation runtime boundary (runtime-held wire/signal/port identities and
+effectful/nested parallel or branching/merging stream delivery), not another
+unverified aggregate proof path.

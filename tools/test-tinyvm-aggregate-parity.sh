@@ -81,6 +81,7 @@ jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/tiny.report.json"
 for mutation in \
     '.aggregate_abi_layouts[0].status = "unverified"' \
     '.aggregate_abi_layouts[0].size = 16' \
+    '.aggregate_abi_layouts[0].alignment = 1' \
     '.aggregate_abi_layouts[0].fields[0].type = "c_long"' \
     '.graph_schedule.policy = "parallel"'; do
     rm -f "$tmpdir/mutated.tvm" "$tmpdir/mutated.report.json" "$tmpdir/mutated.stderr"
