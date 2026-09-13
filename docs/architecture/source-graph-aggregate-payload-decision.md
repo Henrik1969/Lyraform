@@ -43,15 +43,17 @@ The implementation must add positive and hostile evidence for:
    manifest evidence; and
 5. preservation through optimization and backend preparation.
 
-Aggregate payloads remain separate from the next reentrant/parallel scheduling
-phase. TinyVM aggregate graph execution remains last in Henrik's ordered plan.
+Aggregate payloads remain separate from the next reentrant/parallel aggregate
+scheduling phase. The bounded TinyVM aggregate graph path is now covered; its
+general activation-record extension remains later work.
 
 The implementation carries the verified layout array through Flowbind,
 Flowparallel, Flowoptimize, backend preparation, and Flowlower. On the current
-Linux x86-64 C ABI, a verified packed two-`c_int` aggregate is lowered to its
-provider ABI `i64` carrier; the carrier is derived from manifest size facts,
-not from the aggregate name. Native execution proves one provider activation,
-fan-out to two fresh receivers, and exact `3` payload-derived results.
+Linux x86-64 C ABI, verified packed integer aggregates up to 8 bytes are
+lowered to their provider ABI `i64` carrier; the carrier is derived from
+manifest size facts, not from the aggregate name. Native execution proves one
+provider activation, fan-out to two fresh receivers, and payload-derived
+results for both the existing `Point` and dedicated `LongValue` coverage.
 
 Direct non-graph aggregate calls remain blocked until their record-literal and
 general ABI lowering path is separately completed. Aggregate streams,

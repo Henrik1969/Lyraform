@@ -89,8 +89,8 @@ provider-verified aggregate payload contract documented in
 `source-graph-aggregate-payload-decision.md`: packed verified integer records are carried
 by the exact host ABI representation and may fan out immutably to fresh scalar
 receivers. Aggregate streams, multi-stage stream pipelines, stream policies,
-reentrant/parallel delivery, and native TinyVM graph execution remain
-unsupported.
+reentrant/parallel aggregate delivery, and generalized TinyVM activation
+records remain unsupported.
 The pager uses this scalar graph with an input status and selected page as wire
 payloads; its input provider owns an immutable raw data batch accessed through
 explicit read-only capabilities. Navigation, bounds, key interpretation, failure

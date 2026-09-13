@@ -192,7 +192,7 @@ mechanism remains provisional and unimplemented.
 | --- | --- | --- | --- | --- |
 | ModuleSpec/FlowIR runtime representation | named compatibility execution target | future canonical Graph IR and explicit lowering boundary | current Flowmini runtime | a governed runtime/backend consumes Graph IR or a later lowered representation |
 | `build/libflowmini_testabi.so` | legacy test-provider path bridge | declared prerequisite/provider resolution | ABI examples and tests | consumers resolve the provider through a stable declared contract |
-| hard-coded `Point` ABI carrier path | focused compatibility probe | future general ABI type and call mechanism | ABI test path | general ABI lowering is specified and gated |
+| packed verified integer aggregate ABI carrier path | bounded compatibility probe with generic layout identity | future general ABI type and call mechanism | ABI test path | general ABI lowering is specified and gated |
 | `Lyraform/flowmini_v24_explicit_ast/` | frozen historical implementation checkpoint | active v0.25 line | maintainers and historical comparison | preservation remains intentional; no deletion condition declared |
 | root superbuild references to `Handwritten_V1`, `flowcheck`, and `flowoptimize` | legacy build configuration | v0.25 directory CMake scope | historical/root workflows | explicit future root-build decision |
 

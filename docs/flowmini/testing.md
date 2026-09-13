@@ -139,9 +139,9 @@ cmake --build <build-tree> --target flowmini_prepare_test_dependencies
 This is a documented compatibility bridge, not the intended future
 prerequisite/provider model.
 
-The current struct-by-value ABI probe also shares the focused C declaration in
+The current struct-by-value ABI probe shares focused C declarations in
 `subprojects/testabi/include/flowmini_testabi.h` between the test provider and
-the runtime's existing hard-coded `Point` compatibility path. This keeps the
-function-pointer type and carrier layout exact under UndefinedBehaviorSanitizer.
-It is test-provider infrastructure, not a canonical Flowmini ABI type or the
-future general ABI call mechanism.
+the runtime's type-erased packed-integer aggregate path. The `Point` and
+`LongValue` fixtures keep function-pointer types and carrier layouts exact under
+UndefinedBehaviorSanitizer. This is test-provider infrastructure and a bounded
+ABI slice, not the future general ABI call mechanism.
