@@ -12,11 +12,15 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
     using namespace json;
     const auto graph = source_graph(graph_value);
     if (!graph.executable) throw Error("$.source_graph", "source graph execution is not admitted");
+    const auto schedule_policy = optional(object(graph_value), "schedule_policy")
+        ? string(*optional(object(graph_value), "schedule_policy"), "$.schedule_policy") : std::string{"serial"};
     std::vector<const json::Value*> stream_providers;
     for (const auto& provider : graph.providers)
         if (string(required(object(provider, "$.providers[]"), "activation", "$.providers[]"), "$.providers[].activation") == "finite_stream_once")
             stream_providers.push_back(&provider);
     if (!stream_providers.empty()) {
+        if (schedule_policy == "parallel_independent_v1")
+            throw Error("$.graph_schedule", "parallel scheduling is not admitted for finite streams");
         if (stream_providers.size() != 1 || graph.providers.size() != 1)
             throw Error("$.graph_schedule", "finite stream template requires exactly one stream root");
         const auto& provider = object(*stream_providers.front(), "$.providers[0]");
@@ -71,6 +75,8 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
     for (const auto& receiver : graph.receivers)
         if (optional(object(receiver, "$.receivers[]"), "state_contract")) persistent = true;
     if (persistent) {
+        if (schedule_policy == "parallel_independent_v1")
+            throw Error("$.graph_schedule", "parallel scheduling cannot share persistent receiver state");
         if (graph.providers.size() != 1 || graph.receivers.empty())
             throw Error("$.graph_schedule", "persistent template requires one startup root and at least one receiver");
         const auto& root_provider = object(graph.providers.front(), "$.providers[0]");
@@ -120,8 +126,6 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
                 {"output_port", "out"}, {"output_connected", connected}});
         }
     }
-    const auto schedule_policy = optional(object(graph_value), "schedule_policy")
-        ? string(*optional(object(graph_value), "schedule_policy"), "$.schedule_policy") : std::string{"serial"};
     if (schedule_policy == "parallel_independent_v1") {
         std::map<Integer, Array> waves;
         std::map<Integer, Integer> levels;

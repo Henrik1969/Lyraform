@@ -2128,3 +2128,9 @@ this worker boundary before considering TinyVM.
 Focused aggregate-worker evidence passes **2/2** together with the scalar
 worker proof. The scalar worker test also now proves a mutable-local receiver
 is rejected before LLVM emission. State remains CONTINUE.
+
+The schedule boundary is now explicit for the other active families as well:
+Flowparallel rejects a parallel policy selected for finite streams or
+persistent receivers before publishing an executable schedule. Streams retain
+their dynamic FIFO contract, and persistent receivers retain serialized state
+commit semantics; neither is silently coerced into a worker wave.

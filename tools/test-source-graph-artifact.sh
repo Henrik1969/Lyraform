@@ -160,6 +160,11 @@ jq -e '.graph_schedule.format == "flowcore.graph_schedule" and
     .graph_schedule.steps[1].kind == "stream_receiver" and
     .graph_schedule.steps[1].stream_index == "$index"' "$tmpdir/stream.execution.json" >/dev/null
 "$FLOWOPTIMIZE_BIN" < "$tmpdir/stream.execution.json" > "$tmpdir/stream.optimization.json"
+jq '.version = 3 | .providers[0].schedule_policy = "parallel_independent_v1"' "$tmpdir/stream-selection.json" > "$tmpdir/parallel-stream-selection.json"
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/parallel-stream-selection.json" < "$tmpdir/producer.frontend.json" > "$tmpdir/parallel-stream.semantic.json"
+if "$FLOWPARALLEL_BIN" < "$tmpdir/parallel-stream.semantic.json" > "$tmpdir/parallel-stream.execution.json" 2>/dev/null; then
+    echo 'parallel finite stream unexpectedly scheduled' >&2; exit 1
+fi
 jq '.graph_schedule.streams[0].max_items = 0' "$tmpdir/stream.execution.json" > "$tmpdir/bad-stream.execution.json"
 if "$FLOWOPTIMIZE_BIN" < "$tmpdir/bad-stream.execution.json" >/dev/null 2>&1; then
     echo 'invalid stream schedule accepted' >&2; exit 1
@@ -243,5 +248,10 @@ jq -e '.graph_schedule.version == 3 and
     .graph_schedule.steps[1].kind == "persistent_receiver" and
     .graph_schedule.steps[1].state_initial_value == "5" and
     .graph_schedule.steps[1].state_parameter_symbol_id >= 0' "$tmpdir/persistent.execution.json" >/dev/null
+jq '.version = 3 | .providers[0].schedule_policy = "parallel_independent_v1"' "$tmpdir/providers.json" > "$tmpdir/parallel-persistent-selection.json"
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/parallel-persistent-selection.json" < "$tmpdir/persistent.frontend.json" > "$tmpdir/parallel-persistent.semantic.json"
+if "$FLOWPARALLEL_BIN" < "$tmpdir/parallel-persistent.semantic.json" > "$tmpdir/parallel-persistent.execution.json" 2>/dev/null; then
+    echo 'parallel persistent graph unexpectedly scheduled' >&2; exit 1
+fi
 
 echo 'source graph artifact and provider selection: PASS'
