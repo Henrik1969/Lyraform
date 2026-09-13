@@ -331,7 +331,7 @@ add_test(NAME tinyvm_text_boundary_parity
 set_tests_properties(tinyvm_text_boundary_parity PROPERTIES
     DEPENDS "text_value_boundary;tinyvm_governed_provider_parity")
 
-add_test(NAME tinyvm_runtime_text_refusal
+add_test(NAME tinyvm_runtime_text_parity
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>
@@ -340,10 +340,13 @@ add_test(NAME tinyvm_runtime_text_refusal
         FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
         FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
         FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
         FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
+        FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
+        FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
-        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-runtime-text-refusal.sh)
-set_tests_properties(tinyvm_runtime_text_refusal PROPERTIES
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-runtime-text-parity.sh)
+set_tests_properties(tinyvm_runtime_text_parity PROPERTIES
     DEPENDS "text_runtime_boundary")
 
 # Canonical installed shape. Debian packaging consumes this staged install and

@@ -3,10 +3,20 @@
 #include <tinyvm/isa_v1.h>
 
 typedef struct {
+    char *bytes;
+    size_t length;
+} TinyvmRuntimeString;
+
+typedef struct {
     const char *policy_path;
     size_t argument_count;
     const char *const *arguments;
+    TinyvmRuntimeString *owned_strings;
+    size_t owned_string_count;
+    size_t owned_string_capacity;
 } TinyvmRuntimeProvider;
+
+void tinyvm_runtime_provider_destroy(TinyvmRuntimeProvider *provider);
 
 bool tinyvm_runtime_provider_preflight(const TinyvmRuntimeProvider *provider,
                                        const TinyvmArtifactV2 *artifact,

@@ -23,7 +23,7 @@ static int run_v2(const char *path,const char *policy,const char *engine,int arg
         tinyvm_artifact_v2_destroy(&artifact); return ok?0:1;
     }
     if(artifact.isa_version!=1&&artifact.isa_version!=2){tinyvm_artifact_v2_destroy(&artifact);return 2;}
-    TinyvmRuntimeProvider provider={policy,(size_t)argument_count,(const char *const *)arguments};
+    TinyvmRuntimeProvider provider={policy,(size_t)argument_count,(const char *const *)arguments,NULL,0,0};
     const char *fault=NULL;
     if(artifact.import_count&&!tinyvm_runtime_provider_preflight(&provider,&artifact,&fault)){fprintf(stderr,"flowtinyrun: %s\n",fault);tinyvm_artifact_v2_destroy(&artifact);return 2;}
     TinyvmIsaV1Context context;
@@ -33,7 +33,7 @@ static int run_v2(const char *path,const char *policy,const char *engine,int arg
     const bool ok=!strcmp(engine,"computed")?tinyvm_isa_v1_run_computed(&artifact,&context):tinyvm_isa_v1_run_switch(&artifact,&context);
     if(!ok&&context.fault)fprintf(stderr,"flowtinyrun: %s\n",context.fault);
     printf("{\"format\":\"flowtiny.execution_record\",\"version\":1,\"status\":\"%s\",\"artifact_format\":2,\"artifact_id\":\"%s\",\"target_policy_id\":\"%s\",\"carrier\":%u,\"result\":%" PRIu64 ",\"pc\":%" PRIu64 ",\"trap\":%u}\n",ok?"completed":"faulted",artifact.artifact_id,artifact.target_policy_id,context.result.carrier,context.result.bits,context.pc,context.trap);
-    tinyvm_isa_v1_context_destroy(&context); tinyvm_artifact_v2_destroy(&artifact); return ok?0:1;
+    tinyvm_isa_v1_context_destroy(&context); tinyvm_runtime_provider_destroy(&provider); tinyvm_artifact_v2_destroy(&artifact); return ok?0:1;
 }
 
 static int run_v1(const char *path) {

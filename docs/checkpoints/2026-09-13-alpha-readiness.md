@@ -47,7 +47,7 @@ After the first Text slice, a fresh `/tmp/lyraform-text-build` compiled 115
 targets and the complete CTest graph passed 82/82 in 34.51 seconds. After the
 TinyVM parity gate was added, the same fresh build passed 83/83 in 36.68
 seconds. After the bounded runtime Text gate was added, it passed 85/85 in
-36.44 seconds. The two pager tests were rerun after a compatibility repair for
+36.26 seconds. The two pager tests were rerun after a compatibility repair for
 empty legacy `c_string` values and also passed.
 
 ## Current scope
@@ -74,8 +74,8 @@ tools/test-tinyvm-text-parity.sh
   PASS: the admitted compile-time Text slice has LLVM/TinyVM output parity
 tools/test-text-runtime.sh
   PASS: provider-owned bounded runtime concat and explicit exhaustion trap
-tools/test-tinyvm-runtime-text-refusal.sh
-  PASS: runtime-created Text is explicitly unsupported by TinyVM
+tools/test-tinyvm-runtime-text-parity.sh
+  PASS: bounded runtime-created Text has LLVM/TinyVM output and failure parity
 ```
 
 The native fixture prints an empty line followed by `Lyraform — Igor`, proving

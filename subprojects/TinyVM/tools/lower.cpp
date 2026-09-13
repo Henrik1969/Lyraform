@@ -295,14 +295,19 @@ private:
                                   (symbol == "labs" && parameters == "c_long" && result_type == "c_long") ||
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
                                   (symbol == "puts" && (parameters == "c_string" || parameters == "Text") && result_type == "c_int") ||
+                                  (symbol == "flow_text_concat" && parameters == "Text,Text" && result_type == "Text") ||
                                   ((symbol == "getpgid" || symbol == "getsid") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "getpriority" && parameters == "c_int,c_int" && result_type == "c_int") ||
                                   ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int");
             const auto contract = string(required(provider, "contract", "$.operation.provider"), "$.operation.provider.contract");
             const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
-            const bool authority = ((effect == "pure" || effect == "io") && contract == "libc") || (effect == "readonly" && (contract == "kernel" || contract == "linux"));
-            if (!admitted || !authority ||
-                string(required(provider, "library", "$.operation.provider"), "$.operation.provider.library") != "libc.so.6" ||
+            const bool authority = ((effect == "pure" || effect == "io") && contract == "libc") ||
+                                   (effect == "memory" && contract == "text_runtime") ||
+                                   (effect == "readonly" && (contract == "kernel" || contract == "linux"));
+            const auto library = string(required(provider, "library", "$.operation.provider"), "$.operation.provider.library");
+            const bool library_admitted = ((contract == "libc" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
+                                          (contract == "text_runtime" && library == "libflowtext.so");
+            if (!admitted || !authority || !library_admitted ||
                 string(required(provider, "convention", "$.operation.provider"), "$.operation.provider.convention") != "c")
                 throw Unsupported("external provider tuple is not admitted by the typed-call slice");
             std::vector<std::uint32_t> expected; for (std::size_t start = 0; start < parameters.size();) { const auto end = parameters.find(',', start); expected.push_back(carrier(parameters.substr(start, end == std::string::npos ? parameters.size() - start : end - start))); if (end == std::string::npos) break; start = end + 1; }
@@ -318,7 +323,9 @@ private:
             const auto* result_identity = optional(operation, "result_symbol_id");
             const auto destination = result_identity ? symbol_slot(integer(*result_identity, "$.operation.result_symbol_id")) : slot();
             slot_types_[destination] = carrier(result_type);
-            emit(TV1_CALL_IMPORT, destination, imported.id, argument_start); return;
+            emit(TV1_CALL_IMPORT, destination, imported.id, argument_start);
+            call_results_[integer(required(operation, "expression_id", "$.operation"), "$.operation.expression_id")] = destination;
+            return;
         }
         if (kind == "call") {
             const auto callee = integer(required(operation, "callee_symbol_id", "$.operation"), "$.operation.callee_symbol_id");

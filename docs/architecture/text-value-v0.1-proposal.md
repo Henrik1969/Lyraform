@@ -102,16 +102,15 @@ The current generic chain admits the following bounded slice:
 - `print` resolves only to a declared `puts_text(Text): c_int` capability;
 - Text operation identity, provider identity, and Text carrier type survive
   Flowparallel, Flowoptimize, Flowbind, and Flowlower;
-- the admitted compile-time slice has LLVM/TinyVM output parity through the
-  exact `puts(Text)` import boundary;
+- the admitted compile-time slice and the bounded runtime concat shape have
+  LLVM/TinyVM output parity through exact import boundaries;
 - c_string-to-Text initializers, c_string printing, dynamic Text concatenation,
   and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
 
 This slice deliberately does not claim general runtime allocation policy or
-TinyVM ownership for runtime-created Text. The native bounded concat path is
-one admitted provider shape; broader dynamic concatenation, portable failure
-outcomes, and parity for runtime-created Text values remain admission gates for
-the complete v0.1 contract.
+TinyVM ownership beyond the bounded provider shape. Portable failure outcomes,
+broader dynamic concatenation, and general runtime allocation policy remain
+admission gates for the complete v0.1 contract.
 
 ## Open review questions
 

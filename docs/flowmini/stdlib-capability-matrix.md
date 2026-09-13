@@ -12,7 +12,7 @@ symbol exported by glibc or every platform ABI.
 | Module | Role | Current evidence | Status |
 |---|---|---|---|
 | `std/abi/libc.flow` | C string, scalar, and basic output calls | `strlen`, `abs`, `labs`, and `puts` are resolved through exact `libc.so.6` grants and emitted as authorized capability records | ready |
-| `std/abi/text.flow` | Bounded owned Text concatenation | `flow_text_concat(Text,Text)->Text` is provider-owned, capped at 4096 bytes, and exercised through exact `libflowtext.so` authorization; TinyVM reports explicit unsupported status for this runtime-created value | native bounded slice; TinyVM deferred |
+| `std/abi/text.flow` | Bounded owned Text concatenation | `flow_text_concat(Text,Text)->Text` is provider-owned, capped at 4096 bytes, and exercised through exact `libflowtext.so` authorization; LLVM and TinyVM cover success and exhaustion | bounded native/TinyVM slice |
 | `std/abi/file_io.flow` | C file descriptor I/O | `open`, `read`, `write`, `sendfile`, and `close` resolve through exact grants; `flowcat` uses generic typed-plan loops, branches, mutation, and calls | ready, Linux-specific `sendfile` example |
 | `std/abi/memory.flow` | Bounded C memory operations | `memcpy`, `memset`, and `memcmp` resolve through exact `libc.so.6` grants and are emitted as authorized capability records; pointer execution remains outside this gate | binding-ready, lowering deferred |
 | `std/abi/kernel.flow` | Current Flowkernel communication matrix | all 32 symbols resolve through exact effect-aware grants and have individual narrow executable profiles with safe probes; process identity and priority queries are authorized through exact provider contracts and executable proofs | executable boundary verified; 32/32 |

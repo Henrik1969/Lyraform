@@ -1332,15 +1332,19 @@ LLVM/TinyVM differential and failure evidence. State remains CONTINUE.
   when a non-null Text result contract is violated. A returned provider-owned
   value survives an ordinary Text function return and prints natively.
 - Evidence: `tools/test-text-runtime.sh` passed successful concat and a 4097-byte
-  exhaustion case; `tools/test-tinyvm-runtime-text-refusal.sh` passed the
-  structured TinyVM refusal; the fresh complete suite passed **85/85** in 36.44s.
-- The TinyVM refusal is intentional: its current runtime provider cannot yet
-  register provider-owned result bytes as portable artifact-visible string
-  handles. No false parity claim is made.
+  exhaustion case; `tools/test-tinyvm-runtime-text-parity.sh` passed the
+  LLVM/TinyVM differential and failure case; the fresh complete suite passed
+  **85/85** in 36.26s.
+- TinyVM now registers provider-owned result bytes as provider-local opaque
+  handles for the activation. Those handles are never serialized as host
+  pointers; the artifact still carries only the governed import contract.
+- A provider failure is an explicit TinyVM import trap (`TV1_TRAP_UNRESOLVED_IMPORT`)
+  and an LLVM `llvm.trap`, with the same non-success disposition in the
+  differential fixture.
 
 ## Exact next action
 
-Extend TinyVM's governed runtime provider with owned result-string storage and
-an explicit exhaustion trap/outcome, then add LLVM/TinyVM differential evidence
-for bounded runtime concat. Keep artifact-visible host pointers prohibited.
-State remains CONTINUE.
+Broaden the bounded Text contract beyond this one provider shape: define a
+portable failure outcome rather than backend traps, then cover repeated and
+fan-out ownership/lifetime cases. Keep artifact-visible host pointers
+prohibited. State remains CONTINUE.
