@@ -14,6 +14,7 @@ This is the soul of Lyraform.
 ## Main areas
 
 - [Lyraform compiler](../Lyraform/README.md)
+- [Tester and critic onboarding](onboarding/README.md)
 - [Subprojects](../subprojects/README.md)
 - [Pattern explored](../Pattern_explored/README.md)
 - [Architecture notes](architecture/README.md)
