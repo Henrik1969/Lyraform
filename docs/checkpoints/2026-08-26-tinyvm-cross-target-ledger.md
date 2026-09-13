@@ -442,5 +442,7 @@ the already captured recovered-ISA boundary.
   lowering result with a reason.
 - Removing or changing the exact aggregate provider policy tuple fails runtime
   preflight before the provider is opened or called.
-- The focused aggregate parity test passed; the complete canonical suite is
-  the next required checkpoint evidence.
+- The aggregate payload fixture now produces the same observable output and
+  result through both switch and computed-goto TinyVM engines.
+- The focused aggregate parity test and complete canonical suite passed;
+  canonical CTest is now 102/102 green.

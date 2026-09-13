@@ -66,9 +66,13 @@ clang -c "$tmpdir/program.ll" -o "$tmpdir/program.o"
 "$tiny_run" --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.stdout"
 sed '$d' "$tmpdir/tiny.stdout" > "$tmpdir/tiny.program.stdout"
 cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.program.stdout"
+"$tiny_run" --engine computed --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.computed.stdout"
+sed '$d' "$tmpdir/tiny.computed.stdout" > "$tmpdir/tiny.computed.program.stdout"
+cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.computed.program.stdout"
 printf 'tinyvm aggregate\ntinyvm aggregate\n' > "$tmpdir/expected.stdout"
 cmp "$tmpdir/expected.stdout" "$tmpdir/llvm.stdout"
 test "$(tail -n 1 "$tmpdir/tiny.stdout" | jq -r .result)" -eq 0
+test "$(tail -n 1 "$tmpdir/tiny.computed.stdout" | jq -r .result)" -eq 0
 jq -e '.aggregate_abi_layouts[0].status == "verified" and .graph_schedule.version == 1' "$tmpdir/tiny.backend.json" >/dev/null
 jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/tiny.report.json" >/dev/null
 
