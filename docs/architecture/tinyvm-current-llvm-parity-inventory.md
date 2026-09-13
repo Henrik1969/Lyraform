@@ -22,6 +22,7 @@ executable for every tuple outside the admitted set below.
 | source graph / finite scalar stream | one authorized `stream` count `()->c_size_t` and item `(c_size_t)->c_int` provider, bounded item loop and fresh receiver activation parity with LLVM |
 | source graph / persistent scalar activation | one startup provider, repeated fresh deliveries, typed `c_long` state initialization/update and LLVM/TinyVM output parity through schedule v3 |
 | source graph / pure parallel activation | validated schedule v4 dependency waves with pure, non-nested receiver bodies; deterministic serial TinyVM projection is equivalent for this effect-free surface |
+| verified aggregate payload | packed verified `c_int` layouts up to 8 bytes, aggregate provider return and aggregate parameter call through typed 64-bit payloads |
 
 Every import requires an active policy match before execution and a named typed
 thunk after admission. Missing policy, effect drift, carrier drift, library
@@ -39,8 +40,8 @@ drift and unimplemented tuples fail closed.
 | namespaces | `unshare`, `sethostname`, `gethostname` | privilege/capability policy, mutable output and environment lifecycle |
 | memory | `memcpy`, `memmove`, `memset`, `memcmp` | handle ranges, alias/overlap laws and initialized-byte tracking |
 | ncurses/TUI | `initscr`, `endwin`, `noecho`, `cbreak`, `waddnstr`, `wrefresh`, `wgetch`, `keypad` | external window lifetime, terminal ownership, cleanup and interactive evidence |
-| provider aggregates | current `testabi` aggregate probes | provider-owned layout is verified upstream but aggregate call lowering is not implemented |
-| graph activation runtime | effectful/nested schedule v4 parallel waves; stream receiver pipelines | pure parallel waves are admitted as a serial projection; actual parallel runtime delivery and generalized activation records are not yet implemented |
+| provider aggregates beyond packed scalar slice | verified layouts larger than 8 bytes, non-`c_int` fields and aggregate-to-aggregate calls | TinyVM admits only packed verified `c_int` aggregates up to 8 bytes in this slice |
+| graph activation runtime | effectful/nested schedule v4 parallel waves; stream receiver pipelines | pure parallel waves and packed aggregate payloads are admitted; actual parallel runtime delivery and generalized activation records are not yet implemented |
 
 These are exact remaining implementation slices, not silently substituted LLVM
 fallbacks. Target-policy work may select LLVM explicitly for them, but may not

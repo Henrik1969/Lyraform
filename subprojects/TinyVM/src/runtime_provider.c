@@ -15,6 +15,8 @@ static const char *text_outcome_fault(int code) {
     if (code == 2) return "text outcome exhausted";
     return "text outcome provider_unavailable";
 }
+static bool standard_type(const char *type){return !strcmp(type,"none")||!strcmp(type,"c_int")||!strcmp(type,"c_long")||!strcmp(type,"c_ulong")||!strcmp(type,"c_size_t")||!strcmp(type,"c_string")||!strcmp(type,"c_pointer")||!strcmp(type,"Text")||!strcmp(type,"TextOutcome");}
+static bool aggregate_import(const TinyvmImport *x){if(!standard_type(x->result))return true;if(!strchr(x->parameters,',')&&!standard_type(x->parameters))return true;return false;}
 
 static bool authorized(const char *path,const TinyvmImport *x){if(!path)return false;FILE *f=fopen(path,"r");if(!f)return false;char expected[512],legacy[512],line[512];snprintf(expected,sizeof expected,"allow %s %s %s %s %s %s",x->library,x->symbol,x->convention,x->effect,x->parameters,x->result);snprintf(legacy,sizeof legacy,"allow %s %s %s %s",x->library,x->symbol,x->convention,x->effect);bool found=false;while(fgets(line,sizeof line,f)){line[strcspn(line,"\r\n")]=0;if(strcmp(line,expected)==0||(!strcmp(x->parameters,"none")&&!strcmp(line,legacy))){found=true;break;}}fclose(f);return found;}
 static const TinyvmString *string_by_id(const TinyvmArtifactV2 *a,uint64_t id){for(size_t i=0;i<a->string_count;++i)if(a->strings[i].id==id)return &a->strings[i];return NULL;}
@@ -34,7 +36,7 @@ bool tinyvm_runtime_provider_preflight(const TinyvmRuntimeProvider *provider,con
 bool tinyvm_runtime_provider_resolve(void *user,const TinyvmArtifactV2 *a,const TinyvmImport *x,const TinyvmValue *args,size_t count,TinyvmValue *out,const char **fault){
     TinyvmRuntimeProvider *provider=user;
     if(!provider||!authorized(provider->policy_path,x)){*fault="active policy does not authorize exact import tuple";return false;}
-    if(strcmp(x->convention,"c") || ((strcmp(x->library,"libc.so.6") && strcmp(x->library,"libflowtext.so")) && strcmp(x->contract,"stream"))){*fault="runtime provider does not admit import authority";return false;}
+    if(strcmp(x->convention,"c") || ((strcmp(x->library,"libc.so.6") && strcmp(x->library,"libflowtext.so")) && strcmp(x->contract,"stream") && !aggregate_import(x))){*fault="runtime provider does not admit import authority";return false;}
     void *library=dlopen(x->library,RTLD_NOW|RTLD_LOCAL);if(!library){*fault="authorized runtime library is unavailable";return false;}bool ok=false;bool exact_failure=false;
     if(!strcmp(x->contract,"libc")&&!strcmp(x->effect,"pure")&&!strcmp(x->symbol,"abs")&&!strcmp(x->parameters,"c_int")&&!strcmp(x->result,"c_int")&&count==1&&args[0].carrier==TINYVM_CARRIER_I32){int (*function)(int)=NULL;*(void **)(&function)=dlsym(library,"abs");if(function){const int value=function((int32_t)args[0].bits);*out=(TinyvmValue){TINYVM_CARRIER_I32,(uint64_t)(int64_t)value,true};ok=true;}}
     else if(!strcmp(x->contract,"libc")&&!strcmp(x->effect,"pure")&&!strcmp(x->symbol,"labs")&&!strcmp(x->parameters,"c_long")&&!strcmp(x->result,"c_long")&&count==1&&args[0].carrier==TINYVM_CARRIER_I64){long (*function)(long)=NULL;*(void **)(&function)=dlsym(library,"labs");if(function){*out=(TinyvmValue){TINYVM_CARRIER_I64,(uint64_t)(int64_t)function((long)(int64_t)args[0].bits),true};ok=true;}}
@@ -59,6 +61,8 @@ bool tinyvm_runtime_provider_resolve(void *user,const TinyvmArtifactV2 *a,const 
     else if((!strcmp(x->contract,"kernel")||!strcmp(x->contract,"linux"))&&!strcmp(x->effect,"readonly")&&!strcmp(x->symbol,"getpriority")&&!strcmp(x->parameters,"c_int,c_int")&&!strcmp(x->result,"c_int")&&count==2&&args[0].carrier==TINYVM_CARRIER_I32&&args[1].carrier==TINYVM_CARRIER_I32){int (*function)(int,int)=NULL;*(void **)(&function)=dlsym(library,"getpriority");if(function){*out=(TinyvmValue){TINYVM_CARRIER_I32,(uint64_t)(int64_t)function((int32_t)args[0].bits,(int32_t)args[1].bits),true};ok=true;}}
     else if(!strcmp(x->contract,"stream")&&!strcmp(x->effect,"readonly")&&!strcmp(x->parameters,"none")&&!strcmp(x->result,"c_size_t")&&count==0){size_t (*function)(void)=NULL;*(void **)(&function)=dlsym(library,x->symbol);if(function){*out=(TinyvmValue){TINYVM_CARRIER_I64,(uint64_t)function(),true};ok=true;}}
     else if(!strcmp(x->contract,"stream")&&!strcmp(x->effect,"readonly")&&!strcmp(x->parameters,"c_size_t")&&!strcmp(x->result,"c_int")&&count==1&&args[0].carrier==TINYVM_CARRIER_I64){int (*function)(size_t)=NULL;*(void **)(&function)=dlsym(library,x->symbol);if(function){*out=(TinyvmValue){TINYVM_CARRIER_I32,(uint64_t)(int64_t)function((size_t)args[0].bits),true};ok=true;}}
+    else if(aggregate_import(x)&&!strcmp(x->parameters,"none")&&count==0){uint64_t (*function)(void)=NULL;*(void **)(&function)=dlsym(library,x->symbol);if(function){*out=(TinyvmValue){TINYVM_CARRIER_I64,function(),true};ok=true;}}
+    else if(aggregate_import(x)&&count==1&&args[0].carrier==TINYVM_CARRIER_I64&&!strcmp(x->result,"c_int")){int (*function)(uint64_t)=NULL;*(void **)(&function)=dlsym(library,x->symbol);if(function){*out=(TinyvmValue){TINYVM_CARRIER_I32,(uint64_t)(int64_t)function(args[0].bits),true};ok=true;}}
     if(!ok&&!exact_failure)*fault="no exact typed runtime thunk for import";
     dlclose(library);
     return ok;

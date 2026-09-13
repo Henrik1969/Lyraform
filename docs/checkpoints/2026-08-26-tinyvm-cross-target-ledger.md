@@ -419,3 +419,16 @@ the already captured recovered-ISA boundary.
   does not claim a parallel TinyVM runtime or reorder effectful work.
 - LLVM and TinyVM both complete the pipeline/fan-out fixture under switch and
   computed engines; effectful parallel graphs remain rejected.
+
+### Verified aggregate payload parity — `tinyvm-verified-aggregate-parity-v1`
+
+- TinyVM now admits verified packed aggregate layouts containing only `c_int`
+  fields and occupying at most 8 bytes.
+- The current artifact projection carries these values in typed 64-bit slots;
+  the runtime uses exact policy-authorized typed aggregate return and parameter
+  thunks, without application-name dispatch.
+- Provider-return and aggregate-parameter graph calls produce identical
+  observable output and result under LLVM and TinyVM, with deterministic
+  repeated lowering.
+- Larger/non-packed layouts, non-`c_int` fields and aggregate-to-aggregate
+  calls remain explicit future boundaries.

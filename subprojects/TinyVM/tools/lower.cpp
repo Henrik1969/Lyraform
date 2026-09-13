@@ -49,6 +49,18 @@ public:
 
     void compile() {
         const auto& plan = required_object(root_, "lowering_plan");
+        if (const auto* layouts = optional(root_, "aggregate_abi_layouts")) {
+            const auto& layout_values = array(*layouts, "$.aggregate_abi_layouts");
+            for (const auto& value : layout_values) {
+                const auto& layout = object(value, "$.aggregate_abi_layouts[]");
+                const auto status = string(required(layout, "status", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].status");
+                const auto bytes = integer(required(layout, "size", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].size");
+                bool packed_ints = status == "verified" && bytes > 0 && bytes <= 8;
+                for (const auto& field : required_array(layout, "fields", "$.aggregate_abi_layouts[]"))
+                    packed_ints = packed_ints && string(required(object(field, "$.aggregate_abi_layouts[].fields[]"), "type", "$.aggregate_abi_layouts[].fields[]"), "$.aggregate_abi_layouts[].fields[].type") == "c_int";
+                if (packed_ints) aggregate_types_.insert(string(required(layout, "name", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].name"));
+            }
+        }
         const auto plan_version = integer(required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version");
         if (plan_version == 2) for (const auto& value : required_array(plan, "functions", "$.lowering_plan")) {
             const auto& function = object(value, "$.lowering_plan.functions[]");
@@ -122,6 +134,7 @@ private:
     std::map<Integer, std::vector<const Object*>> blocks_;
     std::map<Integer,Callable> callables_;
     std::map<Integer,std::size_t> call_results_;
+    std::set<std::string> aggregate_types_;
     std::size_t* function_result_ = nullptr;
     std::vector<std::size_t>* function_return_jumps_ = nullptr;
     std::set<Integer> active_blocks_;
@@ -335,12 +348,13 @@ private:
         if (values.empty()) throw Unsupported("TinyVM graph schedule has no activations");
     }
 
-    static std::uint32_t carrier(std::string_view type) {
+    std::uint32_t carrier(std::string_view type) const {
         if (type == "bool" || type == "Bool") return TINYVM_CARRIER_I1;
         if (type == "int" || type == "c_int") return TINYVM_CARRIER_I32;
         if (type == "c_long" || type == "c_ulong" || type == "c_size_t") return TINYVM_CARRIER_I64;
         if (type == "c_string" || type == "c_pointer" || type == "Text") return TINYVM_CARRIER_OPAQUE_HANDLE;
         if (type == "TextOutcome") return TINYVM_CARRIER_TEXT_OUTCOME;
+        if (aggregate_types_.count(std::string{type})) return TINYVM_CARRIER_I64;
         throw Unsupported("type carrier '" + std::string(type) + "' is not admitted by the scalar slice");
     }
     std::size_t slot() { return next_slot_++; }
@@ -506,6 +520,8 @@ private:
             const auto result_type = string(required(provider, "return_type", "$.operation.provider"), "$.operation.provider.return_type");
             const auto contract = string(required(provider, "contract", "$.operation.provider"), "$.operation.provider.contract");
             const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
+            const bool aggregate_result = aggregate_types_.count(result_type) != 0;
+            const bool aggregate_parameter = parameters.find(',') == std::string::npos && aggregate_types_.count(parameters) != 0;
             const bool admitted = (symbol == "abs" && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "labs" && parameters == "c_long" && result_type == "c_long") ||
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
@@ -526,15 +542,18 @@ private:
                                   ((symbol == "getpgid" || symbol == "getsid") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "getpriority" && parameters == "c_int,c_int" && result_type == "c_int") ||
                                   ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int") ||
-                                  (contract == "stream" && effect == "readonly" && ((parameters.empty() && result_type == "c_size_t") || (parameters == "c_size_t" && result_type == "c_int")));
+                                  (contract == "stream" && effect == "readonly" && ((parameters.empty() && result_type == "c_size_t") || (parameters == "c_size_t" && result_type == "c_int"))) ||
+                                  ((aggregate_result && parameters.empty()) || (aggregate_parameter && result_type == "c_int"));
             const bool authority = ((effect == "pure" || effect == "io") && (contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io")) ||
                                    (effect == "memory" && contract == "text_runtime") ||
                                    (effect == "readonly" && (contract == "kernel" || contract == "linux")) ||
-                                   (contract == "stream" && effect == "readonly");
+                                   (contract == "stream" && effect == "readonly") ||
+                                   ((aggregate_result || aggregate_parameter) && (effect == "pure" || effect == "io"));
             const auto library = string(required(provider, "library", "$.operation.provider"), "$.operation.provider.library");
             const bool library_admitted = ((contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
                                           (contract == "text_runtime" && library == "libflowtext.so") ||
-                                          (contract == "stream" && !library.empty());
+                                          (contract == "stream" && !library.empty()) ||
+                                          ((aggregate_result || aggregate_parameter) && !library.empty());
             if (!admitted || !authority || !library_admitted ||
                 string(required(provider, "convention", "$.operation.provider"), "$.operation.provider.convention") != "c")
                 throw Unsupported("external provider tuple is not admitted by the typed-call slice");
