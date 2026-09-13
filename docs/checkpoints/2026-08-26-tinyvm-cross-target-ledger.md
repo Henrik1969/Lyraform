@@ -495,3 +495,12 @@ the already captured recovered-ISA boundary.
   advances the signal identity, while retaining the per-item `$index` carrier.
 - The refreshed Clang 18 ASan/UBSan TinyVM-focused run passed all 21 tests,
   including the new pipeline path.
+
+### Persistent-state parallel refusal — `tinyvm-persistent-parallel-boundary-v1`
+
+- A version-3 provider map requesting `parallel_independent_v1` for the
+  persistent graph is rejected by Flowparallel before an execution plan is
+  emitted.
+- The TinyVM persistent state slice therefore remains explicitly serial: no
+  shared state is passed into parallel waves and no implicit serial downgrade
+  can mask the missing interaction contract.

@@ -74,4 +74,16 @@ jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/tiny.report.json"
 "$tiny_lower" "$tmpdir/tiny.backend.json" "$tmpdir/program-again.tvm" >/dev/null
 cmp "$tmpdir/program.tvm" "$tmpdir/program-again.tvm"
 
+jq '.version = 3 | .providers[0].schedule_policy = "parallel_independent_v1"' \
+    "$tmpdir/providers.json" > "$tmpdir/parallel.providers.json"
+"$analyst" --lowering-plan-version 2 --graph-plan-version 2 \
+    --graph-providers "$tmpdir/parallel.providers.json" < "$tmpdir/frontend.json" > "$tmpdir/parallel.semantic.json"
+set +e
+"$parallel" < "$tmpdir/parallel.semantic.json" > "$tmpdir/parallel.execution.json" 2> "$tmpdir/parallel.error"
+parallel_status=$?
+set -e
+test "$parallel_status" -ne 0
+test ! -s "$tmpdir/parallel.execution.json"
+grep -Fq 'persistent receiver state' "$tmpdir/parallel.error"
+
 echo 'TinyVM persistent scalar parity: PASS'
