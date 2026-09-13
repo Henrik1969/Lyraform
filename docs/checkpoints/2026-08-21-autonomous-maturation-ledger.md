@@ -2126,4 +2126,5 @@ this worker boundary before considering TinyVM.
   worker pooling remain outside the claimed contract.
 
 Focused aggregate-worker evidence passes **2/2** together with the scalar
-worker proof. State remains CONTINUE.
+worker proof. The scalar worker test also now proves a mutable-local receiver
+is rejected before LLVM emission. State remains CONTINUE.

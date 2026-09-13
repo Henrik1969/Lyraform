@@ -72,4 +72,31 @@ results = [r for r in records if r.get('event') == 'result']
 assert [(r['activation_id'], r['value']) for r in results] == [(1, 4), (2, 4), (3, 5)]
 PY
 
+# A worker body with mutable local state is not silently treated as pure. The
+# graph remains analyzable, but the native parallel boundary must refuse it.
+cat > "$tmpdir/impure.flow" <<'FLOW'
+import "provider.flow" as host
+program impure_parallel_graph
+producer source : injected.batch
+node receiver : fn transform
+wire source.out => receiver.in
+fn transform(value : c_int): c_int {
+    result : c_int(0)
+    value + 1 -> result
+    return result
+}
+main { return 0 }
+FLOW
+"$flowmini" --dump-frontend-bundle "$tmpdir/impure.flow" > "$tmpdir/impure.frontend.json"
+"$analyst" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/selection.json" < "$tmpdir/impure.frontend.json" > "$tmpdir/impure.semantic.json"
+"$bind" --policy "$tmpdir/policy" < "$tmpdir/impure.semantic.json" > "$tmpdir/impure.binding.json"
+"$parallel" < "$tmpdir/impure.semantic.json" > "$tmpdir/impure.execution.json"
+"$optimizer" < "$tmpdir/impure.execution.json" > "$tmpdir/impure.optimization.json"
+"$prepare" --binding-report "$tmpdir/impure.binding.json" < "$tmpdir/impure.optimization.json" > "$tmpdir/impure.backend.json"
+if "$lower" --emit-llvm "$tmpdir/impure.ll" < "$tmpdir/impure.backend.json" >/dev/null 2>&1; then
+    echo 'effectful parallel receiver unexpectedly lowered' >&2
+    exit 1
+fi
+test ! -e "$tmpdir/impure.ll"
+
 echo 'Native parallel graph: PASS'
