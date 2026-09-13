@@ -5,6 +5,9 @@ root=${FLOWCORE_ROOT:?FLOWCORE_ROOT is required}
 flowmini=${FLOWMINI_BIN:?FLOWMINI_BIN is required}
 flowanalyst=${FLOWANALYST_BIN:?FLOWANALYST_BIN is required}
 flowbind=${FLOWBIND_BIN:?FLOWBIND_BIN is required}
+flowparallel=${FLOWPARALLEL_BIN:?FLOWPARALLEL_BIN is required}
+flowoptimize=${FLOWOPTIMIZE_BIN:?FLOWOPTIMIZE_BIN is required}
+flowlower=${FLOWLOWER_BIN:?FLOWLOWER_BIN is required}
 testabi_layout=${FLOWTESTABI_LAYOUT_BIN:?FLOWTESTABI_LAYOUT_BIN is required}
 
 abi_dir="$root/Lyraform/compiler/std/abi"
@@ -116,6 +119,22 @@ jq -e '
     all(.capabilities[]; .library == "libc.so.6" and .status == "authorized")
 ' "$tmpdir/memory.binding.json" >/dev/null
 
+# The pointer-plus-length contract is executable for bounded local storage.
+# Positive c_pointer literals become storage bounds in the typed plan.
+"$flowmini" --dump-frontend-bundle "$memory_fixture" > "$tmpdir/memory.frontend.json"
+"$flowanalyst" < "$tmpdir/memory.frontend.json" > "$tmpdir/memory.semantic.json"
+jq -e '
+    ([.lowering_plan.operations[].operands[]? | select(.kind == "writable_storage") | .storage.bytes] | sort) == [8, 8] and
+    any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "memset") and
+    any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "memcpy") and
+    any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "memcmp")
+' "$tmpdir/memory.semantic.json" >/dev/null
+"$flowparallel" < "$tmpdir/memory.semantic.json" > "$tmpdir/memory.parallel.json"
+"$flowoptimize" < "$tmpdir/memory.parallel.json" > "$tmpdir/memory.optimized.json"
+"$flowlower" --emit-llvm "$tmpdir/memory.ll" --binding-report "$tmpdir/memory.binding.json" < "$tmpdir/memory.optimized.json" > "$tmpdir/memory.lowering.json"
+clang "$tmpdir/memory.ll" -o "$tmpdir/memory"
+test "$("$tmpdir/memory")" -eq 0
+
 kernel_fixture="$root/Lyraform/compiler/examples/pass/abi_kernel_capability_probe.flow"
 "$flowmini" --dump-frontend-bundle "$kernel_fixture" |
     "$flowanalyst" |
@@ -159,7 +178,7 @@ echo 'Flowcore standard-library boundary: PASS'
 echo '  declared ABI modules: 6/6 parsed and symbol/type inventories verified'
 echo '  libc capability calls: 4/4 authorized'
 echo '  file I/O capability calls: 4/4 authorized'
-echo '  memory capability calls: 3/3 authorized at binding boundary'
+echo '  memory capability calls: 3/3 authorized; bounded LLVM execution verified'
 echo '  kernel capability calls: 32/32 authorized at binding boundary'
 echo '  struct provider layout: verified by provider-owned ABI manifest'
 echo '  struct call lowering: intentionally deferred at Flowbind boundary'

@@ -14,7 +14,7 @@ symbol exported by glibc or every platform ABI.
 | `std/abi/libc.flow` | C string, scalar, and basic output calls | `strlen`, `abs`, `labs`, and `puts` are resolved through exact `libc.so.6` grants and emitted as authorized capability records | ready |
 | `std/abi/text.flow` | Bounded owned Text concatenation | `flow_text_concat(Text,Text)->Text` is provider-owned, capped at 4096 bytes, and exercised through exact `libflowtext.so` authorization; LLVM and TinyVM cover success and exhaustion | bounded native/TinyVM slice |
 | `std/abi/file_io.flow` | C file descriptor I/O | `open`, `read`, `write`, `sendfile`, and `close` resolve through exact grants; `flowcat` uses generic typed-plan loops, branches, mutation, and calls | ready, Linux-specific `sendfile` example |
-| `std/abi/memory.flow` | Bounded C memory operations | `memcpy`, `memset`, and `memcmp` resolve through exact `libc.so.6` grants and are emitted as authorized capability records; pointer execution remains outside this gate | binding-ready, lowering deferred |
+| `std/abi/memory.flow` | Bounded C memory operations | `memcpy`, `memset`, and `memcmp` resolve through exact `libc.so.6` grants; two bounded `c_pointer(8)` buffers execute through LLVM and `memcmp` observes the copied bytes | bounded LLVM executable slice; TinyVM lowering deferred |
 | `std/abi/kernel.flow` | Current Flowkernel communication matrix | all 32 symbols resolve through exact effect-aware grants and have individual narrow executable profiles with safe probes; process identity and priority queries are authorized through exact provider contracts and executable proofs | executable boundary verified; 32/32 |
 | `std/abi/pointers.flow` | Borrowed buffers and opaque-handle contracts | all three type contracts parse and appear in the symbol inventory; no external call is implied by the type-only module | declaration-only |
 | `std/abi/testabi.flow` | Internal struct-ABI provider used by language tests | the provider emits and the boundary test verifies a versioned manifest for `Point` size, alignment, and field offsets; Flowbind still blocks aggregate calls until it consumes that evidence | layout verified, call lowering deferred |
@@ -53,6 +53,12 @@ Flowanalyst now exports the first part of that contract as
 the explicit provider-verification requirement. The internal provider now
 supplies the first versioned `flowcore.abi_manifest`; Flowbind consumes and
 records that evidence. Aggregate lowering remains pending.
+
+The memory slice is deliberately bounded: a positive `c_pointer(n)` declaration
+creates local storage of exactly `n` bytes, and the Flow-level `c_size_t` count
+must remain within that declared bound. This proves the pointer-plus-length ABI
+shape for LLVM without claiming that arbitrary native pointers or unchecked
+buffer arithmetic are safe. TinyVM storage-handle execution remains pending.
 
 ## Reproduction
 

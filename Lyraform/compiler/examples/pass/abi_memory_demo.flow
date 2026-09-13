@@ -3,13 +3,13 @@ import "../../std/abi/memory.flow"
 program abi_memory_demo
 
 main {
-    destination : c_pointer(0)
-    source      : c_pointer(0)
-    count       : c_size_t(0)
-    value       : c_int(0)
+    destination : c_pointer(8)
+    source      : c_pointer(8)
+    count       : c_size_t(8)
+    value       : c_int(65)
     result      : c_int(0)
 
-    memset(destination, value, count) -> destination
+    memset(source, value, count) -> source
     memcpy(destination, source, count) -> destination
     memcmp(destination, source, count) -> result
     print result

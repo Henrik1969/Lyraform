@@ -1463,3 +1463,26 @@ Add a Flow-level `Outcome<Text,TextFailure>` carrier and explicit recovery
 branching for the bounded concat example, then prove that successful values are
 disposed exactly once after the final consumer on LLVM and TinyVM. State
 remains CONTINUE.
+
+## 2026-09-13 bounded memory ABI checkpoint
+
+- Promoted `std/abi/memory.flow` from binding-only evidence to a bounded LLVM
+  execution slice. The generic typed plan now carries two `c_pointer(8)` local
+  storage operands and a `c_size_t(8)` length through `memset`, `memcpy`, and
+  `memcmp` without source-name-specific lowering.
+- The standard-library boundary now runs the full Flowmini → Flowanalyst →
+  Flowparallel → Flowoptimize → Flowbind → Flowlower → clang path and requires
+  the native result to be zero after copying initialized bytes. Exact
+  `libc.so.6` capability authorization remains mandatory.
+- The capability matrix records the pointer-plus-length contract precisely:
+  bounded local storage is executable on LLVM; arbitrary native pointers and
+  TinyVM storage-handle execution remain outside the claim.
+- Focused evidence: `flowcore_stdlib_boundary` passed after the new native
+  execution assertion.
+
+## Exact next action
+
+Add a Flow-level `Outcome<Text,TextFailure>` carrier and explicit recovery
+branching for the bounded concat example, then prove that successful values are
+disposed exactly once after the final consumer on LLVM and TinyVM. State
+remains CONTINUE.
