@@ -252,14 +252,15 @@ callable lowering for each fresh one-input receiver activation. Static
 pipelines and fan-out are covered by the schedule, and the resulting TinyVM
 artifact is deterministic and differentially checked against LLVM. Finite
 scalar stream schedule v2 is also admitted through a typed count/item provider
-bridge and a bounded TinyVM loop.
+bridge and a bounded TinyVM loop. Persistent scalar schedule v3 is admitted
+through a typed mutable state slot updated between receiver activations.
 
 This is a compiler-time graph specialization, not yet a general TinyVM
 activation runtime: wire, signal and port identities remain in the validated
 input artifact and provenance, rather than in runtime activation records.
-Parallel schedule v4, persistent schedule v3 and aggregate payloads remain
-explicit unsupported boundaries until their runtime state and delivery
-contracts are implemented. Stream receiver pipelines remain deferred by the
+Parallel schedule v4 and aggregate payloads remain explicit unsupported
+boundaries until their runtime delivery and aggregate contracts are
+implemented. Stream receiver pipelines remain deferred by the
 upstream graph contract; the admitted stream shape is the current bounded
 root-to-receiver delivery template.
 

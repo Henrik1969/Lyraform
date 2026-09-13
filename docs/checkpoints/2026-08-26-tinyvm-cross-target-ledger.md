@@ -395,3 +395,17 @@ the already captured recovered-ISA boundary.
   repeated lowering produces byte-identical TinyVM artifacts.
 - Persistent schedule v3, parallel schedule v4, stream receiver pipelines and
   aggregate payloads remain explicit future gates.
+
+### Persistent scalar graph parity — `tinyvm-persistent-scalar-parity-v1`
+
+- TinyVM now admits validated graph schedule v3 with one startup provider and
+  repeated fresh deliveries to persistent scalar receivers.
+- Each receiver carries a typed `c_long` state slot initialized from the graph
+  contract, passed as the second callable parameter, and updated from the
+  callable result before the next delivery.
+- A two-delivery fixture observes the state transition `5 -> 6` identically
+  through LLVM and TinyVM; lowering remains deterministic and artifact-free on
+  failure.
+- Parallel schedule v4, stream receiver pipelines and aggregate payloads
+  remain explicit future gates. The current state model is serial and static;
+  it is not yet a general runtime activation-record system.

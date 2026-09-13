@@ -149,16 +149,18 @@ private:
         }
         return false;
     }
-    std::size_t invoke_graph_callable(Integer function_id, std::size_t input) {
+    std::size_t invoke_graph_callable(Integer function_id, const std::vector<std::size_t>& inputs) {
         if (!callables_.contains(function_id) || !callables_.at(function_id).available)
             throw Unsupported("graph receiver function definition is unavailable");
         const auto& callable = callables_.at(function_id);
-        if (callable.parameters.size() != 1) throw Unsupported("graph receiver requires one input parameter");
-        const auto parameter_type = carrier(callable.parameters.front().second);
-        if (slot_types_.at(input) != parameter_type) throw Unsupported("graph receiver input carrier mismatch");
-        const auto parameter = symbol_slot(callable.parameters.front().first);
-        slot_types_[parameter] = parameter_type;
-        emit(TV1_MOVE, parameter, input, 0);
+        if (callable.parameters.size() != inputs.size()) throw Unsupported("graph receiver parameter count mismatch");
+        for (std::size_t index = 0; index < inputs.size(); ++index) {
+            const auto parameter_type = carrier(callable.parameters[index].second);
+            if (slot_types_.at(inputs[index]) != parameter_type) throw Unsupported("graph receiver input carrier mismatch");
+            const auto parameter = symbol_slot(callable.parameters[index].first);
+            slot_types_[parameter] = parameter_type;
+            emit(TV1_MOVE, parameter, inputs[index], 0);
+        }
         auto result = slot();
         slot_types_[result] = carrier(callable.result);
         std::vector<std::size_t> return_jumps;
@@ -172,6 +174,9 @@ private:
         function_result_ = previous_result;
         function_return_jumps_ = previous_jumps;
         return result;
+    }
+    std::size_t invoke_graph_callable(Integer function_id, std::size_t input) {
+        return invoke_graph_callable(function_id, std::vector<std::size_t>{input});
     }
     std::size_t emit_graph_provider(const Object& provider, Integer activation_id, const Array& operands = {}) {
         if (!authorized_graph_provider(provider)) throw Unsupported("graph provider is not exactly authorized by the backend artifact");
@@ -244,6 +249,42 @@ private:
             const auto trap = code.size(); emit(TV1_TRAP, TV1_TRAP_EXPLICIT, 0, 0);
             code[bound_branch].pad = static_cast<std::int64_t>(trap);
             code[loop_branch].pad = static_cast<std::int64_t>(code.size());
+            return;
+        }
+        if (schedule_version == 3) {
+            if (providers.size() != 1 || receivers.empty())
+                throw Unsupported("TinyVM persistent graph requires one provider and persistent receivers");
+            std::map<Integer, std::size_t> values;
+            std::map<std::string, std::size_t> states;
+            for (const auto& value : required_array(schedule, "steps", "$.graph_schedule")) {
+                const auto& step = object(value, "$.graph_schedule.steps[]");
+                const auto id = integer(required(step, "activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].activation_id");
+                const auto kind = string(required(step, "kind", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].kind");
+                const auto node = string(required(step, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
+                operation_ = static_cast<std::uint64_t>(id) + 1; block_ = 1; symbol_ = UINT64_MAX; line_ = static_cast<std::uint32_t>(id + 1);
+                if (kind == "startup") {
+                    if (!providers.count(node) || values.size()) throw Unsupported("TinyVM persistent graph requires one startup provider");
+                    const auto& provider = object(required(*providers.at(node), "provider", "$.source_graph.providers[]"), "$.source_graph.providers[].provider");
+                    values.emplace(id, emit_graph_provider(provider, id));
+                } else if (kind == "persistent_receiver") {
+                    if (!receivers.count(node)) throw Unsupported("TinyVM persistent receiver identity is unavailable");
+                    const auto input_id = integer(required(step, "input_activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].input_activation_id");
+                    if (!values.count(input_id)) throw Unsupported("TinyVM persistent receiver input identity is unavailable");
+                    const auto& receiver = *receivers.at(node);
+                    if (!states.count(node)) {
+                        const auto initial = string(required(receiver, "state_initial_value", "$.source_graph.receivers[]"), "$.source_graph.receivers[].state_initial_value");
+                        std::size_t consumed = 0;
+                        const auto state_value = std::stoll(initial, &consumed, 10);
+                        if (consumed != initial.size()) throw Unsupported("TinyVM persistent state is not a canonical integer");
+                        states.emplace(node, literal(TINYVM_CARRIER_I64, static_cast<std::uint64_t>(state_value)));
+                    }
+                    const auto function = integer(required(receiver, "function_symbol_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].function_symbol_id");
+                    const auto result = invoke_graph_callable(function, std::vector<std::size_t>{values.at(input_id), states.at(node)});
+                    emit(TV1_MOVE, states.at(node), result, 0);
+                    values.emplace(id, result);
+                } else throw Unsupported("TinyVM graph schedule contains an unsupported persistent activation kind");
+            }
+            if (values.empty()) throw Unsupported("TinyVM persistent graph schedule has no activations");
             return;
         }
         if (schedule_version != 1)

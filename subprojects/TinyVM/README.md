@@ -92,9 +92,10 @@ The current Gate 6 slice additionally admits executable source graphs with one
 authorized startup provider and serial fresh receiver activations. Receiver
 pipelines and fan-out are specialized from graph schedule v1 and compared
 differentially with LLVM. The bounded finite scalar stream template is also
-admitted through exact typed count/item provider thunks. Parallel, persistent,
-stream-pipeline and aggregate graph contracts remain explicit unsupported
-results; they are not silently converted to serial behavior.
+admitted through exact typed count/item provider thunks. Persistent scalar
+state is admitted through a typed state slot. Parallel, stream-pipeline and
+aggregate graph contracts remain explicit unsupported results; these boundaries
+are not silently converted to a different graph contract.
 
 The first governed runtime-provider slice admits only the exact pure tuples
 `libc.so.6:abs(c_int)->c_int` and
