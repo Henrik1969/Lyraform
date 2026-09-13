@@ -2026,3 +2026,18 @@ State remains CONTINUE.
 Run the complete canonical gate, commit/push the persistent-state phase, then
 open the aggregate payload contract as the next user-ordered phase.
 State remains CONTINUE.
+
+## 2026-09-13 aggregate payload phase opened
+
+- Opened `source-graph-aggregate-payload-decision.md` with a bounded immutable
+  provider-owned record contract: exact manifest layout facts, c_int-only fields,
+  by-value provider delivery, and no mutation, aliasing, aggregate streams, or
+  parallel execution.
+- The existing `Point` ABI fixture is only evidence for the generic layout
+  machinery; no `Point` name may be added to compiler dispatch.
+
+## Exact next action
+
+Carry verified aggregate layout facts through Flowbind, graph scheduling,
+optimization, preparation, and native lowering, then add positive and hostile
+aggregate delivery evidence. State remains CONTINUE.
