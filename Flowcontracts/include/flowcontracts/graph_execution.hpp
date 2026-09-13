@@ -6,8 +6,9 @@
 
 namespace flowcontracts {
 
-// The bounded one-output contract permits a static FIFO schedule. Fan-out
-// references the producer activation's value; it never invokes that node again.
+// The bounded graph contract permits a static FIFO schedule. Fan-out references
+// the producer activation's value; a linear stream pipeline carries each
+// receiver result into the next activation without invoking a node twice.
 inline json::Value graph_schedule(const json::Value& graph_value) {
     using namespace json;
     const auto graph = source_graph(graph_value);
@@ -44,14 +45,70 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
             {"output_signal_id", Integer{1}}, {"delivery_id", Integer{0}}, {"wire_id", ""},
             {"source_node", ""}, {"source_port", ""}, {"input_port", ""},
             {"output_port", "out"}, {"output_connected", true}});
-        for (const auto* wire : found->second) {
+        const auto receiver_node = [&](const SourceGraphWire* wire) {
             if (wire->from.port != "out") throw Error("$.graph_schedule", "finite stream root exposes only out");
             const auto receiver = std::find_if(graph.nodes.begin(), graph.nodes.end(), [&](const auto& node) { return node.id == wire->to.node; });
-            if (receiver == graph.nodes.end() || receiver->implementation_kind != "source_function" || receiver->role != "node" || wire->to.port != "in")
+            if (receiver == graph.nodes.end() || receiver->implementation_kind != "source_function" || receiver->role != "node" || receiver->persistent || wire->to.port != "in")
                 throw Error("$.graph_schedule", "finite stream deliveries must target source receivers");
-            const auto receiver_outgoing = outgoing.find(receiver->id);
-            if (receiver_outgoing != outgoing.end() && !receiver_outgoing->second.empty())
-                throw Error("$.graph_schedule", "finite stream template does not yet admit receiver pipelines");
+            return &*receiver;
+        };
+        bool pipeline = false;
+        for (const auto* wire : found->second) {
+            receiver_node(wire);
+            const auto receiver_outgoing = outgoing.find(wire->to.node);
+            if (receiver_outgoing != outgoing.end() && !receiver_outgoing->second.empty()) pipeline = true;
+        }
+        if (pipeline) {
+            if (found->second.size() != 1)
+                throw Error("$.graph_schedule", "finite stream pipeline requires exactly one root delivery");
+            std::set<std::string> visited;
+            const SourceGraphWire* wire = found->second.front();
+            Integer input_activation = 0, input_signal = 1;
+            std::string input_type = item_type;
+            while (wire) {
+                const auto* receiver = receiver_node(wire);
+                if (!visited.insert(receiver->id).second)
+                    throw Error("$.graph_schedule", "finite stream pipeline must be acyclic");
+                const auto receiver_info = std::find_if(graph.receivers.begin(), graph.receivers.end(), [&](const auto& value) {
+                    return string(required(object(value, "$.graph_schedule.receivers[]"), "node_id", "$.graph_schedule.receivers[]"), "$.graph_schedule.receivers[].node_id") == receiver->id;
+                });
+                if (receiver_info == graph.receivers.end())
+                    throw Error("$.graph_schedule", "finite stream pipeline receiver metadata is absent");
+                const auto& info = object(*receiver_info, "$.graph_schedule.receivers[]");
+                const auto receiver_input = string(required(info, "input_type", "$.graph_schedule.receivers[]"), "$.graph_schedule.receivers[].input_type");
+                const auto receiver_output = string(required(info, "output_type", "$.graph_schedule.receivers[]"), "$.graph_schedule.receivers[].output_type");
+                if (receiver_input != input_type)
+                    throw Error("$.graph_schedule", "finite stream pipeline delivery carrier mismatch");
+                const auto receiver_outgoing = outgoing.find(receiver->id);
+                const bool connected = receiver_outgoing != outgoing.end() && !receiver_outgoing->second.empty();
+                if (connected && receiver_outgoing->second.size() != 1)
+                    throw Error("$.graph_schedule", "finite stream pipeline cannot fan out or merge");
+                ++activation;
+                steps.push_back(Object{
+                    {"activation_id", activation}, {"node_id", receiver->id}, {"kind", "stream_receiver"},
+                    {"input_activation_id", input_activation}, {"input_signal_id", input_signal},
+                    {"output_signal_id", activation + 1}, {"delivery_id", activation},
+                    {"wire_id", wire->id}, {"source_node", wire->from.node}, {"source_port", wire->from.port},
+                    {"input_port", wire->to.port}, {"output_port", "out"}, {"output_connected", connected},
+                    {"stream_index", "$index"}});
+                deliveries.push_back(Object{{"node_id", receiver->id}, {"wire_id", wire->id},
+                    {"input_port", wire->to.port}, {"output_port", "out"}, {"receiver_output_type", receiver_output},
+                    {"input_activation_id", input_activation}, {"input_signal_id", input_signal}});
+                input_activation = activation;
+                input_signal = activation + 1;
+                input_type = receiver_output;
+                wire = connected ? receiver_outgoing->second.front() : nullptr;
+            }
+            return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{5}},
+                {"policy", "fifo_per_root_source_order_v1"}, {"activation_contract", "fresh_single_input_v1"},
+                {"stream_contract", "finite_scalar_stream_pipeline_v1"},
+                {"streams", Array{Object{{"root_node", root}, {"count_callable", count_callable},
+                    {"count_function_symbol_id", count_symbol}, {"item_callable", item_callable},
+                    {"item_function_symbol_id", item_symbol}, {"max_items", max_items},
+                    {"item_output_type", item_type}, {"deliveries", deliveries}}}}, {"steps", steps}};
+        }
+        for (const auto* wire : found->second) {
+            const auto* receiver = receiver_node(wire);
             ++activation;
             steps.push_back(Object{
                 {"activation_id", activation}, {"node_id", receiver->id}, {"kind", "stream_receiver"},

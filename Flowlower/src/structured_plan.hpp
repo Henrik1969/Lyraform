@@ -383,7 +383,7 @@ private:
             emit_parallel_graph_main(entry, out, providers, receivers);
             return;
         }
-        if (schedule_version == 2) {
+        if (schedule_version == 2 || schedule_version == 5) {
             emit_stream_graph_main(entry, out, providers, receivers);
             return;
         }
@@ -427,6 +427,12 @@ private:
         const auto item = provider(*field(stream, "provider"));
         const auto count = provider(*field(stream, "count_provider"));
         const auto item_type = llvm_type(item.result);
+        const auto schedule_version = integer(field(*field(root_, "graph_schedule"), "version"), "graph_schedule.version");
+        const auto stream_contract = text(field(*field(root_, "graph_schedule"), "stream_contract"));
+        if ((schedule_version != 2 && schedule_version != 5) ||
+            (schedule_version == 2 && stream_contract != "finite_scalar_stream_v1") ||
+            (schedule_version == 5 && stream_contract != "finite_scalar_stream_pipeline_v1"))
+            throw std::runtime_error("unsupported finite stream schedule contract");
         if (item_type.empty() || item.parameters != "c_size_t" || count.parameters != "" || count.result != "c_size_t")
             throw std::runtime_error("unsupported finite stream provider ABI");
         const auto max_items = integer(field(stream, "max_items"), "stream.max_items");
@@ -450,6 +456,8 @@ private:
            <<"  call void @flow_graph_stream_item_enter(ptr @flow.graph.stream.node.0, i64 %flow.stream.item.activation, i64 %flow.stream.index, i64 %flow.stream.signal)\n"
            <<"  %flow.stream.item = call "<<item_type<<" @"<<item.symbol<<"(i64 %flow.stream.index)\n"
            <<"  call void @flow_graph_stream_event(ptr @flow.graph.stream.node.0, i64 0, i64 %flow.stream.index, i64 %flow.stream.signal)\n";
+        std::string stream_value = "%flow.stream.item";
+        std::string stream_signal = "%flow.stream.signal";
         for (std::size_t index = 1; index < steps.size(); ++index) {
             const auto& step = steps[index];
             const auto id = integer(field(step, "activation_id"), "activation_id");
@@ -459,14 +467,27 @@ private:
             const auto function = integer(field(receiver, "function_symbol_id"), "function_symbol_id");
             if (!callables_.count(function)) throw std::runtime_error("finite stream receiver identity is unavailable");
             const auto& callable = callables_.at(function);
-            if (callable.parameters.size() != 1 || llvm_type(callable.parameters.front().second) != item_type)
+            const auto receiver_input_type = callable.parameters.size() == 1 ? llvm_type(callable.parameters.front().second) : std::string{};
+            const auto receiver_output_type = llvm_type(callable.result);
+            const auto previous_node = index > 1 ? text(field(steps[index - 1], "node_id")) : std::string{};
+            const auto previous_output_type = schedule_version == 5 && index > 1
+                ? llvm_type(text(field(*receivers.at(previous_node), "output_type"))) : item_type;
+            if (receiver_input_type.empty() || receiver_input_type != previous_output_type || receiver_output_type.empty())
                 throw std::runtime_error("finite stream delivery carrier mismatch");
+            const auto input_activation = integer(field(step, "input_activation_id"), "input_activation_id");
+            if ((schedule_version == 2 && input_activation != 0) || (schedule_version == 5 && input_activation != integer(field(steps[index - 1], "activation_id"), "activation_id")))
+                throw std::runtime_error("finite stream pipeline activation identity mismatch");
             const auto ordinal = static_cast<flowcontracts::json::Integer>(index - 1);
             out<<"  %flow.stream.activation."<<id<<" = add i64 %flow.stream.index, "<<(1 + ordinal * deliveries)<<"\n"
                <<"  call void @flow_graph_stream_enter(ptr @flow.graph.stream.node."<<id<<", ptr @flow.graph.stream.wire."<<id
-               <<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 %flow.stream.signal, i64 "<<id<<")\n"
-               <<"  %flow.stream.receiver."<<id<<" = call "<<item_type<<" @"<<callable_name(callable)<<"("<<item_type<<" %flow.stream.item)\n"
-               <<"  call void @flow_graph_stream_event(ptr @flow.graph.stream.node."<<id<<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 %flow.stream.signal)\n"
+               <<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 "<<stream_signal<<", i64 "<<id<<")\n"
+               <<"  %flow.stream.receiver."<<id<<" = call "<<receiver_output_type<<" @"<<callable_name(callable)<<"("<<receiver_input_type<<" "<<stream_value<<")\n";
+            if (schedule_version == 5) {
+                out<<"  %flow.stream.signal."<<id<<" = add i64 %flow.stream.activation."<<id<<", 1\n";
+                stream_value = "%flow.stream.receiver." + std::to_string(id);
+                stream_signal = "%flow.stream.signal." + std::to_string(id);
+            }
+            out<<"  call void @flow_graph_stream_event(ptr @flow.graph.stream.node."<<id<<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 "<<stream_signal<<")\n"
                <<"  call void @flow_graph_stream_drop(ptr @flow.graph.stream.node."<<id<<", ptr @flow.graph.stream.wire."<<id<<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 "<<id<<")\n";
         }
         out<<"  %flow.stream.next = add i64 %flow.stream.index, 1\n"

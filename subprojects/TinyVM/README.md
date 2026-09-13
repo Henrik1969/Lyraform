@@ -93,12 +93,13 @@ authorized startup provider and serial fresh receiver activations. Receiver
 pipelines and fan-out are specialized from graph schedule v1 and compared
 differentially with LLVM. The bounded finite scalar stream template is also
 admitted through exact typed count/item provider thunks; its current delivery
-shape is direct root-to-receiver fan-out with shared source signal identity and
-distinct delivery identities per receiver. Persistent scalar
+shapes include direct root-to-receiver fan-out with shared source signal
+identity and distinct delivery identities per receiver, plus one type-continuous
+acyclic receiver pipeline. Persistent scalar
 state is admitted through a typed state slot. Pure independent parallel waves
 are admitted as a deterministic serial projection; effectful/nested parallel,
-stream-pipeline and larger/non-packed aggregate graph contracts remain explicit
-unsupported results. Packed verified `c_int` aggregates up to 8 bytes are
+branching/merging stream graphs and larger/non-packed aggregate graph contracts
+remain explicit unsupported results. Packed verified `c_int` aggregates up to 8 bytes are
 carried as typed 64-bit payloads. These boundaries are not silently converted
 to a different contract.
 

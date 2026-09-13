@@ -255,7 +255,10 @@ scalar stream schedule v2 is also admitted through a typed count/item provider
 bridge and a bounded TinyVM loop. Its admitted delivery shape is direct
 root-to-receiver fan-out: each stream item is delivered independently to every
 root-connected receiver with the shared source signal and distinct delivery
-identity. Persistent scalar schedule v3 is admitted
+identity. A versioned linear stream-pipeline schedule v5 is also admitted:
+one root delivery may traverse an acyclic chain of type-continuous fresh
+receivers, carrying each receiver result into the next activation. Persistent
+scalar schedule v3 is admitted
 through a typed mutable state slot updated between receiver activations.
 Pure parallel schedule v4 is admitted as a deterministic serial projection of
 validated dependency waves, since pure independent activations have no
@@ -267,12 +270,10 @@ aggregate-parameter calls.
 This is a compiler-time graph specialization, not yet a general TinyVM
 activation runtime: wire, signal and port identities remain in the validated
 input artifact and provenance, rather than in runtime activation records.
-Effectful or nested-call parallel activations, larger/non-packed aggregate
-layouts and aggregate-to-aggregate calls remain explicit unsupported
-boundaries until their runtime delivery and aggregate contracts are
-implemented. Stream receiver pipelines remain deferred by the
-upstream graph contract; the admitted stream shape is the current bounded
-root-to-receiver delivery template. Gate 7 coverage now also proves that
+Effectful or nested-call parallel activations, branching/merging stream
+pipelines, larger/non-packed aggregate layouts and aggregate-to-aggregate
+calls remain explicit unsupported boundaries until their runtime delivery and
+aggregate contracts are implemented. Gate 7 coverage now also proves that
 mutated aggregate evidence, graph scheduling and exact runtime policy tuples
 are refused without a partial TinyVM artifact or provider call.
 

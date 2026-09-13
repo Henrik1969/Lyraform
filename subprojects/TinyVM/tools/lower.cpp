@@ -242,7 +242,11 @@ private:
         } else if (schedule_policy != "fifo_per_root_source_order_v1") {
             throw Unsupported("TinyVM graph lowering currently requires FIFO graph scheduling");
         }
-        if (schedule_version == 2) {
+        if (schedule_version == 2 || schedule_version == 5) {
+            const auto stream_contract = string(required(schedule, "stream_contract", "$.graph_schedule"), "$.graph_schedule.stream_contract");
+            if ((schedule_version == 2 && stream_contract != "finite_scalar_stream_v1") ||
+                (schedule_version == 5 && stream_contract != "finite_scalar_stream_pipeline_v1"))
+                throw Unsupported("TinyVM stream graph contains an unsupported stream contract");
             if (required_array(schedule, "streams", "$.graph_schedule").size() != 1)
                 throw Unsupported("TinyVM stream graph requires one stream descriptor");
             const auto& stream = object(required_array(schedule, "streams", "$.graph_schedule").front(), "$.graph_schedule.streams[]");
@@ -269,17 +273,23 @@ private:
             const auto loop_branch = code.size(); emit(TV1_BRANCH, active, 0, 0);
             const auto body = code.size(); code[loop_branch].b = static_cast<std::int64_t>(body);
             Array item_operands{Object{{"kind", "identifier"}, {"symbol_id", index_identity}}};
-            const auto item = emit_graph_provider(item_provider, 3000001, item_operands);
+            auto stream_value = emit_graph_provider(item_provider, 3000001, item_operands);
+            Integer previous_activation = 0;
             for (const auto& step_value : required_array(schedule, "steps", "$.graph_schedule")) {
                 const auto& step = object(step_value, "$.graph_schedule.steps[]");
                 const auto kind = string(required(step, "kind", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].kind");
                 if (kind == "stream_root") continue;
                 if (kind != "stream_receiver" || string(required(step, "stream_index", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].stream_index") != "$index")
                     throw Unsupported("TinyVM stream graph contains an unsupported activation step");
+                const auto input_activation = integer(required(step, "input_activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].input_activation_id");
+                if ((schedule_version == 2 && input_activation != 0) || (schedule_version == 5 && input_activation != previous_activation))
+                    throw Unsupported("TinyVM stream graph contains an invalid pipeline activation identity");
                 const auto node = string(required(step, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
                 if (!receivers.count(node)) throw Unsupported("TinyVM stream receiver identity is unavailable");
                 const auto function = integer(required(*receivers.at(node), "function_symbol_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].function_symbol_id");
-                (void)invoke_graph_callable(function, item);
+                const auto result = invoke_graph_callable(function, stream_value);
+                if (schedule_version == 5) stream_value = result;
+                previous_activation = integer(required(step, "activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].activation_id");
             }
             const auto one = literal(TINYVM_CARRIER_I64, 1);
             emit(TV1_ADD, index, index, one);

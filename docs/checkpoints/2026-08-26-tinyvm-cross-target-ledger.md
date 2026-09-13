@@ -482,3 +482,16 @@ the already captured recovered-ISA boundary.
   source activation/input signal and `$index` carrier while using separate
   delivery identities. This records the current direct fan-out law without
   widening the contract to stream receiver pipelines.
+
+### Linear stream pipeline parity — `tinyvm-finite-stream-pipeline-parity-v1`
+
+- Graph schedule v5 now admits one finite-stream root delivery followed by an
+  acyclic, type-continuous chain of fresh receivers. Branching and merging
+  stream shapes remain refused by the schedule contract.
+- LLVM and TinyVM produce identical output for a three-item pipeline where the
+  first receiver transforms each item and the second receiver observes the
+  transformed value; switch and computed engines agree as well.
+- The schedule records the prior receiver as each next activation's input and
+  advances the signal identity, while retaining the per-item `$index` carrier.
+- The refreshed Clang 18 ASan/UBSan TinyVM-focused run passed all 21 tests,
+  including the new pipeline path.

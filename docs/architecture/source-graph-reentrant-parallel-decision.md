@@ -42,6 +42,12 @@ downgraded to serial execution.
 Reentrant receiver pipelines continue to use the existing topological
 activation identity law.
 
+The finite-stream family now has a separate version-5 linear pipeline shape:
+one root delivery may feed an acyclic chain of fresh receivers when each edge
+preserves the declared carrier type. Each item is evaluated through the chain
+in FIFO source order. Branching or merging stream pipelines remain outside
+that contract; direct root fan-out remains the version-2 stream shape.
+
 The next gate is a recoverable cancellation policy and persistent-state
 interaction boundary; persistent state cannot be shared by parallel
 activations.
