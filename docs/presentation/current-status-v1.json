@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-13",
     "branch": "main",
-    "commit": "467fe47b5b90dacd6b1a4a5cbcdbe88d5027b424"
+    "commit": "3dfff7f010a02a4c375b0b0dd9f8101b89dfb3d3"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
@@ -29,7 +29,8 @@
     "Exact generated contract and live-provider evidence authorization",
     "Native scalar source graphs with durable FIFO scheduling and fresh receiver frames",
     "Flow-owned paging with injectable batch input, terminal and output providers",
-    "Installed newly named gettid acceptance with unchanged compiler binaries"
+    "Installed newly named gettid acceptance with unchanged compiler binaries",
+    "Verified packed integer aggregate payloads through LLVM and TinyVM"
   ],
   "verification": {
     "gcc_superbuild": "pass",
