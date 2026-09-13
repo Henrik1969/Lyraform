@@ -1,5 +1,9 @@
 # Lyraform
 
+<p align="center">
+  <img src="igor.png" alt="Igor, the Lyraform compiler mascot" width="320">
+</p>
+
 Lyraform is an experimental programming language and system-architecture
 project built around explicit contracts, compiler-visible graph structure,
 provider boundaries, provenance, and governed executable projections.
