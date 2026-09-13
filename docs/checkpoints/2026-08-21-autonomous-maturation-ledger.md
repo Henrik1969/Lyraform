@@ -2165,3 +2165,19 @@ The repaired baseline is evidence for the bounded reusable slice, not closure
 of the remaining TinyVM parity, compatibility-bridge, or production-readiness
 gates. State remains CONTINUE until the checkpoint is committed, pushed, and
 the remaining maturity work is separately reconciled.
+
+## 2026-09-13 semantic pass-corpus driver checkpoint
+
+- Removed the native pass-corpus driver's application/fixture-name switch. It
+  now invokes the v2 lowering-plan contract for every source, binds every
+  semantic report without aggregate layouts using the explicit policy, and
+  selects the aggregate exception from `.aggregate_abi_layouts` rather than a
+  program name.
+- Expanded the driver policy with the provider grants needed by the current
+  ctype, math, memory, file-I/O, and Text-adjacent compatibility examples.
+- The refactored driver passes **97/97** pass-corpus programs through semantic,
+  optimization, binding/lowering, and ready-artifact checks. No compiler-stage
+  application-name dispatch was introduced.
+
+State remains CONTINUE. The next checkpoint is the final status-pointer update
+and the remaining bounded TinyVM/compatibility maturity work.

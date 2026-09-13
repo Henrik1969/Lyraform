@@ -14,6 +14,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 policy=$tmpdir/abi.policy
 printf '%s\n' \
     'allow libc.so.6 strlen c pure' \
+    'allow libc.so.6 strnlen c pure' \
     'allow libc.so.6 abs c pure' \
     'allow libc.so.6 labs c pure' \
     'allow libc.so.6 puts c io' \
@@ -43,7 +44,19 @@ printf '%s\n' \
     'allow libc.so.6 read c filesystem' \
     'allow libc.so.6 write c filesystem' \
     'allow libc.so.6 lseek c filesystem' \
-    'allow libc.so.6 unlinkat c filesystem' > "$policy"
+    'allow libc.so.6 unlinkat c filesystem' \
+    'allow libc.so.6 tolower c pure' \
+    'allow libc.so.6 toupper c pure' \
+    'allow libm.so.6 floor c pure' \
+    'allow libm.so.6 sqrt c pure' \
+    'allow libc.so.6 memset c io' \
+    'allow libc.so.6 memcpy c io' \
+    'allow libc.so.6 memmove c io' \
+    'allow libc.so.6 memcmp c pure' \
+    'allow libc.so.6 open c io' \
+    'allow libc.so.6 read c io' \
+    'allow libc.so.6 write c io' \
+    'allow libc.so.6 close c io' > "$policy"
 for grant in \
     'rmdir filesystem' 'pipe2 process_ipc' 'fork process_ipc' 'waitpid process_ipc' \
     'socketpair socket_ipc' 'socket loopback' 'bind loopback' 'listen loopback' \
@@ -63,25 +76,18 @@ for source in "$pass_root"/*.flow; do
     lowered=$tmpdir/$name.lowered.json
 
     "$flowmini" --dump-frontend-bundle "$source" > "$bundle"
-    if [ "$name" = "text_value" ]; then
-        "$analyst" --lowering-plan-version 2 < "$bundle" > "$semantic"
-    else
-        "$analyst" < "$bundle" > "$semantic"
-    fi
+    "$analyst" --lowering-plan-version 2 < "$bundle" > "$semantic"
     grep -q '"status": "ok"' "$semantic"
     "$parallel" < "$semantic" > "$tmpdir/$name.parallel.json"
     "$optimizer" < "$tmpdir/$name.parallel.json" > "$optimized"
     jq -e '.status == "ready"' "$optimized" >/dev/null
-    case "$name" in
-        abi_abs_main|abi_strlen_main|test_licbinds|text_value|abi_ncurses_main|abi_kernel_getpid_main|abi_kernel_getuid_main|abi_kernel_getgid_main|abi_kernel_geteuid_main|abi_kernel_getegid_main|abi_kernel_getppid_main|abi_kernel_getpgrp_main|abi_kernel_getpgid_main|abi_kernel_getsid_main|abi_kernel_getpriority_main|abi_kernel_clock_main|abi_kernel_random_main|abi_kernel_uname_main|abi_kernel_openat_main|abi_kernel_read_main|abi_kernel_write_main|abi_kernel_lseek_main|abi_kernel_unlinkat_main|abi_kernel_rmdir_main|abi_kernel_pipe2_main|abi_kernel_fork_main|abi_kernel_waitpid_main|abi_kernel_socketpair_main|abi_kernel_socket_main|abi_kernel_bind_main|abi_kernel_listen_main|abi_kernel_poll_main|abi_kernel_accept4_main|abi_kernel_connect_main|abi_kernel_unshare_main|abi_kernel_sethostname_main|abi_kernel_gethostname_main)
-        binding=$tmpdir/$name.binding.json
+    binding=$tmpdir/$name.binding.json
+    if jq -e '((.aggregate_abi_layouts // []) | length) == 0' "$semantic" >/dev/null; then
         "$bind" --policy "$policy" < "$semantic" > "$binding"
         "$lowerer" --binding-report "$binding" < "$optimized" > "$lowered"
-        ;;
-    *)
+    else
         "$lowerer" < "$optimized" > "$lowered"
-        ;;
-    esac
+    fi
     grep -q '"status": "ready"' "$lowered"
     count=$((count + 1))
 done

@@ -63,6 +63,12 @@ native-chain/support mode separately passed all 97 pass-corpus programs and
 all 57 negative/support fixtures (57/57). These modes must not be collapsed
 into one total.
 
+The native pass-corpus driver selects its lowering path from semantic artifact
+content: aggregate-layout reports use their manifest-independent path, while
+other reports receive the exact policy binding. It does not maintain a list of
+program or fixture names, so adding another program with an existing contract
+does not require changing the driver.
+
 These normal gates form the Flowmini Tier 2 integration baseline. Before
 declaring a greater architectural border closed, run and record the additional
 Tier 3 Firetest pressure checks defined by the project-wide policy.
