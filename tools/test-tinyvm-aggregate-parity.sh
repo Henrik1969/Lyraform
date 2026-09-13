@@ -71,6 +71,43 @@ cmp "$tmpdir/expected.stdout" "$tmpdir/llvm.stdout"
 test "$(tail -n 1 "$tmpdir/tiny.stdout" | jq -r .result)" -eq 0
 jq -e '.aggregate_abi_layouts[0].status == "verified" and .graph_schedule.version == 1' "$tmpdir/tiny.backend.json" >/dev/null
 jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/tiny.report.json" >/dev/null
+
+# Aggregate admission is evidence-driven.  Mutating any part of the verified
+# packed-layout proof must refuse lowering and leave no partial artifact.
+for mutation in \
+    '.aggregate_abi_layouts[0].status = "unverified"' \
+    '.aggregate_abi_layouts[0].size = 16' \
+    '.aggregate_abi_layouts[0].fields[0].type = "c_long"' \
+    '.graph_schedule.policy = "parallel"'; do
+    rm -f "$tmpdir/mutated.tvm" "$tmpdir/mutated.report.json" "$tmpdir/mutated.stderr"
+    jq "$mutation" "$tmpdir/tiny.backend.json" > "$tmpdir/mutated.backend.json"
+    if "$tiny_lower" "$tmpdir/mutated.backend.json" "$tmpdir/mutated.tvm" > "$tmpdir/mutated.report.json" 2> "$tmpdir/mutated.stderr"; then
+        echo "hostile TinyVM aggregate artifact was admitted: $mutation" >&2
+        exit 1
+    fi
+    test ! -e "$tmpdir/mutated.tvm"
+    if test -s "$tmpdir/mutated.report.json"; then
+        jq -e '.status == "unsupported" and (.reason | length) > 0' "$tmpdir/mutated.report.json" >/dev/null
+    else
+        grep -q 'flowtinylower contract error' "$tmpdir/mutated.stderr"
+    fi
+done
+
+# Runtime authority is exact too: removing or changing the aggregate grant
+# must fail during preflight before a provider is opened or called.
+grep -v ' point_sum ' "$tmpdir/policy" > "$tmpdir/denied.policy"
+if "$tiny_run" --policy "$tmpdir/denied.policy" "$tmpdir/program.tvm" > "$tmpdir/denied.stdout" 2> "$tmpdir/denied.stderr"; then
+    echo 'TinyVM aggregate call ran without its exact policy grant' >&2
+    exit 1
+fi
+grep -q 'active policy does not authorize every exact import tuple' "$tmpdir/denied.stderr"
+sed 's/Point c_int$/Point c_long/' "$tmpdir/policy" > "$tmpdir/mismatched.policy"
+if "$tiny_run" --policy "$tmpdir/mismatched.policy" "$tmpdir/program.tvm" > "$tmpdir/mismatched.stdout" 2> "$tmpdir/mismatched.stderr"; then
+    echo 'TinyVM aggregate call ran with a mismatched result grant' >&2
+    exit 1
+fi
+grep -q 'active policy does not authorize every exact import tuple' "$tmpdir/mismatched.stderr"
+
 "$tiny_lower" "$tmpdir/tiny.backend.json" "$tmpdir/program-again.tvm" >/dev/null
 cmp "$tmpdir/program.tvm" "$tmpdir/program-again.tvm"
 

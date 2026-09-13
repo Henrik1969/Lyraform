@@ -432,3 +432,15 @@ the already captured recovered-ISA boundary.
   repeated lowering.
 - Larger/non-packed layouts, non-`c_int` fields and aggregate-to-aggregate
   calls remain explicit future boundaries.
+
+### Aggregate authority and evidence refusal proof — `tinyvm-aggregate-boundary-adversarial-v1`
+
+- Mutating aggregate verification status, packed size, field type or graph
+  scheduling policy refuses TinyVM lowering; no partial artifact is emitted.
+- Schema-invalid evidence produces the existing contract-error refusal, while
+  semantically unsupported evidence produces the structured `unsupported`
+  lowering result with a reason.
+- Removing or changing the exact aggregate provider policy tuple fails runtime
+  preflight before the provider is opened or called.
+- The focused aggregate parity test passed; the complete canonical suite is
+  the next required checkpoint evidence.

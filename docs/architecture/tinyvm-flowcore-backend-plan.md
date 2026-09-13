@@ -269,7 +269,9 @@ layouts and aggregate-to-aggregate calls remain explicit unsupported
 boundaries until their runtime delivery and aggregate contracts are
 implemented. Stream receiver pipelines remain deferred by the
 upstream graph contract; the admitted stream shape is the current bounded
-root-to-receiver delivery template.
+root-to-receiver delivery template. Gate 7 coverage now also proves that
+mutated aggregate evidence, graph scheduling and exact runtime policy tuples
+are refused without a partial TinyVM artifact or provider call.
 
 ## Gate 7 — parity corpus and adversarial proof
 
