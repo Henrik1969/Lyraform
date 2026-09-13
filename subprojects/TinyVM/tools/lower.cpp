@@ -173,23 +173,23 @@ private:
         function_return_jumps_ = previous_jumps;
         return result;
     }
-    std::size_t emit_graph_provider(const Object& provider, Integer activation_id) {
+    std::size_t emit_graph_provider(const Object& provider, Integer activation_id, const Array& operands = {}) {
         if (!authorized_graph_provider(provider)) throw Unsupported("graph provider is not exactly authorized by the backend artifact");
         const auto operation_id = static_cast<Integer>(1000000) + activation_id;
         const auto expression_id = operation_id + 1000000;
         Object operation{{"id", operation_id}, {"kind", "external_call"}, {"expression_id", expression_id},
                          {"statement_id", activation_id}, {"scope_id", Integer{0}}, {"block_id", Integer{0}},
-                         {"callee", ""}, {"callee_symbol_id", Integer{-1}}, {"arguments", Array{}},
-                         {"operands", Array{}}, {"provider", provider}};
+                         {"callee", ""}, {"callee_symbol_id", Integer{-1}}, {"arguments", operands},
+                         {"operands", operands}, {"provider", provider}};
         compile_operation(operation);
         return call_results_.at(expression_id);
     }
     void compile_graph(const Value& graph_value) {
         const auto& graph = object(graph_value, "$.lowering_plan.source_graph");
         const auto& schedule = required_object(root_, "graph_schedule", "$.graph_schedule");
-        if (integer(required(schedule, "version", "$.graph_schedule"), "$.graph_schedule.version") != 1 ||
-            string(required(schedule, "policy", "$.graph_schedule"), "$.graph_schedule.policy") != "fifo_per_root_source_order_v1")
-            throw Unsupported("TinyVM graph lowering currently requires the serial fresh-activation schedule");
+        const auto schedule_version = integer(required(schedule, "version", "$.graph_schedule"), "$.graph_schedule.version");
+        if (string(required(schedule, "policy", "$.graph_schedule"), "$.graph_schedule.policy") != "fifo_per_root_source_order_v1")
+            throw Unsupported("TinyVM graph lowering currently requires FIFO graph scheduling");
         std::map<std::string, const Object*> providers, receivers;
         for (const auto& value : required_array(graph, "providers", "$.source_graph")) {
             const auto& item = object(value, "$.source_graph.providers[]");
@@ -199,6 +199,55 @@ private:
             const auto& item = object(value, "$.source_graph.receivers[]");
             receivers.emplace(string(required(item, "node_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].node_id"), &item);
         }
+        if (schedule_version == 2) {
+            if (required_array(schedule, "streams", "$.graph_schedule").size() != 1)
+                throw Unsupported("TinyVM stream graph requires one stream descriptor");
+            const auto& stream = object(required_array(schedule, "streams", "$.graph_schedule").front(), "$.graph_schedule.streams[]");
+            const auto root_node = string(required(stream, "root_node", "$.graph_schedule.streams[]"), "$.graph_schedule.streams[].root_node");
+            if (!providers.count(root_node) || string(required(*providers.at(root_node), "activation", "$.source_graph.providers[]"), "$.source_graph.providers[].activation") != "finite_stream_once")
+                throw Unsupported("TinyVM stream graph root is not a finite stream provider");
+            const auto& provider_node = *providers.at(root_node);
+            const auto& item_provider = object(required(provider_node, "provider", "$.source_graph.providers[]"), "$.source_graph.providers[].provider");
+            const auto& count_provider = object(required(provider_node, "count_provider", "$.source_graph.providers[]"), "$.source_graph.providers[].count_provider");
+            if (!authorized_graph_provider(item_provider) || !authorized_graph_provider(count_provider))
+                throw Unsupported("TinyVM stream providers are not exactly authorized by the backend artifact");
+            const auto max_items = integer(required(stream, "max_items", "$.graph_schedule.streams[]"), "$.graph_schedule.streams[].max_items");
+            if (max_items < 0) throw Unsupported("TinyVM stream bound is negative");
+            const auto count = emit_graph_provider(count_provider, 3000000);
+            const auto maximum = literal(TINYVM_CARRIER_I64, static_cast<std::uint64_t>(max_items));
+            const auto bounded = slot(); slot_types_[bounded] = TINYVM_CARRIER_I1; emit(TV1_CMP_LE, bounded, count, maximum);
+            const auto bound_branch = code.size(); emit(TV1_BRANCH, bounded, 0, 0);
+            code[bound_branch].b = static_cast<std::int64_t>(code.size());
+            const auto index = literal(TINYVM_CARRIER_I64, 0);
+            constexpr Integer index_identity = 4000000000LL;
+            symbols_[index_identity] = index; slot_types_[index] = TINYVM_CARRIER_I64;
+            const auto condition = code.size();
+            const auto active = slot(); slot_types_[active] = TINYVM_CARRIER_I1; emit(TV1_CMP_LT, active, index, count);
+            const auto loop_branch = code.size(); emit(TV1_BRANCH, active, 0, 0);
+            const auto body = code.size(); code[loop_branch].b = static_cast<std::int64_t>(body);
+            Array item_operands{Object{{"kind", "identifier"}, {"symbol_id", index_identity}}};
+            const auto item = emit_graph_provider(item_provider, 3000001, item_operands);
+            for (const auto& step_value : required_array(schedule, "steps", "$.graph_schedule")) {
+                const auto& step = object(step_value, "$.graph_schedule.steps[]");
+                const auto kind = string(required(step, "kind", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].kind");
+                if (kind == "stream_root") continue;
+                if (kind != "stream_receiver" || string(required(step, "stream_index", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].stream_index") != "$index")
+                    throw Unsupported("TinyVM stream graph contains an unsupported activation step");
+                const auto node = string(required(step, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
+                if (!receivers.count(node)) throw Unsupported("TinyVM stream receiver identity is unavailable");
+                const auto function = integer(required(*receivers.at(node), "function_symbol_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].function_symbol_id");
+                (void)invoke_graph_callable(function, item);
+            }
+            const auto one = literal(TINYVM_CARRIER_I64, 1);
+            emit(TV1_ADD, index, index, one);
+            emit(TV1_JMP, condition, 0, 0);
+            const auto trap = code.size(); emit(TV1_TRAP, TV1_TRAP_EXPLICIT, 0, 0);
+            code[bound_branch].pad = static_cast<std::int64_t>(trap);
+            code[loop_branch].pad = static_cast<std::int64_t>(code.size());
+            return;
+        }
+        if (schedule_version != 1)
+            throw Unsupported("TinyVM graph lowering currently requires the serial fresh-activation schedule");
         std::map<Integer, std::size_t> values;
         for (const auto& value : required_array(schedule, "steps", "$.graph_schedule")) {
             const auto& step = object(value, "$.graph_schedule.steps[]");
@@ -389,6 +438,8 @@ private:
             const auto symbol = string(required(provider, "symbol", "$.operation.provider"), "$.operation.provider.symbol");
             const auto parameters = string(required(provider, "parameter_types", "$.operation.provider"), "$.operation.provider.parameter_types");
             const auto result_type = string(required(provider, "return_type", "$.operation.provider"), "$.operation.provider.return_type");
+            const auto contract = string(required(provider, "contract", "$.operation.provider"), "$.operation.provider.contract");
+            const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
             const bool admitted = (symbol == "abs" && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "labs" && parameters == "c_long" && result_type == "c_long") ||
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
@@ -408,15 +459,16 @@ private:
                                   (symbol == "memcmp" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_int") ||
                                   ((symbol == "getpgid" || symbol == "getsid") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "getpriority" && parameters == "c_int,c_int" && result_type == "c_int") ||
-                                  ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int");
-            const auto contract = string(required(provider, "contract", "$.operation.provider"), "$.operation.provider.contract");
-            const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
+                                  ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int") ||
+                                  (contract == "stream" && effect == "readonly" && ((parameters.empty() && result_type == "c_size_t") || (parameters == "c_size_t" && result_type == "c_int")));
             const bool authority = ((effect == "pure" || effect == "io") && (contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io")) ||
                                    (effect == "memory" && contract == "text_runtime") ||
-                                   (effect == "readonly" && (contract == "kernel" || contract == "linux"));
+                                   (effect == "readonly" && (contract == "kernel" || contract == "linux")) ||
+                                   (contract == "stream" && effect == "readonly");
             const auto library = string(required(provider, "library", "$.operation.provider"), "$.operation.provider.library");
             const bool library_admitted = ((contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
-                                          (contract == "text_runtime" && library == "libflowtext.so");
+                                          (contract == "text_runtime" && library == "libflowtext.so") ||
+                                          (contract == "stream" && !library.empty());
             if (!admitted || !authority || !library_admitted ||
                 string(required(provider, "convention", "$.operation.provider"), "$.operation.provider.convention") != "c")
                 throw Unsupported("external provider tuple is not admitted by the typed-call slice");

@@ -86,6 +86,6 @@ if "$tiny_lower" "$tmpdir/parallel.backend.json" "$tmpdir/parallel.tvm" > "$tmpd
 fi
 test ! -e "$tmpdir/parallel.tvm"
 jq -e '.graph_schedule.version == 4 and .graph_schedule.policy == "parallel_independent_v1"' "$tmpdir/parallel.backend.json" >/dev/null
-jq -e '.status == "unsupported" and (.reason | contains("serial fresh-activation"))' "$tmpdir/parallel.report.json" >/dev/null
+jq -e '.status == "unsupported" and (.reason | contains("FIFO graph scheduling"))' "$tmpdir/parallel.report.json" >/dev/null
 
 echo 'TinyVM serial graph parity: PASS'

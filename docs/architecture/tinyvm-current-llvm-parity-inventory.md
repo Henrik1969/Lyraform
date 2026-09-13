@@ -19,6 +19,7 @@ executable for every tuple outside the admitted set below.
 | `kernel` or `linux` / `readonly` | `getpid`, `getuid`, `getgid`, `geteuid`, `getegid`, `getppid`, `getpgrp` as `()->c_int` |
 | `kernel` or `linux` / `readonly` | `getpgid(c_int)->c_int`, `getsid(c_int)->c_int`, `getpriority(c_int,c_int)->c_int` |
 | source graph / serial fresh activation | one authorized `startup_once` provider, typed receiver pipelines and fan-out through graph schedule v1; differential LLVM/TinyVM stdout/result and deterministic artifact checks |
+| source graph / finite scalar stream | one authorized `stream` count `()->c_size_t` and item `(c_size_t)->c_int` provider, bounded item loop and fresh receiver activation parity with LLVM |
 
 Every import requires an active policy match before execution and a named typed
 thunk after admission. Missing policy, effect drift, carrier drift, library
@@ -37,7 +38,7 @@ drift and unimplemented tuples fail closed.
 | memory | `memcpy`, `memmove`, `memset`, `memcmp` | handle ranges, alias/overlap laws and initialized-byte tracking |
 | ncurses/TUI | `initscr`, `endwin`, `noecho`, `cbreak`, `waddnstr`, `wrefresh`, `wgetch`, `keypad` | external window lifetime, terminal ownership, cleanup and interactive evidence |
 | provider aggregates | current `testabi` aggregate probes | provider-owned layout is verified upstream but aggregate call lowering is not implemented |
-| graph activation runtime | schedule v2 finite streams, v3 persistent receivers and v4 parallel waves | current TinyVM slice specializes only serial fresh activations; runtime delivery/state records are not yet implemented |
+| graph activation runtime | schedule v3 persistent receivers and v4 parallel waves; stream receiver pipelines | current TinyVM slice admits only the validated finite scalar stream template; persistent state, parallel waves and generalized delivery records are not yet implemented |
 
 These are exact remaining implementation slices, not silently substituted LLVM
 fallbacks. Target-policy work may select LLVM explicitly for them, but may not

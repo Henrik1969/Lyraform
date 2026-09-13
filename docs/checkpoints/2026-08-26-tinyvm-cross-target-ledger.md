@@ -382,3 +382,16 @@ the already captured recovered-ISA boundary.
 - This checkpoint does not claim a general TinyVM activation runtime: wire,
   signal, port, queue, persistent-state and parallel-wave identities remain
   outside the current bytecode runtime contract.
+
+### Finite scalar stream parity — `tinyvm-finite-scalar-stream-parity-v1`
+
+- TinyVM now admits the validated graph schedule v2 finite scalar stream
+  template: one authorized count provider returning `c_size_t`, one item
+  provider accepting `c_size_t`, and bounded fresh receiver deliveries.
+- The lowerer emits a checked count bound and a deterministic ISA loop; the
+  runtime resolves only the exact typed stream thunks after active policy
+  admission.
+- LLVM and TinyVM produce identical observable receiver output and result, and
+  repeated lowering produces byte-identical TinyVM artifacts.
+- Persistent schedule v3, parallel schedule v4, stream receiver pipelines and
+  aggregate payloads remain explicit future gates.
