@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-13",
     "branch": "main",
-    "commit": "82a0a8cb0affaa4c1c0a3ae28b59bbd17d7b303f"
+    "commit": "842a2b023d4dd5e92113f774a04feeb59cb262bf"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
