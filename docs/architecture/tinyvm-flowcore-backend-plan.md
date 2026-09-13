@@ -252,7 +252,10 @@ callable lowering for each fresh one-input receiver activation. Static
 pipelines and fan-out are covered by the schedule, and the resulting TinyVM
 artifact is deterministic and differentially checked against LLVM. Finite
 scalar stream schedule v2 is also admitted through a typed count/item provider
-bridge and a bounded TinyVM loop. Persistent scalar schedule v3 is admitted
+bridge and a bounded TinyVM loop. Its admitted delivery shape is direct
+root-to-receiver fan-out: each stream item is delivered independently to every
+root-connected receiver with the shared source signal and distinct delivery
+identity. Persistent scalar schedule v3 is admitted
 through a typed mutable state slot updated between receiver activations.
 Pure parallel schedule v4 is admitted as a deterministic serial projection of
 validated dependency waves, since pure independent activations have no

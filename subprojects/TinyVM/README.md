@@ -92,7 +92,9 @@ The current Gate 6 slice additionally admits executable source graphs with one
 authorized startup provider and serial fresh receiver activations. Receiver
 pipelines and fan-out are specialized from graph schedule v1 and compared
 differentially with LLVM. The bounded finite scalar stream template is also
-admitted through exact typed count/item provider thunks. Persistent scalar
+admitted through exact typed count/item provider thunks; its current delivery
+shape is direct root-to-receiver fan-out with shared source signal identity and
+distinct delivery identities per receiver. Persistent scalar
 state is admitted through a typed state slot. Pure independent parallel waves
 are admitted as a deterministic serial projection; effectful/nested parallel,
 stream-pipeline and larger/non-packed aggregate graph contracts remain explicit

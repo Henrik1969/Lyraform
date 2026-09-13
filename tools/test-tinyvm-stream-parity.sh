@@ -40,11 +40,18 @@ import "$tmpdir/provider.flow" as stream
 import "$root/Lyraform/compiler/std/abi/libc.flow"
 program tinyvm_stream
 producer source : injected.stream
-node receiver : fn announce
-wire source.out => receiver.in
-fn announce(value : c_int): c_int {
+node left : fn announce_left
+node right : fn announce_right
+wire source.out => left.in
+wire source.out => right.in
+fn announce_left(value : c_int): c_int {
     result : c_int(0)
-    libc.puts("tinyvm stream") -> result
+    libc.puts("tinyvm stream left") -> result
+    return value
+}
+fn announce_right(value : c_int): c_int {
+    result : c_int(0)
+    libc.puts("tinyvm stream right") -> result
     return value
 }
 main { return 0 }
@@ -70,9 +77,13 @@ cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.program.stdout"
 "$tiny_run" --engine computed --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.computed.stdout"
 sed '$d' "$tmpdir/tiny.computed.stdout" > "$tmpdir/tiny.computed.program.stdout"
 cmp "$tmpdir/tiny.program.stdout" "$tmpdir/tiny.computed.program.stdout"
-test "$(wc -l < "$tmpdir/llvm.stdout")" -eq 3
+test "$(wc -l < "$tmpdir/llvm.stdout")" -eq 6
 test "$(tail -n 1 "$tmpdir/tiny.stdout" | jq -r .result)" -eq 0
-jq -e '.graph_schedule.version == 2 and .graph_schedule.stream_contract == "finite_scalar_stream_v1"' "$tmpdir/execution.json" >/dev/null
+jq -e '.graph_schedule.version == 2 and
+    .graph_schedule.stream_contract == "finite_scalar_stream_v1" and
+    (.graph_schedule.steps | length) == 3 and
+    all(.graph_schedule.steps[1:][]; .kind == "stream_receiver" and .input_activation_id == 0 and .input_signal_id == 1 and .stream_index == "$index") and
+    (.graph_schedule.streams[0].deliveries | length) == 2' "$tmpdir/execution.json" >/dev/null
 jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/tiny.report.json" >/dev/null
 "$tiny_lower" "$tmpdir/tiny.backend.json" "$tmpdir/program-again.tvm" >/dev/null
 cmp "$tmpdir/program.tvm" "$tmpdir/program-again.tvm"

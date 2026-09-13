@@ -470,4 +470,15 @@ the already captured recovered-ISA boundary.
   resolves `tinyvm-portable` and executes an installed empty artifact. No
   fallback is inferred when a target or provider is unavailable.
 - The focused aggregate parity test and complete canonical suite passed;
-  canonical CTest is now 102/102 green.
+  canonical CTest is now 103/103 green.
+
+### Finite stream fan-out parity — `tinyvm-finite-stream-fanout-parity-v1`
+
+- The TinyVM finite-stream fixture now covers two independent receivers wired
+  directly from the stream root, not only the single-receiver case.
+- LLVM and TinyVM produce the same six ordered outputs under both switch and
+  computed engines for three source items delivered to both receivers.
+- The validated schedule proves both receiver activations retain the shared
+  source activation/input signal and `$index` carrier while using separate
+  delivery identities. This records the current direct fan-out law without
+  widening the contract to stream receiver pipelines.
