@@ -12,5 +12,5 @@ main {
     memset(source, value, count) -> source
     memcpy(destination, source, count) -> destination
     memcmp(destination, source, count) -> result
-    print result
+    result -> return
 }

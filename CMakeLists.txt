@@ -48,6 +48,7 @@ add_test(NAME flowcore_pipeline_matrix
         FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
         FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
         FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
         FLOWBIND_BIN=$<TARGET_FILE:flowbind>
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/run-flowcore-pipeline-matrix.sh)
@@ -357,6 +358,23 @@ add_test(NAME tinyvm_runtime_text_parity
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-runtime-text-parity.sh)
 set_tests_properties(tinyvm_runtime_text_parity PROPERTIES
     DEPENDS "text_runtime_boundary")
+
+add_test(NAME tinyvm_memory_parity
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
+        FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
+        FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
+        FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-memory-parity.sh)
+set_tests_properties(tinyvm_memory_parity PROPERTIES
+    DEPENDS "flowcore_stdlib_boundary;tinyvm_runtime_text_parity")
 
 # Canonical installed shape. Debian packaging consumes this staged install and
 # splits runtime, development, and documentation payloads without depending on

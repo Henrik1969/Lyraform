@@ -8,12 +8,19 @@ typedef struct {
 } TinyvmRuntimeString;
 
 typedef struct {
+    unsigned char *bytes;
+    size_t length;
+} TinyvmRuntimeStorage;
+
+typedef struct {
     const char *policy_path;
     size_t argument_count;
     const char *const *arguments;
     TinyvmRuntimeString *owned_strings;
     size_t owned_string_count;
     size_t owned_string_capacity;
+    TinyvmRuntimeStorage *storage;
+    size_t storage_count;
 } TinyvmRuntimeProvider;
 
 void tinyvm_runtime_provider_destroy(TinyvmRuntimeProvider *provider);

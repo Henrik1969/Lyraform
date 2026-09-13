@@ -296,16 +296,19 @@ private:
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
                                   (symbol == "puts" && (parameters == "c_string" || parameters == "Text") && result_type == "c_int") ||
                                   (symbol == "flow_text_concat" && parameters == "Text,Text" && result_type == "Text") ||
+                                  (symbol == "memset" && parameters == "c_pointer,c_int,c_size_t" && result_type == "c_pointer") ||
+                                  (symbol == "memcpy" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_pointer") ||
+                                  (symbol == "memcmp" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_int") ||
                                   ((symbol == "getpgid" || symbol == "getsid") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "getpriority" && parameters == "c_int,c_int" && result_type == "c_int") ||
                                   ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int");
             const auto contract = string(required(provider, "contract", "$.operation.provider"), "$.operation.provider.contract");
             const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
-            const bool authority = ((effect == "pure" || effect == "io") && contract == "libc") ||
+            const bool authority = ((effect == "pure" || effect == "io") && (contract == "libc" || contract == "memory")) ||
                                    (effect == "memory" && contract == "text_runtime") ||
                                    (effect == "readonly" && (contract == "kernel" || contract == "linux"));
             const auto library = string(required(provider, "library", "$.operation.provider"), "$.operation.provider.library");
-            const bool library_admitted = ((contract == "libc" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
+            const bool library_admitted = ((contract == "libc" || contract == "memory" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
                                           (contract == "text_runtime" && library == "libflowtext.so");
             if (!admitted || !authority || !library_admitted ||
                 string(required(provider, "convention", "$.operation.provider"), "$.operation.provider.convention") != "c")

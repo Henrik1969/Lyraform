@@ -1480,6 +1480,21 @@ remains CONTINUE.
 - Focused evidence: `flowcore_stdlib_boundary` passed after the new native
   execution assertion.
 
+## 2026-09-13 TinyVM bounded memory parity checkpoint
+
+- Extended TinyVM's governed runtime provider with activation-local storage
+  handles backed by the artifact's declared byte lengths. `memset`, `memcpy`,
+  and `memcmp` now resolve the exact `memory` ABI tuples and never receive a
+  host pointer from the serialized artifact.
+- Added cross-backend parity evidence for the generic memory fixture: LLVM and
+  TinyVM both return the `memcmp` equality result, while a forged count beyond
+  the eight-byte declaration is rejected as a deterministic governed import
+  fault.
+- Added `tinyvm_memory_parity` to the canonical CTest graph. The test uses the
+  `flowprepare` backend artifact boundary and validates both normal execution
+  and the hostile bounds mutation.
+- The complete canonical CTest graph passed **87/87** in 38.79s.
+
 ## Exact next action
 
 Add a Flow-level `Outcome<Text,TextFailure>` carrier and explicit recovery

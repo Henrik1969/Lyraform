@@ -29,7 +29,7 @@ static int run_v2(const char *path,const char *policy,const char *engine,int arg
         tinyvm_artifact_v2_destroy(&artifact); return ok?0:1;
     }
     if(artifact.isa_version!=1&&artifact.isa_version!=2){tinyvm_artifact_v2_destroy(&artifact);return 2;}
-    TinyvmRuntimeProvider provider={policy,(size_t)argument_count,(const char *const *)arguments,NULL,0,0};
+    TinyvmRuntimeProvider provider={policy,(size_t)argument_count,(const char *const *)arguments,NULL,0,0,NULL,0};
     const char *fault=NULL;
     if(artifact.import_count&&!tinyvm_runtime_provider_preflight(&provider,&artifact,&fault)){fprintf(stderr,"flowtinyrun: %s\n",fault);tinyvm_artifact_v2_destroy(&artifact);return 2;}
     TinyvmIsaV1Context context;

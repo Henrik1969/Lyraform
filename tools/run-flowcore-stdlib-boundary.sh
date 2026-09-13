@@ -133,7 +133,11 @@ jq -e '
 "$flowoptimize" < "$tmpdir/memory.parallel.json" > "$tmpdir/memory.optimized.json"
 "$flowlower" --emit-llvm "$tmpdir/memory.ll" --binding-report "$tmpdir/memory.binding.json" < "$tmpdir/memory.optimized.json" > "$tmpdir/memory.lowering.json"
 clang "$tmpdir/memory.ll" -o "$tmpdir/memory"
-test "$("$tmpdir/memory")" -eq 0
+set +e
+"$tmpdir/memory"
+memory_status=$?
+set -e
+test "$memory_status" -eq 0
 
 kernel_fixture="$root/Lyraform/compiler/examples/pass/abi_kernel_capability_probe.flow"
 "$flowmini" --dump-frontend-bundle "$kernel_fixture" |
