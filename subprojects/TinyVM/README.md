@@ -84,7 +84,9 @@ The process-argument execution-input extension is specified in
 Graph artifacts use ISA 2 activation records to expose validated wire, signal,
 port and delivery identity through an optional runtime observer. Use
 `flowtinyrun --trace-graph` to write those activation events as JSONL to
-standard error; the observer is diagnostic and does not change program output.
+standard error; a host embedding the ISA may also install a scheduling hook to
+refuse an activation before it is observed. The observer is diagnostic and does
+not change program output.
 
 When built in the Flowcore superbuild, `flowtinylower` consumes the public
 backend-neutral lowering artifact and deterministically emits ISA v1 for

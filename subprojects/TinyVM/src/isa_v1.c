@@ -83,6 +83,7 @@ static bool graph_activate(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx,con
     TinyvmGraphActivationRecord *record=&ctx->graph_records[ctx->graph_record_count];
     record->identity=*activation;record->sequence=ctx->graph_record_count;record->stream_index=stream_index;
     ++ctx->graph_record_count;
+    if(ctx->graph_schedule_hook){const char *fault=NULL;if(!ctx->graph_schedule_hook(ctx->graph_schedule_user,a,record,&fault))return trap(ctx,TV1_TRAP_EXPLICIT,fault?fault:"graph activation rejected by scheduler",instruction);}
     if(ctx->graph_observer)ctx->graph_observer(ctx->graph_observer_user,a,record);
     return true;
 }

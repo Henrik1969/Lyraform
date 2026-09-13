@@ -29,8 +29,9 @@ The instruction's `a` operand names a record in optional artifact section 7;
 the record at execution time, including activation, signal, delivery, wire and
 port identities. The context retains a copied runtime record with a monotonic
 execution sequence and stream index. Without an observer the instruction is a
-validated no-op; the artifact still carries the same metadata for independent
-inspection.
+validated no-op; an optional scheduling hook may refuse the activation before
+the observer is called. The artifact still carries the same metadata for
+independent inspection.
 
 Portable-switch and computed-goto execution initialize identical values and
 their complete post-execution states remain differentially tested.

@@ -2321,6 +2321,22 @@ State remains CONTINUE. The trace corpus is broader, but runtime scheduling
 queues, reentrancy, cancellation, effectful or nested parallel delivery, and
 branching/merging stream execution remain ordinary implementation work.
 
+## 2026-09-13 TinyVM scheduling-hook checkpoint
+
+- Added an explicit `TinyvmGraphScheduleHook` at the ISA context boundary. It
+  receives the copied runtime activation record before observation and can
+  refuse an activation with a deterministic explicit trap; bytecode semantics
+  remain independent of host scheduling policy.
+- Added conformance coverage for switch/computed hook refusal, matching fault,
+  runtime record identity and sequence. The full TinyVM subset passes **25/25**
+  under GCC and **25/25** under Clang 18.1.3 ASan/UBSan with the documented
+  leak settings.
+
+State remains CONTINUE. The hook is an embedding boundary, not a scheduler
+queue: runtime-owned queues, reentrancy, cancellation, effectful or nested
+parallel delivery, and branching/merging stream execution remain ordinary
+implementation work.
+
 ## 2026-09-13 TinyVM aggregate-stream parity checkpoint
 
 - Admitted bounded finite-stream-v2 delivery for verified packed one-64-bit

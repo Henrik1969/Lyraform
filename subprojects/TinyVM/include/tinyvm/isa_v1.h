@@ -68,6 +68,11 @@ typedef struct {
     uint64_t stream_index;
 } TinyvmGraphActivationRecord;
 
+typedef bool (*TinyvmGraphScheduleHook)(void *user,
+                                        const TinyvmArtifactV2 *artifact,
+                                        const TinyvmGraphActivationRecord *record,
+                                        const char **fault);
+
 typedef void (*TinyvmGraphActivationObserver)(void *user,
                                               const TinyvmArtifactV2 *artifact,
                                               const TinyvmGraphActivationRecord *record);
@@ -92,6 +97,8 @@ typedef struct {
     void *text_outcome_user;
     TinyvmGraphActivationObserver graph_observer;
     void *graph_observer_user;
+    TinyvmGraphScheduleHook graph_schedule_hook;
+    void *graph_schedule_user;
     TinyvmGraphActivationRecord *graph_records;
     size_t graph_record_count;
     size_t graph_record_capacity;
