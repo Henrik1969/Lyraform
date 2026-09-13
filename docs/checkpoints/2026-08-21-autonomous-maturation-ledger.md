@@ -2071,3 +2071,21 @@ followed by reentrant/parallel graph schedules, with TinyVM still last.
 Run the complete canonical gate, commit and push this aggregate checkpoint,
 then continue with the first unfinished aggregate/reentrant maturation slice.
 State remains CONTINUE.
+
+## 2026-09-13 reentrant/parallel schedule contract opened
+
+- Opened `source-graph-reentrant-parallel-decision.md` with an explicit v3
+  provider-map schedule policy. `parallel_independent_v1` is selected by the
+  artifact and never inferred from application or implementation names.
+- Flowparallel now publishes a version-4 schedule containing deterministic
+  topological activation steps plus dependency waves. Each activation in a
+  wave depends only on an earlier wave, preserving fresh receiver identity,
+  fan-out signals, and reproducible scheduling evidence.
+- Flowlower refuses the version-4 schedule until a worker runtime contract
+  exists. This prevents a parallel request from being silently downgraded to
+  serial execution. Reentrant receiver pipelines continue to use the existing
+  topological schedule law.
+
+No native worker execution is claimed yet. The next action is to add hostile
+wave/policy validation and then implement explicit worker join/failure rules.
+State remains CONTINUE.

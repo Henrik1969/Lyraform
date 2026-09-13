@@ -120,6 +120,25 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
                 {"output_port", "out"}, {"output_connected", connected}});
         }
     }
+    const auto schedule_policy = optional(object(graph_value), "schedule_policy")
+        ? string(*optional(object(graph_value), "schedule_policy"), "$.schedule_policy") : std::string{"serial"};
+    if (schedule_policy == "parallel_independent_v1") {
+        std::map<Integer, Array> waves;
+        std::map<Integer, Integer> levels;
+        for (const auto& step : steps) {
+            const auto item = object(step, "$.graph_schedule.steps[]");
+            const auto id = integer(required(item, "activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].activation_id");
+            const auto input = integer(required(item, "input_activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].input_activation_id");
+            levels[id] = input < 0 ? 0 : levels.at(input) + 1;
+            waves[levels[id]].emplace_back(id);
+        }
+        Array parallel_waves;
+        for (const auto& [level, activations] : waves)
+            parallel_waves.emplace_back(Object{{"activation_ids", activations}, {"level", level}, {"status", "independent"}});
+        return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{4}},
+            {"policy", "parallel_independent_v1"}, {"activation_contract", "fresh_single_input_v1"},
+            {"parallel_contract", "dependency_waves_v1"}, {"parallel_waves", parallel_waves}, {"steps", steps}};
+    }
     if (persistent) {
         Array state_steps;
         for (const auto& step : steps) {

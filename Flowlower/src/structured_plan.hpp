@@ -379,6 +379,7 @@ private:
         for (const auto& node : graph_model_->receivers) receivers.emplace(text(field(node, "node_id")), &node);
         const auto* schedule = field(root_, "graph_schedule");
         const auto schedule_version = schedule ? integer(field(*schedule, "version"), "graph_schedule.version") : 1;
+        if (schedule_version == 4) throw std::runtime_error("parallel graph lowering requires the worker runtime contract");
         if (schedule_version == 2) {
             emit_stream_graph_main(entry, out, providers, receivers);
             return;

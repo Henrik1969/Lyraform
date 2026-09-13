@@ -52,6 +52,11 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
         throw Error(syntax_path, "unsupported graph syntax contract");
     SourceGraph result;
     result.executable = version == 2;
+    const auto schedule_policy = optional(root, "schedule_policy") ? str(root, "schedule_policy", path) : std::string{"serial"};
+    if (schedule_policy != "serial" && schedule_policy != "parallel_independent_v1")
+        throw Error(path + ".schedule_policy", "unsupported graph schedule policy");
+    if (schedule_policy == "parallel_independent_v1" && version != 2)
+        throw Error(path + ".schedule_policy", "parallel graph scheduling requires source graph version 2");
     std::map<std::string, SourceGraphNode> nodes;
     for (const auto& value : array(required(syntax, "nodes", syntax_path), syntax_path + ".nodes")) {
         const auto p = syntax_path + ".nodes[" + std::to_string(result.nodes.size()) + "]";

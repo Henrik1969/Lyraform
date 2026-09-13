@@ -181,6 +181,24 @@ for mutation in '.providers[0].node_id = "receiver"' '.providers[0].implementati
         echo "invalid producer resolution accepted: $mutation" >&2; exit 1
     fi
 done
+parallel_providers="$tmpdir/parallel-providers.json"
+jq '.version = 3 | .providers[0].schedule_policy = "parallel_independent_v1"' "$tmpdir/providers.json" > "$parallel_providers"
+"$FLOWVALIDATE_BIN" "$parallel_providers" | jq -e '.classification == "valid"' >/dev/null
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$parallel_providers" < "$tmpdir/producer.frontend.json" > "$tmpdir/parallel.semantic.json"
+"$FLOWPARALLEL_BIN" < "$tmpdir/parallel.semantic.json" > "$tmpdir/parallel.execution.json"
+jq -e '.graph_schedule.version == 4 and
+    .graph_schedule.policy == "parallel_independent_v1" and
+    .graph_schedule.parallel_contract == "dependency_waves_v1" and
+    .graph_schedule.parallel_waves[0].activation_ids == [0] and
+    .graph_schedule.parallel_waves[1].activation_ids == [1] and
+    .graph_schedule.parallel_waves[1].status == "independent"' "$tmpdir/parallel.execution.json" >/dev/null
+for mutation in '.providers[0].schedule_policy = "parallel"' 'del(.providers[0].schedule_policy)' '.version = 2'; do
+    jq "$mutation" "$parallel_providers" > "$tmpdir/bad-parallel-providers.json"
+    if "$FLOWVALIDATE_BIN" "$tmpdir/bad-parallel-providers.json" >/dev/null; then
+        echo "invalid parallel provider map accepted: $mutation" >&2
+        exit 1
+    fi
+done
 
 cat > "$tmpdir/persistent.flow" <<'FLOW'
 program persistent_graph

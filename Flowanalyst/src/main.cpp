@@ -99,6 +99,12 @@ bool numeric_extents(const std::string& value) {
 
 int run(const Json& bundle, int lowering_plan_version, const Json& provider_map, int graph_plan_version) {
     const auto graph_provider_selections = flowcontracts::graph_provider_map(provider_map);
+    std::string graph_schedule_policy = "serial";
+    bool graph_schedule_policy_set = false;
+    for (const auto& selection : graph_provider_selections) {
+        if (!graph_schedule_policy_set) { graph_schedule_policy = selection.schedule_policy; graph_schedule_policy_set = true; }
+        else if (selection.schedule_policy != graph_schedule_policy) throw std::runtime_error("graph provider selections disagree on schedule policy");
+    }
     if (text(field(bundle, "format")) != "flowmini.frontend_bundle" || integer(field(bundle, "version")) != 2) throw std::runtime_error("unsupported FlowMini frontend bundle");
     const auto* snapshot = field(bundle, "symbol_table"); if (!snapshot) throw std::runtime_error("bundle has no symbol_table");
     std::map<int, const Json*> symbols, scopes, origins;
@@ -494,6 +500,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 {"status", std::string(graph_plan_version == 2 ? "ready" : "non_executable")},
                 {"syntax", *graph}, {"receivers", graph_receivers}, {"providers", graph_providers},
                 {"aggregate_abi_layouts", [&]() { Array layouts; for (const auto& layout : aggregate_layouts) { Array fields; for (const auto& field : layout.fields) fields.emplace_back(Object{{"name", field.first}, {"type", field.second}}); layouts.emplace_back(Object{{"contract", layout.contract}, {"fields", fields}, {"layout_policy", "provider_verified_required"}, {"name", layout.name}, {"status", "declared"}, {"version", flowcontracts::json::Integer{1}}}); } return layouts; }()},
+                {"schedule_policy", graph_schedule_policy},
                 {"provider_selection", provider_map}};
             if (graph_plan_version == 2) {
                 try {
