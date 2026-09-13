@@ -1275,3 +1275,25 @@ fresh source-function activation frames, preserve the complete graph through the
 middle stages and native lowering, then move pager navigation into Flow. Do not
 ask for the approved decision again. State remains CONTINUE; no total blocker is
 recorded. Historical DONE claims do not describe this checkout.
+
+## 2026-09-13 Text boundary checkpoint
+
+- Implemented the first generic `Text` slice across Flowmini AST metadata,
+  Flowanalyst, Flowbind, Flowparallel/Flowoptimize preservation, and Flowlower.
+- `Text` literals are UTF-8 validated; initializer-known concatenation folds
+  left-to-right; empty Text remains a non-null materialized value; and an
+  initializer-known Text can cross an ordinary Text-returning function.
+- `print` creates an externally authorized operation only for the declared
+  `puts_text(Text): c_int` capability. Existing numeric print compatibility and
+  borrowed `c_string` ABI calls remain green. Text/c_string confusion, dynamic
+  concatenation, and invalid UTF-8 have explicit diagnostics.
+- Evidence: `tools/test-text-value.sh` passed semantic, authorization, native
+  output, callable-return, and refusal checks; the pass corpus passed **92**
+  programs; a fresh 115-target build passed **82/82** CTest tests in 35.54s.
+- Checkpoint commit `a2380da` is pushed to `origin/main`.
+
+## Exact next action
+
+Implement runtime Text concatenation with an explicit bounded-storage policy,
+then add failure-path and TinyVM parity evidence. Keep the compile-time-only
+slice clearly distinguished until that gate passes.

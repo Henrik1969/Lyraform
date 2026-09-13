@@ -93,6 +93,8 @@ The current generic chain admits the following bounded slice:
   initializers are validated as UTF-8;
 - literal and initializer-known `Text + Text` expressions are folded in the
   semantic artifact with left-to-right ordering preserved;
+- initializer-known Text values may cross an ordinary function return and
+  remain printable as Text;
 - empty Text values are materialized as non-null NUL-terminated views for an
   authorized call, and non-ASCII UTF-8 bytes survive LLVM/native lowering;
 - `print` resolves only to a declared `puts_text(Text): c_int` capability;
@@ -102,8 +104,9 @@ The current generic chain admits the following bounded slice:
   and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
 
 This slice deliberately does not claim general runtime Text allocation or
-function-return ownership yet. Dynamic concatenation, bounded-storage failure,
-and TinyVM parity remain admission gates for the complete v0.1 contract.
+general function-return ownership yet. Dynamic concatenation,
+bounded-storage failure, and TinyVM parity remain admission gates for the
+complete v0.1 contract.
 
 ## Open review questions
 

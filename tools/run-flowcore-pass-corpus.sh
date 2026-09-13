@@ -63,7 +63,11 @@ for source in "$pass_root"/*.flow; do
     lowered=$tmpdir/$name.lowered.json
 
     "$flowmini" --dump-frontend-bundle "$source" > "$bundle"
-    "$analyst" < "$bundle" > "$semantic"
+    if [ "$name" = "text_value" ]; then
+        "$analyst" --lowering-plan-version 2 < "$bundle" > "$semantic"
+    else
+        "$analyst" < "$bundle" > "$semantic"
+    fi
     grep -q '"status": "ok"' "$semantic"
     "$parallel" < "$semantic" > "$tmpdir/$name.parallel.json"
     "$optimizer" < "$tmpdir/$name.parallel.json" > "$optimized"

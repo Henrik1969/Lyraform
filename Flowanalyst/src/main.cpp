@@ -527,6 +527,14 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             const int symbol = resolved_expression_symbols.count(expression_id) ? resolved_expression_symbols.at(expression_id) : -1;
             return symbol >= 0 && symbol_types[symbol] == "Text";
         }
+        if (kind == "call") {
+            const int base = integer(field(field(*expression, "payload"), "base"));
+            const int symbol = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
+            if (symbol >= 0 && symbol_types[symbol] == "Text") return true;
+            const auto callee = text(field(*expression, "text"));
+            for (const auto& callable : callables) if (callable.name == callee && callable.return_type == "Text") return true;
+            return false;
+        }
         if (kind != "binary") return false;
         const auto* payload = field(*expression, "payload");
         return text(field(payload, "operator")) == "+" &&

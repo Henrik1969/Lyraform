@@ -13,11 +13,12 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 "$flowmini" --dump-frontend-bundle "$source" > "$tmpdir/frontend.json"
-"$analyst" < "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
+"$analyst" --lowering-plan-version 2 < "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
 jq -e '
   .status == "ok" and
-  ([.lowering_plan.operations[] | select(.kind == "value_definition" and .operands[0].type == "Text")] | length) == 4 and
-  ([.lowering_plan.operations[] | select(.kind == "external_call" and .callee == "print" and .provider.parameter_types == "Text")] | length) == 2 and
+  ([.lowering_plan.operations[] | select(.kind == "value_definition" and .operands[0].type == "Text")] | length) == 6 and
+  ([.lowering_plan.operations[] | select(.kind == "external_call" and .callee == "print" and .provider.parameter_types == "Text")] | length) == 3 and
+  ([.lowering_plan.operations[] | select(.kind == "value_definition" and .operands[0].kind == "call_result" and .operands[0].type == "Text")] | length) == 1 and
   ([.lowering_plan.operations[].operands[] | select(.kind == "string_literal" and .type == "Text" and .value == "Lyraform — Igor")] | length) == 1
 ' "$tmpdir/semantic.json" >/dev/null
 "$parallel" < "$tmpdir/semantic.json" > "$tmpdir/parallel.json"
@@ -33,7 +34,7 @@ jq -e '.status == "ready" and .capabilities[0].parameter_types == "Text" and .ca
 grep -Fq 'declare i32 @puts(ptr)' "$tmpdir/text.ll"
 grep -Fq 'call i32 @puts(ptr' "$tmpdir/text.ll"
 clang "$tmpdir/text.ll" -o "$tmpdir/text"
-printf '\nLyraform — Igor\n' > "$tmpdir/expected"
+printf '\nLyraform — Igor\nreturned — Igor\n' > "$tmpdir/expected"
 "$tmpdir/text" > "$tmpdir/output"
 cmp -s "$tmpdir/expected" "$tmpdir/output"
 

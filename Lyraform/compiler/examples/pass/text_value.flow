@@ -2,11 +2,18 @@ import "../../std/abi/libc.flow"
 
 program text_value
 
+fn returned_text(): Text {
+    result : Text("returned — Igor")
+    return result
+}
+
 main {
     empty : Text("")
     prefix : Text("Lyra")
     suffix : Text("form")
     value : Text(prefix + suffix + " — Igor")
+    returned : Text(returned_text())
     print empty
     print value
+    print returned
 }

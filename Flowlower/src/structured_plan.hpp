@@ -478,7 +478,7 @@ private:
             if(op->kind=="value_definition") {
                 const auto kind=text(field(*op->operand,"kind"));
                 if(kind=="writable_storage") out<<"  store ptr %flow_storage_ptr_"<<op->result_symbol<<", ptr "<<slot(op->result_symbol)<<"\n";
-                else if(kind=="string_literal") { auto [type,value]=expression(*op->operand,out,"Text"); if(value.empty()) throw std::runtime_error("unsupported structured string definition"); out<<"  store ptr "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
+                else if(kind=="string_literal") { const auto value=expression(*op->operand,out,"Text").second; if(value.empty()) throw std::runtime_error("unsupported structured string definition"); out<<"  store ptr "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
                 else { auto [type,value]=expression(*op->operand,out); if(value.empty()) throw std::runtime_error("unsupported structured value definition"); out<<"  store "<<type<<" "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
             } else if(op->kind=="call") {
                 if(!callables_.count(op->callee_symbol))throw std::runtime_error("ordinary call target is unavailable");

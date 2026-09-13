@@ -72,6 +72,8 @@ tools/run-flowcore-pass-corpus.sh
 
 The native fixture prints an empty line followed by `Lyraform — Igor`, proving
 that empty Text is not lowered as the legacy null c_string compatibility value.
+It also returns a constant-backed Text value from an ordinary function before
+printing it, covering the callable boundary.
 The implementation is intentionally bounded: concatenation is admitted only
 when operands are initializer-known constants, and `puts_text(Text)` provides a
 declared borrowed view at the native call boundary. Runtime owned allocation,
