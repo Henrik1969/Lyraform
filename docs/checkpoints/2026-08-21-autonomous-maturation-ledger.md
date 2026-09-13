@@ -1916,3 +1916,19 @@ CONTINUE.
 Carry the finite-stream identities into `flowcore.source_graph` and its
 validated schedule template without changing legacy startup graph artifacts.
 State remains CONTINUE.
+
+## 2026-09-13 finite stream source-graph checkpoint
+
+- Extended `flowcore.source_graph` validation with the finite-stream producer
+  shape: explicit count/item callable identities, `c_size_t` count and index
+  contracts, admitted item carrier, matching cap, and binding evidence for both
+  providers.
+- Added a valid stream graph artifact and hostile mutations for those fields;
+  focused source-graph evidence passed **1/1**.
+- Stream execution remains deliberately pending until Flowparallel publishes
+  and validates the dynamic stream schedule template.
+
+## Exact next action
+
+Implement the bounded finite-stream schedule template and keep legacy static
+startup schedules byte-for-byte unchanged. State remains CONTINUE.

@@ -133,6 +133,34 @@ for mutation in \
         echo "invalid stream provider map accepted: $mutation" >&2; exit 1
     fi
 done
+cat > "$tmpdir/stream-selection.json" <<'JSON'
+{"format":"flowcore.graph_provider_map","version":2,"providers":[{"implementation":"injected.renamed","count_callable":"host.count","item_callable":"host.item","activation":"finite_stream_once","max_items":4096,"output_port":"out"}]}
+JSON
+jq --slurpfile selection "$tmpdir/stream-selection.json" '
+    .provider_selection = $selection[0]
+    | .providers[0] |= (
+        del(.source_callable)
+        | .activation = "finite_stream_once"
+        | .count_callable = "host.count"
+        | .item_callable = "host.item"
+        | .max_items = 4096
+        | .count_function_symbol_id = (.function_symbol_id + 1)
+        | .provider.parameter_types = "c_size_t"
+        | .count_provider = (.provider | .parameter_types = "" | .return_type = "c_size_t")
+    )
+' "$tmpdir/producer.graph.json" > "$tmpdir/stream.graph.json"
+"$FLOWVALIDATE_BIN" "$tmpdir/stream.graph.json" | jq -e '.classification == "valid"' >/dev/null
+for mutation in \
+    '.providers[0].count_callable = "host.other"' \
+    '.providers[0].max_items = 0' \
+    '.providers[0].provider.parameter_types = ""' \
+    '.providers[0].count_provider.return_type = "c_int"' \
+    '.providers[0].count_function_symbol_id = -1'; do
+    jq "$mutation" "$tmpdir/stream.graph.json" > "$tmpdir/bad-stream.graph.json"
+    if "$FLOWVALIDATE_BIN" "$tmpdir/bad-stream.graph.json" >/dev/null; then
+        echo "invalid stream graph accepted: $mutation" >&2; exit 1
+    fi
+done
 for mutation in '.providers[0].node_id = "receiver"' '.providers[0].implementation = "other"' '.providers[0].provider.parameter_types = "c_int"' '.providers[0].output_type = "Bool"' '.providers[0].provider.evidence = "invented"' '.syntax.wires[0].from.port_id = "wrong"'; do
     jq "$mutation" "$tmpdir/producer.graph.json" > "$tmpdir/bad-producer.graph.json"
     if "$FLOWVALIDATE_BIN" "$tmpdir/bad-producer.graph.json" >/dev/null; then

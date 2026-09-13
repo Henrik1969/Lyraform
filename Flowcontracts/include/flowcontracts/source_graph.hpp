@@ -126,23 +126,45 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
                 nodes.at(node).implementation_kind != "provider_atom" || provider_types.count(node))
                 throw Error(p, "provider resolution does not match one producer node");
             const auto implementation = nonempty(item, "implementation", p);
-            const auto callable = nonempty(item, "source_callable", p);
-            bool selected = false;
+            const GraphProviderSelection* selected = nullptr;
             for (const auto& selection : selections)
-                if (selection.implementation == implementation && selection.source_callable == callable) selected = true;
+                if (selection.implementation == implementation) selected = &selection;
             if (!selected || implementation != nodes.at(node).implementation_name)
                 throw Error(p, "provider resolution differs from explicit selection");
-            if (integer(required(item, "function_symbol_id", p), p + ".function_symbol_id") < 0 ||
-                str(item, "activation", p) != "startup_once" || str(item, "output_port", p) != "out")
-                throw Error(p, "unsupported startup producer contract");
+            const auto activation = str(item, "activation", p);
+            const auto type = nonempty(item, "output_type", p);
             const auto& provider = object(required(item, "provider", p), p + ".provider");
             for (const auto* key : {"contract", "library", "symbol", "convention", "effect", "return_type"})
                 (void)nonempty(provider, key, p + ".provider");
             (void)binding_evidence(provider, p + ".provider");
-            const auto type = nonempty(item, "output_type", p);
-            if (!str(provider, "parameter_types", p + ".provider").empty() ||
-                str(provider, "return_type", p + ".provider") != type || type == "void")
-                throw Error(p, "startup producer requires a zero-argument value-returning ABI");
+            if (activation == "startup_once" && selected->activation == "startup_once") {
+                if (nonempty(item, "source_callable", p) != selected->source_callable ||
+                    integer(required(item, "function_symbol_id", p), p + ".function_symbol_id") < 0 ||
+                    str(item, "output_port", p) != "out" ||
+                    !str(provider, "parameter_types", p + ".provider").empty() ||
+                    str(provider, "return_type", p + ".provider") != type || type == "void")
+                    throw Error(p, "unsupported startup producer contract");
+            } else if (activation == "finite_stream_once" && selected->activation == "finite_stream_once") {
+                const auto count_callable = nonempty(item, "count_callable", p);
+                const auto item_callable = nonempty(item, "item_callable", p);
+                const auto max_items = integer(required(item, "max_items", p), p + ".max_items");
+                if (count_callable != selected->count_callable || item_callable != selected->item_callable ||
+                    max_items != selected->max_items || str(item, "output_port", p) != "out" ||
+                    integer(required(item, "function_symbol_id", p), p + ".function_symbol_id") < 0 ||
+                    integer(required(item, "count_function_symbol_id", p), p + ".count_function_symbol_id") < 0 ||
+                    str(provider, "parameter_types", p + ".provider") != "c_size_t" ||
+                    str(provider, "return_type", p + ".provider") != type || type == "void")
+                    throw Error(p, "unsupported finite stream item provider contract");
+                const auto& count_provider = object(required(item, "count_provider", p), p + ".count_provider");
+                for (const auto* key : {"contract", "library", "symbol", "convention", "effect", "return_type"})
+                    (void)nonempty(count_provider, key, p + ".count_provider");
+                (void)binding_evidence(count_provider, p + ".count_provider");
+                if (str(count_provider, "parameter_types", p + ".count_provider") != "" ||
+                    str(count_provider, "return_type", p + ".count_provider") != "c_size_t")
+                    throw Error(p, "finite stream count provider must return c_size_t without arguments");
+            } else {
+                throw Error(p, "provider resolution differs from selected activation");
+            }
             provider_types.emplace(node, type);
             provenance(item, p);
         }
