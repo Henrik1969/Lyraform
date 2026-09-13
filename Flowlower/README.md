@@ -13,9 +13,8 @@ pointer ABI calls, typed result placement, integer and string values,
 expressions, returns, comparisons, checked entry arguments, and selected
 structured control-flow plans. The file-copy and terminal examples are chosen
 from source-derived plan operations and exact authorized capabilities rather
-than application names. Their complex LLVM control-flow emitters remain
-transitional until the reusable loop/branch emitter covers the same native
-error and cleanup laws.
+than application names; their profile-free native error and cleanup laws are
+covered by the current pipeline tests.
 
 The lowering report preserves the source path carried by the upstream semantic
 and optimization reports. This keeps emitted IR attributable to its source
@@ -25,9 +24,9 @@ artifact without making the lowerer depend on Flowmini internals.
 complete selected target, lowering plan, ABI contracts, external operations,
 exact authorization capabilities and optimization provenance. Both
 `flowlower` (LLVM) and `flowtinylower` (TinyVM) consume a captured instance from
-disk. TinyVM currently admits empty and scalar provider-free plans, including
-structured branches and loops, and returns a structured unsupported result for
-the remaining surface while Gate 4 is in progress.
+disk. TinyVM admits the bounded scalar, graph, aggregate, stream, persistent,
+parallel, Text, and memory surfaces covered by its parity tests, and returns a
+structured unsupported result for features outside that documented boundary.
 Direct optimization-report input to `flowlower` remains a temporary corpus
 compatibility path and is not the public backend boundary.
 
