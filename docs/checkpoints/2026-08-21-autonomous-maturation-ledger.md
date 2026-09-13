@@ -1780,3 +1780,21 @@ admitted surface. State remains CONTINUE.
 Continue Gate 6 with the next receiver/graph boundary while retaining explicit
 refusal of raw-pointer, aggregate, and streaming payload semantics. State
 remains CONTINUE.
+
+## 2026-09-13 native aggregate graph refusal checkpoint
+
+- Added a dedicated `FLOWANALYST_GRAPH_RECEIVER_CARRIER` admission rule for
+  native source receivers. Only the currently admitted scalar carriers reach
+  graph planning; record/aggregate and raw-pointer receiver signatures fail
+  before native emission.
+- Extended `native_source_graph` with hostile `c_pointer` and record-shaped
+  receiver fixtures. Positive `c_int`, `c_long`, and `Bool` graph paths remain
+  generic and executable.
+- The complete canonical suite passed **94/94** after rebuilding Flowanalyst;
+  state remains `CONTINUE`.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph law while preserving explicit
+scalar-carrier admission and refusal of aggregate, streaming, persistent-state,
+and raw-pointer graph semantics.

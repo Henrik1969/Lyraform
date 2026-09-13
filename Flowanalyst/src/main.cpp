@@ -350,6 +350,18 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     "source receiver requires a defined one-input one-result function and node role", node);
                 continue;
             }
+            if (graph_plan_version == 2) {
+                const auto native_carrier = [](const std::string& type) {
+                    return type == "int" || type == "bool" || type == "Bool" || type == "Text" ||
+                        type == "c_int" || type == "c_long" || type == "c_ulong" ||
+                        type == "c_size_t" || type == "c_string";
+                };
+                if (!native_carrier(callable.parameters.front().second) || !native_carrier(callable.return_type)) {
+                    graph_diagnostic("FLOWANALYST_GRAPH_RECEIVER_CARRIER",
+                        "native source receiver requires an admitted scalar carrier", node);
+                    continue;
+                }
+            }
             graph_receivers.push_back(Object{{"node_id", id}, {"function_symbol_id", callable.symbol},
                 {"parameter_symbol_id", callable.parameters.front().first},
                 {"input_port", std::string("in")}, {"input_type", callable.parameters.front().second},

@@ -252,8 +252,40 @@ status=$?
 set -e
 test "$status" -ne 0
 jq -e '.status == "error" and
-    any(.diagnostics[]; .code == "FLOWANALYST_GRAPH_PROVIDER_TYPE")' \
+    any(.diagnostics[]; .code == "FLOWANALYST_GRAPH_RECEIVER_CARRIER")' \
     "$tmpdir/pointer.semantic.json" >/dev/null
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+compile
+# Aggregate receiver payloads are likewise outside the scalar native contract,
+# even when the record body itself is a valid ordinary Flow type.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+cat > "$tmpdir/aggregate.flow" <<'FLOW'
+import "provider.flow" as host
+program aggregate_graph
+type Packet {
+    field value : int
+}
+producer source : injected.batch
+node receiver : fn aggregate_identity
+wire source.out => receiver.in
+fn aggregate_identity(value : Packet): Packet {
+    return value
+}
+main {
+    return 0
+}
+FLOW
+cp "$tmpdir/aggregate.flow" "$tmpdir/program.flow"
+set +e
+"$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/program.flow" > "$tmpdir/aggregate.frontend.json"
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 \
+    --graph-providers "$tmpdir/selection.json" < "$tmpdir/aggregate.frontend.json" > "$tmpdir/aggregate.semantic.json"
+status=$?
+set -e
+test "$status" -ne 0
+jq -e '.status == "error" and
+    any(.diagnostics[]; .code == "FLOWANALYST_GRAPH_RECEIVER_CARRIER")' \
+    "$tmpdir/aggregate.semantic.json" >/dev/null
 mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
 compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
