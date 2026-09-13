@@ -1543,3 +1543,22 @@ Select and mature the next non-Text standard capability as a complete
 policy-gated library slice, beginning with its ABI contract, provider/runtime
 boundary, LLVM/TinyVM evidence where applicable, and onboarding/documentation
 coverage. State remains CONTINUE.
+
+## 2026-09-13 libm c_double library checkpoint
+
+- Added `std/abi/math.flow` with explicit `libm.so.6` contracts for
+  `sqrt(c_double):c_double` and `floor(c_double):c_double`.
+- Extended the generic LLVM carrier path for typed double literals, native math
+  calls, and source-derived floating-point comparisons. The test does not infer
+  authority from symbol presence: both exact grants are required before linking.
+- Added `abi_math_main` and onboarding references. The focused native gate
+  passed and prints `libm ok` plus `libm floor ok`.
+- TinyVM deliberately remains closed for `c_double`; its unsupported inventory
+  now records the missing float carrier/instruction semantics rather than
+  silently mapping the calls to an integer or host-specific fallback.
+
+## Exact next action
+
+Select the next non-Text library boundary after `libm`, prioritizing a bounded
+resource or system interface whose ownership and failure semantics can be
+verified on both LLVM and TinyVM. State remains CONTINUE.

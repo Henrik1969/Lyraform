@@ -19,6 +19,7 @@ AST golden tests: 28
 Symbol projection tests: 14
 downstream language-chain CTest gates: PASS
 flowcat native ELF example: PASS
+policy-gated `libm` c_double example: PASS
 ```
 
 Current architecture checkpoint:

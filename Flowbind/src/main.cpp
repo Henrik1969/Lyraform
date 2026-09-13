@@ -450,7 +450,7 @@ int verify(const std::string& report, const std::string& policy_path, const std:
         for (const auto& type : json_array(contracts, "abi_type_contracts"))
             declared_representations[json_text(json_field(type, "name"))] = json_text(json_field(type, "repr"));
     auto supported_type = [&](const std::string& type) {
-        if (type == "c_int" || type == "c_long" || type == "c_ulong" || type == "c_size_t" || type == "c_string" || type == "c_pointer") return true;
+        if (type == "c_int" || type == "c_long" || type == "c_ulong" || type == "c_size_t" || type == "c_string" || type == "c_pointer" || type == "c_double") return true;
         if (type == "TextOutcome") return true;
         const auto found = declared_representations.find(type);
         return found != declared_representations.end() && (found->second == "void*" || found->second == "const void*" ||

@@ -1,0 +1,24 @@
+unit std_abi_math
+
+abi math {
+    library "libm.so.6"
+    convention c
+
+    type c_double {
+        repr "double"
+        ownership value
+        access value
+        lifetime value
+        nullable false
+    }
+
+    extern fn sqrt(value : c_double): c_double {
+        symbol "sqrt"
+        effect pure
+    }
+
+    extern fn floor(value : c_double): c_double {
+        symbol "floor"
+        effect pure
+    }
+}

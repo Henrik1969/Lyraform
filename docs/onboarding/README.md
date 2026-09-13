@@ -31,7 +31,7 @@ git switch --detach main
 Expected result:
 
 ```text
-100% tests passed, 0 tests failed out of 81
+100% tests passed, 0 tests failed out of 89
 ```
 
 Record the exact revision before reporting results:
@@ -109,7 +109,7 @@ For a focused source-chain check, the most representative tests are:
 
 ```bash
 ctest --test-dir /tmp/lyraform-onboarding-build --output-on-failure \
-  -R 'profile_free_generic_lowering|native_source_graph|flow_less_pager|namespace_ambiguity'
+  -R 'profile_free_generic_lowering|native_source_graph|flow_less_pager|namespace_ambiguity|text_outcome_boundary|math_library_boundary'
 ```
 
 ## Critic path
@@ -141,10 +141,11 @@ production readiness, security certification, or universal portability.
 
 The current public acceptance surface is experimental and not production-ready.
 Native demonstrations target Linux x86-64 with LLVM/native linking and
-`libncursesw.so.6`. The admitted graph surface is scalar, bounded, acyclic FIFO
-expansion with fresh receivers. Aggregate graphs, persistent node state,
-streams, asynchronous/reentrant delivery, and broader target/provider coverage
-remain future work.
+`libncursesw.so.6`; the bounded `libm.so.6` math slice additionally requires
+the host math library and is currently LLVM-only. The admitted graph surface is
+scalar, bounded, acyclic FIFO expansion with fresh receivers. Aggregate graphs,
+persistent node state, streams, asynchronous/reentrant delivery, and broader
+target/provider coverage remain future work.
 
 The `flowmini` executable name and `flowcore.*`/`flowmini.*` serialized artifact
 identifiers are retained as technical compatibility surfaces. The current

@@ -1,0 +1,21 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/math.flow"
+
+program abi_math_main
+
+main {
+    root : c_double(sqrt(9.0))
+    rounded : c_double(floor(3.75))
+    expected : c_double(3.0)
+    status : c_int(0)
+
+    if root == expected {
+        puts("libm ok") -> status
+    }
+    if root != expected {
+        puts("libm failed") -> status
+    }
+    if rounded == expected {
+        puts("libm floor ok") -> status
+    }
+}

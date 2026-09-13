@@ -64,6 +64,7 @@ inline std::string llvm_type(std::string_view carrier) {
     if (carrier == "bool" || carrier == "Bool") return "i1";
     if (carrier == "c_int") return "i32";
     if (carrier == "c_long" || carrier == "c_ulong" || carrier == "c_size_t") return "i64";
+    if (carrier == "c_double" || carrier == "float64") return "double";
     if (carrier == "c_string" || carrier == "c_pointer" || carrier == "Text") return "ptr";
     if (carrier == "TextFailure") return "i32";
     if (carrier == "TextOutcome") return "{ i32, ptr }";
@@ -399,6 +400,10 @@ private:
             if (llvm_type(type)=="ptr" && literal=="0") return {"ptr","null"};
             return {llvm_type(type),literal};
         }
+        if(kind=="float_literal") {
+            const auto literal=text(field(value,"value"));
+            return llvm_type(type)=="double" && !literal.empty()?std::pair<std::string,std::string>{"double",literal}:std::pair<std::string,std::string>{};
+        }
         if(kind=="bool_literal") {
             const auto literal=text(field(value,"value"));
             if(literal=="true") return {"i1","true"};
@@ -464,7 +469,12 @@ private:
             const auto op=text(field(value,"operator")); std::string instruction;
             if(op=="==")instruction="eq"; else if(op=="!=")instruction="ne"; else if(op=="<")instruction="slt"; else if(op=="<=")instruction="sle"; else if(op==">")instruction="sgt"; else if(op==">=")instruction="sge";
             if(!instruction.empty()&&!left.empty()&&!right.empty()&&left_type==right_type) {
-                const auto result="%flow_condition_"+std::to_string(temporary_++); out<<"  "<<result<<" = icmp "<<instruction<<" "<<left_type<<" "<<left<<", "<<right<<"\n"; return {"i1",result};
+                const auto result="%flow_condition_"+std::to_string(temporary_++);
+                if (left_type == "double") {
+                    const auto float_instruction = op == "==" ? "oeq" : op == "!=" ? "one" : op == "<" ? "olt" : op == "<=" ? "ole" : op == ">" ? "ogt" : "oge";
+                    out<<"  "<<result<<" = fcmp "<<float_instruction<<" double "<<left<<", "<<right<<"\n";
+                } else out<<"  "<<result<<" = icmp "<<instruction<<" "<<left_type<<" "<<left<<", "<<right<<"\n";
+                return {"i1",result};
             }
             if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="/")instruction="sdiv"; else return {};
             if(left.empty()||right.empty()||left_type!=right_type) return {};

@@ -1100,6 +1100,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         } else
         if (kind == "integer_literal") {
             std::cout << ",\"type\":" << quote(declared_type.empty() ? "c_int" : declared_type) << ",\"value\":" << quote(literal);
+        } else if (kind == "float_literal") {
+            const auto value = text(field(field(expression, "payload"), "value_text"));
+            std::cout << ",\"type\":" << quote(declared_type.empty() ? "float64" : declared_type)
+                      << ",\"value\":" << quote(value);
         } else if (kind == "string_literal") {
             const auto value = text(field(field(expression, "payload"), "value_text"));
             std::cout << ",\"type\":" << quote(declared_type == "Text" ? "Text" : "c_string")
