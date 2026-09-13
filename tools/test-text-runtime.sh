@@ -24,6 +24,7 @@ source=$root/Lyraform/compiler/examples/text/text_runtime.flow
 jq -e '
   .status == "ok" and
   any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "flow_text_concat" and .provider.parameter_types == "Text,Text" and .provider.return_type == "Text") and
+  any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "flow_text_concat" and .result_outcome.failure_type == "TextFailure" and (.result_outcome.failure_codes | index("exhausted"))) and
   any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "puts" and .provider.parameter_types == "Text")
 ' "$tmpdir/semantic.json" >/dev/null
 "$parallel" < "$tmpdir/semantic.json" > "$tmpdir/parallel.json"

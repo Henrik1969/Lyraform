@@ -132,6 +132,14 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
             const auto& effect = required_object(operation, "effect_contract", path);
             for (const auto field : {"external", "determinism", "certainty"})
                 (void)json::string(json::required(effect, field, path + ".effect_contract"), path + ".effect_contract." + field);
+            if (const auto* outcome = json::optional(operation, "result_outcome")) {
+                const auto& value = json::object(*outcome, path + ".result_outcome");
+                (void)json::string(json::required(value, "success_type", path + ".result_outcome"), path + ".result_outcome.success_type");
+                (void)json::string(json::required(value, "failure_type", path + ".result_outcome"), path + ".result_outcome.failure_type");
+                const auto& codes = required_array(value, "failure_codes", path + ".result_outcome");
+                if (codes.empty()) throw json::Error(path + ".result_outcome.failure_codes", "Text outcome must declare at least one failure code");
+                for (const auto& code : codes) (void)json::string(code, path + ".result_outcome.failure_codes[]");
+            }
             const auto& resources = required_array(operation, "argument_resources", path);
             for (std::size_t resource_index = 0; resource_index < resources.size(); ++resource_index) {
                 const auto resource_path = path + ".argument_resources[" + std::to_string(resource_index) + "]";

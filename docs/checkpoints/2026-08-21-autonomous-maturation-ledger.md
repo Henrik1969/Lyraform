@@ -1368,3 +1368,21 @@ pointers prohibited. State remains CONTINUE.
 Implement the typed `text_outcome` operation at the backend-neutral artifact
 boundary, then map the existing provider success/failure paths through it and
 add fan-out ownership evidence. State remains CONTINUE.
+
+## 2026-09-13 Text outcome metadata checkpoint
+
+- Added validated `result_outcome` metadata to runtime Text external operations.
+  It carries `Text` success, `TextFailure` failure, and the stable
+  `invalid_input`, `exhausted`, and `provider_unavailable` codes through the
+  generic artifact chain without serializing a host pointer.
+- The metadata is a compatibility seed, not yet the tagged `Outcome` value
+  required by the proposal. Existing LLVM/TinyVM trap mappings remain explicit
+  transitional backend behavior.
+- Evidence: focused Text runtime, TinyVM parity, contract-identity, and pass
+  corpus gates passed; the complete fresh suite passed **85/85** in 39.42s.
+
+## Exact next action
+
+Replace the metadata-only compatibility seed with a typed `text_outcome`
+operation and backend-neutral success/failure value, then add fan-out
+ownership/lifetime evidence. State remains CONTINUE.

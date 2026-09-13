@@ -1214,6 +1214,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             std::cout << ",\"effect_contract\":{\"external\":" << quote(operation.effect)
                       << ",\"determinism\":" << quote(operation.effect == "pure" ? "deterministic" : "unspecified")
                       << ",\"certainty\":\"declared\"}";
+            if (runtime_text_concats.count(operation.expression))
+                std::cout << ",\"result_outcome\":{\"success_type\":\"Text\",\"failure_type\":\"TextFailure\",\"failure_codes\":[\"invalid_input\",\"exhausted\",\"provider_unavailable\"]}";
             std::cout << ",\"argument_resources\":[";
             const auto parameter_carriers = operation.parameter_types.empty()
                 ? std::vector<std::string>{} : split_generic_arguments(operation.parameter_types);
