@@ -406,6 +406,16 @@ the already captured recovered-ISA boundary.
 - A two-delivery fixture observes the state transition `5 -> 6` identically
   through LLVM and TinyVM; lowering remains deterministic and artifact-free on
   failure.
-- Parallel schedule v4, stream receiver pipelines and aggregate payloads
+- Effectful/nested parallel schedule v4, stream receiver pipelines and aggregate payloads
   remain explicit future gates. The current state model is serial and static;
   it is not yet a general runtime activation-record system.
+
+### Pure parallel graph parity — `tinyvm-pure-parallel-graph-parity-v1`
+
+- TinyVM now admits validated schedule v4 dependency waves when all receiver
+  bodies are provider-free/pure and contain no nested calls.
+- The bytecode projection executes those independent waves in deterministic
+  serial order. This is equivalent for the admitted effect-free contract and
+  does not claim a parallel TinyVM runtime or reorder effectful work.
+- LLVM and TinyVM both complete the pipeline/fan-out fixture under switch and
+  computed engines; effectful parallel graphs remain rejected.

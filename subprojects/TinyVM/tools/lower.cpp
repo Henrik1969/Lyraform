@@ -189,12 +189,28 @@ private:
         compile_operation(operation);
         return call_results_.at(expression_id);
     }
+    bool parallel_graph_is_pure(const std::map<std::string, const Object*>& receivers) const {
+        std::set<Integer> receiver_functions;
+        for (const auto& [node, receiver] : receivers)
+            receiver_functions.insert(integer(required(*receiver, "function_symbol_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].function_symbol_id"));
+        const auto& plan = required_object(root_, "lowering_plan");
+        for (const auto& value : required_array(plan, "operations", "$.lowering_plan")) {
+            const auto& operation = object(value, "$.lowering_plan.operations[]");
+            if (!optional(operation, "function_symbol_id")) continue;
+            if (!receiver_functions.count(integer(*optional(operation, "function_symbol_id"), "$.lowering_plan.operations[].function_symbol_id"))) continue;
+            const auto kind = string(required(operation, "kind", "$.lowering_plan.operations[]"), "$.lowering_plan.operations[].kind");
+            if (kind == "call") return false;
+            if (kind == "external_call" || kind == "text_outcome") {
+                const auto& provider = object(required(operation, "provider", "$.lowering_plan.operations[]"), "$.lowering_plan.operations[].provider");
+                if (string(required(provider, "effect", "$.lowering_plan.operations[].provider"), "$.lowering_plan.operations[].provider.effect") != "pure") return false;
+            }
+        }
+        return true;
+    }
     void compile_graph(const Value& graph_value) {
         const auto& graph = object(graph_value, "$.lowering_plan.source_graph");
         const auto& schedule = required_object(root_, "graph_schedule", "$.graph_schedule");
         const auto schedule_version = integer(required(schedule, "version", "$.graph_schedule"), "$.graph_schedule.version");
-        if (string(required(schedule, "policy", "$.graph_schedule"), "$.graph_schedule.policy") != "fifo_per_root_source_order_v1")
-            throw Unsupported("TinyVM graph lowering currently requires FIFO graph scheduling");
         std::map<std::string, const Object*> providers, receivers;
         for (const auto& value : required_array(graph, "providers", "$.source_graph")) {
             const auto& item = object(value, "$.source_graph.providers[]");
@@ -203,6 +219,15 @@ private:
         for (const auto& value : required_array(graph, "receivers", "$.source_graph")) {
             const auto& item = object(value, "$.source_graph.receivers[]");
             receivers.emplace(string(required(item, "node_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].node_id"), &item);
+        }
+        const auto schedule_policy = string(required(schedule, "policy", "$.graph_schedule"), "$.graph_schedule.policy");
+        if (schedule_policy == "parallel_independent_v1") {
+            if (schedule_version != 4 || string(required(schedule, "parallel_contract", "$.graph_schedule"), "$.graph_schedule.parallel_contract") != "dependency_waves_v1")
+                throw Unsupported("TinyVM parallel graph requires dependency-wave schedule v4");
+            if (!parallel_graph_is_pure(receivers))
+                throw Unsupported("TinyVM parallel graph requires pure receiver activations");
+        } else if (schedule_policy != "fifo_per_root_source_order_v1") {
+            throw Unsupported("TinyVM graph lowering currently requires FIFO graph scheduling");
         }
         if (schedule_version == 2) {
             if (required_array(schedule, "streams", "$.graph_schedule").size() != 1)
@@ -287,7 +312,7 @@ private:
             if (values.empty()) throw Unsupported("TinyVM persistent graph schedule has no activations");
             return;
         }
-        if (schedule_version != 1)
+        if (schedule_version != 1 && schedule_version != 4)
             throw Unsupported("TinyVM graph lowering currently requires the serial fresh-activation schedule");
         std::map<Integer, std::size_t> values;
         for (const auto& value : required_array(schedule, "steps", "$.graph_schedule")) {

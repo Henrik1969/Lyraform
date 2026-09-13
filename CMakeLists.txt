@@ -444,6 +444,26 @@ add_test(NAME tinyvm_graph_parity
 set_tests_properties(tinyvm_graph_parity PROPERTIES
     DEPENDS "tinyvm_scalar_backend_parity")
 
+add_test(NAME tinyvm_parallel_parity
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
+        FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
+        FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
+        FLOWGRAPH_RUNTIME=$<TARGET_FILE:flowgraph_runtime>
+        FLOWGRAPH_CXX=${CMAKE_CXX_COMPILER}
+        "FLOWGRAPH_LINK_FLAGS=${CMAKE_CXX_FLAGS}"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-parallel-parity.sh)
+set_tests_properties(tinyvm_parallel_parity PROPERTIES
+    DEPENDS "tinyvm_graph_parity")
+
 add_test(NAME tinyvm_stream_parity
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}

@@ -254,13 +254,16 @@ artifact is deterministic and differentially checked against LLVM. Finite
 scalar stream schedule v2 is also admitted through a typed count/item provider
 bridge and a bounded TinyVM loop. Persistent scalar schedule v3 is admitted
 through a typed mutable state slot updated between receiver activations.
+Pure parallel schedule v4 is admitted as a deterministic serial projection of
+validated dependency waves, since pure independent activations have no
+observable ordering contract in this slice.
 
 This is a compiler-time graph specialization, not yet a general TinyVM
 activation runtime: wire, signal and port identities remain in the validated
 input artifact and provenance, rather than in runtime activation records.
-Parallel schedule v4 and aggregate payloads remain explicit unsupported
-boundaries until their runtime delivery and aggregate contracts are
-implemented. Stream receiver pipelines remain deferred by the
+Effectful or nested-call parallel activations and aggregate payloads remain
+explicit unsupported boundaries until their runtime delivery and aggregate
+contracts are implemented. Stream receiver pipelines remain deferred by the
 upstream graph contract; the admitted stream shape is the current bounded
 root-to-receiver delivery template.
 
