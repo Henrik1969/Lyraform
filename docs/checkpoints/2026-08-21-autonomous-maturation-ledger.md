@@ -1954,3 +1954,19 @@ byte-for-byte unchanged. State remains CONTINUE.
 Run the complete canonical gate, commit/push the finite-stream phase, then
 begin the persistent-state contract as the next user-ordered maturity phase.
 State remains CONTINUE.
+
+## 2026-09-13 persistent-state phase opened
+
+- Opened `source-graph-persistent-state-decision.md` with the smallest generic
+  stateful receiver contract: explicit per-node `c_long` slot and initial
+  literal, `(input, state) -> next_state` function shape, commit-on-success,
+  rollback-on-failure, and ordered synchronous delivery.
+- Persistent state is deliberately not inferred from names or provider effects,
+  and the existing fresh activation frame remains intact. No durable storage,
+  joins, aggregate payloads, or parallel mutation is included.
+
+## Exact next action
+
+Capture the persistent declaration in frontend/source-graph artifacts and add
+identity/initial-value validation before admitting it to a state-aware schedule.
+State remains CONTINUE.
