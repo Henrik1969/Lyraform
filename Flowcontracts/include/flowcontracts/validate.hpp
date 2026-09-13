@@ -296,6 +296,8 @@ inline void validate_backend_lowering_artifact(const json::Value& value) {
         for (const auto& node : source_graph(*graph_value).providers) {
             const auto& provider = required_object(json::object(node), "provider");
             required_capabilities.insert(capability_identity(provider, "$.source_graph.providers"));
+            if (const auto* count = json::optional(json::object(node), "count_provider"))
+                required_capabilities.insert(capability_identity(json::object(*count), "$.source_graph.providers.count_provider"));
         }
     if (required_capabilities != authorized)
         throw json::Error("$.authorization.capabilities", "authorized capability identities do not exactly match external operations");

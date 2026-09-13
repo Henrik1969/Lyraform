@@ -12,6 +12,9 @@ static const char graph_text[] = "graph text";
 extern int flow_graph_raise(int code);
 int input_value(void) { ++calls; return 3; }
 int other_value(void) { ++calls; return 8; }
+size_t stream_count(void) { return 3; }
+int stream_item(size_t index) { return (int)(10 + index); }
+int stream_failure_item(size_t index) { return index == 1 ? flow_graph_raise(31) : (int)(10 + index); }
 long wide_value(void) { return 4294967297L; }
 unsigned long ulong_value(void) { return 4294967297UL; }
 size_t size_value(void) { return (size_t)4294967298UL; }
@@ -26,6 +29,8 @@ int observe_text(const char *value) { printf("%s\n", value); return 0; }
 C
 clang -shared -fPIC "$tmpdir/provider.c" -o "$tmpdir/provider.so"
 jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"ulong",symbol:"ulong_value",effect:"readonly",parameters:[],return_type:"c_ulong"},{name:"size",symbol:"size_value",effect:"readonly",parameters:[],return_type:"c_size_t"},{name:"text",symbol:"text_value",effect:"readonly",parameters:[],return_type:"c_string"},{name:"failure",symbol:"failing_value",effect:"failure",parameters:[],return_type:"c_int"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"},{name:"observe_ulong",symbol:"observe_ulong",effect:"io",parameters:[{name:"value",type:"c_ulong"}],return_type:"c_int"},{name:"observe_size",symbol:"observe_size",effect:"io",parameters:[{name:"value",type:"c_size_t"}],return_type:"c_int"},{name:"observe_text",symbol:"observe_text",effect:"io",parameters:[{name:"value",type:"c_string"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
+jq '.functions += [{name:"stream_count",symbol:"stream_count",effect:"readonly",parameters:[],return_type:"c_size_t"},{name:"stream_item",symbol:"stream_item",effect:"readonly",parameters:[{name:"index",type:"c_size_t"}],return_type:"c_int"},{name:"stream_failure_item",symbol:"stream_failure_item",effect:"failure",parameters:[{name:"index",type:"c_size_t"}],return_type:"c_int"}]' "$tmpdir/spec.json" > "$tmpdir/stream-spec.json"
+mv "$tmpdir/stream-spec.json" "$tmpdir/spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/spec.json" --flow-output "$tmpdir/provider.flow" --policy-output "$tmpdir/policy" --manifest-output "$tmpdir/manifest.json" >/dev/null
 cat > "$tmpdir/selection.json" <<'JSON'
 {"format":"flowcore.graph_provider_map","version":1,"providers":[{"implementation":"injected.batch","source_callable":"host.input","activation":"startup_once","output_port":"out"}]}
@@ -93,6 +98,84 @@ assert len({r['delivery_id'] for r in enters[1:]}) == 6
 assert all(r['input_port'] == 'in' and r['source_port'] == 'out' and r['wire_provenance']['line'] > 0 for r in enters[1:])
 assert len([r for r in records if r['event'] == 'drop']) == 4
 PY
+# A finite stream invokes its count once, then delivers ascending item indices
+# through fresh receiver activations. The v2 schedule is dynamic at runtime;
+# it is never expanded into a fabricated static activation list.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+cp "$tmpdir/selection.json" "$tmpdir/scalar-root.selection.json"
+cat > "$tmpdir/stream.flow" <<'FLOW'
+import "provider.flow" as host
+program finite_native_stream
+producer source : injected.stream
+node receiver : fn observe_stream
+wire source.out => receiver.in
+fn observe_stream(value : c_int): c_int {
+    result : c_int(0)
+    host.observe(value) -> result
+    return value
+}
+main { return 0 }
+FLOW
+cat > "$tmpdir/stream.selection.json" <<'JSON'
+{"format":"flowcore.graph_provider_map","version":2,"providers":[{"implementation":"injected.stream","count_callable":"host.stream_count","item_callable":"host.stream_item","activation":"finite_stream_once","max_items":4096,"output_port":"out"}]}
+JSON
+cp "$tmpdir/stream.flow" "$tmpdir/program.flow"
+cp "$tmpdir/stream.selection.json" "$tmpdir/selection.json"
+compile
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf '10\n11\n12\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+enters = [r for r in records if r.get('event') == 'enter']
+receivers = [r for r in enters if r.get('kind') == 'stream_receiver']
+assert [r['stream_index'] for r in receivers] == [0, 1, 2]
+assert [r['input_signal_id'] for r in receivers] == [1, 2, 3]
+assert [r['delivery_id'] for r in receivers] == [1, 1, 1]
+assert len([r for r in records if r.get('event') == 'drop']) == 3
+PY
+jq '.providers[0].max_items = 2' "$tmpdir/selection.json" > "$tmpdir/stream-bound.selection.json"
+mv "$tmpdir/stream-bound.selection.json" "$tmpdir/selection.json"
+compile
+set +e
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+status=$?
+set -e
+test "$status" -eq 70
+test ! -s "$tmpdir/output"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+failure = records[-1]
+assert failure['format'] == 'flowcore.graph_failure' and failure['reason'] == 'stream_bound'
+assert failure['activation']['node_id'] == 'source'
+assert not any('stream_index' in r for r in records)
+PY
+cat > "$tmpdir/stream-failure.selection.json" <<'JSON'
+{"format":"flowcore.graph_provider_map","version":2,"providers":[{"implementation":"injected.stream","count_callable":"host.stream_count","item_callable":"host.stream_failure_item","activation":"finite_stream_once","max_items":4096,"output_port":"out"}]}
+JSON
+mv "$tmpdir/stream-failure.selection.json" "$tmpdir/selection.json"
+compile
+set +e
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+status=$?
+set -e
+test "$status" -eq 70
+printf '10\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+failure = records[-1]
+print(records, file=sys.stderr)
+assert failure['format'] == 'flowcore.graph_failure' and failure['reason'] == 'source_failure'
+assert failure['code'] == 31 and failure['activation']['stream_index'] == 1
+assert not any(r.get('stream_index') == 2 for r in records)
+PY
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+mv "$tmpdir/scalar-root.selection.json" "$tmpdir/selection.json"
+compile
 # Independent startup roots each get their own FIFO activation sequence. The
 # receiver is still entered once per delivered wire and fan-out remains local
 # to the producing activation.

@@ -35,6 +35,6 @@ step for an unknown runtime count. Downstream consumers independently validate
 that template before lowering.
 
 The first implementation is intentionally scalar and direct: stream items may
-enter the existing single-input receiver contract, and existing receiver
-fan-out remains valid. Multi-stage stream pipelines, aggregate items,
+enter the existing single-input receiver contract, and stream-root per-wire
+fan-out remains valid. Receiver pipelines, aggregate items,
 persistent state, and reentrant/parallel delivery follow as separate phases.

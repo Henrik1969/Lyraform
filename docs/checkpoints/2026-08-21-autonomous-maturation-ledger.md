@@ -1936,3 +1936,21 @@ State remains CONTINUE.
 Lower the bounded finite-stream template into native count/item execution and
 dynamic activation provenance while keeping legacy static startup schedules
 byte-for-byte unchanged. State remains CONTINUE.
+
+## 2026-09-13 finite stream native checkpoint
+
+- Flowlower now lowers the v2 template into one count-once call, a checked
+  `0..count` loop capped at 4,096, indexed `c_size_t` item calls, and fresh
+  direct receiver deliveries. Dynamic item/receiver activation, signal, wire,
+  delivery, and stream-index trace records are emitted by the graph runtime.
+- Flowbind/backend authorization now requires the exact item and count provider
+  capability identities; an omitted or forged count grant is rejected.
+- Native evidence passes the successful 3-item stream, cap failure before any
+  item call, and item failure at index 1 with no later delivery. Focused native
+  graph evidence passes **1/1**.
+
+## Exact next action
+
+Run the complete canonical gate, commit/push the finite-stream phase, then
+begin the persistent-state contract as the next user-ordered maturity phase.
+State remains CONTINUE.

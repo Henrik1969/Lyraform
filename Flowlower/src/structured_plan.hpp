@@ -164,7 +164,10 @@ private:
             if (!graph_model_->executable) throw std::runtime_error("source graph execution is not admitted");
             graph_native_ = true; graph_json_ = graph;
             flowcontracts::validate_graph_schedule(flowcontracts::json::object(root_));
-            for (const auto& node : graph_model_->providers) providers_.insert(provider(*field(node, "provider")));
+            for (const auto& node : graph_model_->providers) {
+                providers_.insert(provider(*field(node, "provider")));
+                if (const auto* count = field(node, "count_provider")) providers_.insert(provider(*count));
+            }
         }
         plan_version_=integer(field(*plan,"version"),"lowering_plan.version");
         if(plan_version_!=1&&plan_version_!=2)return;
@@ -332,7 +335,8 @@ private:
         return flowcontracts::json::serialize(record);
     }
     void emit_graph_globals(std::ostringstream& out) const {
-        out<<"declare void @flow_graph_enter(ptr)\ndeclare void @flow_graph_operation(i64)\ndeclare void @flow_graph_event(ptr)\ndeclare void @flow_graph_drop(ptr)\ndeclare void @flow_graph_fail(i64, ptr) noreturn\n";
+        out<<"declare void @flow_graph_enter(ptr)\ndeclare void @flow_graph_operation(i64)\ndeclare void @flow_graph_event(ptr)\ndeclare void @flow_graph_drop(ptr)\ndeclare void @flow_graph_fail(i64, ptr) noreturn\n"
+           <<"declare void @flow_graph_stream_item_enter(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_enter(ptr, ptr, i64, i64, i64, i64)\ndeclare void @flow_graph_stream_event(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_drop(ptr, ptr, i64, i64, i64)\n";
         out<<"@flow.graph.division = private constant [17 x i8] c\"invalid_division\\00\"\n";
         for (const auto& step : graph_steps()) {
             const auto id = integer(field(step, "activation_id"), "activation_id");
@@ -340,12 +344,25 @@ private:
                 const auto value = graph_record(step, event);
                 out<<"@flow.graph."<<event<<"."<<id<<" = private constant ["<<value.size()+1<<" x i8] c\""<<escaped_string(value)<<"\"\n";
             }
+            if (text(field(step, "kind")) == "stream_root" || text(field(step, "kind")) == "stream_receiver") {
+                const auto node = text(field(step, "node_id"));
+                const auto wire = text(field(step, "wire_id"));
+                out<<"@flow.graph.stream.node."<<id<<" = private constant ["<<node.size()+1<<" x i8] c\""<<escaped_string(node)<<"\"\n";
+                out<<"@flow.graph.stream.wire."<<id<<" = private constant ["<<wire.size()+1<<" x i8] c\""<<escaped_string(wire)<<"\"\n";
+            }
         }
+        out<<"@flow.graph.stream.bound = private constant [13 x i8] c\"stream_bound\\00\"\n";
     }
     void emit_graph_main(const Callable& entry, std::ostringstream& out) {
         std::map<std::string, const Json*> providers, receivers;
         for (const auto& node : graph_model_->providers) providers.emplace(text(field(node, "node_id")), &node);
         for (const auto& node : graph_model_->receivers) receivers.emplace(text(field(node, "node_id")), &node);
+        const auto* schedule = field(root_, "graph_schedule");
+        const auto schedule_version = schedule ? integer(field(*schedule, "version"), "graph_schedule.version") : 1;
+        if (schedule_version == 2) {
+            emit_stream_graph_main(entry, out, providers, receivers);
+            return;
+        }
         std::map<int, std::string> output_types;
         out<<"define i32 @main() {\nentry:\n";
         for (const auto& step : graph_steps()) {
@@ -373,6 +390,60 @@ private:
             if (!std::get<bool>(*field(step, "output_connected"))) out<<"  call void @flow_graph_drop(ptr @flow.graph.drop."<<id<<")\n";
         }
         out<<"  call void @flow_graph_enter(ptr null)\n  %graph.exit = call i32 @"<<callable_name(entry)<<"()\n  ret i32 %graph.exit\n}\n";
+    }
+    void emit_stream_graph_main(const Callable& entry, std::ostringstream& out,
+                                const std::map<std::string, const Json*>& providers,
+                                const std::map<std::string, const Json*>& receivers) {
+        if (providers.size() != 1) throw std::runtime_error("finite stream lowering requires one stream provider");
+        const auto& stream = *providers.begin()->second;
+        const auto item = provider(*field(stream, "provider"));
+        const auto count = provider(*field(stream, "count_provider"));
+        const auto item_type = llvm_type(item.result);
+        if (item_type.empty() || item.parameters != "c_size_t" || count.parameters != "" || count.result != "c_size_t")
+            throw std::runtime_error("unsupported finite stream provider ABI");
+        const auto max_items = integer(field(stream, "max_items"), "stream.max_items");
+        const auto& steps = graph_steps();
+        if (steps.size() < 2 || text(field(steps.front(), "kind")) != "stream_root")
+            throw std::runtime_error("finite stream schedule has no root template");
+        const auto deliveries = steps.size() - 1;
+        out<<"define i32 @main() {\nentry:\n"
+           <<"  call void @flow_graph_enter(ptr @flow.graph.enter.0)\n"
+           <<"  %flow.stream.count = call i64 @"<<count.symbol<<"()\n"
+           <<"  %flow.stream.cap_ok = icmp ule i64 %flow.stream.count, "<<max_items<<"\n"
+           <<"  br i1 %flow.stream.cap_ok, label %flow.stream.check, label %flow.stream.bound_failure\n"
+           <<"flow.stream.bound_failure:\n  call void @flow_graph_fail(i64 0, ptr @flow.graph.stream.bound)\n  unreachable\n"
+           <<"flow.stream.check:\n"
+           <<"  %flow.stream.index = phi i64 [ 0, %entry ], [ %flow.stream.next, %flow.stream.body ]\n"
+           <<"  %flow.stream.done = icmp uge i64 %flow.stream.index, %flow.stream.count\n"
+           <<"  br i1 %flow.stream.done, label %flow.stream.exit, label %flow.stream.body\n"
+           <<"flow.stream.body:\n"
+           <<"  %flow.stream.signal = add i64 %flow.stream.index, 1\n"
+           <<"  %flow.stream.item.activation = mul i64 %flow.stream.index, "<<deliveries<<"\n"
+           <<"  call void @flow_graph_stream_item_enter(ptr @flow.graph.stream.node.0, i64 %flow.stream.item.activation, i64 %flow.stream.index, i64 %flow.stream.signal)\n"
+           <<"  %flow.stream.item = call "<<item_type<<" @"<<item.symbol<<"(i64 %flow.stream.index)\n"
+           <<"  call void @flow_graph_stream_event(ptr @flow.graph.stream.node.0, i64 0, i64 %flow.stream.index, i64 %flow.stream.signal)\n";
+        for (std::size_t index = 1; index < steps.size(); ++index) {
+            const auto& step = steps[index];
+            const auto id = integer(field(step, "activation_id"), "activation_id");
+            const auto node = text(field(step, "node_id"));
+            if (!receivers.count(node)) throw std::runtime_error("finite stream receiver is absent");
+            const auto& receiver = *receivers.at(node);
+            const auto function = integer(field(receiver, "function_symbol_id"), "function_symbol_id");
+            if (!callables_.count(function)) throw std::runtime_error("finite stream receiver identity is unavailable");
+            const auto& callable = callables_.at(function);
+            if (callable.parameters.size() != 1 || llvm_type(callable.parameters.front().second) != item_type)
+                throw std::runtime_error("finite stream delivery carrier mismatch");
+            const auto ordinal = static_cast<flowcontracts::json::Integer>(index - 1);
+            out<<"  %flow.stream.activation."<<id<<" = add i64 %flow.stream.index, "<<(1 + ordinal * deliveries)<<"\n"
+               <<"  call void @flow_graph_stream_enter(ptr @flow.graph.stream.node."<<id<<", ptr @flow.graph.stream.wire."<<id
+               <<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 %flow.stream.signal, i64 "<<id<<")\n"
+               <<"  %flow.stream.receiver."<<id<<" = call "<<item_type<<" @"<<callable_name(callable)<<"("<<item_type<<" %flow.stream.item)\n"
+               <<"  call void @flow_graph_stream_event(ptr @flow.graph.stream.node."<<id<<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 %flow.stream.signal)\n"
+               <<"  call void @flow_graph_stream_drop(ptr @flow.graph.stream.node."<<id<<", ptr @flow.graph.stream.wire."<<id<<", i64 %flow.stream.activation."<<id<<", i64 %flow.stream.index, i64 "<<id<<")\n";
+        }
+        out<<"  %flow.stream.next = add i64 %flow.stream.index, 1\n"
+           <<"  br label %flow.stream.check\n"
+           <<"flow.stream.exit:\n  call void @flow_graph_enter(ptr null)\n  %graph.exit = call i32 @"<<callable_name(entry)<<"()\n  ret i32 %graph.exit\n}\n";
     }
     void emit_function(const Callable& function,std::ostringstream& out) {
         temporary_=0; label_=0; call_results_.clear();

@@ -11,6 +11,7 @@ namespace flowcontracts {
 inline json::Value graph_schedule(const json::Value& graph_value) {
     using namespace json;
     const auto graph = source_graph(graph_value);
+    if (!graph.executable) throw Error("$.source_graph", "source graph execution is not admitted");
     std::vector<const json::Value*> stream_providers;
     for (const auto& provider : graph.providers)
         if (string(required(object(provider, "$.providers[]"), "activation", "$.providers[]"), "$.providers[].activation") == "finite_stream_once")
@@ -66,7 +67,6 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
                 {"item_function_symbol_id", item_symbol}, {"max_items", max_items},
                 {"item_output_type", item_type}, {"deliveries", deliveries}}}}, {"steps", steps}};
     }
-    if (!graph.executable) throw Error("$.source_graph", "source graph execution is not admitted");
     Array steps;
     struct Pending { std::string node; Integer from; const SourceGraphWire* wire; };
     std::map<std::string, std::vector<const SourceGraphWire*>> outgoing;

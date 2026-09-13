@@ -25,12 +25,15 @@ Map v2 retains the v1 startup form and adds the bounded finite-stream form:
 The stream selection names both provider callables explicitly. It is selection
 evidence only; Flowbind must authorize both exact ABI tuples before execution.
 
-The bounded adapter requires a producer node, a zero-argument external function,
+The startup adapter requires a producer node, a zero-argument external function,
 and one returned value on `out`. Startup invokes a producer once, consistent with
-the existing serial interpreter's initial producer activation. It defines no
-streaming, repeated output, asynchronous activation, persistent receiver state or
-new source-function trigger. Provider behavior remains external and explicitly
-selected; a source receiver still obeys the owner's fresh-single-input contract.
+the existing serial interpreter's initial producer activation. The v2 stream
+adapter separately invokes its authorized zero-argument count once, checks the
+4,096-item cap, and calls its authorized indexed item function in ascending
+`c_size_t` order. Its first native lowering is synchronous, scalar, and direct
+to fresh receivers; receiver pipelines and aggregate items remain outside this
+phase. Provider behavior remains external and explicitly selected; a source
+receiver still obeys the owner's fresh-single-input contract.
 
 Selection resolves source callable identity, provider/library/native symbol,
 convention, carrier/effect facts and generated evidence independently. Neither a
@@ -49,8 +52,9 @@ remains non-executable evidence and cannot be upgraded by changing its status.
 External callable catalog entries retain their provider tuple; producer identity
 must match that catalog and an exact Flowbind capability grant.
 
-Flowparallel publishes `flowcore.graph_schedule` v1 with FIFO delivery per root
-in source order. Every step records activation, input/output signals, delivery,
+Flowparallel publishes `flowcore.graph_schedule` v1 for startup graphs and v2
+finite-stream templates with FIFO delivery per root in source order. Every step
+records activation, input/output signals, delivery,
 wire, full endpoints and its input activation reference. The one-successful-output
 contract permits static scheduling: fan-out reuses the originating result rather
 than invoking the function again. The admitted expansion is bounded at 65,536
@@ -81,7 +85,8 @@ the 32-bit range, carries a borrowed `c_string` through receiver fan-out,
 verifies an unused selection has no LLVM effect, and rejects missing grants,
 forged schedules, cycles and mutated provider identity.
 This initial native graph surface is Linux x86-64 and scalar; aggregate payloads,
-provider streaming/policies and native TinyVM graph execution remain unsupported.
+multi-stage stream pipelines, stream policies, and native TinyVM graph execution
+remain unsupported.
 The pager uses this scalar graph with an input status and selected page as wire
 payloads; its input provider owns an immutable raw data batch accessed through
 explicit read-only capabilities. Navigation, bounds, key interpretation, failure
