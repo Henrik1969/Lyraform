@@ -16,7 +16,7 @@ This prevents unfinished language areas from being mistaken for regressions.
 
 The companion `tools/run-flowcore-pass-corpus.sh` breadth gate runs every
 program in `Lyraform/.../examples/pass` through the same four boundaries. The
-current corpus contains 96 programs, all of which pass semantic analysis,
+current corpus contains 97 programs, all of which pass semantic analysis,
 optimization, and the lowering report boundary. This does not claim that
 Flowlower emits target code for every program.
 

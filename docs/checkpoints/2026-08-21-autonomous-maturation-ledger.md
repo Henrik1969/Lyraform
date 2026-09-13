@@ -1638,3 +1638,27 @@ parity and explicit refusal for unsupported carriers. State remains CONTINUE.
 Continue the resource boundary with an explicitly bounded read/write slice,
 or document and test its refusal if the required initialized-byte and
 partial-transfer semantics cannot yet be represented. State remains CONTINUE.
+
+## 2026-09-13 bounded file I/O checkpoint
+
+- Extended the `file_io` provider slice with bounded
+  `read(c_int,c_pointer,c_size_t):c_long` and
+  `write(c_int,c_pointer,c_size_t):c_long` calls. The new
+  `abi_file_io_main` fixture reads eight bytes from `/dev/zero` and writes
+  eight bytes to `/dev/null` through tracked descriptors and an eight-byte
+  storage handle.
+- TinyVM validates descriptor ownership and storage bounds before dispatch;
+  its runtime preserves descriptors across calls and cleans any remaining
+  descriptors at teardown. `sendfile` remains refused because offset and
+  partial-transfer semantics are not yet represented.
+- Focused evidence: `file_io_boundary` passed **1/1** with identical
+  LLVM/TinyVM output and the authorized `sendfile` refusal was confirmed. The
+  complete canonical build and CTest suite passed **94/94** in 38.97 seconds;
+  the pass corpus now reports **97/97** programs.
+
+## Exact next action
+
+Continue with the first unfinished mission gate: mature resource failure and
+partial-transfer semantics around the admitted file boundary, or add a
+structured refusal gate that proves unsupported `sendfile` input cannot reach
+either backend. State remains CONTINUE.

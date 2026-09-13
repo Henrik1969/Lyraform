@@ -15,7 +15,7 @@ executable for every tuple outside the admitted set below.
 | `libc` / `pure` | `abs(c_int)->c_int`, `labs(c_long)->c_long`, `strlen(c_string)->c_size_t`, `strnlen(c_string,c_size_t)->c_size_t` |
 | `ctype` / `pure` | `tolower(c_int)->c_int`, `toupper(c_int)->c_int` |
 | `libc` / `io` | `puts(c_string)->c_int` |
-| `file_io` / `io` | `open(c_string,c_int)->c_int`, `close(c_int)->c_int` with runtime-owned descriptor tracking and cleanup |
+| `file_io` / `io` | `open(c_string,c_int)->c_int`, `read(c_int,c_pointer,c_size_t)->c_long`, `write(c_int,c_pointer,c_size_t)->c_long`, `close(c_int)->c_int` with runtime-owned descriptor tracking, bounded storage, and cleanup |
 | `kernel` or `linux` / `readonly` | `getpid`, `getuid`, `getgid`, `geteuid`, `getegid`, `getppid`, `getpgrp` as `()->c_int` |
 | `kernel` or `linux` / `readonly` | `getpgid(c_int)->c_int`, `getsid(c_int)->c_int`, `getpriority(c_int,c_int)->c_int` |
 
@@ -29,7 +29,7 @@ drift and unimplemented tuples fail closed.
 |---|---|---|
 | readonly mutable output | `clock_gettime(c_int,c_pointer)`, `uname(c_pointer)`, `getrandom(c_pointer,c_size_t,c_int)` | provider-owned layout, bounded writes and initialized-byte evidence |
 | kernel filesystem | `openat`, `read`, `write`, `lseek`, `unlinkat`, `rmdir` with the signatures in `std/abi/kernel.flow` | descriptor/resource identities, buffer mutation, cleanup and failure disposition |
-| file-I/O compatibility | `read`, `write`, `sendfile` with the signatures in `std/abi/file_io.flow` | buffer mutation, offset/partial-transfer semantics and descriptor/resource interactions |
+| file-I/O compatibility | `sendfile` with the signature in `std/abi/file_io.flow` | offset/partial-transfer semantics and descriptor/resource interactions |
 | process/socket IPC | `pipe2`, `fork`, `waitpid`, `socketpair` | child/process lifecycle, multi-result storage and cleanup |
 | loopback networking | `socket`, `bind`, `listen`, `poll`, `accept4`, `connect` | sockaddr/poll layout evidence, descriptor ownership and bounded mutation |
 | namespaces | `unshare`, `sethostname`, `gethostname` | privilege/capability policy, mutable output and environment lifecycle |

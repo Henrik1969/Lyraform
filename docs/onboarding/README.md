@@ -109,7 +109,7 @@ For a focused source-chain check, the most representative tests are:
 
 ```bash
 ctest --test-dir /tmp/lyraform-onboarding-build --output-on-failure \
-  -R 'profile_free_generic_lowering|native_source_graph|flow_less_pager|namespace_ambiguity|text_outcome_boundary|math_library_boundary|strnlen_library_boundary|ctype_library_boundary|file_resource_boundary'
+  -R 'profile_free_generic_lowering|native_source_graph|flow_less_pager|namespace_ambiguity|text_outcome_boundary|math_library_boundary|strnlen_library_boundary|ctype_library_boundary|file_resource_boundary|file_io_boundary'
 ```
 
 ## Critic path
@@ -125,7 +125,7 @@ Read these in order:
 Then challenge the claims with evidence:
 
 - Does a clean checkout build with the installed dependencies?
-- Does the complete 93-test suite pass at the reported revision?
+- Does the complete 94-test suite pass at the reported revision?
 - Are source identity, provider identity, native symbol identity, and contract
   identity kept distinct?
 - Do malformed or unauthorized plans fail explicitly?

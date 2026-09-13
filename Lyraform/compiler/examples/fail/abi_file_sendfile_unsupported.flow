@@ -1,0 +1,13 @@
+import "../../std/abi/file_io.flow"
+
+program abi_file_sendfile_unsupported
+
+main {
+    output : c_int(1)
+    input : c_int(0)
+    offset : c_pointer(8)
+    count : c_size_t(8)
+    result : c_long(0)
+
+    sendfile(output, input, offset, count) -> result
+}

@@ -309,6 +309,7 @@ private:
                                   ((symbol == "tolower" || symbol == "toupper") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "open" && parameters == "c_string,c_int" && result_type == "c_int") ||
                                   (symbol == "close" && parameters == "c_int" && result_type == "c_int") ||
+                                  ((symbol == "read" || symbol == "write") && parameters == "c_int,c_pointer,c_size_t" && result_type == "c_long") ||
                                   (symbol == "puts" && (parameters == "c_string" || parameters == "Text") && result_type == "c_int") ||
                                   (symbol == "flow_text_concat" && parameters == "Text,Text" && result_type == "Text") ||
                                   (symbol == "flow_text_concat_value" && parameters == "Text,Text" && result_type == "TextOutcome") ||
