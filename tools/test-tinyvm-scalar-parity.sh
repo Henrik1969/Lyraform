@@ -38,6 +38,8 @@ do
     set -e
     tiny_result=$("$tiny_run" "$tmpdir/$name.tvm" | jq -r '.result')
     test "$tiny_result" -eq "$llvm_status"
+    tiny_computed_result=$("$tiny_run" --engine computed "$tmpdir/$name.tvm" | jq -r '.result')
+    test "$tiny_computed_result" -eq "$llvm_status"
     if test "$name" = profile_free_args_length; then
         set +e
         "$tmpdir/$name.llvm" selected
@@ -45,6 +47,8 @@ do
         set -e
         tiny_selected_result=$("$tiny_run" "$tmpdir/$name.tvm" selected | jq -r '.result')
         test "$tiny_selected_result" -eq "$llvm_selected_status"
+        tiny_selected_computed_result=$("$tiny_run" --engine computed "$tmpdir/$name.tvm" selected | jq -r '.result')
+        test "$tiny_selected_computed_result" -eq "$llvm_selected_status"
     fi
 done
 

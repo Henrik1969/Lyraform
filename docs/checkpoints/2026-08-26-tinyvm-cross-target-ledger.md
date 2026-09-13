@@ -444,5 +444,7 @@ the already captured recovered-ISA boundary.
   preflight before the provider is opened or called.
 - The aggregate payload fixture now produces the same observable output and
   result through both switch and computed-goto TinyVM engines.
+- The provider-free scalar corpus now compares both TinyVM engines with LLVM
+  for returns, expressions, branches, loops and dynamic argument length.
 - The focused aggregate parity test and complete canonical suite passed;
   canonical CTest is now 102/102 green.
