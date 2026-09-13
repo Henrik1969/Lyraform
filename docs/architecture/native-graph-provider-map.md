@@ -84,9 +84,13 @@ input selection and wire order, verifies `c_ulong` and `c_size_t` values above
 the 32-bit range, carries a borrowed `c_string` through receiver fan-out,
 verifies an unused selection has no LLVM effect, and rejects missing grants,
 forged schedules, cycles and mutated provider identity.
-This initial native graph surface is Linux x86-64 and scalar; aggregate payloads,
-multi-stage stream pipelines, stream policies, and native TinyVM graph execution
-remain unsupported.
+This initial native graph surface is Linux x86-64. It also admits the bounded
+provider-verified aggregate payload contract documented in
+`source-graph-aggregate-payload-decision.md`: packed `c_int` records are carried
+by the exact host ABI representation and may fan out immutably to fresh scalar
+receivers. Aggregate streams, multi-stage stream pipelines, stream policies,
+reentrant/parallel delivery, and native TinyVM graph execution remain
+unsupported.
 The pager uses this scalar graph with an input status and selected page as wire
 payloads; its input provider owns an immutable raw data batch accessed through
 explicit read-only capabilities. Navigation, bounds, key interpretation, failure

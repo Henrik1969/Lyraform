@@ -385,53 +385,52 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
     }
 }
 
-bool manifest_verifies_aggregates(const std::string& report, const std::string& manifest) {
+JsonArray verified_aggregate_layouts(const std::string& report, const std::string& manifest) {
     const Json report_root = JsonParser{report}.parse();
     const Json manifest_root = JsonParser{manifest}.parse();
     if (json_text(json_field(manifest_root, "format")) != "flowcore.abi_manifest") throw std::runtime_error("unsupported ABI manifest format");
-    if (json_text(json_field(manifest_root, "provider")) != "flowmini_testabi") throw std::runtime_error("unsupported ABI manifest provider");
+    if (json_text(json_field(manifest_root, "provider")).empty()) throw std::runtime_error("ABI manifest provider is empty");
     if (json_integer(json_field(manifest_root, "version"), "version") != 1) throw std::runtime_error("unsupported ABI manifest version");
 
-    const Json* point_layout = nullptr;
+    std::map<std::string, const Json*> semantic_layouts;
     for (const auto& layout : json_array(json_field(report_root, "aggregate_abi_layouts"), "aggregate_abi_layouts")) {
-        if (json_text(json_field(layout, "name")) == "Point") {
-            if (point_layout != nullptr) throw std::runtime_error("semantic report contains duplicate Point layouts");
-            point_layout = &layout;
-        }
+        const auto name = json_text(json_field(layout, "name"));
+        if (name.empty() || !semantic_layouts.emplace(name, &layout).second) throw std::runtime_error("semantic report contains duplicate aggregate layout");
     }
-    if (point_layout == nullptr) return false;
+    if (semantic_layouts.empty()) return {};
 
     const auto& types = json_array(json_field(manifest_root, "types"), "types");
-    if (types.size() != 1 || json_text(json_field(types.front(), "name")) != "Point") throw std::runtime_error("ABI manifest must contain exactly one Point layout");
-    const Json& point = types.front();
-    if (json_integer(json_field(point, "size"), "size") != static_cast<long long>(2 * sizeof(int)) ||
-        json_integer(json_field(point, "alignment"), "alignment") != static_cast<long long>(alignof(int))) {
-        throw std::runtime_error("ABI manifest Point size/alignment does not match the provider ABI");
-    }
-
-    const auto& manifest_fields = json_array(json_field(point, "fields"), "fields");
-    if (manifest_fields.size() != 2) throw std::runtime_error("ABI manifest Point must contain exactly two fields");
-    const std::vector<std::tuple<std::string, std::string, long long>> expected = {
-        {"x", "c_int", 0}, {"y", "c_int", static_cast<long long>(sizeof(int))}
-    };
-    for (std::size_t index = 0; index < expected.size(); ++index) {
-        const auto& field = manifest_fields[index];
-        if (json_text(json_field(field, "name")) != std::get<0>(expected[index]) ||
-            json_text(json_field(field, "type")) != std::get<1>(expected[index]) ||
-            json_integer(json_field(field, "offset"), "offset") != std::get<2>(expected[index])) {
-            throw std::runtime_error("ABI manifest Point fields do not match ordered provider layout");
+    if (types.size() != semantic_layouts.size()) throw std::runtime_error("ABI manifest type count does not match semantic aggregate layouts");
+    JsonArray verified;
+    for (const auto& type : types) {
+        const auto name = json_text(json_field(type, "name"));
+        const auto found = semantic_layouts.find(name);
+        if (found == semantic_layouts.end()) throw std::runtime_error("ABI manifest contains an undeclared aggregate layout");
+        const auto size = json_integer(json_field(type, "size"), "size");
+        const auto alignment = json_integer(json_field(type, "alignment"), "alignment");
+        if (size <= 0 || alignment <= 0) throw std::runtime_error("ABI manifest aggregate size/alignment must be positive");
+        const auto& manifest_fields = json_array(json_field(type, "fields"), "fields");
+        const auto& semantic_fields = json_array(json_field(*found->second, "fields"), "fields");
+        if (semantic_fields.size() != manifest_fields.size()) throw std::runtime_error("ABI manifest field count does not match semantic aggregate layout");
+        if (size != static_cast<long long>(manifest_fields.size() * sizeof(int)) || alignment != static_cast<long long>(alignof(int)))
+            throw std::runtime_error("ABI manifest aggregate layout contains unsupported padding or alignment");
+        JsonArray fields;
+        for (std::size_t index = 0; index < semantic_fields.size(); ++index) {
+            const auto& semantic_field = semantic_fields[index];
+            const auto& manifest_field = manifest_fields[index];
+            if (json_text(json_field(semantic_field, "name")) != json_text(json_field(manifest_field, "name")) ||
+                json_text(json_field(semantic_field, "type")) != json_text(json_field(manifest_field, "type")))
+                throw std::runtime_error("ABI manifest fields do not match semantic aggregate layout");
+            const auto offset = json_integer(json_field(manifest_field, "offset"), "offset");
+            if (offset != static_cast<long long>(index * sizeof(int))) throw std::runtime_error("ABI manifest aggregate fields are not packed in declaration order");
+            fields.emplace_back(JsonObject{{"name", json_text(json_field(manifest_field, "name"))},
+                                       {"offset", offset}, {"type", json_text(json_field(manifest_field, "type"))}});
         }
+        verified.emplace_back(JsonObject{{"alignment", alignment}, {"contract", json_text(json_field(*found->second, "contract"))},
+                                     {"fields", fields}, {"layout_policy", "provider_verified"}, {"name", name},
+                                     {"size", size}, {"status", "verified"}, {"version", flowcontracts::json::Integer{1}}});
     }
-
-    const auto& semantic_fields = json_array(json_field(*point_layout, "fields"), "fields");
-    if (semantic_fields.size() != manifest_fields.size()) throw std::runtime_error("ABI manifest field count does not match semantic aggregate layout");
-    for (std::size_t index = 0; index < semantic_fields.size(); ++index) {
-        if (json_text(json_field(semantic_fields[index], "name")) != json_text(json_field(manifest_fields[index], "name")) ||
-            json_text(json_field(semantic_fields[index], "type")) != json_text(json_field(manifest_fields[index], "type"))) {
-            throw std::runtime_error("ABI manifest fields do not match semantic aggregate layout");
-        }
-    }
-    return true;
+    return verified;
 }
 
 int verify(const std::string& report, const std::string& policy_path, const std::string& abi_manifest_path) {
@@ -442,7 +441,8 @@ int verify(const std::string& report, const std::string& policy_path, const std:
     }
     const auto needed = requirements(report);
     validate_lowering_plan(report, needed);
-    const bool aggregate_manifest_verified = !abi_manifest_path.empty() && manifest_verifies_aggregates(report, read_path(abi_manifest_path, "ABI manifest"));
+    const auto verified_layouts = !abi_manifest_path.empty() ? verified_aggregate_layouts(report, read_path(abi_manifest_path, "ABI manifest")) : JsonArray{};
+    const bool aggregate_manifest_verified = !verified_layouts.empty();
     const auto grants = read_policy(policy_path);
     const Json semantic_root = JsonParser{report}.parse();
     std::map<std::string, std::string> declared_representations;
@@ -456,6 +456,19 @@ int verify(const std::string& report, const std::string& policy_path, const std:
         return found != declared_representations.end() && (found->second == "void*" || found->second == "const void*" ||
                                                             (type == "Text" && found->second == "const char*"));
     };
+    std::set<std::string> verified_aggregate_names;
+    for (const auto& layout : verified_layouts) verified_aggregate_names.insert(json_text(json_field(layout, "name")));
+    std::set<std::string> graph_aggregate_names;
+    if (const auto* plan = json_field(semantic_root, "lowering_plan")) {
+        if (const auto* graph = json_field(*plan, "source_graph")) {
+            for (const auto& node : json_array(json_field(*graph, "receivers"), "source_graph.receivers")) {
+                graph_aggregate_names.insert(json_text(json_field(node, "input_type")));
+                graph_aggregate_names.insert(json_text(json_field(node, "output_type")));
+            }
+            for (const auto& node : json_array(json_field(*graph, "providers"), "source_graph.providers"))
+                graph_aggregate_names.insert(json_text(json_field(node, "output_type")));
+        }
+    }
     std::map<std::string, void*> handles;
     std::vector<std::string> failures;
     std::map<std::string, std::pair<std::string, std::string>> verified_providers;
@@ -466,15 +479,14 @@ int verify(const std::string& report, const std::string& policy_path, const std:
             !(item.contract == "text_runtime" && item.library == "libflowtext.so" &&
               item.symbol == "flow_text_concat_value" && item.parameter_types == "Text,Text"))
             failures.push_back(item.symbol + ": TextOutcome is reserved for the atomic text provider contract");
-        if (!supported_type(item.return_type)) failures.push_back(item.symbol + ": unsupported return ABI type '" + item.return_type + "'");
+        if (!supported_type(item.return_type) && (!verified_aggregate_names.count(item.return_type) || !graph_aggregate_names.count(item.return_type)))
+            failures.push_back(item.symbol + ": unsupported return ABI type '" + item.return_type + "'");
         std::size_t start = 0;
         while (start < item.parameter_types.size()) {
             const auto end = item.parameter_types.find(',', start);
             const auto type = item.parameter_types.substr(start, end == std::string::npos ? std::string::npos : end - start);
-            if (!supported_type(type)) {
-                if (aggregate_manifest_verified && type == "Point") failures.push_back(item.symbol + ": aggregate ABI manifest verified; aggregate call lowering is not implemented");
-                else failures.push_back(item.symbol + ": unsupported parameter ABI type '" + type + "'");
-            }
+            if (!supported_type(type) && (!verified_aggregate_names.count(type) || !graph_aggregate_names.count(type)))
+                failures.push_back(item.symbol + ": " + (verified_aggregate_names.count(type) ? "aggregate ABI manifest verified; aggregate call lowering is not implemented" : "unsupported parameter ABI type '" + type + "'"));
             if (end == std::string::npos) break;
             start = end + 1;
         }
@@ -510,6 +522,7 @@ int verify(const std::string& report, const std::string& policy_path, const std:
         for (std::size_t i = 0; i < failures.size(); ++i) { if (i) std::cout << ','; std::cout << json_string(failures[i]); }
         std::cout << "]";
         if (aggregate_manifest_verified) std::cout << ",\n  \"aggregate_abi\": \"verified\"";
+        if (aggregate_manifest_verified) std::cout << ",\n  \"aggregate_abi_layouts\": " << flowcontracts::json::serialize(verified_layouts);
         std::cout << "\n}\n";
         return 2;
     }
@@ -548,7 +561,8 @@ int verify(const std::string& report, const std::string& policy_path, const std:
     } catch (const std::exception&) {
         generic_operation_count = 0;
     }
-    std::cout << "],\n  \"lowering_plan\": {\"kind\": \"generic\""
+    std::cout << "],\n  \"aggregate_abi_layouts\": " << flowcontracts::json::serialize(verified_layouts)
+              << ",\n  \"lowering_plan\": {\"kind\": \"generic\""
               << ",\"contract\":\"flowcore.lowering_plan\",\"operation_count\":" << generic_operation_count;
     std::cout << "},\n  \"policy\": {\"status\": \"authorized\", \"grants\": " << grants.size() << "},\n  \"abi\": {\"convention\": \"c\", \"carrier_types_supported\": true, \"provider_signature_evidence\": \"not-provided\", \"sizeof_int\": " << sizeof(int) << ", \"sizeof_long\": " << sizeof(long) << ", \"sizeof_size_t\": " << sizeof(std::size_t) << ", \"sizeof_pointer\": " << sizeof(void*) << "},\n  \"execution\": \"not-performed\"\n}\n";
     return 0;

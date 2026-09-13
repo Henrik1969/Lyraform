@@ -95,6 +95,7 @@ inline void validate_binding_report(const json::Value& value) {
     const auto artifact = require_header(value, "flowbind.binding_report", 1);
     if (artifact.status != "ready") return;
     const auto& root = json::object(value);
+    if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) validate_aggregate_abi_layouts(json::array(*layouts, "$.aggregate_abi_layouts"));
     const auto& capabilities = required_array(root, "capabilities");
     for (std::size_t index = 0; index < capabilities.size(); ++index) {
         const auto path = "$.capabilities[" + std::to_string(index) + "]";
@@ -109,6 +110,7 @@ inline void validate_optimization_report(const json::Value& value) {
     const auto artifact = require_header(value, "flowoptimize.optimization_report", 1);
     if (artifact.status != "ready") return;
     const auto& root = json::object(value);
+    if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) validate_aggregate_abi_layouts(json::array(*layouts, "$.aggregate_abi_layouts"));
     validate_lowering_plan(json::required(root, "lowering_plan"), "$.lowering_plan");
     validate_graph_schedule(root);
     (void)required_array(root, "targets");
@@ -242,6 +244,7 @@ inline void validate_backend_lowering_artifact(const json::Value& value) {
     if (artifact.status != "ready") return;
     const auto& root = json::object(value);
     if (artifact.version == 2) validate_target_policy(json::required(root, "target_policy"));
+    if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) validate_aggregate_abi_layouts(json::array(*layouts, "$.aggregate_abi_layouts"));
     const auto& source = required_object(root, "source");
     (void)json::string(json::required(source, "path", "$.source"), "$.source.path");
     validate_targets(root);

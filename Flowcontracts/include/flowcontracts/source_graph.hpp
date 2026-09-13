@@ -84,6 +84,41 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
         result.wires.push_back(std::move(wire));
     }
     result.policies = array(required(syntax, "policies", syntax_path), syntax_path + ".policies");
+    std::set<std::string> aggregate_types;
+    if (const auto* layouts = optional(root, "aggregate_abi_layouts")) {
+        const auto& values = array(*layouts, path + ".aggregate_abi_layouts");
+        std::set<std::pair<std::string, std::string>> identities;
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            const auto layout_path = path + ".aggregate_abi_layouts[" + std::to_string(index) + "]";
+            const auto& layout = object(values[index], layout_path);
+            const auto contract = nonempty(layout, "contract", layout_path);
+            const auto name = nonempty(layout, "name", layout_path);
+            if (!identities.emplace(contract, name).second) throw Error(layout_path, "duplicate aggregate ABI layout identity");
+            if (integer(required(layout, "version", layout_path), layout_path + ".version") != 1)
+                throw Error(layout_path + ".version", "unsupported aggregate ABI layout version");
+            const auto status = str(layout, "status", layout_path);
+            if (status != "declared" && status != "verified") throw Error(layout_path + ".status", "unsupported aggregate ABI layout status");
+            const auto policy = str(layout, "layout_policy", layout_path);
+            if (policy != "provider_verified_required" && policy != "provider_verified")
+                throw Error(layout_path + ".layout_policy", "unsupported aggregate ABI layout policy");
+            const auto& fields = array(required(layout, "fields", layout_path), layout_path + ".fields");
+            if (fields.empty() || fields.size() > 16) throw Error(layout_path + ".fields", "aggregate ABI layout must contain 1..16 fields");
+            std::set<std::string> field_names;
+            for (std::size_t field_index = 0; field_index < fields.size(); ++field_index) {
+                const auto field_path = layout_path + ".fields[" + std::to_string(field_index) + "]";
+                const auto& field = object(fields[field_index], field_path);
+                const auto field_name = nonempty(field, "name", field_path);
+                const auto field_type = str(field, "type", field_path);
+                if (!field_names.insert(field_name).second || field_type.empty() || (status == "verified" && field_type != "c_int"))
+                    throw Error(field_path, "aggregate ABI fields must have unique non-empty types; verified fields require c_int");
+            }
+            aggregate_types.insert(name);
+        }
+    }
+    const auto native_carrier = [&](const std::string& type) {
+        return aggregate_types.count(type) || type == "c_int" || type == "c_long" || type == "c_ulong" ||
+            type == "c_size_t" || type == "c_string" || type == "int" || type == "bool" || type == "Bool" || type == "Text";
+    };
     std::map<std::string, std::string> state_initial_values;
     if (const auto* states = optional(syntax, "states")) {
         for (std::size_t i = 0; i < array(*states, syntax_path + ".states").size(); ++i) {
@@ -139,6 +174,10 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             if (str(item, "output_type", p) != "c_long") throw Error(p + ".output_type", "persistent receiver must return c_long state");
         } else if (optional(item, "state_contract")) throw Error(p, "non-persistent receiver carries state contract");
         types[node] = {nonempty(item, "input_type", p), nonempty(item, "output_type", p)};
+        if (!native_carrier(types[node].first))
+            throw Error(p + ".input_type", "unsupported native receiver input carrier");
+        if (!native_carrier(types[node].second))
+            throw Error(p + ".output_type", "unsupported native receiver output carrier");
         provenance(item, p);
     }
     std::map<std::string, std::string> provider_types;
@@ -192,6 +231,10 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             } else {
                 throw Error(p, "provider resolution differs from selected activation");
             }
+            if (activation == "startup_once" && !native_carrier(type))
+                throw Error(p + ".output_type", "unsupported native startup provider carrier");
+            if (activation == "finite_stream_once" && aggregate_types.count(type))
+                throw Error(p + ".output_type", "aggregate stream payloads are not admitted in this phase");
             provider_types.emplace(node, type);
             provenance(item, p);
         }
@@ -219,7 +262,7 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             result.providers.size() + result.receivers.size() != result.nodes.size())
             throw Error(path, "native graph requires fully resolved startup producers and source receivers without policies");
         for (const auto& [node, type] : provider_types)
-            if (type != "c_int" && type != "c_long" && type != "c_ulong" && type != "c_size_t" && type != "c_string")
+            if (type != "c_int" && type != "c_long" && type != "c_ulong" && type != "c_size_t" && type != "c_string" && !aggregate_types.count(type))
                 throw Error(path + ".providers", "unsupported native producer result carrier");
         std::map<std::string, std::size_t> indegree;
         for (const auto& node : result.nodes) indegree[node.id] = 0;

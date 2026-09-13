@@ -16,6 +16,8 @@ typedef struct FlowminiTestAbiPoint {
 
 int point_sum(FlowminiTestAbiPoint point);
 int point_weighted_sum(FlowminiTestAbiPoint point);
+FlowminiTestAbiPoint point_input(void);
+int point_observe(int value);
 
 #ifdef __cplusplus
 }

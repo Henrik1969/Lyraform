@@ -1,0 +1,20 @@
+import "../../std/abi/testabi.flow"
+
+program abi_aggregate_graph
+
+producer source : testabi.aggregate
+node left : fn consume_point
+node right : fn consume_point
+wire source.out => left.in
+wire source.out => right.in
+
+fn consume_point(point : Point): c_int {
+    result : c_int(0)
+    point_sum(point) -> result
+    point_observe(result) -> result
+    return result
+}
+
+main {
+    return 0
+}

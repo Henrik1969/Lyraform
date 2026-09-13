@@ -33,6 +33,7 @@ int analyze(std::string_view input) {
     const auto& matrix = report.dependency_matrix;
     Object output{
         {"abi_type_contracts", report.abi_type_contracts},
+        {"aggregate_abi_layouts", report.aggregate_abi_layouts},
         {"cost_model", Object{{"calibration", text("runtime")}, {"minimum_duration_ns", text("policy")},
                               {"minimum_speedup", 1.25}, {"status", text("deferred")}, {"work_units", text("runtime")}}},
         {"dependency_analysis", Object{{"candidate_kind", text("pure-callee-disjoint-inputs")},

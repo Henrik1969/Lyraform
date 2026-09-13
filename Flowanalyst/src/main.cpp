@@ -407,10 +407,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 continue;
             }
             if (graph_plan_version == 2) {
-                const auto native_carrier = [](const std::string& type) {
+                const auto native_carrier = [&](const std::string& type) {
                     return type == "int" || type == "bool" || type == "Bool" || type == "Text" ||
                         type == "c_int" || type == "c_long" || type == "c_ulong" ||
-                        type == "c_size_t" || type == "c_string";
+                        type == "c_size_t" || type == "c_string" || std::any_of(aggregate_layouts.begin(), aggregate_layouts.end(), [&](const auto& layout) { return layout.name == type; });
                 };
                 if (!native_carrier(callable.parameters.front().second) || (persistent && !native_carrier(callable.parameters[1].second)) || !native_carrier(callable.return_type)) {
                     graph_diagnostic("FLOWANALYST_GRAPH_RECEIVER_CARRIER",
@@ -493,6 +493,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             graph_model = Object{{"format", std::string("flowcore.source_graph")}, {"version", graph_plan_version},
                 {"status", std::string(graph_plan_version == 2 ? "ready" : "non_executable")},
                 {"syntax", *graph}, {"receivers", graph_receivers}, {"providers", graph_providers},
+                {"aggregate_abi_layouts", [&]() { Array layouts; for (const auto& layout : aggregate_layouts) { Array fields; for (const auto& field : layout.fields) fields.emplace_back(Object{{"name", field.first}, {"type", field.second}}); layouts.emplace_back(Object{{"contract", layout.contract}, {"fields", fields}, {"layout_policy", "provider_verified_required"}, {"name", layout.name}, {"status", "declared"}, {"version", flowcontracts::json::Integer{1}}}); } return layouts; }()},
                 {"provider_selection", provider_map}};
             if (graph_plan_version == 2) {
                 try {

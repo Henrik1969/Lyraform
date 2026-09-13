@@ -60,6 +60,8 @@ int prepare(const Options& option) {
     if (header(optimization).status != "ready") throw Error("$.status", "optimization artifact is not ready");
 
     Array capabilities;
+    Array aggregate_layouts;
+    if (const auto* layouts = optional(root, "aggregate_abi_layouts")) aggregate_layouts = array(*layouts, "$.aggregate_abi_layouts");
     Object binding_provenance{{"format", "none"}, {"status", "not-required"}, {"version", Integer{0}}};
     if (!option.binding_path.empty()) {
         const auto binding = parse(read(option.binding_path));
@@ -67,6 +69,8 @@ int prepare(const Options& option) {
         const auto binding_header = header(binding);
         if (binding_header.status != "ready") throw Error("$.status", "binding artifact is not ready");
         capabilities = required_array(object(binding), "capabilities");
+        if (const auto* layouts = optional(object(binding), "aggregate_abi_layouts"))
+            if (!array(*layouts, "$.aggregate_abi_layouts").empty()) aggregate_layouts = array(*layouts, "$.aggregate_abi_layouts");
         binding_provenance = Object{{"format", binding_header.format}, {"status", binding_header.status}, {"version", binding_header.version}};
     }
     const auto& operations = required_array(object(required(root, "lowering_plan"), "$.lowering_plan"), "operations", "$.lowering_plan");
@@ -98,6 +102,7 @@ int prepare(const Options& option) {
         {"targets", required(root, "targets")},
         {"version", Integer{option.target_policy_path.empty() ? 1 : 2}}
     };
+    if (!aggregate_layouts.empty()) output.emplace("aggregate_abi_layouts", aggregate_layouts);
     if (const auto* schedule = optional(root, "graph_schedule")) output.emplace("graph_schedule", *schedule);
     if (!option.target_policy_path.empty()) {
         const auto target_policy = parse(read(option.target_policy_path));

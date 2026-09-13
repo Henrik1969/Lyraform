@@ -1,7 +1,6 @@
 # Source-graph aggregate payloads
 
-Status: implementation phase opened by Henrik after the bounded persistent-state
-checkpoint (2026-09-13).
+Status: bounded direct native implementation checkpoint (2026-09-13).
 
 ## v0.32 bounded contract
 
@@ -46,5 +45,18 @@ The implementation must add positive and hostile evidence for:
 Aggregate payloads remain separate from the next reentrant/parallel scheduling
 phase. TinyVM aggregate graph execution remains last in Henrik's ordered plan.
 
-The next slice is to carry verified aggregate layout facts into the generic
-graph provider/receiver contract without admitting a handwritten `Point` path.
+The implementation carries the verified layout array through Flowbind,
+Flowparallel, Flowoptimize, backend preparation, and Flowlower. On the current
+Linux x86-64 C ABI, a verified packed two-`c_int` aggregate is lowered to its
+provider ABI `i64` carrier; the carrier is derived from manifest size facts,
+not from the aggregate name. Native execution proves one provider activation,
+fan-out to two fresh receivers, and exact `3` payload-derived results.
+
+Direct non-graph aggregate calls remain blocked until their record-literal and
+general ABI lowering path is separately completed. Aggregate streams,
+persistent aggregate state, joins, and parallel/reentrant delivery remain out
+of scope for this checkpoint.
+
+The next slice is to broaden the direct graph contract beyond one startup root
+and mature aggregate payload handling alongside the user-ordered scheduling
+work, while preserving the verified layout authority.

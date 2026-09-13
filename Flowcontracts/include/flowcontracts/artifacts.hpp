@@ -30,7 +30,7 @@ struct MatrixEntry { json::Integer row = 0; json::Integer column = 0; bool value
 struct MatrixView { std::string name; json::Integer rows = 0; json::Integer columns = 0; std::string semiring; std::string storage; std::vector<MatrixEntry> entries; };
 struct SemanticReport {
     Header artifact; std::string source_path; json::Array targets; json::Array external_operations;
-    json::Array abi_type_contracts; json::Value lowering_plan; std::size_t proven_pure_count = 0;
+    json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Value lowering_plan; std::size_t proven_pure_count = 0;
     std::size_t independent_candidate_count = 0; MatrixView dependency_matrix;
 };
 
@@ -66,6 +66,48 @@ inline void validate_abi_contracts(const json::Object& root) {
         for (const auto field : {"repr", "ownership", "access", "lifetime", "nullable", "opaque", "cleanup"})
             (void)json::string(json::required(contract, field, path), path + "." + field);
         if (!identities.emplace(owner, name).second) throw json::Error(path, "duplicate ABI contract identity");
+    }
+}
+
+inline void validate_aggregate_abi_layouts(const json::Array& layouts, std::string_view path = "$.aggregate_abi_layouts") {
+    std::set<std::pair<std::string, std::string>> identities;
+    for (std::size_t index = 0; index < layouts.size(); ++index) {
+        const auto item_path = std::string(path) + "[" + std::to_string(index) + "]";
+        const auto& layout = json::object(layouts[index], item_path);
+        const auto contract = json::string(json::required(layout, "contract", item_path), item_path + ".contract");
+        const auto name = json::string(json::required(layout, "name", item_path), item_path + ".name");
+        if (contract.empty() || name.empty() || !identities.emplace(contract, name).second)
+            throw json::Error(item_path, "empty or duplicate aggregate ABI layout identity");
+        if (json::integer(json::required(layout, "version", item_path), item_path + ".version") != 1)
+            throw json::Error(item_path + ".version", "unsupported aggregate ABI layout version");
+        const auto status = json::string(json::required(layout, "status", item_path), item_path + ".status");
+        if (status != "declared" && status != "verified") throw json::Error(item_path + ".status", "unsupported aggregate ABI layout status");
+        const auto policy = json::string(json::required(layout, "layout_policy", item_path), item_path + ".layout_policy");
+        if (policy != "provider_verified_required" && policy != "provider_verified")
+            throw json::Error(item_path + ".layout_policy", "unsupported aggregate ABI layout policy");
+        const auto& fields = required_array(layout, "fields", item_path);
+        if (status == "verified") {
+            if (json::integer(json::required(layout, "size", item_path), item_path + ".size") <= 0 ||
+                json::integer(json::required(layout, "alignment", item_path), item_path + ".alignment") <= 0)
+                throw json::Error(item_path, "verified aggregate ABI layout requires positive size and alignment");
+        }
+        if (fields.empty() || fields.size() > 16) throw json::Error(item_path + ".fields", "aggregate ABI layout must contain 1..16 fields");
+        std::set<std::string> field_names;
+        for (std::size_t field_index = 0; field_index < fields.size(); ++field_index) {
+            const auto field_path = item_path + ".fields[" + std::to_string(field_index) + "]";
+            const auto& field = json::object(fields[field_index], field_path);
+            const auto field_name = json::string(json::required(field, "name", field_path), field_path + ".name");
+            const auto field_type = json::string(json::required(field, "type", field_path), field_path + ".type");
+            if (field_name.empty() || !field_names.insert(field_name).second || field_type.empty())
+                throw json::Error(field_path, "aggregate ABI fields must have unique non-empty names and types");
+            if (status == "verified" && field_type != "c_int")
+                throw json::Error(field_path + ".type", "verified aggregate ABI fields must use c_int in this phase");
+            if (const auto* offset = json::optional(field, "offset")) {
+                if (json::integer(*offset, field_path + ".offset") < 0) throw json::Error(field_path + ".offset", "aggregate field offset must be non-negative");
+            } else if (status == "verified") {
+                throw json::Error(field_path + ".offset", "verified aggregate ABI field requires an offset");
+            }
+        }
     }
 }
 
@@ -288,6 +330,10 @@ inline SemanticReport semantic_report(const json::Value& value) {
     validate_targets(root); result.targets = required_array(root, "targets");
     result.external_operations = required_array(root, "external_operations");
     validate_abi_contracts(root); result.abi_type_contracts = required_array(root, "abi_type_contracts");
+    if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) {
+        result.aggregate_abi_layouts = json::array(*layouts, "$.aggregate_abi_layouts");
+        validate_aggregate_abi_layouts(result.aggregate_abi_layouts);
+    }
     result.lowering_plan = json::required(root, "lowering_plan");
     validate_lowering_authority(result.lowering_plan);
     const auto& plan = json::object(result.lowering_plan, "$.lowering_plan");
@@ -314,7 +360,7 @@ inline json::Value matrix_entries(const MatrixView& matrix) {
 
 struct ExecutionPlan {
     Header artifact; std::string source_path; json::Array targets; json::Array external_operations;
-    json::Array abi_type_contracts; json::Value lowering_plan; json::Value graph_schedule; MatrixView dependency_matrix;
+    json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Value lowering_plan; json::Value graph_schedule; MatrixView dependency_matrix;
 };
 
 inline MatrixView execution_matrix(const json::Object& root) {
@@ -351,6 +397,10 @@ inline ExecutionPlan execution_plan(const json::Value& value) {
     validate_targets(root); result.targets = required_array(root, "targets");
     result.external_operations = required_array(root, "external_operations");
     validate_abi_contracts(root); result.abi_type_contracts = required_array(root, "abi_type_contracts");
+    if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) {
+        result.aggregate_abi_layouts = json::array(*layouts, "$.aggregate_abi_layouts");
+        validate_aggregate_abi_layouts(result.aggregate_abi_layouts);
+    }
     result.lowering_plan = json::required(root, "lowering_plan");
     validate_lowering_authority(result.lowering_plan);
     validate_graph_schedule(root);

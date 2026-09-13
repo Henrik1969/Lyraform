@@ -9,6 +9,16 @@ abi testabi {
         y : c_int
     }
 
+    extern fn point_input(): Point {
+        symbol "point_input"
+        effect pure
+    }
+
+    extern fn point_observe(value : c_int): c_int {
+        symbol "point_observe"
+        effect io
+    }
+
     extern fn point_sum(p : Point): c_int {
         symbol "point_sum"
         effect pure

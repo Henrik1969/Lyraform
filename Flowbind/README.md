@@ -23,9 +23,11 @@ declared contract, provider library, symbol, calling convention, effect, ABI
 types, and authorization status for downstream inspectors and lowerers.
 
 An optional `--abi-manifest manifest.json` consumes provider-owned aggregate
-layout evidence. Flowbind reports `aggregate_abi: verified` when the manifest
-matches the semantic aggregate declaration, but aggregate calls remain blocked
-until aggregate lowering is separately implemented and tested.
+layout evidence. Flowbind reports `aggregate_abi: verified` and carries the
+verified layout facts downstream when the manifest matches the semantic
+aggregate declaration. Direct non-graph aggregate calls remain blocked until
+their record-literal lowering is implemented; provider-verified aggregate
+payloads in the bounded native graph path are admitted and tested.
 
 Required CLI invariants:
 

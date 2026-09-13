@@ -121,6 +121,7 @@ private:
     std::map<int, std::string> symbol_types_;
     std::map<int, const Json*> definitions_;
     std::map<std::string, std::string> carrier_representations_;
+    std::map<std::string, std::string> aggregate_types_;
     std::set<Provider> providers_, authorized_;
     bool has_branch_ = false, has_declared_carrier_ = false, has_nonroot_block_ = false, invalid_control_ = false, unsupported_ = false, uses_args_ = false, has_text_outcome_ = false;
     int temporary_ = 0, label_ = 0, required_argc_ = 0;
@@ -143,6 +144,8 @@ private:
         if (!builtin.empty()) return builtin;
         const auto found = carrier_representations_.find(std::string{carrier});
         if (found != carrier_representations_.end() && (found->second == "void*" || found->second == "const void*")) return "ptr";
+        const auto aggregate = aggregate_types_.find(std::string{carrier});
+        if (aggregate != aggregate_types_.end()) return aggregate->second;
         return {};
     }
     void load() {
@@ -157,6 +160,23 @@ private:
                 const auto representation = text(field(item, "repr"));
                 if (!name.empty() && !representation.empty()) carrier_representations_[name] = representation;
             }
+        if (const auto* layouts = field(root_, "aggregate_abi_layouts")) {
+            for (const auto& item : array(layouts, "aggregate_abi_layouts")) {
+                const auto name = text(field(item, "name"));
+                const auto status = text(field(item, "status"));
+                if (name.empty() || status != "verified") continue;
+                const auto size = integer(field(item, "size"), "aggregate_abi_layout.size");
+                std::string type;
+                if (size > 0 && size <= 4) type = "i32";
+                else if (size > 4 && size <= 8) type = "i64";
+                else throw std::runtime_error("unsupported aggregate ABI size for native value carrier");
+                const auto& fields = array(field(item, "fields"), "aggregate_abi_layout.fields");
+                for (const auto& field_value : fields) {
+                    if (text(field(field_value, "type")) != "c_int") throw std::runtime_error("unsupported aggregate ABI field carrier");
+                }
+                aggregate_types_[name] = type;
+            }
+        }
         const auto* plan = field(root_, "lowering_plan");
         if (!plan || text(field(*plan,"format")) != "flowcore.lowering_plan") return;
         if (const auto* graph = field(*plan, "source_graph")) {
@@ -312,7 +332,7 @@ private:
         return function.entry ? (graph_native_ ? "flow.source.entry" : "main") : "flow.function." + std::to_string(function.symbol);
     }
     void emit_allocations(std::ostringstream& out) const {
-        for (const auto& [symbol,type]:symbol_types_) { const auto llvm=llvm_type(type); if(!llvm.empty()) out<<"  "<<slot(symbol)<<" = alloca "<<llvm<<", align "<<(llvm=="i32"?4:8)<<"\n"; }
+        for (const auto& [symbol,type]:symbol_types_) { const auto llvm=llvm_type(type); if(!llvm.empty()) out<<"  "<<slot(symbol)<<" = alloca "<<llvm<<", align "<<(llvm=="i32"?4:(llvm.rfind("{ ", 0) == 0 ? 4 : 8))<<"\n"; }
         for (const auto& [symbol,value]:definitions_) if(text(field(*value,"kind"))=="writable_storage") {
             const auto* storage=field(*value,"storage"); const int bytes=integer(storage?field(*storage,"bytes"):nullptr,"storage.bytes");
             if(bytes<=0) throw std::runtime_error("invalid compatibility writable storage size");

@@ -601,6 +601,22 @@ add_test(NAME native_source_graph
         "FLOWGRAPH_LINK_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-native-source-graph.sh)
 
+add_test(NAME native_aggregate_graph
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWTESTABI_LAYOUT_BIN=$<TARGET_FILE:flowmini_testabi_layout>
+        FLOWTESTABI_LIBRARY=$<TARGET_FILE:flowmini_testabi>
+        FLOWGRAPH_RUNTIME=$<TARGET_FILE:flowgraph_runtime>
+        FLOWGRAPH_CXX=${CMAKE_CXX_COMPILER}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-native-aggregate-graph.sh)
+
 add_test(NAME flowmini_support_boundary
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}

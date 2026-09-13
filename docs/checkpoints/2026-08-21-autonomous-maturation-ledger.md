@@ -2041,3 +2041,33 @@ State remains CONTINUE.
 Carry verified aggregate layout facts through Flowbind, graph scheduling,
 optimization, preparation, and native lowering, then add positive and hostile
 aggregate delivery evidence. State remains CONTINUE.
+
+## 2026-09-13 aggregate payload artifact and native checkpoint
+
+- Aggregate layout facts now survive Flowanalyst's semantic report,
+  Flowparallel's execution plan, Flowoptimize's report, backend preparation,
+  and ready Flowbind reports. Shared validation rejects duplicate identities,
+  unsupported field carriers, and incomplete verified size/alignment/offset
+  facts.
+- Flowbind's previous Point-only manifest gate is now generic over declared
+  aggregate names and ordered `c_int` fields. The admitted phase requires
+  packed fields with host `sizeof(int)` size and `alignof(int)` alignment; the
+  provider manifest remains the physical layout authority.
+- The native graph contract admits verified named aggregate payloads without
+  compiler name dispatch. Flowlower derives the current x86-64 by-value carrier
+  from verified size facts (`Point` is `i64`), and the new CTest evidence proves
+  one provider activation fans out to two receivers, both observing `3`.
+- Hostile aggregate offset evidence is rejected, and the aggregate layout is
+  preserved as `status: verified` through backend preparation. Direct ordinary
+  aggregate calls remain intentionally blocked; aggregate streams, aggregate
+  persistent state, and reentrant/parallel aggregate delivery are not claimed.
+
+Focused native aggregate evidence passes **1/1**. The stream and persistent
+phases remain complete; the next user-ordered phase is aggregate maturation
+followed by reentrant/parallel graph schedules, with TinyVM still last.
+
+## Exact next action
+
+Run the complete canonical gate, commit and push this aggregate checkpoint,
+then continue with the first unfinished aggregate/reentrant maturation slice.
+State remains CONTINUE.
