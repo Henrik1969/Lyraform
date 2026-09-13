@@ -19,6 +19,7 @@ policy=$tmpdir/policy
 printf '%s\n' \
   'allow libc.so.6 memset c io c_pointer,c_int,c_size_t c_pointer' \
   'allow libc.so.6 memcpy c io c_pointer,c_pointer,c_size_t c_pointer' \
+  'allow libc.so.6 memmove c io c_pointer,c_pointer,c_size_t c_pointer' \
   'allow libc.so.6 memcmp c pure c_pointer,c_pointer,c_size_t c_int' > "$policy"
 
 source=$root/Lyraform/compiler/examples/pass/abi_memory_demo.flow

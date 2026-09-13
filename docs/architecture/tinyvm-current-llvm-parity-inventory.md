@@ -31,7 +31,7 @@ drift and unimplemented tuples fail closed.
 | process/socket IPC | `pipe2`, `fork`, `waitpid`, `socketpair` | child/process lifecycle, multi-result storage and cleanup |
 | loopback networking | `socket`, `bind`, `listen`, `poll`, `accept4`, `connect` | sockaddr/poll layout evidence, descriptor ownership and bounded mutation |
 | namespaces | `unshare`, `sethostname`, `gethostname` | privilege/capability policy, mutable output and environment lifecycle |
-| memory | `memcpy`, `memset`, `memcmp` | handle ranges, alias/overlap laws and initialized-byte tracking |
+| memory | `memcpy`, `memmove`, `memset`, `memcmp` | handle ranges, alias/overlap laws and initialized-byte tracking |
 | ncurses/TUI | `initscr`, `endwin`, `noecho`, `cbreak`, `waddnstr`, `wrefresh`, `wgetch`, `keypad` | external window lifetime, terminal ownership, cleanup and interactive evidence |
 | provider aggregates | current `testabi` aggregate probes | provider-owned layout is verified upstream but aggregate call lowering is not implemented |
 

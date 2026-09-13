@@ -11,6 +11,7 @@ main {
 
     memset(source, value, count) -> source
     memcpy(destination, source, count) -> destination
+    memmove(destination, source, count) -> destination
     memcmp(destination, source, count) -> result
     result -> return
 }

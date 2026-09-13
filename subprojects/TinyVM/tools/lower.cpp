@@ -313,6 +313,7 @@ private:
                                   (symbol == "flow_text_dispose" && parameters == "Text" && result_type == "c_int") ||
                                   (symbol == "memset" && parameters == "c_pointer,c_int,c_size_t" && result_type == "c_pointer") ||
                                   (symbol == "memcpy" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_pointer") ||
+                                  (symbol == "memmove" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_pointer") ||
                                   (symbol == "memcmp" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_int") ||
                                   ((symbol == "getpgid" || symbol == "getsid") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "getpriority" && parameters == "c_int,c_int" && result_type == "c_int") ||

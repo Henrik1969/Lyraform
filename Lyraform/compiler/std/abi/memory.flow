@@ -17,6 +17,11 @@ abi memory {
         effect io
     }
 
+    extern fn memmove(destination : c_pointer, source : c_pointer, count : c_size_t): c_pointer {
+        symbol "memmove"
+        effect io
+    }
+
     extern fn memset(destination : c_pointer, value : c_int, count : c_size_t): c_pointer {
         symbol "memset"
         effect io

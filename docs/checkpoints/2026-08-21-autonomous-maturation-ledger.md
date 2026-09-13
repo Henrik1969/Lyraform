@@ -1581,3 +1581,20 @@ Select the next library-oriented capability slice, with preference for a
 bounded operation that broadens the existing pointer-length or resource
 contracts while retaining exact LLVM/TinyVM parity and explicit refusal for
 unsupported carriers. State remains CONTINUE.
+
+## 2026-09-13 bounded memmove parity checkpoint
+
+- Extended `std/abi/memory.flow` with exact `memmove(c_pointer,c_pointer,c_size_t)`
+  authorization and added it to the generic bounded memory program.
+- LLVM and TinyVM both execute the new provider tuple using the existing
+  eight-byte storage contract. TinyVM resolves it through its own checked
+  storage thunk; no native pointer enters the artifact. Partial-overlap proof
+  remains pending because pointer slicing is not yet an admitted carrier.
+- The standard-library boundary, memory parity gate, capability matrix, and
+  parity inventory now record four memory operations rather than three.
+
+## Exact next action
+
+Select another library-oriented capability with a distinct failure or resource
+contract, while keeping the complete canonical suite and onboarding evidence
+reconciled. State remains CONTINUE.

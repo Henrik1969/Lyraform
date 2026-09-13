@@ -26,6 +26,7 @@ printf '%s\n' \
   'allow libc.so.6 sendfile c io' \
   'allow libc.so.6 close c io' \
   'allow libc.so.6 memcpy c io' \
+  'allow libc.so.6 memmove c io' \
   'allow libc.so.6 memset c io' \
   'allow libc.so.6 memcmp c pure' \
   'allow libc.so.6 getpid c readonly' \
@@ -75,7 +76,7 @@ check_module() {
 check_module libc c_string strlen abs labs puts
 check_module file_io c_pointer open read write sendfile close
 check_module pointers c_buffer_read c_buffer_mut c_opaque_handle
-check_module memory c_pointer memcpy memset memcmp
+check_module memory c_pointer memcpy memmove memset memcmp
 check_module kernel c_pointer getpid getuid getgid geteuid getegid getppid getpgrp getpgid getsid getpriority clock_gettime uname getrandom openat read write lseek unlinkat rmdir pipe2 fork waitpid socketpair socket bind listen poll accept4 connect unshare sethostname gethostname
 check_module testabi Point point_sum point_weighted_sum
 
@@ -115,7 +116,7 @@ memory_fixture="$root/Lyraform/compiler/examples/pass/abi_memory_demo.flow"
     "$flowbind" --policy "$policy" > "$tmpdir/memory.binding.json"
 jq -e '
     .status == "ready" and
-    ([.capabilities[].symbol] | sort) == ["memcmp", "memcpy", "memset"] and
+    ([.capabilities[].symbol] | sort) == ["memcmp", "memcpy", "memmove", "memset"] and
     all(.capabilities[]; .library == "libc.so.6" and .status == "authorized")
 ' "$tmpdir/memory.binding.json" >/dev/null
 
@@ -127,6 +128,7 @@ jq -e '
     ([.lowering_plan.operations[].operands[]? | select(.kind == "writable_storage") | .storage.bytes] | sort) == [8, 8] and
     any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "memset") and
     any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "memcpy") and
+    any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "memmove") and
     any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "memcmp")
 ' "$tmpdir/memory.semantic.json" >/dev/null
 "$flowparallel" < "$tmpdir/memory.semantic.json" > "$tmpdir/memory.parallel.json"
@@ -182,7 +184,7 @@ echo 'Flowcore standard-library boundary: PASS'
 echo '  declared ABI modules: 6/6 parsed and symbol/type inventories verified'
 echo '  libc capability calls: 4/4 authorized'
 echo '  file I/O capability calls: 4/4 authorized'
-echo '  memory capability calls: 3/3 authorized; bounded LLVM execution verified'
+echo '  memory capability calls: 4/4 authorized; bounded LLVM execution verified'
 echo '  kernel capability calls: 32/32 authorized at binding boundary'
 echo '  struct provider layout: verified by provider-owned ABI manifest'
 echo '  struct call lowering: intentionally deferred at Flowbind boundary'
