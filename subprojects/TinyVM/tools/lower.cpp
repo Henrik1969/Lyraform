@@ -71,7 +71,7 @@ public:
             const auto& operation = object(value, "$.lowering_plan.operations[]");
             const auto kind = string(required(operation, "kind", "$.lowering_plan.operations[]"), "$.lowering_plan.operations[].kind");
             if (kind == "call" && plan_version != 2) continue;
-            if (kind != "call" && kind != "value_definition" && kind != "assignment" && kind != "return_value" && kind != "branch" && kind != "loop" && kind != "external_call")
+            if (kind != "call" && kind != "value_definition" && kind != "assignment" && kind != "return_value" && kind != "branch" && kind != "loop" && kind != "external_call" && kind != "text_outcome")
                 throw Unsupported("operation kind '" + kind + "' is not admitted by the scalar slice");
             const auto block = optional(operation, "block_id") ? integer(*optional(operation, "block_id"), "$.operation.block_id") : 0;
             blocks_[block].push_back(&operation);
@@ -248,7 +248,7 @@ private:
         set_provenance(operation);
         const auto kind = string(required(operation, "kind", "$.operation"), "$.operation.kind");
         const auto& operands = required_array(operation, "operands", "$.operation");
-        if (operands.empty() && kind != "external_call" && kind != "call") throw Unsupported("scalar operation has no operand");
+        if (operands.empty() && kind != "external_call" && kind != "text_outcome" && kind != "call") throw Unsupported("scalar operation has no operand");
         if (kind == "branch") {
             const auto value = expression(operands.front());
             const auto branch_index = code.size(); emit(TV1_BRANCH, value, 0, 0);
@@ -286,7 +286,7 @@ private:
             code[branch_index].pad = static_cast<std::int64_t>(code.size());
             return;
         }
-        if (kind == "external_call") {
+        if (kind == "external_call" || kind == "text_outcome") {
             const auto& provider = object(required(operation, "provider", "$.operation"), "$.operation.provider");
             const auto symbol = string(required(provider, "symbol", "$.operation.provider"), "$.operation.provider.symbol");
             const auto parameters = string(required(provider, "parameter_types", "$.operation.provider"), "$.operation.provider.parameter_types");

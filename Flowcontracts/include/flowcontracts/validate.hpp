@@ -286,7 +286,8 @@ inline void validate_backend_lowering_artifact(const json::Value& value) {
     for (std::size_t index = 0; index < operations.size(); ++index) {
         const auto path = "$.lowering_plan.operations[" + std::to_string(index) + "]";
         const auto& operation = json::object(operations[index], path);
-        if (json::string(json::required(operation, "kind", path), path + ".kind") != "external_call") continue;
+        const auto kind = json::string(json::required(operation, "kind", path), path + ".kind");
+        if (kind != "external_call" && kind != "text_outcome") continue;
         const auto& provider = required_object(operation, "provider", path);
         const auto identity = capability_identity(provider, path + ".provider");
         required_capabilities.insert(identity);

@@ -11,7 +11,9 @@ fn join(left : Text, right : Text): Text {
 main {
     prefix : Text(join("Lyra", "form"))
     value : Text(join(prefix, " — Igor"))
+    alternate : Text(join(prefix, " / tester"))
     print prefix
     print value
+    print alternate
     print value
 }

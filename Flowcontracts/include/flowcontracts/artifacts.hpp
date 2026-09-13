@@ -124,7 +124,8 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
         }
         if (const auto* block = json::optional(operation, "block_id")) if (json::integer(*block, path + ".block_id") < 0) throw json::Error(path + ".block_id", "operation block identity must be non-negative");
         (void)required_array(operation, "operands", path);
-        if (json::string(json::required(operation, "kind", path), path + ".kind") == "external_call") {
+        const auto operation_kind = json::string(json::required(operation, "kind", path), path + ".kind");
+        if (operation_kind == "external_call" || operation_kind == "text_outcome") {
             const auto& provider = required_object(operation, "provider", path);
             for (const auto field : {"contract", "library", "convention", "symbol", "effect", "parameter_types", "return_type"})
                 (void)json::string(json::required(provider, field, path + ".provider"), path + ".provider." + field);
@@ -132,10 +133,17 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
             const auto& effect = required_object(operation, "effect_contract", path);
             for (const auto field : {"external", "determinism", "certainty"})
                 (void)json::string(json::required(effect, field, path + ".effect_contract"), path + ".effect_contract." + field);
-            if (const auto* outcome = json::optional(operation, "result_outcome")) {
+            const auto* outcome = json::optional(operation, "result_outcome");
+            if (operation_kind == "text_outcome" && outcome == nullptr)
+                throw json::Error(path + ".result_outcome", "text_outcome operation must declare its typed outcome");
+            if (outcome) {
                 const auto& value = json::object(*outcome, path + ".result_outcome");
-                (void)json::string(json::required(value, "success_type", path + ".result_outcome"), path + ".result_outcome.success_type");
-                (void)json::string(json::required(value, "failure_type", path + ".result_outcome"), path + ".result_outcome.failure_type");
+                const auto outcome_type = json::string(json::required(value, "type", path + ".result_outcome"), path + ".result_outcome.type");
+                const auto representation = json::string(json::required(value, "representation", path + ".result_outcome"), path + ".result_outcome.representation");
+                const auto success_type = json::string(json::required(value, "success_type", path + ".result_outcome"), path + ".result_outcome.success_type");
+                const auto failure_type = json::string(json::required(value, "failure_type", path + ".result_outcome"), path + ".result_outcome.failure_type");
+                if (operation_kind == "text_outcome" && (outcome_type != "Outcome" || representation != "tagged" || success_type != "Text" || failure_type != "TextFailure"))
+                    throw json::Error(path + ".result_outcome", "Text outcome must use the tagged Outcome<Text,TextFailure> contract");
                 const auto& codes = required_array(value, "failure_codes", path + ".result_outcome");
                 if (codes.empty()) throw json::Error(path + ".result_outcome.failure_codes", "Text outcome must declare at least one failure code");
                 for (const auto& code : codes) (void)json::string(code, path + ".result_outcome.failure_codes[]");

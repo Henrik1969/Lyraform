@@ -197,7 +197,7 @@ private:
                 has_branch_=true;
             }
             if (op.block!=0) has_nonroot_block_=true;
-            if (op.kind!="call" && op.kind!="external_call" && op.kind!="value_definition" && op.kind!="branch" && op.kind!="return_value" && op.kind!="loop" && op.kind!="assignment") unsupported_=true;
+            if (op.kind!="call" && op.kind!="external_call" && op.kind!="text_outcome" && op.kind!="value_definition" && op.kind!="branch" && op.kind!="return_value" && op.kind!="loop" && op.kind!="assignment") unsupported_=true;
             operations_.push_back(std::move(op));
         }
         for (auto& op:operations_) if (op.kind!="call" || plan_version_==2) blocks_[op.block].push_back(&op);
@@ -496,7 +496,7 @@ private:
                 for(std::size_t index=0;index<args.size();++index){if(index)out<<", ";out<<args[index].first<<" "<<args[index].second;}out<<")\n";
                 call_results_[op->expression]={result_type,result};
                 if(op->result_symbol>=0)out<<"  store "<<result_type<<" "<<result<<", ptr "<<slot(op->result_symbol)<<"\n";
-            } else if(op->kind=="external_call") {
+            } else if(op->kind=="external_call" || op->kind=="text_outcome") {
                 if (graph_native_) out<<"  call void @flow_graph_operation(i64 "<<op->id<<")\n";
                 const auto& p=*op->provider; const auto params=carriers(p.parameters); const auto& operands=array(field(find_json_operation(op->id),"operands"),"operation.operands");
                 if(params.size()!=operands.size()) throw std::runtime_error("structured call operand count mismatch");

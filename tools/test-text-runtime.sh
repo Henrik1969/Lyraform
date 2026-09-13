@@ -8,6 +8,7 @@ parallel=${FLOWPARALLEL_BIN:?}
 optimize=${FLOWOPTIMIZE_BIN:?}
 bind=${FLOWBIND_BIN:?}
 lower=${FLOWLOWER_BIN:?}
+validate=${FLOWVALIDATE_BIN:?}
 text_runtime=${FLOWTEXT_RUNTIME:?}
 
 tmpdir=$(mktemp -d)
@@ -23,16 +24,23 @@ source=$root/Lyraform/compiler/examples/text/text_runtime.flow
 "$analyst" --lowering-plan-version 2 < "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
 jq -e '
   .status == "ok" and
-  any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "flow_text_concat" and .provider.parameter_types == "Text,Text" and .provider.return_type == "Text") and
-  any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "flow_text_concat" and .result_outcome.failure_type == "TextFailure" and (.result_outcome.failure_codes | index("exhausted"))) and
+  any(.lowering_plan.operations[]; .kind == "text_outcome" and .provider.symbol == "flow_text_concat" and .provider.parameter_types == "Text,Text" and .provider.return_type == "Text") and
+  any(.lowering_plan.operations[]; .kind == "text_outcome" and .provider.symbol == "flow_text_concat" and .result_outcome.type == "Outcome" and .result_outcome.representation == "tagged" and .result_outcome.failure_type == "TextFailure" and (.result_outcome.failure_codes | index("exhausted"))) and
   any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "puts" and .provider.parameter_types == "Text")
 ' "$tmpdir/semantic.json" >/dev/null
+"$validate" "$tmpdir/semantic.json" | jq -e '.classification == "valid"' >/dev/null
+jq '.lowering_plan.operations = [.lowering_plan.operations[] | if .kind == "text_outcome" then del(.result_outcome) else . end]' \
+  "$tmpdir/semantic.json" > "$tmpdir/missing-outcome.json"
+if "$validate" "$tmpdir/missing-outcome.json" >/dev/null 2>&1; then
+  echo 'flowvalidate accepted a text_outcome operation without its typed outcome' >&2
+  exit 1
+fi
 "$parallel" < "$tmpdir/semantic.json" > "$tmpdir/parallel.json"
 "$optimize" < "$tmpdir/parallel.json" > "$tmpdir/optimized.json"
 "$bind" --policy "$policy" < "$tmpdir/semantic.json" > "$tmpdir/binding.json"
 "$lower" --emit-llvm "$tmpdir/text.ll" --binding-report "$tmpdir/binding.json" < "$tmpdir/optimized.json" > "$tmpdir/lowering.json"
 clang "$tmpdir/text.ll" "$text_runtime" -o "$tmpdir/text"
-printf '%s\n' 'Lyraform' 'Lyraform — Igor' 'Lyraform — Igor' > "$tmpdir/expected"
+printf '%s\n' 'Lyraform' 'Lyraform — Igor' 'Lyraform / tester' 'Lyraform — Igor' > "$tmpdir/expected"
 "$tmpdir/text" > "$tmpdir/output"
 cmp -s "$tmpdir/expected" "$tmpdir/output"
 

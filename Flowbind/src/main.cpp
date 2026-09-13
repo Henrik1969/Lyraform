@@ -217,7 +217,8 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
                 throw std::runtime_error("invalid writable storage descriptor");
             }
         }
-        if (json_text(json_field(operation, "kind")) != "external_call") continue;
+        const auto kind = json_text(json_field(operation, "kind"));
+        if (kind != "external_call" && kind != "text_outcome") continue;
         const Json* provider = json_field(operation, "provider");
         if (provider == nullptr) throw std::runtime_error("external lowering operation has no provider identity");
         const auto contract = json_text(json_field(*provider, "contract"));

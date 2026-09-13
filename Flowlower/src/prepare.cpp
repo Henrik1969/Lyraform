@@ -71,8 +71,10 @@ int prepare(const Options& option) {
     }
     const auto& operations = required_array(object(required(root, "lowering_plan"), "$.lowering_plan"), "operations", "$.lowering_plan");
     bool requires_binding = false;
-    for (const auto& value : operations)
-        if (string(required(object(value, "$.lowering_plan.operations[]"), "kind", "$.lowering_plan.operations[]"), "$.lowering_plan.operations[].kind") == "external_call") requires_binding = true;
+    for (const auto& value : operations) {
+        const auto kind = string(required(object(value, "$.lowering_plan.operations[]"), "kind", "$.lowering_plan.operations[]"), "$.lowering_plan.operations[].kind");
+        if (kind == "external_call" || kind == "text_outcome") requires_binding = true;
+    }
     if (const auto* graph = optional(object(required(root, "lowering_plan")), "source_graph")) {
         if (!source_graph(*graph).executable) throw Error("$.lowering_plan.source_graph", "source graph execution is not admitted");
         requires_binding = true;

@@ -268,6 +268,7 @@ add_test(NAME text_runtime_boundary
         FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
         FLOWBIND_BIN=$<TARGET_FILE:flowbind>
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-runtime.sh)
 set_tests_properties(text_runtime_boundary PROPERTIES

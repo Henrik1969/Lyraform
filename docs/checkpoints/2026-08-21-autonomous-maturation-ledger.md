@@ -1386,3 +1386,24 @@ add fan-out ownership evidence. State remains CONTINUE.
 Replace the metadata-only compatibility seed with a typed `text_outcome`
 operation and backend-neutral success/failure value, then add fan-out
 ownership/lifetime evidence. State remains CONTINUE.
+
+## 2026-09-13 typed Text outcome boundary checkpoint
+
+- Promoted dynamic owned-Text construction from a metadata-bearing
+  `external_call` to the distinct `text_outcome` lowering operation.
+- The artifact contract now requires a serializable tagged
+  `Outcome<Text,TextFailure>` declaration for that operation and rejects a
+  missing or mismatched outcome shape. Flowbind, Flowprepare, LLVM Flowlower,
+  and TinyVM Flowlower all preserve and admit the operation explicitly.
+- Added a negative validator assertion for a missing typed outcome and kept
+  ordinary `puts(Text)` calls as `external_call` operations.
+- Extended the runtime fixture to fan out one immutable owned `Text` input into
+  two owned concatenation results and reuse one result; LLVM and TinyVM remain
+  output-equivalent. The complete fresh CTest graph passed **85/85** in 38.30s.
+
+## Exact next action
+
+Replace the provider's null-as-failure adapter with an explicit tagged
+success/failure transport carrying `TextFailure` codes on both backends, while
+retaining the current `text_outcome` artifact contract and adding cleanup-once
+evidence. State remains CONTINUE.

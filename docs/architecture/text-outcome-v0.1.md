@@ -1,6 +1,6 @@
 # Text outcome contract v0.1 — proposed
 
-**Status:** proposed backend-neutral contract
+**Status:** proposed backend-neutral value contract; typed artifact boundary implemented
 **Scope:** failure representation for owned Text construction
 
 The current `flow_text_concat(Text,Text): Text` provider shape is useful for
@@ -47,9 +47,10 @@ to the same failure code.
 
 ## Migration shape
 
-The next implementation slice should add a typed backend-neutral `text_outcome`
-operation and a provider contract that reports `TextFailure` without exposing a
-host pointer. Existing `flow_text_concat` may remain as a compatibility
-adapter while success, exhaustion, and provider-unavailable mappings are
-differentially tested. Until then, the bounded provider and backend traps stay
-explicitly transitional.
+The lowering plan now marks the bounded construction operation as
+`text_outcome`, and validates a serializable `result_outcome` declaration with
+the `Outcome<Text,TextFailure>` shape. `flow_text_concat` remains the current
+provider adapter: its non-null pointer is still the backend carrier for the
+success variant, while null maps to the tested backend failure disposition.
+The actual tagged runtime value and explicit failure-code transport remain the
+next slice; the LLVM/TinyVM trap mappings are therefore still transitional.

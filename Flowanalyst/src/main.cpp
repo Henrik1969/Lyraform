@@ -792,7 +792,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         operation.function_symbol = containing_function(scope_id);
         operation.callee_symbol = provider.first;
         operation.callee = "text_concat";
-        operation.kind = "external_call";
+        operation.kind = "text_outcome";
         const auto* payload = field(*expressions.at(expression_id), "payload");
         operation.arguments = {integer(field(payload, "left")), integer(field(payload, "right"))};
         operation.contract = provider.second.contract;
@@ -1193,7 +1193,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     declared_type = callable.return_type;
                     break;
                 }
-            if (operation.kind == "external_call") {
+            if (operation.kind == "external_call" || operation.kind == "text_outcome") {
                 const auto parameter_types = split_generic_arguments(operation.parameter_types);
                 if (argument < parameter_types.size()) declared_type = parameter_types[argument];
             }
@@ -1203,7 +1203,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (operation.result_symbol >= 0) std::cout << ",\"result_symbol_id\":" << operation.result_symbol;
         if (operation.kind == "branch") std::cout << ",\"then_block_id\":" << operation.then_block << ",\"else_block_id\":" << operation.else_block;
         if (operation.kind == "loop") std::cout << ",\"body_block_id\":" << operation.body_block;
-        if (operation.kind == "external_call") {
+        if (operation.kind == "external_call" || operation.kind == "text_outcome") {
             std::cout << ",\"provider\":{\"contract\":" << quote(operation.contract) << ",\"evidence\":" << quote(operation.evidence)
                       << ",\"library\":" << quote(operation.library)
                       << ",\"convention\":" << quote(operation.convention)
@@ -1215,7 +1215,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                       << ",\"determinism\":" << quote(operation.effect == "pure" ? "deterministic" : "unspecified")
                       << ",\"certainty\":\"declared\"}";
             if (runtime_text_concats.count(operation.expression))
-                std::cout << ",\"result_outcome\":{\"success_type\":\"Text\",\"failure_type\":\"TextFailure\",\"failure_codes\":[\"invalid_input\",\"exhausted\",\"provider_unavailable\"]}";
+                std::cout << ",\"result_outcome\":{\"type\":\"Outcome\",\"representation\":\"tagged\",\"success_type\":\"Text\",\"failure_type\":\"TextFailure\",\"failure_codes\":[\"invalid_input\",\"exhausted\",\"provider_unavailable\"]}";
             std::cout << ",\"argument_resources\":[";
             const auto parameter_carriers = operation.parameter_types.empty()
                 ? std::vector<std::string>{} : split_generic_arguments(operation.parameter_types);
