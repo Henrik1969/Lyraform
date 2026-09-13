@@ -1877,9 +1877,10 @@ State remains CONTINUE.
 - A fresh CMake install under `/tmp/flowcore-latest-install` built the installed
   `flow_less` example with only installed tools, runtime, source, generator,
   and providers; the linked binary rendered `-- page 3/3 --` and `epsilon`.
+- The freshly installed pager also passed direct Valgrind with zero errors,
+  zero bytes in use at exit, and all 8 allocations freed.
 
 ## Exact next action
 
-Continue Gate 6 with the next graph/runtime boundary while preserving explicit
-borrowed-string lifetime, fresh activation, fan-out identity, and failure laws.
-State remains CONTINUE.
+Reconcile the final state file and push the closing checkpoint. State remains
+CONTINUE until that clean pushed checkpoint is verified.
