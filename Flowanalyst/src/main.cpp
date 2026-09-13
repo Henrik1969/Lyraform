@@ -302,30 +302,67 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             if (implementation_kind == "provider_atom") {
                 const auto implementation = text(field(node, "implementation_name"));
                 for (const auto& selection : graph_provider_selections) if (selection.implementation == implementation) {
+                    const auto selected_callable = selection.activation == "finite_stream_once" ? selection.item_callable : selection.source_callable;
                     std::vector<int> candidates;
                     for (const auto& [identity, provider] : provider_functions)
-                        if (provider.contract + "." + text(field(*symbols.at(identity), "name")) == selection.source_callable)
+                        if (provider.contract + "." + text(field(*symbols.at(identity), "name")) == selected_callable)
                             candidates.push_back(identity);
                     if (candidates.size() != 1) {
-                        graph_diagnostic("FLOWANALYST_GRAPH_PROVIDER_RESOLUTION", "graph provider requires one resolved external declaration: " + selection.source_callable, node);
+                        graph_diagnostic("FLOWANALYST_GRAPH_PROVIDER_RESOLUTION", "graph provider requires one resolved external declaration: " + selected_callable, node);
                         continue;
                     }
                     const auto identity = candidates.front();
                     const auto& provider = provider_functions.at(identity);
-                    if (text(field(node, "role")) != "producer" || !provider.parameter_types.empty() ||
+                    const auto stream = selection.activation == "finite_stream_once";
+                    if (text(field(node, "role")) != "producer" ||
+                        (!stream && !provider.parameter_types.empty()) ||
+                        (stream && provider.parameter_types != "c_size_t") ||
                         provider.return_type.empty() || provider.return_type == "void") {
-                        graph_diagnostic("FLOWANALYST_GRAPH_PROVIDER_CONTRACT", "startup provider requires a producer role and zero-argument value-returning external declaration", node);
+                        graph_diagnostic("FLOWANALYST_GRAPH_PROVIDER_CONTRACT", stream
+                            ? "stream item provider requires one c_size_t argument and a value result"
+                            : "startup provider requires a producer role and zero-argument value-returning external declaration", node);
                         continue;
                     }
-                    graph_providers.push_back(Object{{"node_id", id}, {"function_symbol_id", identity},
-                        {"implementation", implementation}, {"source_callable", selection.source_callable},
-                        {"activation", std::string("startup_once")}, {"output_port", std::string("out")},
-                        {"output_type", provider.return_type},
-                        {"provenance", field(node, "provenance") ? *field(node, "provenance") : Json(nullptr)},
-                        {"provider", Object{{"contract", provider.contract}, {"library", provider.library},
+                    auto provider_value = [&]() {
+                        return Object{{"contract", provider.contract}, {"library", provider.library},
                             {"convention", provider.convention}, {"symbol", provider.symbol},
                             {"effect", provider.effect}, {"parameter_types", provider.parameter_types},
-                            {"return_type", provider.return_type}, {"evidence", provider.evidence}}}});
+                            {"return_type", provider.return_type}, {"evidence", provider.evidence}};
+                    };
+                    if (!stream) {
+                        graph_providers.push_back(Object{{"node_id", id}, {"function_symbol_id", identity},
+                            {"implementation", implementation}, {"source_callable", selection.source_callable},
+                            {"activation", std::string("startup_once")}, {"output_port", std::string("out")},
+                            {"output_type", provider.return_type},
+                            {"provenance", field(node, "provenance") ? *field(node, "provenance") : Json(nullptr)},
+                            {"provider", provider_value()}});
+                    } else {
+                        std::vector<int> count_candidates;
+                        for (const auto& [count_identity, count_provider] : provider_functions)
+                            if (count_provider.contract + "." + text(field(*symbols.at(count_identity), "name")) == selection.count_callable)
+                                count_candidates.push_back(count_identity);
+                        if (count_candidates.size() != 1) {
+                            graph_diagnostic("FLOWANALYST_GRAPH_PROVIDER_RESOLUTION", "stream count requires one resolved external declaration: " + selection.count_callable, node);
+                            continue;
+                        }
+                        const auto count_identity = count_candidates.front();
+                        const auto& count_provider = provider_functions.at(count_identity);
+                        if (!count_provider.parameter_types.empty() || count_provider.return_type != "c_size_t") {
+                            graph_diagnostic("FLOWANALYST_GRAPH_PROVIDER_CONTRACT", "stream count provider requires a zero-argument c_size_t result", node);
+                            continue;
+                        }
+                        graph_providers.push_back(Object{{"node_id", id}, {"function_symbol_id", identity},
+                            {"count_function_symbol_id", count_identity}, {"implementation", implementation},
+                            {"count_callable", selection.count_callable}, {"item_callable", selection.item_callable},
+                            {"activation", std::string("finite_stream_once")}, {"max_items", selection.max_items},
+                            {"output_port", std::string("out")}, {"output_type", provider.return_type},
+                            {"provenance", field(node, "provenance") ? *field(node, "provenance") : Json(nullptr)},
+                            {"provider", provider_value()},
+                            {"count_provider", Object{{"contract", count_provider.contract}, {"library", count_provider.library},
+                                {"convention", count_provider.convention}, {"symbol", count_provider.symbol},
+                                {"effect", count_provider.effect}, {"parameter_types", count_provider.parameter_types},
+                                {"return_type", count_provider.return_type}, {"evidence", count_provider.evidence}}}});
+                    }
                 }
                 continue;
             }
@@ -875,7 +912,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         called_provider_symbols.insert(site.callee_symbol);
     called_provider_symbols.insert(text_output_symbols.begin(), text_output_symbols.end());
     for (const auto& [expression_id, provider] : runtime_text_concats) { (void)expression_id; called_provider_symbols.insert(provider.first); }
-    if (graph_native) for (const auto& provider : graph_providers) called_provider_symbols.insert(integer(field(provider, "function_symbol_id")));
+    if (graph_native) for (const auto& provider : graph_providers) {
+        called_provider_symbols.insert(integer(field(provider, "function_symbol_id")));
+        if (const auto* count = field(provider, "count_function_symbol_id")) called_provider_symbols.insert(integer(count));
+    }
     for (const auto symbol : called_provider_symbols) binding_requirements.push_back(provider_functions.at(symbol));
     for (const auto& site : call_sites) {
         LoweringOperation operation;

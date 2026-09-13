@@ -97,6 +97,14 @@ abi host {
         symbol "getpid"
         effect readonly
     }
+    extern fn count(): c_size_t {
+        symbol "getpid"
+        effect readonly
+    }
+    extern fn item(index: c_size_t): c_int {
+        symbol "getpid"
+        effect readonly
+    }
 }
 producer source : injected.renamed
 node receiver : fn identity
@@ -109,7 +117,8 @@ FLOW
 if "$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/producer.frontend.json" > "$tmpdir/producer.semantic.json"; then
     echo 'producer selection became execution authority' >&2; exit 1
 fi
-jq '.lowering_plan.source_graph' "$tmpdir/producer.semantic.json" > "$tmpdir/producer.graph.json"
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/producer.frontend.json" > "$tmpdir/producer.native.semantic.json"
+jq '.lowering_plan.source_graph' "$tmpdir/producer.native.semantic.json" > "$tmpdir/producer.graph.json"
 jq -e '.providers[0] | .node_id == "source" and .source_callable == "host.selected" and .output_type == "c_int" and .provider.symbol == "getpid" and .function_symbol_id >= 0' "$tmpdir/producer.graph.json" >/dev/null
 "$FLOWVALIDATE_BIN" "$tmpdir/producer.graph.json" | jq -e '.classification == "valid"' >/dev/null
 for mutation in '.version = 3' '.providers += [.providers[0]]' '.providers[0].activation = "stream"' '.providers[0].source_callable = ""'; do
@@ -136,20 +145,25 @@ done
 cat > "$tmpdir/stream-selection.json" <<'JSON'
 {"format":"flowcore.graph_provider_map","version":2,"providers":[{"implementation":"injected.renamed","count_callable":"host.count","item_callable":"host.item","activation":"finite_stream_once","max_items":4096,"output_port":"out"}]}
 JSON
-jq --slurpfile selection "$tmpdir/stream-selection.json" '
-    .provider_selection = $selection[0]
-    | .providers[0] |= (
-        del(.source_callable)
-        | .activation = "finite_stream_once"
-        | .count_callable = "host.count"
-        | .item_callable = "host.item"
-        | .max_items = 4096
-        | .count_function_symbol_id = (.function_symbol_id + 1)
-        | .provider.parameter_types = "c_size_t"
-        | .count_provider = (.provider | .parameter_types = "" | .return_type = "c_size_t")
-    )
-' "$tmpdir/producer.graph.json" > "$tmpdir/stream.graph.json"
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/stream-selection.json" < "$tmpdir/producer.frontend.json" > "$tmpdir/stream.semantic.json"
+jq '.lowering_plan.source_graph' "$tmpdir/stream.semantic.json" > "$tmpdir/stream.graph.json"
 "$FLOWVALIDATE_BIN" "$tmpdir/stream.graph.json" | jq -e '.classification == "valid"' >/dev/null
+"$FLOWPARALLEL_BIN" < "$tmpdir/stream.semantic.json" > "$tmpdir/stream.execution.json"
+jq -e '.graph_schedule.format == "flowcore.graph_schedule" and
+    .graph_schedule.version == 2 and
+    .graph_schedule.stream_contract == "finite_scalar_stream_v1" and
+    .graph_schedule.streams[0].count_callable == "host.count" and
+    .graph_schedule.streams[0].item_callable == "host.item" and
+    .graph_schedule.streams[0].max_items == 4096 and
+    .graph_schedule.streams[0].deliveries[0].wire_id == "wire:0" and
+    .graph_schedule.steps[0].kind == "stream_root" and
+    .graph_schedule.steps[1].kind == "stream_receiver" and
+    .graph_schedule.steps[1].stream_index == "$index"' "$tmpdir/stream.execution.json" >/dev/null
+"$FLOWOPTIMIZE_BIN" < "$tmpdir/stream.execution.json" > "$tmpdir/stream.optimization.json"
+jq '.graph_schedule.streams[0].max_items = 0' "$tmpdir/stream.execution.json" > "$tmpdir/bad-stream.execution.json"
+if "$FLOWOPTIMIZE_BIN" < "$tmpdir/bad-stream.execution.json" >/dev/null 2>&1; then
+    echo 'invalid stream schedule accepted' >&2; exit 1
+fi
 for mutation in \
     '.providers[0].count_callable = "host.other"' \
     '.providers[0].max_items = 0' \

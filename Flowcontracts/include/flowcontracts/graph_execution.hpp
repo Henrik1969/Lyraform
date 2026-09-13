@@ -1,6 +1,7 @@
 #pragma once
 
 #include <flowcontracts/source_graph.hpp>
+#include <algorithm>
 #include <deque>
 
 namespace flowcontracts {
@@ -10,6 +11,61 @@ namespace flowcontracts {
 inline json::Value graph_schedule(const json::Value& graph_value) {
     using namespace json;
     const auto graph = source_graph(graph_value);
+    std::vector<const json::Value*> stream_providers;
+    for (const auto& provider : graph.providers)
+        if (string(required(object(provider, "$.providers[]"), "activation", "$.providers[]"), "$.providers[].activation") == "finite_stream_once")
+            stream_providers.push_back(&provider);
+    if (!stream_providers.empty()) {
+        if (stream_providers.size() != 1 || graph.providers.size() != 1)
+            throw Error("$.graph_schedule", "finite stream template requires exactly one stream root");
+        const auto& provider = object(*stream_providers.front(), "$.providers[0]");
+        const auto root = string(required(provider, "node_id", "$.providers[0]"), "$.providers[0].node_id");
+        const auto count_callable = string(required(provider, "count_callable", "$.providers[0]"), "$.providers[0].count_callable");
+        const auto item_callable = string(required(provider, "item_callable", "$.providers[0]"), "$.providers[0].item_callable");
+        const auto count_symbol = integer(required(provider, "count_function_symbol_id", "$.providers[0]"), "$.providers[0].count_function_symbol_id");
+        const auto item_symbol = integer(required(provider, "function_symbol_id", "$.providers[0]"), "$.providers[0].function_symbol_id");
+        const auto max_items = integer(required(provider, "max_items", "$.providers[0]"), "$.providers[0].max_items");
+        const auto item_type = string(required(provider, "output_type", "$.providers[0]"), "$.providers[0].output_type");
+        std::map<std::string, std::vector<const SourceGraphWire*>> outgoing;
+        for (const auto& wire : graph.wires) outgoing[wire.from.node].push_back(&wire);
+        const auto found = outgoing.find(root);
+        if (found == outgoing.end() || found->second.empty())
+            throw Error("$.graph_schedule", "finite stream root requires at least one output delivery");
+        Array deliveries, steps;
+        Integer activation = 0;
+        steps.push_back(Object{
+            {"activation_id", activation}, {"node_id", root}, {"kind", "stream_root"},
+            {"input_activation_id", Integer{-1}}, {"input_signal_id", Integer{0}},
+            {"output_signal_id", Integer{1}}, {"delivery_id", Integer{0}}, {"wire_id", ""},
+            {"source_node", ""}, {"source_port", ""}, {"input_port", ""},
+            {"output_port", "out"}, {"output_connected", true}});
+        for (const auto* wire : found->second) {
+            if (wire->from.port != "out") throw Error("$.graph_schedule", "finite stream root exposes only out");
+            const auto receiver = std::find_if(graph.nodes.begin(), graph.nodes.end(), [&](const auto& node) { return node.id == wire->to.node; });
+            if (receiver == graph.nodes.end() || receiver->implementation_kind != "source_function" || receiver->role != "node" || wire->to.port != "in")
+                throw Error("$.graph_schedule", "finite stream deliveries must target source receivers");
+            const auto receiver_outgoing = outgoing.find(receiver->id);
+            if (receiver_outgoing != outgoing.end() && !receiver_outgoing->second.empty())
+                throw Error("$.graph_schedule", "finite stream template does not yet admit receiver pipelines");
+            ++activation;
+            steps.push_back(Object{
+                {"activation_id", activation}, {"node_id", receiver->id}, {"kind", "stream_receiver"},
+                {"input_activation_id", Integer{0}}, {"input_signal_id", Integer{1}},
+                {"output_signal_id", activation + 1}, {"delivery_id", activation},
+                {"wire_id", wire->id}, {"source_node", wire->from.node}, {"source_port", wire->from.port},
+                {"input_port", wire->to.port}, {"output_port", "out"}, {"output_connected", false},
+                {"stream_index", "$index"}});
+            deliveries.push_back(Object{{"node_id", receiver->id}, {"wire_id", wire->id},
+                {"input_port", wire->to.port}, {"output_port", "out"}, {"receiver_output_type", item_type}});
+        }
+        return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{2}},
+            {"policy", "fifo_per_root_source_order_v1"}, {"activation_contract", "fresh_single_input_v1"},
+            {"stream_contract", "finite_scalar_stream_v1"},
+            {"streams", Array{Object{{"root_node", root}, {"count_callable", count_callable},
+                {"count_function_symbol_id", count_symbol}, {"item_callable", item_callable},
+                {"item_function_symbol_id", item_symbol}, {"max_items", max_items},
+                {"item_output_type", item_type}, {"deliveries", deliveries}}}}, {"steps", steps}};
+    }
     if (!graph.executable) throw Error("$.source_graph", "source graph execution is not admitted");
     Array steps;
     struct Pending { std::string node; Integer from; const SourceGraphWire* wire; };

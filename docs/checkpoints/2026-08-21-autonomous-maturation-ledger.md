@@ -1925,10 +1925,14 @@ State remains CONTINUE.
   providers.
 - Added a valid stream graph artifact and hostile mutations for those fields;
   focused source-graph evidence passed **1/1**.
-- Stream execution remains deliberately pending until Flowparallel publishes
-  and validates the dynamic stream schedule template.
+- Flowparallel now publishes a `flowcore.graph_schedule` v2 finite-stream
+  template with count/item identities, cap, root activation, and ordered
+  per-wire delivery templates; Flowoptimize revalidates that exact template.
+- The stream remains deliberately pending native count/item execution and
+  dynamic activation provenance.
 
 ## Exact next action
 
-Implement the bounded finite-stream schedule template and keep legacy static
-startup schedules byte-for-byte unchanged. State remains CONTINUE.
+Lower the bounded finite-stream template into native count/item execution and
+dynamic activation provenance while keeping legacy static startup schedules
+byte-for-byte unchanged. State remains CONTINUE.

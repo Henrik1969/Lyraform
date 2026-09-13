@@ -180,16 +180,32 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
             const auto& fn = *catalog.at(id);
             if (json::boolean(json::required(fn, "entry"), "$.entry")) throw json::Error(std::string(base), "graph node cannot invoke native entry");
             const auto& parameters = required_array(fn, "parameters");
-            if (parameters.size() != (receiver ? 1u : 0u) ||
+            const auto activation = receiver ? std::string{} : json::string(json::required(node, "activation"), "$.activation");
+            const auto stream = !receiver && activation == "finite_stream_once";
+            if (parameters.size() != (receiver || stream ? 1u : 0u) ||
                 json::string(json::required(fn, "return_type"), "$.return_type") != json::string(json::required(node, "output_type"), "$.output_type"))
                 throw json::Error(std::string(base), "graph function signature differs from callable catalog");
             if (!receiver) {
                 const auto& provider = required_object(node, "provider");
                 const auto& declared = required_object(fn, "provider");
                 if (capability_identity(provider, "$.graph.provider") != capability_identity(declared, "$.function.provider") ||
-                    json::string(json::required(node, "source_callable"), "$.source_callable") !=
+                    json::string(json::required(node, stream ? "item_callable" : "source_callable"), stream ? "$.item_callable" : "$.source_callable") !=
                         json::string(json::required(provider, "contract"), "$.contract") + "." + json::string(json::required(fn, "name"), "$.name"))
                     throw json::Error(std::string(base), "graph provider differs from external callable identity");
+                if (stream) {
+                    const auto count_id = json::integer(json::required(node, "count_function_symbol_id"), "$.count_function_symbol_id");
+                    if (!catalog.count(count_id)) throw json::Error(std::string(base), "graph count function identity is absent from callable catalog");
+                    const auto& count = *catalog.at(count_id);
+                    const auto& count_parameters = required_array(count, "parameters");
+                    const auto& count_provider = required_object(node, "count_provider");
+                    const auto& declared_count = required_object(count, "provider");
+                    if (json::boolean(json::required(count, "entry"), "$.entry") || !count_parameters.empty() ||
+                        json::string(json::required(count, "return_type"), "$.return_type") != "c_size_t" ||
+                        capability_identity(count_provider, "$.graph.count_provider") != capability_identity(declared_count, "$.function.count_provider") ||
+                        json::string(json::required(node, "count_callable"), "$.count_callable") !=
+                            json::string(json::required(count_provider, "contract"), "$.count_provider.contract") + "." + json::string(json::required(count, "name"), "$.count.name"))
+                        throw json::Error(std::string(base), "graph stream count differs from external callable identity");
+                }
             }
             if (receiver) {
                 const auto& param = json::object(parameters.front());
