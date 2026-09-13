@@ -81,6 +81,45 @@ assert len({r['delivery_id'] for r in enters[1:]}) == 6
 assert all(r['input_port'] == 'in' and r['source_port'] == 'out' and r['wire_provenance']['line'] > 0 for r in enters[1:])
 assert len([r for r in records if r['event'] == 'drop']) == 4
 PY
+# Independent startup roots each get their own FIFO activation sequence. The
+# receiver is still entered once per delivered wire and fan-out remains local
+# to the producing activation.
+cp "$tmpdir/program.flow" "$tmpdir/single-root.flow"
+cp "$tmpdir/selection.json" "$tmpdir/single-root.selection.json"
+python3 - "$tmpdir/program.flow" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read().replace('fresh_native_graph', 'multi_root_native_graph')
+s = s.replace('producer source : injected.batch', 'producer first : injected.batch\nproducer second : injected.other')
+s = s.replace('wire source.out => receiver.in\nwire source.out => receiver.in', 'wire first.out => receiver.in\nwire second.out => receiver.in')
+s = s.replace('return calls - 1', 'return calls - 2')
+open(p, 'w').write(s)
+PY
+jq '.providers += [{implementation:"injected.other",source_callable:"host.other",activation:"startup_once",output_port:"out"}]' \
+    "$tmpdir/selection.json" > "$tmpdir/multi-root.selection.json"
+mv "$tmpdir/multi-root.selection.json" "$tmpdir/selection.json"
+compile
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf '3\n4\n8\n9\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+enters = [r for r in records if r['event'] == 'enter']
+assert [r['node_id'] for r in enters] == [
+    'first', 'receiver', 'left', 'right',
+    'second', 'receiver', 'left', 'right']
+first = enters[1:4]
+second = enters[5:8]
+assert first[0]['input_signal_id'] != second[0]['input_signal_id']
+assert first[1]['input_signal_id'] == first[2]['input_signal_id']
+assert second[1]['input_signal_id'] == second[2]['input_signal_id']
+receiver_enters = [r for r in enters if r['kind'] == 'receiver']
+assert len({r['delivery_id'] for r in receiver_enters}) == 6
+PY
+mv "$tmpdir/single-root.flow" "$tmpdir/program.flow"
+mv "$tmpdir/single-root.selection.json" "$tmpdir/selection.json"
+compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
 for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do
     jq "$mutation" "$tmpdir/execution.json" > "$tmpdir/bad.execution.json"

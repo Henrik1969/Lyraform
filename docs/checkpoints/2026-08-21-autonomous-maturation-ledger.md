@@ -1711,3 +1711,19 @@ complete. State remains CONTINUE.
 Continue with the next approved receiver/graph contract while retaining the
 file boundary’s explicit refusal for raw-pointer offset operations and broader
 platform-dependent transfer cases. State remains CONTINUE.
+
+## 2026-09-13 independent-root graph checkpoint
+
+- Extended `native_source_graph` with two independent startup providers feeding
+  the same source receiver. Each root now has explicit evidence of its own FIFO
+  activation sequence, fresh receiver delivery, distinct output-signal identity,
+  and fan-out reuse without re-execution.
+- Updated the native graph contract note and current onboarding/root-suite
+  counts. The canonical suite remains **94/94**; no implementation-specific
+  graph dispatch was added.
+
+## Exact next action
+
+Continue the first unfinished mission gate with the next receiver/graph law,
+retaining explicit scheduling/activation separation and the refusal of raw
+pointer graph payloads. State remains CONTINUE.

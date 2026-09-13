@@ -31,7 +31,7 @@ git switch --detach main
 Expected result:
 
 ```text
-100% tests passed, 0 tests failed out of 91
+100% tests passed, 0 tests failed out of 94
 ```
 
 Record the exact revision before reporting results:

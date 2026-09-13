@@ -42,8 +42,10 @@ wire, full endpoints and its input activation reference. The one-successful-outp
 contract permits static scheduling: fan-out reuses the originating result rather
 than invoking the function again. The admitted expansion is bounded at 65,536
 activations. Optimization and backend preparation preserve and independently
-validate the complete schedule against the graph. Scheduling remains separate
-from the fresh-single-input receiver contract.
+validate the complete schedule against the graph. Multiple independent startup
+roots are processed as separate FIFO sequences; each root creates fresh receiver
+activations and receives distinct output-signal identities. Scheduling remains
+separate from the fresh-single-input receiver contract.
 
 LLVM emits actual function invocations with fresh native stack storage. Link the
 emitted object with `libflowgraph_runtime.so` (installed under `lib/flowcore`) and
