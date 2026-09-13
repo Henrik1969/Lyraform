@@ -75,6 +75,13 @@ cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.program.stdout"
 "$tiny_run" --engine computed --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.computed.stdout"
 sed '$d' "$tmpdir/tiny.computed.stdout" > "$tmpdir/tiny.computed.program.stdout"
 cmp "$tmpdir/tiny.program.stdout" "$tmpdir/tiny.computed.program.stdout"
+"$tiny_run" --trace-graph --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.trace.stdout" 2> "$tmpdir/tiny.trace.jsonl"
+cmp "$tmpdir/tiny.stdout" "$tmpdir/tiny.trace.stdout"
+jq -s -e 'length == 3 and
+    all(.[]; .format == "flowcore.tinyvm_graph_activation" and .event == "enter" and .stream_index == null) and
+    ([.[].sequence]) == [0, 1, 2] and ([.[].activation_id]) == [0, 1, 2] and
+    .[0].kind == "startup" and .[0].node_id == "source" and
+    all(.[1:][]; .kind == "persistent_receiver" and .input_port == "in" and .output_port == "out" and .wire_id != "-")' "$tmpdir/tiny.trace.jsonl" >/dev/null
 printf 'persistent aggregate five\npersistent aggregate five\n' > "$tmpdir/expected.stdout"
 cmp "$tmpdir/expected.stdout" "$tmpdir/llvm.stdout"
 jq -e '.graph_schedule.version == 3 and .graph_schedule.state_contract == "persistent_aggregate_v1" and .graph_schedule.state_type == "LongValue" and all(.graph_schedule.steps[1:][]; .kind == "persistent_receiver" and .state_type == "LongValue")' "$tmpdir/execution.json" >/dev/null

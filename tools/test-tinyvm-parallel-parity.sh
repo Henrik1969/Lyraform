@@ -67,6 +67,13 @@ test ! -s "$tmpdir/llvm.stdout"
 test "$(tail -n 1 "$tmpdir/tiny.stdout" | jq -r .result)" -eq 0
 "$tiny_run" --engine computed --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.computed.stdout"
 test "$(tail -n 1 "$tmpdir/tiny.computed.stdout" | jq -r .result)" -eq 0
+"$tiny_run" --trace-graph --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.trace.stdout" 2> "$tmpdir/tiny.trace.jsonl"
+cmp "$tmpdir/tiny.stdout" "$tmpdir/tiny.trace.stdout"
+jq -s -e 'length == 4 and
+    all(.[]; .format == "flowcore.tinyvm_graph_activation" and .event == "enter" and .stream_index == null) and
+    ([.[].sequence]) == [0, 1, 2, 3] and ([.[].activation_id]) == [0, 1, 2, 3] and
+    .[0].kind == "startup" and .[0].node_id == "source" and
+    all(.[1:][]; .kind == "receiver" and .input_port == "in" and .output_port == "out" and .wire_id != "-")' "$tmpdir/tiny.trace.jsonl" >/dev/null
 jq -e '.graph_schedule.version == 4 and .graph_schedule.parallel_contract == "dependency_waves_v1" and (.graph_schedule.parallel_waves | length) == 3' "$tmpdir/execution.json" >/dev/null
 jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/tiny.report.json" >/dev/null
 "$tiny_lower" "$tmpdir/tiny.backend.json" "$tmpdir/program-again.tvm" >/dev/null

@@ -2307,6 +2307,20 @@ admitted schedules, but runtime-owned queues, reentrancy, cancellation,
 effectful or nested parallel delivery, and branching/merging stream execution
 remain ordinary implementation work.
 
+## 2026-09-13 TinyVM activation trace corpus checkpoint
+
+- Extended runtime-record assertions to persistent aggregate state and pure
+  dependency-wave schedule v4. These paths now verify static root/receiver
+  records, monotonic sequence, activation identity, ports and wires through
+  `flowtinyrun --trace-graph`, with unchanged switch/computed output.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks pass **2/2** in each tree.
+  The full canonical graph remains **107/107** in both previously verified
+  trees.
+
+State remains CONTINUE. The trace corpus is broader, but runtime scheduling
+queues, reentrancy, cancellation, effectful or nested parallel delivery, and
+branching/merging stream execution remain ordinary implementation work.
+
 ## 2026-09-13 TinyVM aggregate-stream parity checkpoint
 
 - Admitted bounded finite-stream-v2 delivery for verified packed one-64-bit
