@@ -19,6 +19,10 @@ typedef struct FlowTextOutcome {
 FlowTextOutcomeCode flow_text_concat_outcome(const char *left, const char *right, FlowTextOutcome *outcome);
 void flow_text_outcome_dispose(FlowTextOutcome *outcome);
 
+/* Flow-level recovery probe: returns a stable TextFailure code without
+ * transferring owned storage to the caller. */
+FlowTextOutcomeCode flow_text_concat_status(const char *left, const char *right);
+
 /* Transitional compatibility adapter used by the current lowering slice. */
 char *flow_text_concat(const char *left, const char *right);
 

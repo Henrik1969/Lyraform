@@ -17,4 +17,17 @@ abi text_runtime {
         symbol "flow_text_concat"
         effect memory
     }
+
+    extern fn concat_status(left : Text, right : Text): c_int {
+        symbol "flow_text_concat_status"
+        effect memory
+    }
+}
+
+type TextFailure refines c_int {
+}
+
+type TextOutcome {
+    field code : TextFailure
+    field value : Text
 }

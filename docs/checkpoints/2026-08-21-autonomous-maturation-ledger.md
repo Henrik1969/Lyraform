@@ -1495,9 +1495,26 @@ remains CONTINUE.
   and the hostile bounds mutation.
 - The complete canonical CTest graph passed **87/87** in 38.79s.
 
+## 2026-09-13 Flow Text status recovery checkpoint
+
+- Added the governed `flow_text_concat_status(Text,Text):c_int` provider
+  facade. It returns the stable `TextFailure` code and disposes the temporary
+  provider-owned success allocation internally, so Flow can branch before
+  requesting an owned Text result.
+- Added a generic Flow fixture with explicit success/failure branching. LLVM
+  and TinyVM both print the successful value for the success case and the
+  fallback for a deliberately exhausted 4097-byte request; the same exact
+  provider tuples authorize both paths.
+- The atomic `Outcome<Text,TextFailure>` value is still distinguished from this
+  two-operation recovery facade; no serialized host pointer or allocator
+  address is introduced.
+- Focused evidence: `text_recovery_boundary` passed with LLVM/TinyVM output
+  parity and exhaustion recovery.
+- The complete canonical CTest graph passed **88/88** in 39.04s.
+
 ## Exact next action
 
-Add a Flow-level `Outcome<Text,TextFailure>` carrier and explicit recovery
-branching for the bounded concat example, then prove that successful values are
-disposed exactly once after the final consumer on LLVM and TinyVM. State
-remains CONTINUE.
+Replace the two-operation status recovery facade with an atomic backend-neutral
+`Outcome<Text,TextFailure>` value and prove that successful values are disposed
+exactly once after the final consumer on LLVM and TinyVM. State remains
+CONTINUE.

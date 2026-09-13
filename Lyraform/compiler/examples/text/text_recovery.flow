@@ -1,0 +1,27 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/text.flow"
+
+program text_recovery
+
+fn status(left : Text, right : Text): c_int {
+    code : c_int(concat_status(left, right))
+    code -> return
+}
+
+fn join(left : Text, right : Text): Text {
+    value : Text(left + right)
+    return value
+}
+
+main {
+    zero : c_int(0)
+    code : c_int(status("Lyra", "form"))
+
+    if code == zero {
+        value : Text(join("Lyra", "form"))
+        print value
+    }
+    if code != zero {
+        puts("concat failed") -> code
+    }
+}

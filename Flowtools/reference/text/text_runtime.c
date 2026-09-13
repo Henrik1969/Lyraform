@@ -38,6 +38,13 @@ void flow_text_outcome_dispose(FlowTextOutcome *outcome) {
     outcome->code = FLOW_TEXT_PROVIDER_UNAVAILABLE;
 }
 
+FlowTextOutcomeCode flow_text_concat_status(const char *left, const char *right) {
+    FlowTextOutcome outcome;
+    const FlowTextOutcomeCode code = flow_text_concat_outcome(left, right, &outcome);
+    flow_text_outcome_dispose(&outcome);
+    return code;
+}
+
 char *flow_text_concat(const char *left, const char *right) {
     FlowTextOutcome outcome;
     if (flow_text_concat_outcome(left, right, &outcome) != FLOW_TEXT_SUCCESS) return NULL;

@@ -296,6 +296,7 @@ private:
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
                                   (symbol == "puts" && (parameters == "c_string" || parameters == "Text") && result_type == "c_int") ||
                                   (symbol == "flow_text_concat" && parameters == "Text,Text" && result_type == "Text") ||
+                                  (symbol == "flow_text_concat_status" && parameters == "Text,Text" && result_type == "c_int") ||
                                   (symbol == "memset" && parameters == "c_pointer,c_int,c_size_t" && result_type == "c_pointer") ||
                                   (symbol == "memcpy" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_pointer") ||
                                   (symbol == "memcmp" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_int") ||
