@@ -134,8 +134,9 @@ public:
     std::vector<TinyvmStorage> storage;
     std::vector<TinyvmImport> imports;
     std::vector<TinyvmProvenance> provenance;
+    std::vector<TinyvmGraphActivation> graph_activations;
     std::size_t slot_count() const { return next_slot_; }
-    std::uint32_t isa_version() const { return uses_arguments_ ? 2 : 1; }
+    std::uint32_t isa_version() const { return uses_arguments_ || !graph_activations.empty() ? 2 : 1; }
 
 private:
     struct Callable { Integer body=-1; bool entry=false, available=false; std::string result; std::vector<std::pair<Integer,std::string>> parameters; };
@@ -202,6 +203,31 @@ private:
     }
     std::size_t invoke_graph_callable(Integer function_id, std::size_t input) {
         return invoke_graph_callable(function_id, std::vector<std::size_t>{input});
+    }
+    static std::string graph_text(const Object& step, const char* key, const char* fallback = "-") {
+        const auto* value = optional(step, key);
+        if (!value) return fallback;
+        const auto result = string(*value, std::string{"$.graph_schedule.steps[]."} + key);
+        return result.empty() ? fallback : result;
+    }
+    static std::uint64_t graph_number(const Object& step, const char* key) {
+        return static_cast<std::uint64_t>(integer(required(step, key, "$.graph_schedule.steps[]"), std::string{"$.graph_schedule.steps[]."} + key));
+    }
+    void emit_graph_activation(const Object& step, std::int64_t stream_slot = -1) {
+        TinyvmGraphActivation activation{};
+        activation.id = graph_activations.size() + 1;
+        activation.activation_id = graph_number(step, "activation_id");
+        activation.input_activation_id = graph_number(step, "input_activation_id");
+        activation.input_signal_id = graph_number(step, "input_signal_id");
+        activation.output_signal_id = graph_number(step, "output_signal_id");
+        activation.delivery_id = graph_number(step, "delivery_id");
+        copy(activation.kind, graph_text(step, "kind").c_str());
+        copy(activation.node_id, graph_text(step, "node_id").c_str());
+        copy(activation.wire_id, graph_text(step, "wire_id").c_str());
+        copy(activation.input_port, graph_text(step, "input_port").c_str());
+        copy(activation.output_port, graph_text(step, "output_port").c_str());
+        graph_activations.push_back(activation);
+        emit(TV1_GRAPH_ACTIVATE, static_cast<std::int64_t>(activation.id), stream_slot, 0);
     }
     std::size_t emit_graph_provider(const Object& provider, Integer activation_id, const Array& operands = {}) {
         if (!authorized_graph_provider(provider)) throw Unsupported("graph provider is not exactly authorized by the backend artifact");
@@ -276,6 +302,8 @@ private:
                 throw Unsupported("TinyVM stream contract and verified item carrier differ");
             const auto max_items = integer(required(stream, "max_items", "$.graph_schedule.streams[]"), "$.graph_schedule.streams[].max_items");
             if (max_items < 0) throw Unsupported("TinyVM stream bound is negative");
+            const auto& root_step = object(required_array(schedule, "steps", "$.graph_schedule").front(), "$.graph_schedule.steps[]");
+            emit_graph_activation(root_step);
             const auto count = emit_graph_provider(count_provider, 3000000);
             const auto maximum = literal(TINYVM_CARRIER_I64, static_cast<std::uint64_t>(max_items));
             const auto bounded = slot(); slot_types_[bounded] = TINYVM_CARRIER_I1; emit(TV1_CMP_LE, bounded, count, maximum);
@@ -303,6 +331,7 @@ private:
                 const auto node = string(required(step, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
                 if (!receivers.count(node)) throw Unsupported("TinyVM stream receiver identity is unavailable");
                 const auto function = integer(required(*receivers.at(node), "function_symbol_id", "$.source_graph.receivers[]"), "$.source_graph.receivers[].function_symbol_id");
+                emit_graph_activation(step, static_cast<std::int64_t>(index));
                 const auto result = invoke_graph_callable(function, stream_value);
                 if (schedule_version == 5) stream_value = result;
                 previous_activation = integer(required(step, "activation_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].activation_id");
@@ -326,6 +355,7 @@ private:
                 const auto kind = string(required(step, "kind", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].kind");
                 const auto node = string(required(step, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
                 operation_ = static_cast<std::uint64_t>(id) + 1; block_ = 1; symbol_ = UINT64_MAX; line_ = static_cast<std::uint32_t>(id + 1);
+                emit_graph_activation(step);
                 if (kind == "startup") {
                     if (!providers.count(node) || values.size()) throw Unsupported("TinyVM persistent graph requires one startup provider");
                     const auto& provider = object(required(*providers.at(node), "provider", "$.source_graph.providers[]"), "$.source_graph.providers[].provider");
@@ -360,6 +390,7 @@ private:
             const auto kind = string(required(step, "kind", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].kind");
             const auto node = string(required(step, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
             operation_ = static_cast<std::uint64_t>(id) + 1; block_ = 1; symbol_ = UINT64_MAX; line_ = static_cast<std::uint32_t>(id + 1);
+            emit_graph_activation(step);
             if (kind == "startup") {
                 if (!providers.count(node) || values.size()) throw Unsupported("TinyVM graph requires one startup provider");
                 const auto& provider = object(required(*providers.at(node), "provider", "$.source_graph.providers[]"), "$.source_graph.providers[].provider");
@@ -749,6 +780,7 @@ int lower(const char* input_path, const char* output_path) {
     artifact.storage = compiler.storage.data(); artifact.storage_count = compiler.storage.size();
     artifact.imports = compiler.imports.data(); artifact.import_count = compiler.imports.size();
     artifact.provenance = compiler.provenance.data(); artifact.provenance_count = compiler.provenance.size();
+    artifact.graph_activations = compiler.graph_activations.data(); artifact.graph_activation_count = compiler.graph_activations.size();
     char diagnostic[256];
     if (!tinyvm_artifact_v2_write(output_path, &artifact, diagnostic, sizeof diagnostic))
         throw std::runtime_error(std::string("cannot emit TinyVM artifact: ") + diagnostic);

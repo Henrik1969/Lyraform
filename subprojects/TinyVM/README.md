@@ -81,8 +81,14 @@ The first typed execution semantics are specified in [`ISA-V1.md`](ISA-V1.md).
 The process-argument execution-input extension is specified in
 [`ISA-V2.md`](ISA-V2.md).
 
+Graph artifacts use ISA 2 activation records to expose validated wire, signal,
+port and delivery identity through an optional runtime observer. Use
+`flowtinyrun --trace-graph` to write those activation events as JSONL to
+standard error; the observer is diagnostic and does not change program output.
+
 When built in the Flowcore superbuild, `flowtinylower` consumes the public
-backend-neutral lowering artifact and deterministically emits ISA v1. Its first
+backend-neutral lowering artifact and deterministically emits ISA v1 for
+provider-free scalar programs and ISA 2 for argument or graph artifacts. Its first
 admitted slices cover empty programs plus provider-free typed literals,
 conversions, unary/binary arithmetic, comparisons, local definitions,
 assignments, structured branches, loops and returns. Other valid plans receive

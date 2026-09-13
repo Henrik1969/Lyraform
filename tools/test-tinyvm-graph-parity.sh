@@ -71,6 +71,13 @@ cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.program.stdout"
 "$tiny_run" --engine computed --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.computed.stdout"
 sed '$d' "$tmpdir/tiny.computed.stdout" > "$tmpdir/tiny.computed.program.stdout"
 cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.computed.program.stdout"
+"$tiny_run" --trace-graph --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.trace.stdout" 2> "$tmpdir/tiny.trace.jsonl"
+cmp "$tmpdir/tiny.stdout" "$tmpdir/tiny.trace.stdout"
+jq -s -e 'length == 4 and
+    all(.[]; .format == "flowcore.tinyvm_graph_activation" and .event == "enter" and .stream_index == null) and
+    ([.[].activation_id]) == [0, 1, 2, 3] and
+    .[0].kind == "startup" and .[0].node_id == "source" and .[0].wire_id == "-" and
+    all(.[1:][]; .kind == "receiver" and .input_port == "in" and .output_port == "out" and .wire_id != "-")' "$tmpdir/tiny.trace.jsonl" >/dev/null
 test "$(tail -n 1 "$tmpdir/tiny.stdout" | jq -r .result)" -eq 0
 test "$(tail -n 1 "$tmpdir/tiny.computed.stdout" | jq -r .result)" -eq 0
 jq -e '.graph_schedule.version == 1 and (.graph_schedule.steps | length) == 4 and .graph_schedule.steps[0].kind == "startup" and all(.graph_schedule.steps[1:][]; .kind == "receiver") and .graph_schedule.steps[2].input_activation_id == .graph_schedule.steps[3].input_activation_id' "$tmpdir/execution.json" >/dev/null

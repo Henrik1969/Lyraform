@@ -19,7 +19,14 @@ static const char *text_outcome_code(const char *fault) {
     return fault + sizeof(prefix) - 1;
 }
 
-static int run_v2(const char *path,const char *policy,const char *engine,int argument_count,char **arguments) {
+static void trace_graph_activation(void *user,const TinyvmArtifactV2 *artifact,const TinyvmGraphActivation *activation,uint64_t stream_index) {
+    FILE *out=user?(FILE *)user:stderr;
+    fprintf(out,"{\"format\":\"flowcore.tinyvm_graph_activation\",\"version\":1,\"event\":\"enter\",\"artifact_id\":\"%s\",\"activation_id\":%" PRIu64 ",\"input_activation_id\":%" PRIu64 ",\"input_signal_id\":%" PRIu64 ",\"output_signal_id\":%" PRIu64 ",\"delivery_id\":%" PRIu64 ",\"kind\":\"%s\",\"node_id\":\"%s\",\"wire_id\":\"%s\",\"input_port\":\"%s\",\"output_port\":\"%s\",\"stream_index\":", artifact->artifact_id, activation->activation_id, activation->input_activation_id, activation->input_signal_id, activation->output_signal_id, activation->delivery_id, activation->kind, activation->node_id, activation->wire_id, activation->input_port, activation->output_port);
+    if(stream_index==UINT64_MAX)fputs("null",out);else fprintf(out,"%" PRIu64,stream_index);
+    fputs("}\n",out);
+}
+
+static int run_v2(const char *path,const char *policy,const char *engine,bool trace_graph,int argument_count,char **arguments) {
     TinyvmArtifactV2 artifact; char diagnostic[160];
     if(!tinyvm_artifact_v2_read(path,&artifact,diagnostic,sizeof diagnostic)){fprintf(stderr,"flowtinyrun: %s\n",diagnostic);return 1;}
     if(artifact.isa_version==0) {
@@ -36,6 +43,7 @@ static int run_v2(const char *path,const char *policy,const char *engine,int arg
     if(!tinyvm_isa_v1_context_init(&context,(size_t)artifact.data_words,UINT64_C(10000000))){tinyvm_artifact_v2_destroy(&artifact);return 1;}
     context.argument_count=provider.argument_count; context.arguments=provider.arguments;
     if(artifact.import_count){context.import_resolver=tinyvm_runtime_provider_resolve;context.import_user=&provider;context.text_outcome_resolver=tinyvm_runtime_provider_resolve_text_outcome;context.text_outcome_user=&provider;}
+    if(trace_graph){context.graph_observer=trace_graph_activation;context.graph_observer_user=stderr;}
     const bool ok=!strcmp(engine,"computed")?tinyvm_isa_v1_run_computed(&artifact,&context):tinyvm_isa_v1_run_switch(&artifact,&context);
     if(!ok&&context.fault)fprintf(stderr,"flowtinyrun: %s\n",context.fault);
     const char *outcome_code = text_outcome_code(context.fault);
@@ -55,13 +63,14 @@ static int run_v1(const char *path) {
 }
 
 int main(int argc,char **argv) {
-    const char *policy=NULL,*engine="switch"; int first=1;
+    const char *policy=NULL,*engine="switch"; bool trace_graph=false; int first=1;
     while(first<argc&&!strncmp(argv[first],"--",2)) {
         if(!strcmp(argv[first],"--policy")&&first+1<argc){policy=argv[first+1];first+=2;}
         else if(!strcmp(argv[first],"--engine")&&first+1<argc){engine=argv[first+1];first+=2;}
+        else if(!strcmp(argv[first],"--trace-graph")){trace_graph=true;first++;}
         else {fprintf(stderr,"flowtinyrun: unknown or incomplete option\n");return 2;}
     }
     if(strcmp(engine,"switch")&&strcmp(engine,"computed")){fprintf(stderr,"flowtinyrun: engine must be switch or computed\n");return 2;}
-    if(argc<=first){fprintf(stderr,"usage: %s [--policy FILE] [--engine switch|computed] ARTIFACT [PROGRAM-ARGUMENT ...]\n",argv[0]);return 2;}
-    return version(argv[first])==2?run_v2(argv[first],policy,engine,argc-first,&argv[first]):run_v1(argv[first]);
+    if(argc<=first){fprintf(stderr,"usage: %s [--policy FILE] [--engine switch|computed] [--trace-graph] ARTIFACT [PROGRAM-ARGUMENT ...]\n",argv[0]);return 2;}
+    return version(argv[first])==2?run_v2(argv[first],policy,engine,trace_graph,argc-first,&argv[first]):run_v1(argv[first]);
 }

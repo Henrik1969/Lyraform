@@ -11,6 +11,7 @@ static const TinyvmConstant *constant(const TinyvmArtifactV2 *a,uint64_t id){for
 static const TinyvmString *string_value(const TinyvmArtifactV2 *a,uint64_t id){for(size_t i=0;i<a->string_count;++i)if(a->strings[i].id==id)return &a->strings[i];return NULL;}
 static const TinyvmStorage *storage_value(const TinyvmArtifactV2 *a,uint64_t id){for(size_t i=0;i<a->storage_count;++i)if(a->storage[i].id==id)return &a->storage[i];return NULL;}
 static const TinyvmImport *import_value(const TinyvmArtifactV2 *a,uint64_t id){for(size_t i=0;i<a->import_count;++i)if(a->imports[i].id==id)return &a->imports[i];return NULL;}
+static const TinyvmGraphActivation *graph_activation_value(const TinyvmArtifactV2 *a,uint64_t id){for(size_t i=0;i<a->graph_activation_count;++i)if(a->graph_activations[i].id==id)return &a->graph_activations[i];return NULL;}
 static size_t import_parameter_count(const TinyvmImport *value){if(!value->parameters[0]||strcmp(value->parameters,"none")==0)return 0;size_t count=1;for(const char *p=value->parameters;*p;++p)if(*p==',')++count;return count;}
 static bool zero2(const InstrWord *w){return w->b==0&&w->pad==0;}
 static bool zero3(const InstrWord *w){return w->a==0&&w->b==0&&w->pad==0;}
@@ -39,6 +40,7 @@ bool tinyvm_isa_v1_validate(const TinyvmArtifactV2 *a,char *d,size_t capacity){
         case TV1_STORAGE_HANDLE:if(!slot(a,w->a)||w->b<=0||(uint64_t)w->b>UINT64_C(0x00ffffffffffffff)||!storage_value(a,(uint64_t)w->b)||w->pad){diagnose(d,capacity,"ISA v1 storage handle is invalid");return false;}break;
         case TV1_CALL_IMPORT:{const TinyvmImport *x=w->b>0?import_value(a,(uint64_t)w->b):NULL;if(!slot(a,w->a)||!x||w->pad<0||(uint64_t)w->pad>a->data_words||import_parameter_count(x)>a->data_words-(uint64_t)w->pad){diagnose(d,capacity,"ISA v1 import call is invalid");return false;}break;}
         case TV1_TEXT_OUTCOME_CODE:case TV1_TEXT_OUTCOME_VALUE:if(!slot(a,w->a)||!slot(a,w->b)||w->pad){diagnose(d,capacity,"ISA v1 TextOutcome projection is invalid");return false;}break;
+        case TV1_GRAPH_ACTIVATE:if(w->a<=0||!graph_activation_value(a,(uint64_t)w->a)||(w->b<-1)|| (w->b>=0&&!slot(a,w->b))||w->pad){diagnose(d,capacity,"ISA v1 graph activation is invalid");return false;}break;
         }
     }
     const int64_t terminal=a->code[a->code_count-1].opcode;if(terminal!=TV1_RETURN&&terminal!=TV1_TRAP&&terminal!=TV1_HALT){diagnose(d,capacity,"ISA v1 code has no terminal final instruction");return false;}
@@ -67,6 +69,13 @@ static bool comparison(TinyvmIsaV1Context *ctx,int64_t opcode,uint64_t dst,uint6
 }
 static bool call_import(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx,const InstrWord *w,uint64_t instruction){const TinyvmImport *x=import_value(a,(uint64_t)w->b);const size_t count=import_parameter_count(x);for(size_t i=0;i<count;++i)if(!read_slot(ctx,(uint64_t)w->pad+i,instruction))return false;if(!ctx->import_resolver)return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,"authorized import has no runtime resolver",instruction);TinyvmValue result={0};const char *fault="runtime provider rejected import";if(!ctx->import_resolver(ctx->import_user,a,x,&ctx->slots[w->pad],count,&result,&fault))return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,fault?fault:"runtime provider rejected import",instruction);if(!result.initialized)return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,"runtime provider returned an uninitialized value",instruction);ctx->slots[w->a]=result;return true;}
 static bool text_outcome_projection(TinyvmIsaV1Context *ctx,uint64_t destination,uint64_t source,bool value_field,uint64_t instruction){TinyvmValue *outcome=read_slot(ctx,source,instruction);if(!outcome)return false;if(outcome->carrier!=TINYVM_CARRIER_TEXT_OUTCOME||!ctx->text_outcome_resolver)return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"TextOutcome projection is unavailable",instruction);TinyvmValue result={0};const char *fault="TextOutcome projection failed";if(!ctx->text_outcome_resolver(ctx->text_outcome_user,outcome,value_field,&result,&fault))return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,fault,instruction);if(!result.initialized)return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,"TextOutcome projection returned an uninitialized value",instruction);ctx->slots[destination]=result;return true;}
+static bool graph_activate(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx,const InstrWord *w,uint64_t instruction){
+    const TinyvmGraphActivation *activation=graph_activation_value(a,(uint64_t)w->a);if(!activation)return trap(ctx,TV1_TRAP_EXPLICIT,"graph activation metadata is unavailable",instruction);
+    uint64_t stream_index=UINT64_MAX;
+    if(w->b>=0){TinyvmValue *value=read_slot(ctx,(uint64_t)w->b,instruction);if(!value)return false;if(value->carrier!=TINYVM_CARRIER_I64)return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"graph stream index is not i64",instruction);stream_index=value->bits;}
+    if(ctx->graph_observer)ctx->graph_observer(ctx->graph_observer_user,a,activation,stream_index);
+    return true;
+}
 
 static void execution_inputs(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx){if(a->isa_version!=2||!ctx->slot_count)return;ctx->slots[0]=(TinyvmValue){TINYVM_CARRIER_I32,canonical_i32((int32_t)ctx->argument_count),true};for(size_t i=0;i<ctx->argument_count&&i+1<ctx->slot_count;++i)ctx->slots[i+1]=(TinyvmValue){TINYVM_CARRIER_OPAQUE_HANDLE,UINT64_C(0x0300000000000000)|i,true};}
 
@@ -92,6 +101,7 @@ bool tinyvm_isa_v1_run_switch(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx)
         case TV1_CALL_IMPORT:call_import(a,ctx,w,at);break;
         case TV1_TEXT_OUTCOME_CODE:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,false,at);break;
         case TV1_TEXT_OUTCOME_VALUE:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,true,at);break;
+        case TV1_GRAPH_ACTIVATE:graph_activate(a,ctx,w,at);break;
         default:return trap(ctx,TV1_TRAP_EXPLICIT,"invalid validated opcode",at);
         }
     }
@@ -108,7 +118,8 @@ bool tinyvm_isa_v1_run_computed(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ct
         [TV1_BRANCH]=&&do_branch,[TV1_RETURN]=&&do_return,[TV1_TRAP]=&&do_trap,
         [TV1_HALT]=&&do_halt,[TV1_STRING_HANDLE]=&&do_string,
         [TV1_STORAGE_HANDLE]=&&do_storage,[TV1_CALL_IMPORT]=&&do_import,
-        [TV1_TEXT_OUTCOME_CODE]=&&do_outcome_code,[TV1_TEXT_OUTCOME_VALUE]=&&do_outcome_value};
+        [TV1_TEXT_OUTCOME_CODE]=&&do_outcome_code,[TV1_TEXT_OUTCOME_VALUE]=&&do_outcome_value,
+        [TV1_GRAPH_ACTIVATE]=&&do_graph_activate};
     if(!a||!ctx||(a->isa_version!=1&&a->isa_version!=2)||ctx->slot_count<a->data_words)return false;
     execution_inputs(a,ctx);
     ctx->pc=a->entrypoint;uint64_t at=0;const InstrWord *w=NULL;
@@ -132,6 +143,7 @@ do_storage:ctx->slots[w->a]=(TinyvmValue){TINYVM_CARRIER_OPAQUE_HANDLE,UINT64_C(
 do_import:call_import(a,ctx,w,at);goto next;
 do_outcome_code:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,false,at);goto next;
 do_outcome_value:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,true,at);goto next;
+do_graph_activate:graph_activate(a,ctx,w,at);goto next;
 done:
     return ctx->returned&&ctx->trap==0;
 }

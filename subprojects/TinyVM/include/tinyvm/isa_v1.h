@@ -27,6 +27,7 @@ typedef enum {
     TV1_CALL_IMPORT = 21,
     TV1_TEXT_OUTCOME_CODE = 22,
     TV1_TEXT_OUTCOME_VALUE = 23,
+    TV1_GRAPH_ACTIVATE = 24,
     TV1_OPCODE_COUNT
 } TinyvmIsaV1Opcode;
 
@@ -61,6 +62,11 @@ typedef bool (*TinyvmTextOutcomeResolver)(void *user,
                                           TinyvmValue *result,
                                           const char **fault);
 
+typedef void (*TinyvmGraphActivationObserver)(void *user,
+                                              const TinyvmArtifactV2 *artifact,
+                                              const TinyvmGraphActivation *activation,
+                                              uint64_t stream_index);
+
 typedef struct {
     TinyvmValue *slots;
     size_t slot_count;
@@ -79,6 +85,8 @@ typedef struct {
     void *import_user;
     TinyvmTextOutcomeResolver text_outcome_resolver;
     void *text_outcome_user;
+    TinyvmGraphActivationObserver graph_observer;
+    void *graph_observer_user;
 } TinyvmIsaV1Context;
 
 bool tinyvm_isa_v1_validate(const TinyvmArtifactV2 *artifact,

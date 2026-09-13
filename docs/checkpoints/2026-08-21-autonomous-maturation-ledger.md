@@ -2265,6 +2265,27 @@ activation runtime boundary (runtime-held wire/signal/port identities and
 effectful/nested parallel or branching/merging stream delivery), not another
 unverified aggregate proof path.
 
+## 2026-09-13 TinyVM activation-observation checkpoint
+
+- Added optional TinyVM V2 graph activation metadata (artifact section 7) and
+  the ISA 2 `TV1_GRAPH_ACTIVATE` instruction. Lowered graph schedules preserve
+  activation, signal, delivery, wire and port identities in validated records;
+  static activations use `b = -1`, while finite-stream activations carry the
+  canonical `i64` stream-index slot.
+- Added switch/computed runtime observer parity and the
+  `flowtinyrun --trace-graph` JSONL diagnostic surface. Existing execution
+  output is unchanged when tracing is disabled, and the observer is optional.
+- Serial graph and aggregate stream-pipeline tests assert the runtime records,
+  including static root/fan-out and dynamic pipeline order. The TinyVM-focused
+  GCC matrix passes **25/25**; focused graph/stream/persistent/artifact/ISA
+  checks pass **6/6** under Clang 18.1.3 ASan/UBSan with the documented leak
+  settings.
+
+State remains CONTINUE. This closes the bounded activation-identity
+observation slice, but not the general TinyVM scheduler: runtime-owned queues,
+reentrancy, cancellation, effectful or nested parallel delivery, and
+branching/merging stream execution remain ordinary implementation work.
+
 ## 2026-09-13 TinyVM aggregate-stream parity checkpoint
 
 - Admitted bounded finite-stream-v2 delivery for verified packed one-64-bit

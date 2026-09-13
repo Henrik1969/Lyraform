@@ -80,6 +80,7 @@ omitted rather than represented with zero size.
 | 4 | storage declarations | no |
 | 5 | authorized imports | no |
 | 6 | instruction provenance | yes |
+| 7 | graph activation metadata | no |
 
 ### Code — type 1
 
@@ -171,6 +172,25 @@ There is exactly one record per instruction, ordered by instruction index.
 Operation and block identities are nonzero. Source coordinates are one-based.
 The source identity must agree with the header. Derivation identifies the
 lowering/optimization evidence responsible for this emitted instruction.
+
+### Graph activation metadata — type 7
+
+Fixed 368-byte records describe the validated graph identity carried by a
+`TV1_GRAPH_ACTIVATE` instruction:
+
+```text
+u64 metadata identity
+u64 activation identity
+u64 input activation identity (`UINT64_MAX` represents -1)
+u64 input signal identity
+u64 output signal identity
+u64 delivery identity
+five 64-byte restricted-text fields: kind, node, wire, input port, output port
+```
+
+Metadata identities are nonzero and strictly ordered. Empty source/root
+identity fields are represented by `-`. The section is optional and is emitted
+only for graph artifacts; it contains no host pointers or runtime addresses.
 
 ## Validation order
 

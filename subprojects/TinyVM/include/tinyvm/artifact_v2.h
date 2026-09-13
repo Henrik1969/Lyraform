@@ -23,6 +23,11 @@ typedef struct {
     uint32_t line, column;
     char source[64], derivation[64];
 } TinyvmProvenance;
+typedef struct {
+    uint64_t id;
+    uint64_t activation_id, input_activation_id, input_signal_id, output_signal_id, delivery_id;
+    char kind[64], node_id[64], wire_id[64], input_port[64], output_port[64];
+} TinyvmGraphActivation;
 
 typedef struct {
     uint32_t isa_version;
@@ -36,6 +41,7 @@ typedef struct {
     TinyvmStorage *storage; size_t storage_count;
     TinyvmImport *imports; size_t import_count;
     TinyvmProvenance *provenance; size_t provenance_count;
+    TinyvmGraphActivation *graph_activations; size_t graph_activation_count;
 } TinyvmArtifactV2;
 
 void tinyvm_artifact_v2_init(TinyvmArtifactV2 *artifact);

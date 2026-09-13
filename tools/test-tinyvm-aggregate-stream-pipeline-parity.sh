@@ -79,6 +79,14 @@ cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.program.stdout"
 "$tiny_run" --engine computed --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.computed.stdout"
 sed '$d' "$tmpdir/tiny.computed.stdout" > "$tmpdir/tiny.computed.program.stdout"
 cmp "$tmpdir/tiny.program.stdout" "$tmpdir/tiny.computed.program.stdout"
+"$tiny_run" --trace-graph --policy "$tmpdir/policy" "$tmpdir/program.tvm" > "$tmpdir/tiny.trace.stdout" 2> "$tmpdir/tiny.trace.jsonl"
+cmp "$tmpdir/tiny.stdout" "$tmpdir/tiny.trace.stdout"
+jq -s -e 'length == 5 and
+    all(.[]; .format == "flowcore.tinyvm_graph_activation" and .event == "enter") and
+    .[0].kind == "stream_root" and .[0].node_id == "source" and .[0].wire_id == "-" and .[0].stream_index == null and
+    ([.[1:][] | .node_id]) == ["pass", "receiver", "pass", "receiver"] and
+    ([.[1:][] | .stream_index]) == [0, 0, 1, 1] and
+    all(.[1:][]; .input_port == "in" and .output_port == "out" and .wire_id != "-")' "$tmpdir/tiny.trace.jsonl" >/dev/null
 printf 'aggregate pipeline forty-two\naggregate pipeline forty-three\n' > "$tmpdir/expected.stdout"
 cmp "$tmpdir/expected.stdout" "$tmpdir/llvm.stdout"
 jq -e '.graph_schedule.version == 5 and .graph_schedule.stream_contract == "finite_aggregate_stream_pipeline_v1" and (.graph_schedule.steps | length) == 3 and .graph_schedule.steps[1].input_activation_id == 0 and .graph_schedule.steps[2].input_activation_id == 1 and .graph_schedule.steps[1].input_signal_id == 1 and .graph_schedule.steps[2].input_signal_id == 2 and (.graph_schedule.streams[0].deliveries | length) == 2' "$tmpdir/execution.json" >/dev/null

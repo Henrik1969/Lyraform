@@ -270,15 +270,18 @@ Verified packed, no-padding aggregate layouts containing `c_int`, `c_long`,
 typed 64-bit payloads for provider returns and aggregate-parameter calls. The
 `c_long` path is covered by a dedicated LLVM/TinyVM differential test.
 
-This is a compiler-time graph specialization, not yet a general TinyVM
-activation runtime: wire, signal and port identities remain in the validated
-input artifact and provenance, rather than in runtime activation records.
-Effectful or nested-call parallel activations, branching/merging stream
-pipelines, larger/non-packed aggregate layouts and external aggregate-to-
-aggregate calls remain explicit unsupported boundaries until their runtime
-delivery and aggregate contracts are implemented. Gate 7 coverage now also proves that
-mutated aggregate evidence, graph scheduling and exact runtime policy tuples
-are refused without a partial TinyVM artifact or provider call.
+This remains a bounded graph specialization, not yet a general TinyVM
+scheduler: ISA 2 graph artifacts now carry validated wire, signal, port and
+delivery identity in optional activation metadata and expose it through the
+`--trace-graph` runtime observer. The observer is diagnostic; it does not yet
+provide effectful scheduling, reentrancy, cancellation or runtime-owned
+activation queues. Effectful or nested-call parallel activations,
+branching/merging stream pipelines, larger/non-packed aggregate layouts and
+external aggregate-to-aggregate calls remain explicit unsupported boundaries
+until their runtime delivery and aggregate contracts are implemented. Gate 7
+coverage now also proves that mutated aggregate evidence, graph scheduling and
+exact runtime policy tuples are refused without a partial TinyVM artifact or
+provider call.
 
 ## Gate 7 — parity corpus and adversarial proof
 

@@ -30,7 +30,8 @@
     "Native scalar source graphs with durable FIFO scheduling and fresh receiver frames",
     "Flow-owned paging with injectable batch input, terminal and output providers",
     "Installed newly named gettid acceptance with unchanged compiler binaries",
-    "Verified packed integer aggregate payloads and bounded aggregate streams through LLVM and TinyVM"
+    "Verified packed integer aggregate payloads and bounded aggregate streams through LLVM and TinyVM",
+    "TinyVM ISA 2 graph activation metadata with switch/computed trace parity"
   ],
   "verification": {
     "gcc_superbuild": "pass",
