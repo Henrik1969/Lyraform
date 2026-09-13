@@ -12,9 +12,6 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
     using namespace json;
     const auto graph = source_graph(graph_value);
     if (!graph.executable) throw Error("$.source_graph", "source graph execution is not admitted");
-    for (const auto& receiver : graph.receivers)
-        if (optional(object(receiver, "$.receivers[]"), "state_contract"))
-            throw Error("$.graph_schedule", "persistent receiver schedule is not yet admitted");
     std::vector<const json::Value*> stream_providers;
     for (const auto& provider : graph.providers)
         if (string(required(object(provider, "$.providers[]"), "activation", "$.providers[]"), "$.providers[].activation") == "finite_stream_once")
@@ -70,6 +67,16 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
                 {"item_function_symbol_id", item_symbol}, {"max_items", max_items},
                 {"item_output_type", item_type}, {"deliveries", deliveries}}}}, {"steps", steps}};
     }
+    bool persistent = false;
+    for (const auto& receiver : graph.receivers)
+        if (optional(object(receiver, "$.receivers[]"), "state_contract")) persistent = true;
+    if (persistent) {
+        if (graph.providers.size() != 1 || graph.receivers.empty())
+            throw Error("$.graph_schedule", "persistent template requires one startup root and at least one receiver");
+        const auto& root_provider = object(graph.providers.front(), "$.providers[0]");
+        if (string(required(root_provider, "activation", "$.providers[0]"), "$.providers[0].activation") != "startup_once")
+            throw Error("$.graph_schedule", "persistent template requires a startup root");
+    }
     Array steps;
     struct Pending { std::string node; Integer from; const SourceGraphWire* wire; };
     std::map<std::string, std::vector<const SourceGraphWire*>> outgoing;
@@ -100,6 +107,29 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
                 {"input_port", current.wire ? current.wire->to.port : ""},
                 {"output_port", "out"}, {"output_connected", connected}});
         }
+    }
+    if (persistent) {
+        Array state_steps;
+        for (const auto& step : steps) {
+            auto item = object(step, "$.graph_schedule.steps[]");
+            if (string(required(item, "kind", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].kind") == "receiver") {
+                const auto node = string(required(item, "node_id", "$.graph_schedule.steps[]"), "$.graph_schedule.steps[].node_id");
+                for (const auto& receiver : graph.receivers) {
+                    const auto& value = object(receiver, "$.receivers[]");
+                    if (string(required(value, "node_id", "$.receivers[]"), "$.receivers[].node_id") == node) {
+                        item["kind"] = "persistent_receiver";
+                        item.emplace("state_contract", string(required(value, "state_contract", "$.receivers[]"), "$.receivers[].state_contract"));
+                        item.emplace("state_type", string(required(value, "state_type", "$.receivers[]"), "$.receivers[].state_type"));
+                        item.emplace("state_initial_value", string(required(value, "state_initial_value", "$.receivers[]"), "$.receivers[].state_initial_value"));
+                        item.emplace("state_parameter_symbol_id", integer(required(value, "state_parameter_symbol_id", "$.receivers[]"), "$.receivers[].state_parameter_symbol_id"));
+                    }
+                }
+            }
+            state_steps.emplace_back(std::move(item));
+        }
+        return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{3}},
+            {"policy", "fifo_per_root_source_order_v1"}, {"activation_contract", "persistent_single_input_v1"},
+            {"state_contract", "persistent_scalar_v1"}, {"steps", state_steps}};
     }
     return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{1}},
         {"policy", "fifo_per_root_source_order_v1"},

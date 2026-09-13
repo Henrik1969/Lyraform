@@ -219,7 +219,11 @@ for mutation in \
         echo "invalid persistent graph accepted: $mutation" >&2; exit 1
     fi
 done
-"$FLOWPARALLEL_BIN" < "$tmpdir/persistent.semantic.json" > "$tmpdir/persistent.execution.json" 2> "$tmpdir/persistent.error" || true
-grep -Fq 'persistent receiver schedule is not yet admitted' "$tmpdir/persistent.error"
+"$FLOWPARALLEL_BIN" < "$tmpdir/persistent.semantic.json" > "$tmpdir/persistent.execution.json"
+jq -e '.graph_schedule.version == 3 and
+    .graph_schedule.state_contract == "persistent_scalar_v1" and
+    .graph_schedule.steps[1].kind == "persistent_receiver" and
+    .graph_schedule.steps[1].state_initial_value == "5" and
+    .graph_schedule.steps[1].state_parameter_symbol_id >= 0' "$tmpdir/persistent.execution.json" >/dev/null
 
 echo 'source graph artifact and provider selection: PASS'

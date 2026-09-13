@@ -1990,3 +1990,20 @@ State remains CONTINUE.
 Define and emit the state-aware schedule template, then implement ordered native
 before/after state transitions with commit-on-success and rollback-on-failure.
 State remains CONTINUE.
+
+## 2026-09-13 persistent state schedule checkpoint
+
+- Flowparallel now publishes `flowcore.graph_schedule` v3 for the bounded
+  persistent shape, preserving the startup root and direct FIFO deliveries while
+  recording state contract, state parameter identity, type, and initial value on
+  each persistent receiver step.
+- Flowoptimize and backend artifact validation compare the schedule against the
+  source graph and callable catalog; persistent native lowering remains gated
+  until state is actually read, committed, and rolled back at runtime.
+- Focused source-graph artifact evidence remains green (**1/1**).
+
+## Exact next action
+
+Implement native state-slot execution for the v3 direct schedule, including
+before/after trace records, commit-on-success, and unchanged state on failure.
+State remains CONTINUE.

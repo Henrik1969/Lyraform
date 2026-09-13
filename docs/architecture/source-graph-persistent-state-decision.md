@@ -42,8 +42,9 @@ serialization, joins, async suspension, or parallel mutation.
 
 State declarations must be unique, target a source receiver, use `c_long`, and
 fit the signed 64-bit literal contract. Persistent receivers cannot be used in
-the v0.30 finite-stream direct template until the schedule carries the state
-transition contract explicitly. Aggregate payloads and reentrant/parallel
+the v0.30 finite-stream direct template. The state-aware schedule carries the
+state transition contract explicitly, but native lowering remains gated until
+commit/rollback execution is proven. Aggregate payloads and reentrant/parallel
 delivery remain later phases.
 
 ## Required implementation evidence
