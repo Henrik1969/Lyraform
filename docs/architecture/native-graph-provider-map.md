@@ -63,8 +63,9 @@ wire provenance. Division by zero or signed division overflow produces a
 
 The `native_source_graph` gate generates a new provider after the tools are built,
 checks unchanged compiler hashes, executes repeated receivers and fan-out, changes
-input selection and wire order, verifies an unused selection has no LLVM effect,
-and rejects missing grants, forged schedules, cycles and mutated provider identity.
+input selection and wire order, verifies `c_ulong` and `c_size_t` values above
+the 32-bit range, verifies an unused selection has no LLVM effect, and rejects
+missing grants, forged schedules, cycles and mutated provider identity.
 This initial native graph surface is Linux x86-64 and scalar; aggregate payloads,
 provider streaming/policies and native TinyVM graph execution remain unsupported.
 The pager uses this scalar graph with an input status and selected page as wire

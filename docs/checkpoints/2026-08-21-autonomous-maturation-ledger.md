@@ -1848,3 +1848,17 @@ CONTINUE.
 Continue Gate 6 with the next receiver/graph boundary while retaining the
 bounded schedule, strict identity validation, fresh activation, and failure
 provenance laws. State remains CONTINUE.
+
+## 2026-09-13 native graph unsigned carrier checkpoint
+
+- Extended the generic native graph gate with independent `c_ulong` and
+  `c_size_t` provider roots. Values above the 32-bit range survive startup,
+  receiver, and observer calls with their ABI-width identities intact.
+- The existing c_int, c_long, Bool, fan-out, failure, schedule, and refusal
+  coverage remains green; focused native graph evidence passed **1/1**.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph boundary while preserving exact
+carrier width, root scheduling, activation provenance, and bounded execution.
+State remains CONTINUE.
