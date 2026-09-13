@@ -525,6 +525,7 @@ private:
             if (!state_slots.count(node)) {
                 const auto initial = text(field(step, "state_initial_value"));
                 try { (void)std::stoll(initial); } catch (...) { throw std::runtime_error("invalid persistent state initial value"); }
+                if (llvm_type(text(field(step, "state_type"))) != "i64") throw std::runtime_error("persistent state carrier is not a verified 64-bit value");
                 state_slots.emplace(node, "%flow.state." + std::to_string(state_slots.size()));
             }
         }
@@ -543,8 +544,9 @@ private:
             const auto function = integer(field(receiver, "function_symbol_id"), "function_symbol_id");
             if (!callables_.count(function)) throw std::runtime_error("persistent receiver identity is unavailable");
             const auto& callable = callables_.at(function);
+            const auto state_type = text(field(step, "state_type"));
             if (callable.parameters.size() != 2 || llvm_type(callable.parameters[0].second) != root_type ||
-                callable.parameters[1].second != "c_long" || callable.result != "c_long")
+                callable.parameters[1].second != state_type || callable.result != state_type || llvm_type(state_type) != "i64")
                 throw std::runtime_error("persistent receiver carrier mismatch");
             const auto& slot_name = state_slots.at(node);
             out<<"  call void @flow_graph_enter(ptr @flow.graph.enter."<<id<<")\n"

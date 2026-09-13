@@ -23,8 +23,7 @@ layout authority.
   rejects changed field order, offsets, size, alignment, ownership, lifetime,
   or evidence.
 - Aggregate values are immutable graph payloads for this phase. No aggregate
-  mutation, persistent aggregate state, aggregate streams, joins, or parallel
-  aliasing is admitted.
+  mutation, aggregate streams, joins, or parallel aliasing is admitted.
 
 The initial implementation targets the existing `Point { c_int x, c_int y }`
 provider manifest as a generic layout instance, not as a compiler special case:
@@ -56,9 +55,10 @@ provider activation, fan-out to two fresh receivers, and payload-derived
 results for both the existing `Point` and dedicated `LongValue` coverage.
 
 Direct non-graph aggregate calls remain blocked until their record-literal and
-general ABI lowering path is separately completed. Aggregate streams,
-persistent aggregate state, joins, and parallel/reentrant delivery remain out
-of scope for this checkpoint.
+general ABI lowering path is separately completed. Aggregate streams, joins,
+and parallel/reentrant aggregate delivery remain out of scope for this
+checkpoint; persistent aggregate state is admitted only through the bounded
+schedule-v3 one-64-bit carrier contract.
 
 The next slice is to broaden the direct graph contract beyond one startup root
 and mature aggregate payload handling alongside the user-ordered scheduling

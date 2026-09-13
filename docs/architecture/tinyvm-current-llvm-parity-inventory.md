@@ -20,7 +20,7 @@ executable for every tuple outside the admitted set below.
 | `kernel` or `linux` / `readonly` | `getpgid(c_int)->c_int`, `getsid(c_int)->c_int`, `getpriority(c_int,c_int)->c_int` |
 | source graph / serial fresh activation | one authorized `startup_once` provider, typed receiver pipelines and fan-out through graph schedule v1; differential LLVM/TinyVM stdout/result and deterministic artifact checks |
 | source graph / finite scalar stream | one authorized `stream` count `()->c_size_t` and item `(c_size_t)->c_int` provider, bounded item loop, direct root-to-receiver fan-out and linear type-continuous receiver-pipeline parity with LLVM |
-| source graph / persistent scalar activation | one startup provider, repeated fresh deliveries, typed `c_long` state initialization/update and LLVM/TinyVM output parity through schedule v3 |
+| source graph / persistent scalar or verified aggregate activation | one startup provider, repeated fresh deliveries, typed `c_long` or one-64-bit verified aggregate state initialization/update and LLVM/TinyVM output parity through schedule v3 |
 | source graph / pure parallel activation | validated schedule v4 dependency waves with pure, non-nested receiver bodies; deterministic serial TinyVM projection is equivalent for this effect-free surface |
 | verified aggregate payload | packed, no-padding verified `c_int`, `c_long`, `c_ulong` or `c_size_t` layouts up to 8 bytes, aggregate provider return and aggregate parameter call through typed 64-bit payloads; layout/schedule mutations and exact-policy mutations are refused |
 

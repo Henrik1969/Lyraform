@@ -307,7 +307,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 graph_diagnostic("FLOWANALYST_GRAPH_STATE_ID", "empty or duplicate persistent state identity", state);
             const auto state_type = text(field(state, "type"));
             const auto state_value = text(field(state, "value_text"));
-            if (state_type != "c_long") graph_diagnostic("FLOWANALYST_GRAPH_STATE_TYPE", "persistent state requires c_long", state);
+            const bool admitted_state_type = state_type == "c_long" || std::any_of(aggregate_layouts.begin(), aggregate_layouts.end(), [&](const auto& layout) { return layout.name == state_type; });
+            if (!admitted_state_type) graph_diagnostic("FLOWANALYST_GRAPH_STATE_TYPE", "persistent state requires c_long or a declared aggregate ABI layout", state);
             try {
                 std::size_t parsed = 0;
                 (void)std::stoll(state_value, &parsed);
@@ -403,12 +404,13 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 continue;
             }
             const auto& callable = *candidates.front();
+            const auto state_type = persistent && graph_states.count(id) ? text(field(*graph_states.at(id), "type")) : std::string{};
             if (text(field(node, "role")) != "node" || callable.availability != "definition" ||
                 callable.body_block < 0 || callable.parameters.size() != (persistent ? 2u : 1u) ||
                 callable.return_type.empty() || callable.return_type == "void" ||
-                (persistent && (!graph_states.count(id) || callable.parameters[1].second != "c_long" || callable.return_type != "c_long"))) {
+                (persistent && (!graph_states.count(id) || callable.parameters[1].second != state_type || callable.return_type != state_type))) {
                 graph_diagnostic("FLOWANALYST_GRAPH_RECEIVER_CONTRACT",
-                    persistent ? "persistent receiver requires a defined (input, c_long) -> c_long function and state declaration"
+                    persistent ? "persistent receiver requires a defined (input, state_type) -> state_type function and state declaration"
                                : "source receiver requires a defined one-input one-result function and node role", node);
                 continue;
             }
@@ -432,8 +434,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 {"activation_contract", std::string("fresh_single_input_v1")}};
             if (persistent) {
                 const auto& state = *graph_states.at(id);
-                receiver.emplace("state_contract", "persistent_scalar_v1");
-                receiver.emplace("state_type", "c_long");
+                receiver.emplace("state_contract", state_type == "c_long" ? "persistent_scalar_v1" : "persistent_aggregate_v1");
+                receiver.emplace("state_type", state_type);
                 receiver.emplace("state_initial_value", text(field(state, "value_text")));
                 receiver.emplace("state_parameter_symbol_id", callable.parameters[1].first);
             }

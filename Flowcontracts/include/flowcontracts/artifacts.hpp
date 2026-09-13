@@ -260,11 +260,13 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
                 if (persistent) {
                     const auto& state = node;
                     const auto& state_param = json::object(parameters[1]);
-                    if (json::string(json::required(state, "state_contract"), "$.state_contract") != "persistent_scalar_v1" ||
-                        json::string(json::required(state, "state_type"), "$.state_type") != "c_long" ||
+                    const auto state_type = json::string(json::required(state, "state_type"), "$.state_type");
+                    const auto expected_state_contract = state_type == "c_long" ? "persistent_scalar_v1" : "persistent_aggregate_v1";
+                    if (json::string(json::required(state, "state_contract"), "$.state_contract") != expected_state_contract ||
+                        state_type.empty() ||
                         json::string(json::required(state, "state_initial_value"), "$.state_initial_value").empty() ||
                         json::integer(json::required(state, "state_parameter_symbol_id"), "$.state_parameter_symbol_id") != json::integer(json::required(state_param, "symbol_id"), "$.state_parameter_symbol_id") ||
-                        json::string(json::required(state_param, "type"), "$.state_parameter.type") != "c_long")
+                        json::string(json::required(state_param, "type"), "$.state_parameter.type") != state_type)
                         throw json::Error(std::string(base), "graph persistent receiver state differs from callable catalog");
                 }
             }

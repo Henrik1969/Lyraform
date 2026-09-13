@@ -129,6 +129,7 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
                 {"item_output_type", item_type}, {"deliveries", deliveries}}}}, {"steps", steps}};
     }
     bool persistent = false;
+    std::set<std::string> persistent_state_types;
     for (const auto& receiver : graph.receivers)
         if (optional(object(receiver, "$.receivers[]"), "state_contract")) persistent = true;
     if (persistent) {
@@ -143,6 +144,9 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
         for (const auto& receiver : graph.receivers)
             if (!optional(object(receiver, "$.receivers[]"), "state_contract"))
                 throw Error("$.graph_schedule", "persistent template cannot mix persistent and fresh receivers");
+        for (const auto& receiver : graph.receivers)
+            persistent_state_types.insert(string(required(object(receiver, "$.receivers[]"), "state_type", "$.receivers[].state_type"), "$.receivers[].state_type"));
+        if (persistent_state_types.size() != 1) throw Error("$.graph_schedule", "persistent template requires one shared state carrier");
         for (const auto& wire : graph.wires) {
             if (wire.from.node != root || wire.from.port != "out" || wire.to.port != "in")
                 throw Error("$.graph_schedule", "persistent template admits only direct startup-to-receiver deliveries");
@@ -219,9 +223,10 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
             }
             state_steps.emplace_back(std::move(item));
         }
+        const auto state_contract = *persistent_state_types.begin() == "c_long" ? "persistent_scalar_v1" : "persistent_aggregate_v1";
         return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{3}},
             {"policy", "fifo_per_root_source_order_v1"}, {"activation_contract", "persistent_single_input_v1"},
-            {"state_contract", "persistent_scalar_v1"}, {"steps", state_steps}};
+            {"state_contract", state_contract}, {"state_type", *persistent_state_types.begin()}, {"steps", state_steps}};
     }
     return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{1}},
         {"policy", "fifo_per_root_source_order_v1"},

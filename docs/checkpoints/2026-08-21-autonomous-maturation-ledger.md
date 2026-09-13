@@ -2264,3 +2264,41 @@ State remains CONTINUE. The remaining TinyVM work is the documented general
 activation runtime boundary (runtime-held wire/signal/port identities and
 effectful/nested parallel or branching/merging stream delivery), not another
 unverified aggregate proof path.
+
+## 2026-09-13 TinyVM persistent-aggregate parity checkpoint
+
+- Extended the persistent schedule-v3 contract from `c_long` state to the
+  existing verified packed aggregate carrier. The source graph, semantic report,
+  artifact validator, schedule, native lowering, and TinyVM lowering now agree
+  on `persistent_aggregate_v1`; the state remains bounded to one verified
+  64-bit payload and canonical signed integer initialization.
+- Added `tinyvm_persistent_aggregate_parity`, which runs repeated aggregate
+  state deliveries through LLVM, TinyVM switch, and TinyVM computed engines,
+  checks exact ABI authorization and deterministic bytecode, and verifies the
+  state transition metadata.
+- The expanded canonical graph passes **105/105** under GCC in **48.18s** and
+  **105/105** under Clang 18.1.3 ASan/UBSan in **105.17s**. The existing scalar
+  persistent path and all prior graph/provider/refusal tests remain green.
+
+State remains CONTINUE. The next larger boundary is the general TinyVM
+activation runtime: runtime-held wire/signal/port identities, effectful or
+nested parallel delivery, and branching/merging stream semantics remain
+unimplemented and must not be inferred from this bounded persistent aggregate
+parity.
+
+## 2026-09-13 TinyVM aggregate-proof hardening checkpoint
+
+- TinyVM aggregate lowering now independently checks the declared alignment in
+  addition to verified status, supported integer field carriers, contiguous
+  offsets, and total payload size. A forged alignment proof is refused before
+  bytecode emission.
+- Added the hostile-alignment mutation to `tinyvm_aggregate_parity`. The
+  focused test passes **1/1** under GCC and **1/1** under Clang ASan/UBSan.
+- Repeated complete graphs after the change: GCC **104/104** in **45.66s** and
+  Clang 18.1.3 ASan/UBSan **104/104** in **105.06s**, using the documented
+  ptrace-compatible leak settings.
+
+State remains CONTINUE. The remaining TinyVM work is the documented general
+activation runtime boundary (runtime-held wire/signal/port identities and
+effectful/nested parallel or branching/merging stream delivery), not another
+unverified aggregate proof path.

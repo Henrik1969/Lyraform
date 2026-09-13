@@ -134,7 +134,8 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             const auto node = nonempty(item, "node_id", p);
             if (!nodes.count(node) || !nodes.at(node).persistent || !state_initial_values.emplace(node, nonempty(item, "value_text", p)).second)
                 throw Error(p, "state declaration does not match one persistent receiver");
-            if (nonempty(item, "type", p) != "c_long") throw Error(p + ".type", "persistent state requires c_long");
+            const auto state_type = nonempty(item, "type", p);
+            if (state_type != "c_long" && !aggregate_types.count(state_type)) throw Error(p + ".type", "persistent state requires c_long or an aggregate ABI layout");
             Integer value = 0;
             const auto text = str(item, "value_text", p);
             const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
@@ -174,11 +175,14 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             throw Error(p, "unsupported receiver activation contract");
         const bool persistent = nodes.at(node).persistent;
         if (persistent) {
-            if (str(item, "state_contract", p) != "persistent_scalar_v1" || str(item, "state_type", p) != "c_long" ||
+            const auto state_type = str(item, "state_type", p);
+            const auto expected_contract = state_type == "c_long" ? "persistent_scalar_v1" : "persistent_aggregate_v1";
+            if (str(item, "state_contract", p) != expected_contract ||
+                (state_type != "c_long" && !aggregate_types.count(state_type)) ||
                 integer(required(item, "state_parameter_symbol_id", p), p + ".state_parameter_symbol_id") < 0 || !state_initial_values.count(node) ||
                 str(item, "state_initial_value", p) != state_initial_values.at(node))
                 throw Error(p, "persistent receiver state contract is incomplete");
-            if (str(item, "output_type", p) != "c_long") throw Error(p + ".output_type", "persistent receiver must return c_long state");
+            if (str(item, "output_type", p) != state_type) throw Error(p + ".output_type", "persistent receiver must return its declared state type");
         } else if (optional(item, "state_contract")) throw Error(p, "non-persistent receiver carries state contract");
         types[node] = {nonempty(item, "input_type", p), nonempty(item, "output_type", p)};
         if (!native_carrier(types[node].first))

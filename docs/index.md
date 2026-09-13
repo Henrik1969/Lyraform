@@ -55,7 +55,7 @@ Current checkpoint:
 
 ```text
 Lyraform v0.29 reusable native language chain
-GCC root CTest: 104/104; fresh Clang ASan+UBSan CTest: 104/104
+GCC root CTest: 105/105; fresh Clang ASan+UBSan CTest: 105/105
 Native Flow-owned pager and graph activation laws: PASS
 Installed new-capability acceptance: exit 42, unchanged compiler binaries
 ```

@@ -150,7 +150,7 @@ Current verified baseline:
 clean configure: PASS
 clean build: PASS
 registered tests: 104
-CTest: 104/104 PASS (fresh GCC)
+CTest: 105/105 PASS (fresh GCC)
 ```
 
 The project remains experimental despite passing its current tests.
