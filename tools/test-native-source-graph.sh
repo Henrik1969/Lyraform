@@ -227,6 +227,35 @@ assert len({r['delivery_id'] for r in enters[1:]}) == 3
 PY
 mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
 compile
+# Raw pointer payloads are not part of the native graph contract. A pointer
+# receiver must fail at the graph type boundary before native emission.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+cat > "$tmpdir/pointer.flow" <<'FLOW'
+import "provider.flow" as host
+program raw_pointer_graph
+producer source : injected.batch
+node receiver : fn pointer_identity
+wire source.out => receiver.in
+fn pointer_identity(value : c_pointer): c_pointer {
+    return value
+}
+main {
+    return 0
+}
+FLOW
+cp "$tmpdir/pointer.flow" "$tmpdir/program.flow"
+compile_args='--lowering-plan-version 2 --graph-plan-version 2'
+set +e
+"$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/program.flow" > "$tmpdir/pointer.frontend.json"
+"$FLOWANALYST_BIN" $compile_args --graph-providers "$tmpdir/selection.json" < "$tmpdir/pointer.frontend.json" > "$tmpdir/pointer.semantic.json"
+status=$?
+set -e
+test "$status" -ne 0
+jq -e '.status == "error" and
+    any(.diagnostics[]; .code == "FLOWANALYST_GRAPH_PROVIDER_TYPE")' \
+    "$tmpdir/pointer.semantic.json" >/dev/null
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
 for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do
     jq "$mutation" "$tmpdir/execution.json" > "$tmpdir/bad.execution.json"

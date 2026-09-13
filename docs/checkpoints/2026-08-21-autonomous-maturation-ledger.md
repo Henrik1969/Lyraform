@@ -1763,3 +1763,20 @@ of unsupported aggregate or raw-pointer graph payloads. State remains CONTINUE.
 Continue Gate 6 with the next receiver/graph contract while keeping aggregate,
 streaming, persistent-state, and raw-pointer payloads explicitly outside the
 admitted surface. State remains CONTINUE.
+
+## 2026-09-13 native raw-pointer graph refusal checkpoint
+
+- Added a hostile native graph fixture whose scalar provider is wired to a
+  `c_pointer` receiver. Flowanalyst rejects the connection at the graph type
+  boundary with `FLOWANALYST_GRAPH_PROVIDER_TYPE`; no native object is emitted.
+- This preserves the distinction between admitted scalar graph carriers and
+  bounded pointer-plus-length ABI operations. Raw host pointers cannot become
+  graph payloads merely because the backend has an LLVM pointer representation.
+- Focused native graph evidence passed **1/1**; the complete canonical suite
+  remains **94/94**.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph boundary while retaining explicit
+refusal of raw-pointer, aggregate, and streaming payload semantics. State
+remains CONTINUE.
