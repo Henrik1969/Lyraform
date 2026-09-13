@@ -448,5 +448,7 @@ the already captured recovered-ISA boundary.
   for returns, expressions, branches, loops and dynamic argument length.
 - The serial source-graph fixture now compares both TinyVM engines with LLVM
   for startup provider delivery, pipeline evaluation and fan-out output.
+- The governed provider corpus now compares both TinyVM engines with LLVM for
+  libc, ctype and kernel calls, negative results, and selected arguments.
 - The focused aggregate parity test and complete canonical suite passed;
   canonical CTest is now 102/102 green.

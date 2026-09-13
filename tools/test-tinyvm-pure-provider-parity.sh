@@ -75,6 +75,11 @@ do
   fi
   sed '$d' "$tmpdir/$name.execution.json" > "$tmpdir/$name.tiny.stdout"
   cmp -s "$tmpdir/$name.llvm.stdout" "$tmpdir/$name.tiny.stdout"
+  "$FLOWTINYRUN_BIN" --engine computed --policy "$policy" "$tmpdir/$name.tvm" > "$tmpdir/$name.computed.execution.json"
+  tiny_computed_status=$(native_status "$tmpdir/$name.computed.execution.json")
+  test "$tiny_computed_status" -eq "$llvm_status"
+  sed '$d' "$tmpdir/$name.computed.execution.json" > "$tmpdir/$name.computed.tiny.stdout"
+  cmp -s "$tmpdir/$name.llvm.stdout" "$tmpdir/$name.computed.tiny.stdout"
   if test "$name" = profile_free_args_index; then
     set +e
     "$tmpdir/$name.llvm" source-selected > "$tmpdir/$name.selected.llvm.stdout"
@@ -85,6 +90,11 @@ do
     test "$tiny_selected_status" -eq "$llvm_selected_status"
     sed '$d' "$tmpdir/$name.selected.execution" > "$tmpdir/$name.selected.tiny.stdout"
     cmp -s "$tmpdir/$name.selected.llvm.stdout" "$tmpdir/$name.selected.tiny.stdout"
+    "$FLOWTINYRUN_BIN" --engine computed --policy "$policy" "$tmpdir/$name.tvm" source-selected > "$tmpdir/$name.selected.computed.execution"
+    tiny_selected_computed_status=$(native_status "$tmpdir/$name.selected.computed.execution")
+    test "$tiny_selected_computed_status" -eq "$llvm_selected_status"
+    sed '$d' "$tmpdir/$name.selected.computed.execution" > "$tmpdir/$name.selected.computed.tiny.stdout"
+    cmp -s "$tmpdir/$name.selected.llvm.stdout" "$tmpdir/$name.selected.computed.tiny.stdout"
   fi
 
   if "$FLOWTINYRUN_BIN" "$tmpdir/$name.tvm" >/dev/null 2>&1; then
