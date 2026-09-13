@@ -1727,3 +1727,21 @@ platform-dependent transfer cases. State remains CONTINUE.
 Continue the first unfinished mission gate with the next receiver/graph law,
 retaining explicit scheduling/activation separation and the refusal of raw
 pointer graph payloads. State remains CONTINUE.
+
+## 2026-09-13 native wide-scalar graph checkpoint
+
+- Extended `native_source_graph` with a provider-to-receiver chain carrying an
+  exact `c_long` value larger than 32 bits. The value survives native provider
+  dispatch, a fresh source receiver frame, arithmetic, and fan-out without
+  narrowing.
+- The trace assertions retain source/output signal identity, shared fan-out
+  signal identity, distinct delivery identities, and complete graph execution
+  provenance for the wide carrier.
+- Focused native graph evidence passed **1/1**; the implementation continues to
+  use generic carrier/type lowering rather than source-name dispatch.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph boundary while retaining exact
+carrier authorization, scheduling/activation separation, and explicit refusal
+of unsupported aggregate or raw-pointer graph payloads. State remains CONTINUE.

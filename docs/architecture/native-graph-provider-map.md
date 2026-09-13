@@ -41,7 +41,10 @@ in source order. Every step records activation, input/output signals, delivery,
 wire, full endpoints and its input activation reference. The one-successful-output
 contract permits static scheduling: fan-out reuses the originating result rather
 than invoking the function again. The admitted expansion is bounded at 65,536
-activations. Optimization and backend preparation preserve and independently
+activations. The native scalar carrier set includes the exact `c_int`, `c_long`,
+`c_ulong`, `c_size_t`, and `c_string` provider results admitted by the graph
+contract; `c_long` remains an LLVM `i64` payload through receiver calls and
+fan-out. Optimization and backend preparation preserve and independently
 validate the complete schedule against the graph. Multiple independent startup
 roots are processed as separate FIFO sequences; each root creates fresh receiver
 activations and receives distinct output-signal identities. Scheduling remains

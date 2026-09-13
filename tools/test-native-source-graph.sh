@@ -9,11 +9,13 @@ cat > "$tmpdir/provider.c" <<'C'
 static int calls;
 int input_value(void) { ++calls; return 3; }
 int other_value(void) { ++calls; return 8; }
+long wide_value(void) { return 4294967297L; }
 int input_count(void) { return calls; }
 int observe_value(int value) { printf("%d\n", value); return 0; }
+int observe_long(long value) { printf("%ld\n", value); return 0; }
 C
 clang -shared -fPIC "$tmpdir/provider.c" -o "$tmpdir/provider.so"
-jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
+jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/spec.json" --flow-output "$tmpdir/provider.flow" --policy-output "$tmpdir/policy" --manifest-output "$tmpdir/manifest.json" >/dev/null
 cat > "$tmpdir/selection.json" <<'JSON'
 {"format":"flowcore.graph_provider_map","version":1,"providers":[{"implementation":"injected.batch","source_callable":"host.input","activation":"startup_once","output_port":"out"}]}
@@ -119,6 +121,60 @@ assert len({r['delivery_id'] for r in receiver_enters}) == 6
 PY
 mv "$tmpdir/single-root.flow" "$tmpdir/program.flow"
 mv "$tmpdir/single-root.selection.json" "$tmpdir/selection.json"
+compile
+# Native graph activation preserves a 64-bit c_long payload through a
+# receiver and its fan-out, rather than narrowing it to the c_int path.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+cp "$tmpdir/selection.json" "$tmpdir/scalar-root.selection.json"
+cat > "$tmpdir/wide.flow" <<'FLOW'
+import "provider.flow" as host
+program wide_native_graph
+producer source : injected.wide
+node receiver : fn identity_wide
+node left : fn observe_wide
+node right : fn observe_wide_plus
+wire source.out => receiver.in
+wire receiver.out => left.in
+wire receiver.out => right.in
+fn identity_wide(value : c_long): c_long {
+    return value
+}
+fn observe_wide(value : c_long): c_long {
+    result : c_int(0)
+    host.observe_long(value) -> result
+    return value
+}
+fn observe_wide_plus(value : c_long): c_long {
+    result : c_int(0)
+    next : c_long(0)
+    one : c_long(1)
+    value + one -> next
+    host.observe_long(next) -> result
+    return next
+}
+main {
+    return 0
+}
+FLOW
+cp "$tmpdir/wide.flow" "$tmpdir/program.flow"
+jq '.providers += [{implementation:"injected.wide",source_callable:"host.wide",activation:"startup_once",output_port:"out"}]' \
+    "$tmpdir/selection.json" > "$tmpdir/wide.selection.json"
+mv "$tmpdir/wide.selection.json" "$tmpdir/selection.json"
+compile
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf '4294967297\n4294967298\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+enters = [r for r in records if r['event'] == 'enter']
+assert [r['node_id'] for r in enters] == ['source', 'receiver', 'left', 'right']
+assert enters[1]['input_signal_id'] == enters[0]['output_signal_id']
+assert enters[2]['input_signal_id'] == enters[3]['input_signal_id'] == enters[1]['output_signal_id']
+assert len({r['delivery_id'] for r in enters[1:]}) == 3
+PY
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+mv "$tmpdir/scalar-root.selection.json" "$tmpdir/selection.json"
 compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
 for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do
