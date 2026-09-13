@@ -1815,3 +1815,20 @@ and raw-pointer graph semantics.
 Continue Gate 6 with the next receiver/graph contract while retaining the
 no-output-on-failure law and explicit separation of provider authority,
 scheduling, activation, and payload carriers. State remains CONTINUE.
+
+## 2026-09-13 graph scheduling/activation separation checkpoint
+
+- Added hostile captured-schedule mutations for the FIFO policy and
+  `fresh_single_input_v1` activation contract. Flowoptimize and Flowlower reject
+  both mutations before consuming the schedule.
+- This keeps scheduling delivery order independent from receiver activation
+  semantics and prevents a durable artifact from laundering persistent or
+  parallel behavior into the bounded native graph surface.
+- Focused native graph evidence passed **1/1**; the complete canonical suite
+  remains **94/94**.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph boundary while preserving strict
+schedule identity, fresh activation, and failure provenance. State remains
+CONTINUE.

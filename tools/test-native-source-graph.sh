@@ -335,7 +335,7 @@ mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
 mv "$tmpdir/scalar-root.selection.json" "$tmpdir/selection.json"
 compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
-for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do
+for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.policy = "parallel"' '.graph_schedule.activation_contract = "persistent"' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do
     jq "$mutation" "$tmpdir/execution.json" > "$tmpdir/bad.execution.json"
     if "$FLOWOPTIMIZE_BIN" < "$tmpdir/bad.execution.json" >/dev/null 2>&1; then echo 'mutated graph schedule optimized' >&2; exit 1; fi
     jq "$mutation" "$tmpdir/backend.json" > "$tmpdir/bad.backend.json"
