@@ -26,6 +26,8 @@ int main(void) {
     input[sizeof(input) - 1] = '\0';
     if (flow_text_concat_outcome(input, "x", &outcome) != FLOW_TEXT_EXHAUSTED) return 6;
     if (outcome.code != FLOW_TEXT_EXHAUSTED || outcome.value != NULL) return 7;
+    if (flow_text_concat_status("Lyra", "form") != FLOW_TEXT_SUCCESS) return 8;
+    if (flow_text_concat_status(input, "x") != FLOW_TEXT_EXHAUSTED) return 9;
     return 0;
 }
 EOF

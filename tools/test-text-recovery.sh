@@ -29,6 +29,7 @@ run_case() {
     expected=$2
     name=$3
     "$flowmini" --dump-frontend-bundle "$source" > "$tmpdir/$name.frontend.json"
+    jq -e 'any(.symbol_table.symbols[]; .name == "TextFailure") and any(.symbol_table.symbols[]; .name == "TextOutcome")' "$tmpdir/$name.frontend.json" >/dev/null
     "$analyst" --lowering-plan-version 2 < "$tmpdir/$name.frontend.json" > "$tmpdir/$name.semantic.json"
     jq -e '
       any(.lowering_plan.operations[]; .kind == "branch") and

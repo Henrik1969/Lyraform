@@ -1511,6 +1511,8 @@ remains CONTINUE.
 - Focused evidence: `text_recovery_boundary` passed with LLVM/TinyVM output
   parity and exhaustion recovery.
 - The complete canonical CTest graph passed **88/88** in 39.04s.
+- The tagged provider API gate additionally covers status-probe success and
+  exhaustion without transferring an owned allocation to the caller.
 
 ## Exact next action
 
