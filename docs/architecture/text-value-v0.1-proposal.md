@@ -116,6 +116,9 @@ admission gates for the complete v0.1 contract.
 
 ## Transitional failure mapping
 
+The proposed backend-neutral outcome is specified in
+[`text-outcome-v0.1.md`](text-outcome-v0.1.md).
+
 The current provider ABI returns a non-null owned pointer on success and null on
 bounded-storage or allocation failure. LLVM maps null to `llvm.trap`; TinyVM
 maps provider rejection to `TV1_TRAP_UNRESOLVED_IMPORT`. This is explicit and

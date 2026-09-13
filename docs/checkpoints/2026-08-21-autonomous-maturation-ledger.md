@@ -1351,3 +1351,20 @@ Define the backend-neutral `Outcome<Text, TextFailure>` representation and map
 the current provider failures into it before adding a second provider shape.
 Then cover fan-out ownership/lifetime cases. Keep artifact-visible host
 pointers prohibited. State remains CONTINUE.
+
+## 2026-09-13 Text outcome contract checkpoint
+
+- Defined the proposed backend-neutral `Outcome<Text, TextFailure>` in
+  `docs/architecture/text-outcome-v0.1.md`.
+- The initial stable failure vocabulary is `invalid_input`, `exhausted`, and
+  `provider_unavailable`; host pointers and backend trap numbers are explicitly
+  excluded from the semantic value.
+- The current `flow_text_concat` null result plus LLVM/TinyVM trap mappings are
+  retained as transitional compatibility until a typed `text_outcome`
+  lowering operation is implemented.
+
+## Exact next action
+
+Implement the typed `text_outcome` operation at the backend-neutral artifact
+boundary, then map the existing provider success/failure paths through it and
+add fan-out ownership evidence. State remains CONTINUE.
