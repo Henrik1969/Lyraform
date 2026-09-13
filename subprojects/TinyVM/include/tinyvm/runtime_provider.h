@@ -24,6 +24,9 @@ typedef struct {
     void *text_outcomes;
     size_t text_outcome_count;
     size_t text_outcome_capacity;
+    int *file_descriptors;
+    size_t file_descriptor_count;
+    size_t file_descriptor_capacity;
 } TinyvmRuntimeProvider;
 
 void tinyvm_runtime_provider_destroy(TinyvmRuntimeProvider *provider);

@@ -1617,3 +1617,24 @@ reconciled. State remains CONTINUE.
 Continue broadening the library surface with a bounded interface that adds a
 distinct resource or failure contract, while retaining exact LLVM/TinyVM
 parity and explicit refusal for unsupported carriers. State remains CONTINUE.
+
+## 2026-09-13 file descriptor resource checkpoint
+
+- Extended the existing `std/abi/file_io.flow` boundary with executable
+  `open(c_string,c_int):c_int` and `close(c_int):c_int` parity. The new
+  `abi_file_resource_main` fixture opens `/dev/null`, checks the failure-capable
+  descriptor result, and closes only an acquired descriptor.
+- TinyVM now tracks descriptors returned by its admitted `open` thunk, rejects
+  closing descriptors it does not own, and closes any still-owned descriptors
+  during provider teardown. The wider `read`/`write`/`sendfile` surface remains
+  explicitly unsupported until its buffer, offset, partial-transfer, and
+  resource semantics are implemented.
+- Focused evidence: `file_resource_boundary` passed **1/1** with identical
+  LLVM/TinyVM output. The complete canonical build and CTest suite passed
+  **93/93** in 38.71 seconds; the pass corpus now reports **96/96** programs.
+
+## Exact next action
+
+Continue the resource boundary with an explicitly bounded read/write slice,
+or document and test its refusal if the required initialized-byte and
+partial-transfer semantics cannot yet be represented. State remains CONTINUE.

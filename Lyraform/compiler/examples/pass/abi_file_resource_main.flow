@@ -1,0 +1,20 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/file_io.flow"
+
+program abi_file_resource_main
+
+main {
+    descriptor : c_int(open("/dev/null", 0))
+    status : c_int(0)
+
+    if descriptor >= 0 {
+        puts("file open ok") -> status
+        close(descriptor) -> status
+        if status == 0 {
+            puts("file close ok") -> status
+        }
+    }
+    if descriptor < 0 {
+        puts("file open failed") -> status
+    }
+}
