@@ -2227,3 +2227,23 @@ TinyVM activation/runtime and compatibility-bridge gates.
 State remains CONTINUE. The next ordered work is to rerun the complete Clang
 sanitizer matrix against the expanded contract, then address the remaining
 TinyVM activation/runtime and compatibility-bridge gates.
+
+## 2026-09-13 Clang sanitizer parity checkpoint
+
+- Configured a fresh `/tmp/flowcore-current-clang` tree with Clang 18.1.3 and
+  AddressSanitizer/UndefinedBehaviorSanitizer flags, then built all **150/150**
+  targets. This refreshed the wide-ABI fixture and the current Flowprepare and
+  Flowlower consumers rather than relying on the stale historical sanitizer
+  tree.
+- The complete sanitizer CTest graph passes **104/104** in **104.12 seconds**
+  with `ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=detect_leaks=0`. The leak
+  exclusion is required by this runner's ptrace-based process supervision;
+  Valgrind remains the independent leak/error boundary at 57/57.
+- The new wide aggregate parity and native aggregate consumer-proof refusal
+  gates pass under Clang instrumentation. Published Clang sanitizer evidence
+  is now reconciled to 104/104; no unsanitized Clang count is claimed by this
+  checkpoint.
+
+State remains CONTINUE. The next ordered work is TinyVM activation/runtime and
+compatibility-bridge maturity, followed by the remaining definition-of-done
+reconciliation.
