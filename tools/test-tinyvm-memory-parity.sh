@@ -46,6 +46,10 @@ printf '%s\n' "$llvm_status" > "$tmpdir/llvm.output"
 tail -n 1 "$tmpdir/tiny.output" | jq -e '.status == "completed" and .result == 0' >/dev/null
 tail -n 1 "$tmpdir/tiny.output" | jq -r '.result' > "$tmpdir/tiny.result"
 cmp -s "$tmpdir/llvm.output" "$tmpdir/tiny.result"
+"$tiny_run" --engine computed --policy "$policy" "$tmpdir/memory.tvm" > "$tmpdir/tiny.computed.output"
+tail -n 1 "$tmpdir/tiny.computed.output" | jq -e '.status == "completed" and .result == 0' >/dev/null
+tail -n 1 "$tmpdir/tiny.computed.output" | jq -r '.result' > "$tmpdir/tiny.computed.result"
+cmp -s "$tmpdir/llvm.output" "$tmpdir/tiny.computed.result"
 
 # A count beyond the declared storage must remain a governed runtime fault.
 jq '.lowering_plan.operations |= map(if .kind == "value_definition" and .operands[0].type == "c_size_t" then .operands[0].value = "9" else . end)' \

@@ -43,6 +43,10 @@ fi
 sed '$d' "$tmpdir/tiny.stdout" > "$tmpdir/tiny.output"
 cmp -s "$tmpdir/llvm.stdout" "$tmpdir/tiny.output"
 test "$(tail -n 1 "$tmpdir/tiny.stdout" | jq -r '.result')" -eq 0
+"$tiny_run" --engine computed --policy "$policy" "$tmpdir/text.tvm" > "$tmpdir/tiny.computed.stdout"
+sed '$d' "$tmpdir/tiny.computed.stdout" > "$tmpdir/tiny.computed.output"
+cmp -s "$tmpdir/llvm.stdout" "$tmpdir/tiny.computed.output"
+test "$(tail -n 1 "$tmpdir/tiny.computed.stdout" | jq -r '.result')" -eq 0
 
 printf 'import "%s/Lyraform/compiler/std/abi/libc.flow"\nimport "%s/Lyraform/compiler/std/abi/text.flow"\n\nprogram text_runtime_overflow\n\nfn join(left : Text, right : Text): Text {\n    value : Text(left + right)\n    return value\n}\n\nmain {\n    value : Text(join("' "$root" "$root" > "$tmpdir/overflow.flow"
 awk 'BEGIN { for (i = 0; i < 4097; ++i) printf "A" }' >> "$tmpdir/overflow.flow"

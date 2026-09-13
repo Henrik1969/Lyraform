@@ -36,5 +36,9 @@ clang "$tmpdir/text.ll" -o "$tmpdir/text.llvm"
 sed '$d' "$tmpdir/tiny.stdout" > "$tmpdir/tiny.output"
 cmp -s "$tmpdir/llvm.stdout" "$tmpdir/tiny.output"
 test "$(tail -n 1 "$tmpdir/tiny.stdout" | jq -r '.result')" -eq 0
+"$tiny_run" --engine computed --policy "$policy" "$tmpdir/text.tvm" > "$tmpdir/tiny.computed.stdout"
+sed '$d' "$tmpdir/tiny.computed.stdout" > "$tmpdir/tiny.computed.output"
+cmp -s "$tmpdir/llvm.stdout" "$tmpdir/tiny.computed.output"
+test "$(tail -n 1 "$tmpdir/tiny.computed.stdout" | jq -r '.result')" -eq 0
 
 echo 'Text compile-time boundary LLVM/TinyVM parity: PASS'
