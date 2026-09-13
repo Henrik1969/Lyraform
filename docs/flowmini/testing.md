@@ -48,8 +48,8 @@ Expected current baseline:
 AST golden tests:          28 / 28
 Symbol projection tests:   14 / 14
 Frontend bundle tests:      8 golden / 1 isolated / 19 negative
-fresh GCC 13.3 CTest:       103 / 103
-fresh Clang 18.1 CTest:     103 / 103
+fresh GCC 13.3 CTest:       104 / 104
+fresh Clang 18.1 CTest:     103 / 103 (published pre-wide-aggregate baseline)
 flowcat ELF example:        PASS
 ```
 
@@ -98,10 +98,12 @@ programs plus 57/57 categorized negative/support checks. The legacy
 interpreter-inclusive run is 154 total, 99 pass, and 55 expected native-chain
 refusals.
 
-The Clang ASan/UBSan CTest gate is 103/103 when run with
+The published Clang ASan/UBSan CTest gate is 103/103 when run with
 `ASAN_OPTIONS=detect_leaks=0`; LeakSanitizer cannot run under this environment's
-ptrace-based process supervision. The matching native/support categorized
-boundary is 57/57 under Valgrind 3.22.0.
+ptrace-based process supervision. The new `c_long` aggregate boundary is
+verified by the fresh GCC run; the published Clang sanitizer result predates
+that additional test and must not be reported as 104/104 until rerun. The
+matching native/support categorized boundary is 57/57 under Valgrind 3.22.0.
 
 Compiler, sanitizer, Valgrind, support-inclusive, and concurrency results are
 checkpoint evidence rather than permanent properties of the branch. A new

@@ -100,8 +100,9 @@ inline void validate_aggregate_abi_layouts(const json::Array& layouts, std::stri
             const auto field_type = json::string(json::required(field, "type", field_path), field_path + ".type");
             if (field_name.empty() || !field_names.insert(field_name).second || field_type.empty())
                 throw json::Error(field_path, "aggregate ABI fields must have unique non-empty names and types");
-            if (status == "verified" && field_type != "c_int")
-                throw json::Error(field_path + ".type", "verified aggregate ABI fields must use c_int in this phase");
+            if (status == "verified" && field_type != "c_int" && field_type != "c_long" &&
+                field_type != "c_ulong" && field_type != "c_size_t")
+                throw json::Error(field_path + ".type", "verified aggregate ABI fields must use a supported integer carrier");
             if (const auto* offset = json::optional(field, "offset")) {
                 if (json::integer(*offset, field_path + ".offset") < 0) throw json::Error(field_path + ".offset", "aggregate field offset must be non-negative");
             } else if (status == "verified") {

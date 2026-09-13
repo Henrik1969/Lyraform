@@ -11,7 +11,8 @@ layout authority.
 
 - The aggregate is a named provider-owned record with a verified ordered field
   list, size, alignment, offsets, and field carriers.
-- The first admitted field carrier is `c_int`, with at most 16 fields and no
+- The admitted field carriers are `c_int`, `c_long`, `c_ulong` and `c_size_t`,
+  with at most 16 fields and no
   nested records, pointers, flexible arrays, ownership transfer, or hidden
   padding assumptions.
 - A provider returns the aggregate by value. A source receiver accepts exactly

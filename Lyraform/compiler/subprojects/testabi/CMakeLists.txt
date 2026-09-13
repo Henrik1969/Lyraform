@@ -7,3 +7,6 @@ set_target_properties(flowmini_testabi PROPERTIES
 
 add_executable(flowmini_testabi_layout layout.c)
 target_include_directories(flowmini_testabi_layout PRIVATE include)
+
+add_executable(flowmini_wideabi_layout wide_layout.c)
+target_include_directories(flowmini_wideabi_layout PRIVATE include)

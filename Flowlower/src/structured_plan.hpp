@@ -172,7 +172,9 @@ private:
                 else throw std::runtime_error("unsupported aggregate ABI size for native value carrier");
                 const auto& fields = array(field(item, "fields"), "aggregate_abi_layout.fields");
                 for (const auto& field_value : fields) {
-                    if (text(field(field_value, "type")) != "c_int") throw std::runtime_error("unsupported aggregate ABI field carrier");
+                    const auto field_type = text(field(field_value, "type"));
+                    if (field_type != "c_int" && field_type != "c_long" && field_type != "c_ulong" && field_type != "c_size_t")
+                        throw std::runtime_error("unsupported aggregate ABI field carrier");
                 }
                 aggregate_types_[name] = type;
             }

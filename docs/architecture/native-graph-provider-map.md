@@ -86,7 +86,7 @@ verifies an unused selection has no LLVM effect, and rejects missing grants,
 forged schedules, cycles and mutated provider identity.
 This initial native graph surface is Linux x86-64. It also admits the bounded
 provider-verified aggregate payload contract documented in
-`source-graph-aggregate-payload-decision.md`: packed `c_int` records are carried
+`source-graph-aggregate-payload-decision.md`: packed verified integer records are carried
 by the exact host ABI representation and may fan out immutably to fresh scalar
 receivers. Aggregate streams, multi-stage stream pipelines, stream policies,
 reentrant/parallel delivery, and native TinyVM graph execution remain

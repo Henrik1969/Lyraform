@@ -34,13 +34,13 @@
   "verification": {
     "gcc_superbuild": "pass",
     "canonical_ctest": {
-      "passed": 103,
-      "total": 103
+      "passed": 104,
+      "total": 104
     },
     "callable_artifact_deterministic": true,
     "callable_observable_result": "LLVM = TinyVM switch = TinyVM computed = 1",
-    "clang_superbuild": "pass (103/103)",
-    "gcc_asan_ubsan": "not run as a coherent matrix; Clang ASan/UBSan pass (103/103) with detect_leaks=0 ptrace exclusion",
+    "clang_superbuild": "published pre-wide-aggregate baseline pass (103/103); rerun required for the new 104th test",
+    "gcc_asan_ubsan": "not run as a coherent matrix; published Clang ASan/UBSan pass (103/103) with detect_leaks=0 ptrace exclusion",
     "valgrind": "57/57 native-chain negative/support boundary cases pass",
     "native_pass_corpus": 97,
     "concurrent_frontend_captures": 32
@@ -52,7 +52,7 @@
     "Lyraform is not production-ready",
     "Arbitrary target architectures are not implemented",
     "Safety certification is not claimed",
-    "Native graph execution does not cover aggregate payloads or streaming",
+    "Native graph execution covers the verified Point aggregate and bounded streams; broader aggregate/runtime activation semantics remain open",
     "The pager renders after a bounded input batch, not continuously",
     "Provider evidence is checked at binding time and does not pin future loads"
   ],

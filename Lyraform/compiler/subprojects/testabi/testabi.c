@@ -14,6 +14,14 @@ FlowminiTestAbiPoint point_input(void) {
     return (FlowminiTestAbiPoint){1, 2};
 }
 
+FlowminiTestAbiLongValue long_input(void) {
+    return (FlowminiTestAbiLongValue){42};
+}
+
+int long_sum(FlowminiTestAbiLongValue value) {
+    return (int)value.value;
+}
+
 int point_observe(int value) {
     printf("%d\n", value);
     return 0;

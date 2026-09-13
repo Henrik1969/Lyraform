@@ -28,4 +28,5 @@ abi testabi {
         symbol "point_weighted_sum"
         effect pure
     }
+
 }

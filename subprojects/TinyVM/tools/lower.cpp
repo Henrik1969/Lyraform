@@ -56,8 +56,16 @@ public:
                 const auto status = string(required(layout, "status", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].status");
                 const auto bytes = integer(required(layout, "size", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].size");
                 bool packed_ints = status == "verified" && bytes > 0 && bytes <= 8;
-                for (const auto& field : required_array(layout, "fields", "$.aggregate_abi_layouts[]"))
-                    packed_ints = packed_ints && string(required(object(field, "$.aggregate_abi_layouts[].fields[]"), "type", "$.aggregate_abi_layouts[].fields[]"), "$.aggregate_abi_layouts[].fields[].type") == "c_int";
+                std::int64_t expected_size = 0;
+                for (const auto& field : required_array(layout, "fields", "$.aggregate_abi_layouts[]")) {
+                    const auto& field_object = object(field, "$.aggregate_abi_layouts[].fields[]");
+                    const auto field_type = string(required(field_object, "type", "$.aggregate_abi_layouts[].fields[]"), "$.aggregate_abi_layouts[].fields[].type");
+                    packed_ints = packed_ints && (field_type == "c_int" || field_type == "c_long" || field_type == "c_ulong" || field_type == "c_size_t");
+                    const auto offset = integer(required(field_object, "offset", "$.aggregate_abi_layouts[].fields[]"), "$.aggregate_abi_layouts[].fields[].offset");
+                    if (offset != expected_size) packed_ints = false;
+                    expected_size += field_type == "c_int" ? 4 : (field_type == "c_long" || field_type == "c_ulong" || field_type == "c_size_t" ? 8 : 0);
+                }
+                packed_ints = packed_ints && expected_size == bytes;
                 if (packed_ints) aggregate_types_.insert(string(required(layout, "name", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].name"));
             }
         }

@@ -34,17 +34,19 @@ From the canonical checkout:
 ./tools/check-onboarding-prerequisites.sh   PASS
 ./igor doctor                              PASS
 ./igor --build-dir /tmp/lyraform-onboarding-build test
-                                            103/103 PASS
+                                            104/104 PASS (fresh GCC)
 bash -n tools/check-onboarding-prerequisites.sh
                                             PASS
 git diff --check                           PASS
 ```
 
 The fresh GCC onboarding build compiled 148 targets and the canonical CTest
-suite passed all 103 tests in 50.57 seconds on the verified Linux x86-64
-environment. A fresh Clang 18.1.3 ASan/UBSan build also passed 103/103 with
+suite passed all 104 tests in 50.36 seconds on the verified Linux x86-64
+environment. The previously published fresh Clang 18.1.3 ASan/UBSan build
+passed 103/103 with
 `ASAN_OPTIONS=detect_leaks=0`; LeakSanitizer is unavailable under this
-environment's ptrace-based process supervision.
+environment's ptrace-based process supervision. The new wide aggregate test
+has not yet been rerun under Clang in this checkpoint.
 
 The categorized compatibility-interpreter run is intentionally split from the
 native chain: normal mode is 83/138 with 55 expected native-chain refusals;

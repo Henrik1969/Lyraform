@@ -402,6 +402,20 @@ JsonArray verified_aggregate_layouts(const std::string& report, const std::strin
     const auto& types = json_array(json_field(manifest_root, "types"), "types");
     if (types.size() != semantic_layouts.size()) throw std::runtime_error("ABI manifest type count does not match semantic aggregate layouts");
     JsonArray verified;
+    const auto scalar_size = [](const std::string& field_type) -> std::size_t {
+        if (field_type == "c_int") return sizeof(int);
+        if (field_type == "c_long") return sizeof(long);
+        if (field_type == "c_ulong") return sizeof(unsigned long);
+        if (field_type == "c_size_t") return sizeof(std::size_t);
+        throw std::runtime_error("ABI manifest aggregate contains unsupported scalar field type '" + field_type + "'");
+    };
+    const auto scalar_alignment = [](const std::string& field_type) -> std::size_t {
+        if (field_type == "c_int") return alignof(int);
+        if (field_type == "c_long") return alignof(long);
+        if (field_type == "c_ulong") return alignof(unsigned long);
+        if (field_type == "c_size_t") return alignof(std::size_t);
+        throw std::runtime_error("ABI manifest aggregate contains unsupported scalar field type '" + field_type + "'");
+    };
     for (const auto& type : types) {
         const auto name = json_text(json_field(type, "name"));
         const auto found = semantic_layouts.find(name);
@@ -412,20 +426,25 @@ JsonArray verified_aggregate_layouts(const std::string& report, const std::strin
         const auto& manifest_fields = json_array(json_field(type, "fields"), "fields");
         const auto& semantic_fields = json_array(json_field(*found->second, "fields"), "fields");
         if (semantic_fields.size() != manifest_fields.size()) throw std::runtime_error("ABI manifest field count does not match semantic aggregate layout");
-        if (size != static_cast<long long>(manifest_fields.size() * sizeof(int)) || alignment != static_cast<long long>(alignof(int)))
-            throw std::runtime_error("ABI manifest aggregate layout contains unsupported padding or alignment");
         JsonArray fields;
+        std::size_t expected_size = 0;
+        std::size_t expected_alignment = 1;
         for (std::size_t index = 0; index < semantic_fields.size(); ++index) {
             const auto& semantic_field = semantic_fields[index];
             const auto& manifest_field = manifest_fields[index];
             if (json_text(json_field(semantic_field, "name")) != json_text(json_field(manifest_field, "name")) ||
                 json_text(json_field(semantic_field, "type")) != json_text(json_field(manifest_field, "type")))
                 throw std::runtime_error("ABI manifest fields do not match semantic aggregate layout");
+            const auto field_type = json_text(json_field(manifest_field, "type"));
             const auto offset = json_integer(json_field(manifest_field, "offset"), "offset");
-            if (offset != static_cast<long long>(index * sizeof(int))) throw std::runtime_error("ABI manifest aggregate fields are not packed in declaration order");
+            if (offset != static_cast<long long>(expected_size)) throw std::runtime_error("ABI manifest aggregate fields are not packed in declaration order");
+            expected_size += scalar_size(field_type);
+            expected_alignment = std::max(expected_alignment, scalar_alignment(field_type));
             fields.emplace_back(JsonObject{{"name", json_text(json_field(manifest_field, "name"))},
                                        {"offset", offset}, {"type", json_text(json_field(manifest_field, "type"))}});
         }
+        if (size != static_cast<long long>(expected_size) || alignment != static_cast<long long>(expected_alignment))
+            throw std::runtime_error("ABI manifest aggregate layout contains unsupported padding or alignment");
         verified.emplace_back(JsonObject{{"alignment", alignment}, {"contract", json_text(json_field(*found->second, "contract"))},
                                      {"fields", fields}, {"layout_policy", "provider_verified"}, {"name", name},
                                      {"size", size}, {"status", "verified"}, {"version", flowcontracts::json::Integer{1}}});

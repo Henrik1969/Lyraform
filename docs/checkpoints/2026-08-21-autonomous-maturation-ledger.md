@@ -2181,3 +2181,26 @@ the remaining maturity work is separately reconciled.
 
 State remains CONTINUE. The next checkpoint is the final status-pointer update
 and the remaining bounded TinyVM/compatibility maturity work.
+
+## 2026-09-13 bounded wide-aggregate TinyVM checkpoint
+
+- Generalized the verified aggregate contract across Flowcontracts, Flowbind,
+  Flowlower and TinyVM from `c_int` fields to packed, no-padding integer fields:
+  `c_int`, `c_long`, `c_ulong` and `c_size_t`, still limited to one 64-bit
+  payload and provider-verified layout evidence. Malformed offsets, size or
+  field-carrier mutations remain refusal cases at the TinyVM boundary.
+- Added an isolated `wideabi` manifest and provider fixture so the established
+  `Point` analyst expectations remain unchanged. The new
+  `tinyvm_wide_aggregate_parity` test exercises a `c_long` aggregate provider
+  return, aggregate receiver parameter, exact policy grants, LLVM/TinyVM
+  output parity, switch/computed parity, native signatures and deterministic
+  artifact emission.
+- Fresh GCC build and complete CTest pass **104/104**. The prior Clang
+  ASan/UBSan evidence remains **103/103** from before registration of this
+  additional test; it is intentionally not upgraded until rerun against this
+  checkpoint. `flowanalyst_pipeline` and the existing aggregate parity test
+  both pass after the fixture isolation.
+
+State remains CONTINUE. The next ordered work is to rerun the complete Clang
+sanitizer matrix against this expanded contract, then address the remaining
+TinyVM activation/runtime and compatibility-bridge gates.

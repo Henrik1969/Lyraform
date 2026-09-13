@@ -114,8 +114,10 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
                 const auto& field = object(fields[field_index], field_path);
                 const auto field_name = nonempty(field, "name", field_path);
                 const auto field_type = str(field, "type", field_path);
-                if (!field_names.insert(field_name).second || field_type.empty() || (status == "verified" && field_type != "c_int"))
-                    throw Error(field_path, "aggregate ABI fields must have unique non-empty types; verified fields require c_int");
+                if (!field_names.insert(field_name).second || field_type.empty() ||
+                    (status == "verified" && field_type != "c_int" && field_type != "c_long" &&
+                     field_type != "c_ulong" && field_type != "c_size_t"))
+                    throw Error(field_path, "aggregate ABI fields must have unique non-empty names and supported integer types");
             }
             aggregate_types.insert(name);
         }

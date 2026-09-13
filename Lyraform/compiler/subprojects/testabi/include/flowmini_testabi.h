@@ -14,10 +14,16 @@ typedef struct FlowminiTestAbiPoint {
     int y;
 } FlowminiTestAbiPoint;
 
+typedef struct FlowminiTestAbiLongValue {
+    long value;
+} FlowminiTestAbiLongValue;
+
 int point_sum(FlowminiTestAbiPoint point);
 int point_weighted_sum(FlowminiTestAbiPoint point);
 FlowminiTestAbiPoint point_input(void);
 int point_observe(int value);
+FlowminiTestAbiLongValue long_input(void);
+int long_sum(FlowminiTestAbiLongValue value);
 
 #ifdef __cplusplus
 }

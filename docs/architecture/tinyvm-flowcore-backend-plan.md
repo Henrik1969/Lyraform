@@ -263,9 +263,10 @@ through a typed mutable state slot updated between receiver activations.
 Pure parallel schedule v4 is admitted as a deterministic serial projection of
 validated dependency waves, since pure independent activations have no
 observable ordering contract in this slice.
-Verified packed aggregate layouts containing `c_int` fields and occupying at
-most 8 bytes are admitted as typed 64-bit payloads for provider returns and
-aggregate-parameter calls.
+Verified packed, no-padding aggregate layouts containing `c_int`, `c_long`,
+`c_ulong` or `c_size_t` fields and occupying at most 8 bytes are admitted as
+typed 64-bit payloads for provider returns and aggregate-parameter calls. The
+`c_long` path is covered by a dedicated LLVM/TinyVM differential test.
 
 This is a compiler-time graph specialization, not yet a general TinyVM
 activation runtime: wire, signal and port identities remain in the validated

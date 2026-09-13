@@ -99,8 +99,10 @@ acyclic receiver pipeline. Persistent scalar
 state is admitted through a typed state slot. Pure independent parallel waves
 are admitted as a deterministic serial projection; effectful/nested parallel,
 branching/merging stream graphs and larger/non-packed aggregate graph contracts
-remain explicit unsupported results. Packed verified `c_int` aggregates up to 8 bytes are
-carried as typed 64-bit payloads. These boundaries are not silently converted
+remain explicit unsupported results. Packed, no-padding verified integer
+aggregates (`c_int`, `c_long`, `c_ulong` or `c_size_t`) up to 8 bytes are
+carried as typed 64-bit payloads; the dedicated `c_long` differential test
+also covers provider return and aggregate-parameter calls. These boundaries are not silently converted
 to a different contract.
 
 The first governed runtime-provider slice admits only the exact pure tuples

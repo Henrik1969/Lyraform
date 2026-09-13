@@ -1,0 +1,20 @@
+unit std_abi_wideabi
+
+abi wideabi {
+    library "./build/libflowmini_testabi.so"
+    convention c
+
+    struct LongValue {
+        value : c_long
+    }
+
+    extern fn long_input(): LongValue {
+        symbol "long_input"
+        effect pure
+    }
+
+    extern fn long_sum(value : LongValue): c_int {
+        symbol "long_sum"
+        effect pure
+    }
+}
