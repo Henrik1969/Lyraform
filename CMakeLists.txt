@@ -574,6 +574,7 @@ add_test(NAME tinyvm_runtime_text_parity
         FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
         FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        "FLOWTEXT_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-runtime-text-parity.sh)
 set_tests_properties(tinyvm_runtime_text_parity PROPERTIES
     DEPENDS "text_runtime_boundary")

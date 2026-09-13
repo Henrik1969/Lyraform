@@ -31,7 +31,7 @@ source=$root/Lyraform/compiler/examples/text/text_runtime.flow
 "$prepare" --binding-report "$tmpdir/binding.json" "$tmpdir/optimized.json" > "$tmpdir/lowering.json"
 
 "$llvm_lower" --emit-llvm "$tmpdir/text.ll" "$tmpdir/lowering.json" >/dev/null
-clang "$tmpdir/text.ll" "$text_runtime" -o "$tmpdir/text.llvm"
+clang ${FLOWTEXT_CXX_FLAGS:-} "$tmpdir/text.ll" "$text_runtime" -o "$tmpdir/text.llvm"
 if ! "$tiny_lower" "$tmpdir/lowering.json" "$tmpdir/text.tvm" >"$tmpdir/tiny-lower.json" 2>"$tmpdir/tiny-lower.err"; then
     cat "$tmpdir/tiny-lower.json" >&2
     cat "$tmpdir/tiny-lower.err" >&2

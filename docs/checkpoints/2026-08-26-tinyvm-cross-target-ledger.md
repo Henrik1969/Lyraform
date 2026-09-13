@@ -452,5 +452,10 @@ the already captured recovered-ISA boundary.
   libc, ctype and kernel calls, negative results, and selected arguments.
 - Text and bounded-memory parity fixtures now compare both TinyVM engines with
   LLVM for tagged text calls, storage mutation and result propagation.
+- A fresh Clang 18 ASan/UBSan TinyVM-focused run exposed and fixed a
+  zero-length text copy that passed a null pointer to `memcpy`; the runtime
+  text linker now receives the sanitizer flags so instrumented shared runtimes
+  load consistently. The corrected sanitizer run passed all 20 TinyVM-focused
+  tests.
 - The focused aggregate parity test and complete canonical suite passed;
   canonical CTest is now 102/102 green.
