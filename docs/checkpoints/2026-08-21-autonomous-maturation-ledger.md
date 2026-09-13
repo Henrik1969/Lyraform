@@ -1745,3 +1745,21 @@ pointer graph payloads. State remains CONTINUE.
 Continue Gate 6 with the next receiver/graph boundary while retaining exact
 carrier authorization, scheduling/activation separation, and explicit refusal
 of unsupported aggregate or raw-pointer graph payloads. State remains CONTINUE.
+
+## 2026-09-13 native Boolean graph checkpoint
+
+- Extended `native_source_graph` with a typed `c_int -> Bool -> c_int`
+  receiver chain. Native lowering now has executable evidence for a Boolean
+  graph payload, a source-defined Boolean branch, and exact signal propagation
+  across each typed wire.
+- The test also retains distinct delivery identities and confirms that the
+  graph remains generic: the receiver names and program name are not compiler
+  dispatch selectors.
+- Focused native graph evidence passed **1/1**; the complete canonical suite
+  remains **94/94**.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph contract while keeping aggregate,
+streaming, persistent-state, and raw-pointer payloads explicitly outside the
+admitted surface. State remains CONTINUE.

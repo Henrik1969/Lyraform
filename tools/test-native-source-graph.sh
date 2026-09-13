@@ -176,6 +176,57 @@ PY
 mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
 mv "$tmpdir/scalar-root.selection.json" "$tmpdir/selection.json"
 compile
+# A native graph may carry a Bool between source-defined receiver frames. The
+# following chain checks typed wire matching and a Boolean branch before the
+# final c_int observer.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+cat > "$tmpdir/bool.flow" <<'FLOW'
+import "provider.flow" as host
+program bool_native_graph
+producer source : injected.batch
+node classify : fn classify_bool
+node accept : fn accept_bool
+node display : fn observe_bool
+wire source.out => classify.in
+wire classify.out => accept.in
+wire accept.out => display.in
+fn classify_bool(value : c_int): Bool {
+    result : Bool(false)
+    value == 3 -> result
+    return result
+}
+fn accept_bool(value : Bool): c_int {
+    if value {
+        return 7
+    }
+    return 8
+}
+fn observe_bool(value : c_int): c_int {
+    result : c_int(0)
+    host.observe(value) -> result
+    return value
+}
+main {
+    return 0
+}
+FLOW
+cp "$tmpdir/bool.flow" "$tmpdir/program.flow"
+compile
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf '7\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+enters = [r for r in records if r['event'] == 'enter']
+assert [r['node_id'] for r in enters] == ['source', 'classify', 'accept', 'display']
+assert enters[1]['input_signal_id'] == enters[0]['output_signal_id']
+assert enters[2]['input_signal_id'] == enters[1]['output_signal_id']
+assert enters[3]['input_signal_id'] == enters[2]['output_signal_id']
+assert len({r['delivery_id'] for r in enters[1:]}) == 3
+PY
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
 for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do
     jq "$mutation" "$tmpdir/execution.json" > "$tmpdir/bad.execution.json"
