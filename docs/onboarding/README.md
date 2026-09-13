@@ -4,6 +4,10 @@ This package is for people evaluating Lyraform from a clean checkout. It
 provides the shortest reproducible path from prerequisites to a verified test
 result, then explains what the result does and does not claim.
 
+For adversarial evaluation missions—breaking assumptions, challenging
+architecture, testing provenance, and comparing simpler alternatives—continue
+with the [critical alpha-testing guide](../../ALPHA-TESTING.md).
+
 ## Quick start
 
 The canonical repository is:

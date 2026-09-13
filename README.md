@@ -31,7 +31,8 @@ Flow-owned pager behavior, and governed LLVM/TinyVM backend boundaries. See the
 [current verification ledger](docs/checkpoints/2026-09-07-reusable-flow-chain-result.md)
 for exact evidence and scoped limitations.
 
-For external evaluation, use the [tester and critic onboarding package](docs/onboarding/README.md).
+For external evaluation, use the [tester and critic onboarding package](docs/onboarding/README.md)
+and the [critical alpha-testing missions](ALPHA-TESTING.md).
 
 ## Igor
 

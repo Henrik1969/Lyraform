@@ -15,9 +15,11 @@ This is the soul of Lyraform.
 
 - [Lyraform compiler](../Lyraform/README.md)
 - [Tester and critic onboarding](onboarding/README.md)
+- [Critical alpha-testing missions](../ALPHA-TESTING.md)
 - [Subprojects](../subprojects/README.md)
 - [Pattern explored](../Pattern_explored/README.md)
 - [Architecture notes](architecture/README.md)
+- [Text value contract proposal](architecture/text-value-v0.1-proposal.md)
 - [Language lineage docs](flowmini/README.md)
 - [Session notes](sessions/)
 
