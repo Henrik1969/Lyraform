@@ -1870,6 +1870,10 @@ State remains CONTINUE.
   receiver output activation without being confused with a raw `c_pointer`.
 - The complete admitted scalar graph carrier set now has executable evidence;
   focused native graph evidence passed **1/1**.
+- A fresh current-checkout ASan/UBSan build passed the complete **94/94** suite
+  with `ASAN_OPTIONS=detect_leaks=0:verify_asan_link_order=0`; the link-order
+  option is required here for dynamically loaded text-runtime tests and avoids
+  preloading ASan into external helper tools.
 
 ## Exact next action
 
