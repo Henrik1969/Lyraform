@@ -11,7 +11,7 @@ symbol exported by glibc or every platform ABI.
 
 | Module | Role | Current evidence | Status |
 |---|---|---|---|
-| `std/abi/libc.flow` | C string, scalar, and basic output calls | `strlen`, `abs`, `labs`, and `puts` are resolved through exact `libc.so.6` grants and emitted as authorized capability records | ready |
+| `std/abi/libc.flow` | C string, scalar, and basic output calls | `strlen`, bounded `strnlen`, `abs`, `labs`, and `puts` are resolved through exact `libc.so.6` grants; LLVM and TinyVM execute the pointer-plus-length `strnlen` slice | ready, bounded string-length slice |
 | `std/abi/text.flow` | Bounded owned Text concatenation and recovery outcomes | `concat_outcome(Text,Text)->TextOutcome` returns one tagged `{code,value}` carrier; LLVM and TinyVM cover success, exhaustion, explicit recovery branching, exact authorization, and one final-owner dispose; the status probe remains compatibility coverage | bounded native/TinyVM slice |
 | `std/abi/file_io.flow` | C file descriptor I/O | `open`, `read`, `write`, `sendfile`, and `close` resolve through exact grants; `flowcat` uses generic typed-plan loops, branches, mutation, and calls | ready, Linux-specific `sendfile` example |
 | `std/abi/memory.flow` | Bounded C memory operations | `memcpy`, `memset`, and `memcmp` resolve through exact `libc.so.6` grants; two bounded `c_pointer(8)` buffers execute through LLVM and TinyVM and `memcmp` observes the copied bytes | bounded LLVM/TinyVM executable slice |

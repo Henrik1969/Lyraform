@@ -305,6 +305,7 @@ private:
             const bool admitted = (symbol == "abs" && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "labs" && parameters == "c_long" && result_type == "c_long") ||
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
+                                  (symbol == "strnlen" && parameters == "c_string,c_size_t" && result_type == "c_size_t") ||
                                   (symbol == "puts" && (parameters == "c_string" || parameters == "Text") && result_type == "c_int") ||
                                   (symbol == "flow_text_concat" && parameters == "Text,Text" && result_type == "Text") ||
                                   (symbol == "flow_text_concat_value" && parameters == "Text,Text" && result_type == "TextOutcome") ||

@@ -1,0 +1,16 @@
+import "../../std/abi/libc.flow"
+
+program abi_strnlen_main
+
+main {
+    length : c_size_t(strnlen("Lyraform", 8))
+    expected : c_size_t(8)
+    status : c_int(0)
+
+    if length == expected {
+        puts("strnlen ok") -> status
+    }
+    if length != expected {
+        puts("strnlen failed") -> status
+    }
+}

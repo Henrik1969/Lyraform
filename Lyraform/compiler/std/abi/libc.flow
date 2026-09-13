@@ -29,6 +29,11 @@ abi libc {
         effect pure
     }
 
+    extern fn strnlen(text : c_string, limit : c_size_t): c_size_t {
+        symbol "strnlen"
+        effect pure
+    }
+
     extern fn abs(value : c_int): c_int {
         symbol "abs"
         effect pure

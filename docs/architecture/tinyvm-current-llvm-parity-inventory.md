@@ -12,7 +12,7 @@ executable for every tuple outside the admitted set below.
 | Contract/effect | Exact typed operations |
 |---|---|
 | provider-free | empty, typed literals, strings/storage handles, conversions, unary/binary arithmetic, comparisons, definitions, assignments, branches, loops, checked static arguments, return |
-| `libc` / `pure` | `abs(c_int)->c_int`, `labs(c_long)->c_long`, `strlen(c_string)->c_size_t` |
+| `libc` / `pure` | `abs(c_int)->c_int`, `labs(c_long)->c_long`, `strlen(c_string)->c_size_t`, `strnlen(c_string,c_size_t)->c_size_t` |
 | `libc` / `io` | `puts(c_string)->c_int` |
 | `kernel` or `linux` / `readonly` | `getpid`, `getuid`, `getgid`, `geteuid`, `getegid`, `getppid`, `getpgrp` as `()->c_int` |
 | `kernel` or `linux` / `readonly` | `getpgid(c_int)->c_int`, `getsid(c_int)->c_int`, `getpriority(c_int,c_int)->c_int` |

@@ -1562,3 +1562,22 @@ coverage. State remains CONTINUE.
 Select the next non-Text library boundary after `libm`, prioritizing a bounded
 resource or system interface whose ownership and failure semantics can be
 verified on both LLVM and TinyVM. State remains CONTINUE.
+
+## 2026-09-13 bounded libc strnlen checkpoint
+
+- Added the exact `strnlen(c_string,c_size_t):c_size_t` contract to
+  `std/abi/libc.flow`. The length limit remains an explicit Flow value and the
+  call is authorized by the complete provider tuple.
+- Added native LLVM and governed TinyVM execution coverage using the same
+  `Lyraform` input and an eight-byte limit. Both backends print `strnlen ok`;
+  TinyVM admits the tuple through a dedicated typed thunk.
+- Focused evidence: `strnlen_library_boundary` passed with LLVM/TinyVM output
+  parity. The standard-library matrix and TinyVM parity inventory record the
+  bounded slice.
+
+## Exact next action
+
+Select the next library-oriented capability slice, with preference for a
+bounded operation that broadens the existing pointer-length or resource
+contracts while retaining exact LLVM/TinyVM parity and explicit refusal for
+unsupported carriers. State remains CONTINUE.
