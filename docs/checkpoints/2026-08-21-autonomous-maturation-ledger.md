@@ -1427,3 +1427,22 @@ Define the cross-backend carrier for the tagged provider result and route the
 existing `text_outcome` operation through it, with explicit failure-code
 observation on LLVM and TinyVM. Preserve the artifact rule that host pointers
 never appear in serialized plans. State remains CONTINUE.
+
+## 2026-09-13 cross-backend tagged Text carrier checkpoint
+
+- Routed LLVM `text_outcome` lowering through the provider's tagged
+  `{code,value}` carrier and explicitly checked both the failure code and
+  success pointer before continuing.
+- Routed TinyVM's governed `flow_text_concat` thunk through
+  `flow_text_concat_outcome`; it preserves `invalid_input`, `exhausted`, and
+  `provider_unavailable` in its fault reason before the existing import-fault
+  mapping. No host pointer enters the TinyVM artifact or serialized plan.
+- The full fresh CTest graph passed **86/86** in 39.10s, including LLVM/TinyVM
+  runtime parity, tagged API ownership, exhaustion, and validator refusal
+  coverage.
+
+## Exact next action
+
+Expose the observed `TextFailure` code as a recoverable language-level outcome
+instead of an unconditional backend trap, then add an explicit last-owner
+cleanup test for both backends. State remains CONTINUE.

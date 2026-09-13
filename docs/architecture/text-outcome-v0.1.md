@@ -54,6 +54,8 @@ provider adapter: its non-null pointer is still the backend carrier for the
 success variant, while null maps to the tested backend failure disposition.
 The provider also exposes `flow_text_concat_outcome` and
 `flow_text_outcome_dispose`, which carry the explicit code and owned success
-value in a runtime-local struct. The lowering operation has not adopted that
-ABI yet; the actual tagged backend value and explicit failure-code transport
-remain the next slice, so the LLVM/TinyVM trap mappings are still transitional.
+value in a runtime-local struct. The LLVM and TinyVM `text_outcome` paths now
+consume that tagged transport and observe its code before mapping failure to
+their transitional trap/fault behavior. The semantic failure value is still
+not recoverable by Flow code, and cleanup remains provider-activation scoped;
+explicit language-level recovery and last-owner cleanup are the next slice.

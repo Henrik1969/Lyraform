@@ -119,7 +119,7 @@ private:
     std::map<int, const Json*> definitions_;
     std::map<std::string, std::string> carrier_representations_;
     std::set<Provider> providers_, authorized_;
-    bool has_branch_ = false, has_declared_carrier_ = false, has_nonroot_block_ = false, invalid_control_ = false, unsupported_ = false, uses_args_ = false;
+    bool has_branch_ = false, has_declared_carrier_ = false, has_nonroot_block_ = false, invalid_control_ = false, unsupported_ = false, uses_args_ = false, has_text_outcome_ = false;
     int temporary_ = 0, label_ = 0, required_argc_ = 0;
     int plan_version_ = 1;
     bool graph_native_ = false;
@@ -184,6 +184,7 @@ private:
             const auto& operands=array(field(item,"operands"),"operation.operands"); if (!operands.empty()) op.operand=&operands.front();
             if (const auto* facts=field(item,"provider")) {
                 op.provider=provider(*facts); providers_.insert(*op.provider);
+                if (op.kind == "text_outcome") has_text_outcome_ = true;
                 if (flowlower::structured::llvm_type(op.provider->result).empty() && !llvm_type(op.provider->result).empty()) has_declared_carrier_=true;
                 for (const auto& carrier : carriers(op.provider->parameters))
                     if (flowlower::structured::llvm_type(carrier).empty() && !llvm_type(carrier).empty()) has_declared_carrier_=true;
@@ -281,6 +282,7 @@ private:
         }
     }
     void emit_declarations(std::ostringstream& out) const {
+        if (has_text_outcome_) out << "declare i32 @flow_text_concat_outcome(ptr, ptr, ptr)\n";
         std::map<std::string, std::pair<std::string, std::string>> native_symbols;
         for (const auto& p:providers_) {
             if (!c_symbol(p.symbol) || llvm_type(p.result).empty()) throw std::runtime_error("unsupported structured provider ABI");
@@ -501,13 +503,31 @@ private:
                 const auto& p=*op->provider; const auto params=carriers(p.parameters); const auto& operands=array(field(find_json_operation(op->id),"operands"),"operation.operands");
                 if(params.size()!=operands.size()) throw std::runtime_error("structured call operand count mismatch");
                 std::vector<std::pair<std::string,std::string>> args; for(std::size_t i=0;i<params.size();++i) args.push_back(expression(operands[i],out,params[i]));
-                const auto result="%flow_call_"+std::to_string(op->id); out<<"  "<<result<<" = call "<<llvm_type(p.result)<<" @"<<p.symbol<<"(";
-                for(std::size_t i=0;i<args.size();++i){if(i)out<<", ";out<<args[i].first<<" "<<args[i].second;} out<<")\n";
-                if (p.result == "Text") {
-                    out << "  %flow_text_valid_" << op->id << " = icmp ne ptr " << result << ", null\n"
+                std::string result;
+                if (op->kind == "text_outcome") {
+                    out << "  %flow_text_outcome_" << op->id << " = alloca { i32, ptr }, align 8\n"
+                        << "  %flow_text_status_" << op->id << " = call i32 @flow_text_concat_outcome(ptr " << args[0].second << ", ptr " << args[1].second << ", ptr %flow_text_outcome_" << op->id << ")\n"
+                        << "  %flow_text_code_ptr_" << op->id << " = getelementptr { i32, ptr }, ptr %flow_text_outcome_" << op->id << ", i32 0, i32 0\n"
+                        << "  %flow_text_code_" << op->id << " = load i32, ptr %flow_text_code_ptr_" << op->id << "\n"
+                        << "  %flow_text_value_ptr_" << op->id << " = getelementptr { i32, ptr }, ptr %flow_text_outcome_" << op->id << ", i32 0, i32 1\n"
+                        << "  %flow_text_value_" << op->id << " = load ptr, ptr %flow_text_value_ptr_" << op->id << "\n"
+                        << "  %flow_text_code_ok_" << op->id << " = icmp eq i32 %flow_text_code_" << op->id << ", 0\n"
+                        << "  %flow_text_value_ok_" << op->id << " = icmp ne ptr %flow_text_value_" << op->id << ", null\n"
+                        << "  %flow_text_valid_" << op->id << " = and i1 %flow_text_code_ok_" << op->id << ", %flow_text_value_ok_" << op->id << "\n"
                         << "  br i1 %flow_text_valid_" << op->id << ", label %flow_text_ok_" << op->id << ", label %flow_text_fail_" << op->id << "\n"
                         << "flow_text_fail_" << op->id << ":\n  call void @llvm.trap()\n  unreachable\n"
                         << "flow_text_ok_" << op->id << ":\n";
+                    result = "%flow_text_value_" + std::to_string(op->id);
+                } else {
+                    result = "%flow_call_" + std::to_string(op->id);
+                    out << "  " << result << " = call " << llvm_type(p.result) << " @" << p.symbol << "(";
+                    for(std::size_t i=0;i<args.size();++i){if(i)out<<", ";out<<args[i].first<<" "<<args[i].second;} out << ")\n";
+                    if (p.result == "Text") {
+                        out << "  %flow_text_valid_" << op->id << " = icmp ne ptr " << result << ", null\n"
+                            << "  br i1 %flow_text_valid_" << op->id << ", label %flow_text_ok_" << op->id << ", label %flow_text_fail_" << op->id << "\n"
+                            << "flow_text_fail_" << op->id << ":\n  call void @llvm.trap()\n  unreachable\n"
+                            << "flow_text_ok_" << op->id << ":\n";
+                    }
                 }
                 call_results_[op->expression]={llvm_type(p.result),result};
                 if(op->result_symbol>=0) out<<"  store "<<llvm_type(p.result)<<" "<<result<<", ptr "<<slot(op->result_symbol)<<"\n";
