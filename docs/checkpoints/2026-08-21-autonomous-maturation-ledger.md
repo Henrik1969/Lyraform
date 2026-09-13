@@ -2413,3 +2413,22 @@ State remains CONTINUE. The hook is an embedding boundary, not a scheduler
 queue: runtime-owned queues, reentrancy, cancellation, effectful or nested
 parallel delivery, and branching/merging stream execution remain ordinary
 implementation work.
+
+## 2026-09-13 TinyVM activation-record budget checkpoint
+
+- Added the host API `tinyvm_isa_v1_context_set_graph_record_limit`. The
+  runtime now refuses an activation deterministically with
+  `TV1_TRAP_EXPLICIT` before another record allocation when the configured
+  budget is exhausted; the default remains `SIZE_MAX`, and allocation growth
+  is clamped to the configured budget.
+- Added switch/computed conformance for a two-activation artifact with a
+  one-record budget, including matching fault text, trap instruction and
+  retained-record count. The focused TinyVM set passes **3/3** under GCC and
+  **3/3** under Clang 18.1.3 ASan/UBSan with the documented leak settings.
+- The complete canonical graph passes **107/107** under GCC in **58.50s** and
+  **107/107** under Clang 18.1.3 ASan/UBSan in **113.24s**.
+
+State remains CONTINUE. The budget closes a deterministic resource-refusal
+boundary for activation records; runtime-owned scheduling queues, reentrancy,
+cancellation, effectful or nested parallel delivery, and branching/merging
+stream execution remain ordinary implementation work.

@@ -85,8 +85,9 @@ Graph artifacts use ISA 2 activation records to expose validated wire, signal,
 port and delivery identity through an optional runtime observer. Use
 `flowtinyrun --trace-graph` to write those activation events as JSONL to
 standard error; a host embedding the ISA may also install a scheduling hook to
-refuse an activation before it is observed. The observer is diagnostic and does
-not change program output.
+refuse an activation before it is observed. The host can also set a
+deterministic activation-record limit on the execution context; the default is
+`SIZE_MAX`. The observer is diagnostic and does not change program output.
 
 When built in the Flowcore superbuild, `flowtinylower` consumes the public
 backend-neutral lowering artifact and deterministically emits ISA v1 for

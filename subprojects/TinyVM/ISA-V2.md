@@ -30,8 +30,11 @@ the record at execution time, including activation, signal, delivery, wire and
 port identities. The context retains a copied runtime record with a monotonic
 execution sequence and stream index. Without an observer the instruction is a
 validated no-op; an optional scheduling hook may refuse the activation before
-the observer is called. The artifact still carries the same metadata for
-independent inspection.
+the observer is called. Hosts may set an activation-record limit on the
+execution context; exceeding it traps deterministically with
+`TV1_TRAP_EXPLICIT` before allocating another record. The default limit is
+`SIZE_MAX`. The artifact still carries the same metadata for independent
+inspection.
 
 Portable-switch and computed-goto execution initialize identical values and
 their complete post-execution states remain differentially tested.

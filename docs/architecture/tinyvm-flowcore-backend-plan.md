@@ -277,7 +277,8 @@ delivery identity in optional activation metadata and expose it through the
 execution sequence and stream index. The observer is diagnostic; it does not yet
 provide effectful scheduling, reentrancy, cancellation or runtime-owned
 activation queues; an embedding may install the explicit schedule hook to
-refuse an activation before observation. Effectful or nested-call parallel activations,
+refuse an activation before observation and may impose a deterministic limit on
+runtime-owned activation records. Effectful or nested-call parallel activations,
 branching/merging stream pipelines, larger/non-packed aggregate layouts and
 external aggregate-to-aggregate calls remain explicit unsupported boundaries
 until their runtime delivery and aggregate contracts are implemented. Gate 7
