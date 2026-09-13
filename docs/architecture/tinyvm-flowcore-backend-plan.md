@@ -252,7 +252,9 @@ callable lowering for each fresh one-input receiver activation. Static
 pipelines and fan-out are covered by the schedule, and the resulting TinyVM
 artifact is deterministic and differentially checked against LLVM. Finite
 scalar or verified one-64-bit aggregate stream schedule v2 is also admitted through a typed count/item provider
-bridge and a bounded TinyVM loop. Its admitted delivery shape is direct
+bridge and a bounded TinyVM loop. Verified aggregate items may also traverse the
+existing linear schedule-v5 pipeline; both paths have dedicated differential
+coverage. The admitted delivery shape is direct
 root-to-receiver fan-out: each stream item is delivered independently to every
 root-connected receiver with the shared source signal and distinct delivery
 identity. A versioned linear stream-pipeline schedule v5 is also admitted:

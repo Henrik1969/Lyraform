@@ -149,8 +149,8 @@ Current verified baseline:
 ```text
 clean configure: PASS
 clean build: PASS
-registered tests: 106
-CTest: 106/106 PASS (fresh GCC)
+registered tests: 107
+CTest: 107/107 PASS (fresh GCC)
 ```
 
 The project remains experimental despite passing its current tests.

@@ -2286,6 +2286,23 @@ activation runtime: runtime-held wire/signal/port identities, effectful or
 nested parallel delivery, branching/merging stream semantics, and generalized
 aggregate stream shapes remain unimplemented.
 
+## 2026-09-13 TinyVM aggregate-stream pipeline checkpoint
+
+- Extended the bounded verified aggregate stream surface through the existing
+  linear schedule-v5 pipeline. A `LongValue` item now passes through two typed
+  fresh receiver activations while preserving activation and signal identities.
+- Added `tinyvm_aggregate_stream_pipeline_parity`, covering native LLVM,
+  TinyVM switch, TinyVM computed execution, exact provider policy, aggregate
+  layout metadata, and deterministic bytecode.
+- The complete canonical graph passes **107/107** under GCC in **60.09s** and
+  **107/107** under Clang 18.1.3 ASan/UBSan in **105.98s** with the documented
+  `detect_leaks=0` ptrace-compatible settings. The focused pipeline test passes
+  **1/1** in both trees.
+
+State remains CONTINUE. General runtime-held activation records, effectful or
+nested parallel delivery, branching/merging streams, and generalized aggregate
+layouts remain outside this bounded compiler-time projection.
+
 ## 2026-09-13 TinyVM persistent-aggregate parity checkpoint
 
 - Extended the persistent schedule-v3 contract from `c_long` state to the
