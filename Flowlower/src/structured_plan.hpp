@@ -535,8 +535,10 @@ private:
         if (providers.size() != 1) throw std::runtime_error("parallel graph lowering requires one startup provider");
         const auto& root = *providers.begin()->second;
         const auto root_provider = provider(*field(root, "provider"));
-        if (text(field(root, "activation")) != "startup_once" || root_provider.parameters != "" || root_provider.result != "c_int")
-            throw std::runtime_error("parallel graph worker runtime currently requires a c_int startup provider");
+        const auto root_type = llvm_type(root_provider.result);
+        if (text(field(root, "activation")) != "startup_once" || root_provider.parameters != "" ||
+            (root_type != "i32" && root_type != "i64"))
+            throw std::runtime_error("parallel graph worker runtime requires one scalar or verified aggregate startup provider");
 
         std::map<int, const Json*> steps;
         for (const auto& step : graph_steps()) {
@@ -564,6 +566,7 @@ private:
         if (scheduled.size() != steps.size() || wave_ids.front().size() != 1 ||
             text(field(*steps.at(wave_ids.front().front()), "kind")) != "startup")
             throw std::runtime_error("parallel graph schedule must start with one startup activation");
+        std::map<int, std::string> output_types{{wave_ids.front().front(), root_type}};
         for (std::size_t wave_index = 1; wave_index < wave_ids.size(); ++wave_index) {
             for (const auto id : wave_ids[wave_index]) {
                 const auto& step = *steps.at(id);
@@ -575,8 +578,12 @@ private:
                 const auto function = integer(field(receiver, "function_symbol_id"), "receiver.function_symbol_id");
                 if (!callables_.count(function)) throw std::runtime_error("parallel graph worker function identity is unavailable");
                 const auto& callable = callables_.at(function);
-                if (callable.parameters.size() != 1 || callable.parameters.front().second != "c_int" || callable.result != "c_int")
-                    throw std::runtime_error("parallel graph worker runtime currently requires c_int receivers");
+                const auto input_type = llvm_type(callable.parameters.size() == 1 ? callable.parameters.front().second : "");
+                const auto result_type = llvm_type(callable.result);
+                if (callable.parameters.size() != 1 || (input_type != "i32" && input_type != "i64") ||
+                    (result_type != "i32" && result_type != "i64") || !output_types.count(input) || output_types.at(input) != input_type)
+                    throw std::runtime_error("parallel graph worker carrier mismatch");
+                output_types[id] = result_type;
                 bool return_only = false;
                 for (const auto& operation : operations_)
                     if (operation.function_symbol == function) {
@@ -600,11 +607,13 @@ private:
                 const auto& step = *steps.at(id);
                 const auto& receiver = *receivers.at(text(field(step, "node_id")));
                 const auto function = callables_.at(integer(field(receiver, "function_symbol_id"), "receiver.function_symbol_id"));
+                const auto input_type = llvm_type(function.parameters.front().second);
+                const auto result_type = llvm_type(function.result);
                 out << "define internal void @flow.graph.worker." << id << "(i64 %flow.worker.input, ptr %flow.worker.output) {\n"
                     << "entry:\n  call void @flow_graph_enter(ptr @flow.graph.enter." << id << ")\n"
-                    << "  %flow.worker.narrow." << id << " = trunc i64 %flow.worker.input to i32\n"
-                    << "  %flow.worker.result." << id << " = call i32 @" << callable_name(function) << "(i32 %flow.worker.narrow." << id << ")\n"
-                    << "  %flow.worker.wide." << id << " = sext i32 %flow.worker.result." << id << " to i64\n"
+                    << "  %flow.worker.narrow." << id << " = " << (input_type == "i32" ? "trunc i64 %flow.worker.input to i32" : "add i64 %flow.worker.input, 0") << "\n"
+                    << "  %flow.worker.result." << id << " = call " << input_type << " @" << callable_name(function) << "(" << input_type << " %flow.worker.narrow." << id << ")\n"
+                    << "  %flow.worker.wide." << id << " = " << (result_type == "i32" ? "sext i32 %flow.worker.result." + std::to_string(id) + " to i64" : "add i64 %flow.worker.result." + std::to_string(id) + ", 0") << "\n"
                     << "  store i64 %flow.worker.wide." << id << ", ptr %flow.worker.output\n  ret void\n}\n";
             }
         }
@@ -616,8 +625,8 @@ private:
                 << "  %flow.parallel.outputs." << wave_index << " = alloca [" << wave_ids[wave_index].size() << " x i64], align 8\n";
         const auto startup_id = wave_ids.front().front();
         out << "  call void @flow_graph_enter(ptr @flow.graph.enter." << startup_id << ")\n"
-            << "  %flow.parallel.startup = call i32 @" << root_provider.symbol << "()\n"
-            << "  %flow.parallel.startup.wide = sext i32 %flow.parallel.startup to i64\n"
+            << "  %flow.parallel.startup = call " << root_type << " @" << root_provider.symbol << "()\n"
+            << "  %flow.parallel.startup.wide = " << (root_type == "i32" ? "sext i32 %flow.parallel.startup to i64" : "add i64 %flow.parallel.startup, 0") << "\n"
             << "  %flow.parallel.startup.ptr = getelementptr [" << total << " x i64], ptr %flow.parallel.values, i64 0, i64 " << startup_id << "\n"
             << "  store i64 %flow.parallel.startup.wide, ptr %flow.parallel.startup.ptr\n"
             << "  call void @flow_graph_event(ptr @flow.graph.output." << startup_id << ")\n";

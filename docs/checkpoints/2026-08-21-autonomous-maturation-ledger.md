@@ -2111,3 +2111,19 @@ State remains CONTINUE.
 Focused worker evidence passes **1/1**. State remains CONTINUE; the next
 ordered gate is to mature stream/persistent/aggregate interoperability around
 this worker boundary before considering TinyVM.
+
+## 2026-09-13 verified aggregate worker checkpoint
+
+- Extended the worker lane to native `i32`/`i64` carriers, preserving the
+  verified-size mapping already used by serial aggregate lowering. Aggregate
+  values up to eight bytes now cross independent dependency waves without
+  reconstructing or borrowing a payload.
+- Added `abi_aggregate_parallel_graph`, which proves the verified `Point`
+  provider value (`8589934593`) reaches two independent identity receivers;
+  both joined result records preserve the exact carrier value.
+- The return-only receiver rule remains in force. Persistent state, streams,
+  effectful receiver bodies, larger aggregates, recoverable cancellation, and
+  worker pooling remain outside the claimed contract.
+
+Focused aggregate-worker evidence passes **2/2** together with the scalar
+worker proof. State remains CONTINUE.

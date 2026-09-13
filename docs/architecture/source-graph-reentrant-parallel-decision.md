@@ -22,25 +22,26 @@ identities.
 ## v0.34 bounded worker runtime
 
 Version 4 schedules now have a deliberately narrow native execution contract.
-The runtime receives one immutable `c_int` input per activation, starts one
-worker for each activation in the current wave, and joins the complete wave
-before publishing any result to the next wave. Lowering requires one startup
-provider and return-only `c_int` receiver bodies; this is the current proof
-that worker-local evaluation has no shared mutable state or borrowed payload
-lifetime. Joined results are recorded as `flowcore.graph_parallel` evidence
-when graph tracing is enabled.
+The runtime receives one immutable native `i32`/`i64` value per activation,
+starts one worker for each activation in the current wave, and joins the
+complete wave before publishing any result to the next wave. Lowering requires
+one startup provider and return-only scalar or verified aggregate receiver
+bodies; this is the current proof that worker-local evaluation has no shared
+mutable state or borrowed payload lifetime. Joined results are recorded as
+`flowcore.graph_parallel` evidence when graph tracing is enabled. Verified
+aggregate payloads up to eight bytes use the same native carrier lane as their
+serial graph counterpart.
 
 `flow_graph_fail` remains process-fatal. A worker failure therefore cannot
 publish a partial result or advance a later wave, and no state commit occurs.
-There is not yet a recoverable cancellation API, a worker pool, aggregate
-worker carrier, or persistent-state parallel contract; those are explicit
-future slices. A requested version-4 schedule still cannot be silently
+There is not yet a recoverable cancellation API, a worker pool, or
+persistent-state parallel contract; those are explicit future slices. A
+requested version-4 schedule still cannot be silently
 downgraded to serial execution.
 
 Reentrant receiver pipelines continue to use the existing topological
 activation identity law.
 
-The next gate is a worker runtime with explicit join, failure, cancellation,
-and side-effect/lifetime proof rules. Aggregate payloads may participate only
-after those rules preserve immutable value delivery; persistent state cannot be
-shared by parallel activations.
+The next gate is a recoverable cancellation policy and persistent-state
+interaction boundary; persistent state cannot be shared by parallel
+activations.

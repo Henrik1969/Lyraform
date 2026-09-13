@@ -1,0 +1,16 @@
+import "../../std/abi/testabi.flow"
+
+program abi_aggregate_parallel_graph
+
+producer source : testabi.aggregate
+node left : fn identity_point
+node right : fn identity_point
+
+wire source.out => left.in
+wire source.out => right.in
+
+fn identity_point(point : Point): Point {
+    return point
+}
+
+main { return 0 }
