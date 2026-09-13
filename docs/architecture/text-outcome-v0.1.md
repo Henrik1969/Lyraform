@@ -52,5 +52,8 @@ The lowering plan now marks the bounded construction operation as
 the `Outcome<Text,TextFailure>` shape. `flow_text_concat` remains the current
 provider adapter: its non-null pointer is still the backend carrier for the
 success variant, while null maps to the tested backend failure disposition.
-The actual tagged runtime value and explicit failure-code transport remain the
-next slice; the LLVM/TinyVM trap mappings are therefore still transitional.
+The provider also exposes `flow_text_concat_outcome` and
+`flow_text_outcome_dispose`, which carry the explicit code and owned success
+value in a runtime-local struct. The lowering operation has not adopted that
+ABI yet; the actual tagged backend value and explicit failure-code transport
+remain the next slice, so the LLVM/TinyVM trap mappings are still transitional.

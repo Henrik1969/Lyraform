@@ -1407,3 +1407,23 @@ Replace the provider's null-as-failure adapter with an explicit tagged
 success/failure transport carrying `TextFailure` codes on both backends, while
 retaining the current `text_outcome` artifact contract and adding cleanup-once
 evidence. State remains CONTINUE.
+
+## 2026-09-13 provider tagged Text transport checkpoint
+
+- Added the reference provider's explicit `FlowTextOutcome` transport with
+  stable `success`, `invalid_input`, `exhausted`, and
+  `provider_unavailable` codes, an owned success pointer, and an idempotent
+  dispose operation that clears the pointer after cleanup.
+- Kept `flow_text_concat` as a compatibility adapter over the tagged API, so
+  existing LLVM/TinyVM output and the governed import tuple remain unchanged
+  until their ABI carriers are ready for the new result shape.
+- Added a direct provider API test covering successful ownership, invalid input,
+  bounded exhaustion, and cleanup; the complete fresh CTest graph passed
+  **86/86** in 38.78s.
+
+## Exact next action
+
+Define the cross-backend carrier for the tagged provider result and route the
+existing `text_outcome` operation through it, with explicit failure-code
+observation on LLVM and TinyVM. Preserve the artifact rule that host pointers
+never appear in serialized plans. State remains CONTINUE.

@@ -274,6 +274,14 @@ add_test(NAME text_runtime_boundary
 set_tests_properties(text_runtime_boundary PROPERTIES
     DEPENDS "text_value_boundary")
 
+add_test(NAME text_runtime_tagged_api
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-runtime-api.sh)
+set_tests_properties(text_runtime_tagged_api PROPERTIES
+    DEPENDS "text_runtime_boundary")
+
 add_test(NAME namespace_ambiguity
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>
