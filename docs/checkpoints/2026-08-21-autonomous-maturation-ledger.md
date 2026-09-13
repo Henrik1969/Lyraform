@@ -1341,10 +1341,13 @@ LLVM/TinyVM differential and failure evidence. State remains CONTINUE.
 - A provider failure is an explicit TinyVM import trap (`TV1_TRAP_UNRESOLVED_IMPORT`)
   and an LLVM `llvm.trap`, with the same non-success disposition in the
   differential fixture.
+- The runtime fixture now chains one owned result into another concat and prints
+  the final value twice, covering repeated provider-owned storage use on both
+  backends.
 
 ## Exact next action
 
-Broaden the bounded Text contract beyond this one provider shape: define a
-portable failure outcome rather than backend traps, then cover repeated and
-fan-out ownership/lifetime cases. Keep artifact-visible host pointers
-prohibited. State remains CONTINUE.
+Define the backend-neutral `Outcome<Text, TextFailure>` representation and map
+the current provider failures into it before adding a second provider shape.
+Then cover fan-out ownership/lifetime cases. Keep artifact-visible host
+pointers prohibited. State remains CONTINUE.

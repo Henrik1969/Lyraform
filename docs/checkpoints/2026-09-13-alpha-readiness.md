@@ -87,7 +87,9 @@ when operands are initializer-known constants, and `puts_text(Text)` provides a
 declared borrowed view at the native call boundary. Runtime owned allocation,
 explicit failure/exhaustion, and general owned Text returns remain open gates;
 the native bounded provider path now covers those behaviors for one concat
-shape, while the compile-time slice has TinyVM parity.
+shape, while the runtime fixture also chains a provider-owned result into a
+second concat and prints it repeatedly; the compile-time slice has TinyVM
+parity.
 
 The existing `c_string` ABI carrier remains unchanged and is not silently
 promoted into the language contract.

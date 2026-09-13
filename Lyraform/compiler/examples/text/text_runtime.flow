@@ -9,6 +9,9 @@ fn join(left : Text, right : Text): Text {
 }
 
 main {
-    value : Text(join("Lyra", "form — Igor"))
+    prefix : Text(join("Lyra", "form"))
+    value : Text(join(prefix, " — Igor"))
+    print prefix
+    print value
     print value
 }

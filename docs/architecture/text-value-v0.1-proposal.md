@@ -99,6 +99,8 @@ The current generic chain admits the following bounded slice:
   authorized call, and non-ASCII UTF-8 bytes survive LLVM/native lowering;
 - the declared `text_runtime` provider owns bounded `Text + Text` results up to
   4096 UTF-8 bytes; provider exhaustion is surfaced as an explicit LLVM trap;
+- the bounded runtime fixture exercises chained ownership and repeated output
+  of the same returned Text value on both current backends;
 - `print` resolves only to a declared `puts_text(Text): c_int` capability;
 - Text operation identity, provider identity, and Text carrier type survive
   Flowparallel, Flowoptimize, Flowbind, and Flowlower;
@@ -111,6 +113,16 @@ This slice deliberately does not claim general runtime allocation policy or
 TinyVM ownership beyond the bounded provider shape. Portable failure outcomes,
 broader dynamic concatenation, and general runtime allocation policy remain
 admission gates for the complete v0.1 contract.
+
+## Transitional failure mapping
+
+The current provider ABI returns a non-null owned pointer on success and null on
+bounded-storage or allocation failure. LLVM maps null to `llvm.trap`; TinyVM
+maps provider rejection to `TV1_TRAP_UNRESOLVED_IMPORT`. This is explicit and
+tested, but backend-specific. The portable v0.1 outcome should be a typed
+`Outcome<Text, TextFailure>` at the backend-neutral boundary, with at least
+`exhausted`, `invalid_input`, and `provider_unavailable` dispositions, before
+the contract is called complete.
 
 ## Open review questions
 

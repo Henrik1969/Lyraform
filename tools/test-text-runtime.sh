@@ -31,7 +31,7 @@ jq -e '
 "$bind" --policy "$policy" < "$tmpdir/semantic.json" > "$tmpdir/binding.json"
 "$lower" --emit-llvm "$tmpdir/text.ll" --binding-report "$tmpdir/binding.json" < "$tmpdir/optimized.json" > "$tmpdir/lowering.json"
 clang "$tmpdir/text.ll" "$text_runtime" -o "$tmpdir/text"
-printf '%s\n' 'Lyraform — Igor' > "$tmpdir/expected"
+printf '%s\n' 'Lyraform' 'Lyraform — Igor' 'Lyraform — Igor' > "$tmpdir/expected"
 "$tmpdir/text" > "$tmpdir/output"
 cmp -s "$tmpdir/expected" "$tmpdir/output"
 
