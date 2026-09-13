@@ -66,4 +66,23 @@ if "$tiny_lower" "$work/refusal-lowering.json" "$work/refusal.tvm" > "$work/refu
   exit 1
 fi
 jq -e '.status == "unsupported" and (.reason | contains("not admitted"))' "$work/refusal-result.json" >/dev/null
+
+uninitialized_fixture="$root/Lyraform/compiler/examples/fail/abi_file_uninitialized_write.flow"
+printf '%s\n' \
+  'allow libc.so.6 open c io c_string,c_int c_int' \
+  'allow libc.so.6 write c io c_int,c_pointer,c_size_t c_long' \
+  'allow libc.so.6 close c io c_int c_int' > "$work/uninitialized-policy"
+"$flowmini" --dump-frontend-bundle "$uninitialized_fixture" > "$work/uninitialized-frontend.json"
+"$analyst" --lowering-plan-version 2 < "$work/uninitialized-frontend.json" > "$work/uninitialized-semantic.json"
+"$parallel" < "$work/uninitialized-semantic.json" > "$work/uninitialized-parallel.json"
+"$optimize" < "$work/uninitialized-parallel.json" > "$work/uninitialized-optimized.json"
+"$bind" --policy "$work/uninitialized-policy" < "$work/uninitialized-semantic.json" > "$work/uninitialized-binding.json"
+"$prepare" --binding-report "$work/uninitialized-binding.json" "$work/uninitialized-optimized.json" > "$work/uninitialized-lowering.json"
+"$tiny_lower" "$work/uninitialized-lowering.json" "$work/uninitialized.tvm" >/dev/null
+set +e
+"$tiny_run" --policy "$work/uninitialized-policy" "$work/uninitialized.tvm" > "$work/uninitialized-output.json"
+uninitialized_status=$?
+set -e
+test "$uninitialized_status" -ne 0
+tail -n 1 "$work/uninitialized-output.json" | jq -e '.status == "faulted" and .trap == 7' >/dev/null
 echo "file I/O boundary: PASS"

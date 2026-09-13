@@ -1678,3 +1678,19 @@ Continue the first unfinished mission gate with partial-transfer and stronger
 initialized-byte semantics, keeping `sendfile` refused until its offset and
 transfer contract can be represented without raw host pointers. State remains
 CONTINUE.
+
+## 2026-09-13 initialized-byte file I/O checkpoint
+
+- TinyVM storage now carries initialized-byte state. Bounded `read` marks only
+  positively transferred bytes initialized, and bounded `write` refuses an
+  uninitialized range before calling the host provider.
+- The focused `file_io_boundary` gate passed **1/1**, including a successful
+  read-to-write path and an explicit trap-7 uninitialized-write refusal. The
+  complete canonical CTest suite passed **94/94** in 35.51 seconds.
+
+## Exact next action
+
+Continue the first unfinished mission gate with partial-transfer semantics or
+the next approved receiver/graph contract; keep raw-pointer offset operations
+such as `sendfile` explicitly unsupported until their storage representation is
+complete. State remains CONTINUE.

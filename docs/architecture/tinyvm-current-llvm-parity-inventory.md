@@ -15,7 +15,7 @@ executable for every tuple outside the admitted set below.
 | `libc` / `pure` | `abs(c_int)->c_int`, `labs(c_long)->c_long`, `strlen(c_string)->c_size_t`, `strnlen(c_string,c_size_t)->c_size_t` |
 | `ctype` / `pure` | `tolower(c_int)->c_int`, `toupper(c_int)->c_int` |
 | `libc` / `io` | `puts(c_string)->c_int` |
-| `file_io` / `io` | `open(c_string,c_int)->c_int`, `read(c_int,c_pointer,c_size_t)->c_long`, `write(c_int,c_pointer,c_size_t)->c_long`, `close(c_int)->c_int` with runtime-owned descriptor tracking, bounded storage, and cleanup |
+| `file_io` / `io` | `open(c_string,c_int)->c_int`, `read(c_int,c_pointer,c_size_t)->c_long`, `write(c_int,c_pointer,c_size_t)->c_long`, `close(c_int)->c_int` with runtime-owned descriptor tracking, bounded storage, initialized-byte checks, and cleanup |
 | `kernel` or `linux` / `readonly` | `getpid`, `getuid`, `getgid`, `geteuid`, `getegid`, `getppid`, `getpgrp` as `()->c_int` |
 | `kernel` or `linux` / `readonly` | `getpgid(c_int)->c_int`, `getsid(c_int)->c_int`, `getpriority(c_int,c_int)->c_int` |
 

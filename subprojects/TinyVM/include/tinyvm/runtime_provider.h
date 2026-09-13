@@ -9,6 +9,7 @@ typedef struct {
 
 typedef struct {
     unsigned char *bytes;
+    unsigned char *initialized;
     size_t length;
 } TinyvmRuntimeStorage;
 

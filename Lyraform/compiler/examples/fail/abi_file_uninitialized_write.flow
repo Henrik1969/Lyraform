@@ -1,0 +1,15 @@
+import "../../std/abi/file_io.flow"
+
+program abi_file_uninitialized_write
+
+main {
+    descriptor : c_int(open("/dev/null", 1))
+    buffer : c_pointer(8)
+    count : c_size_t(8)
+    result : c_long(0)
+
+    if descriptor >= 0 {
+        write(descriptor, buffer, count) -> result
+        close(descriptor) -> result
+    }
+}
