@@ -1446,3 +1446,20 @@ never appear in serialized plans. State remains CONTINUE.
 Expose the observed `TextFailure` code as a recoverable language-level outcome
 instead of an unconditional backend trap, then add an explicit last-owner
 cleanup test for both backends. State remains CONTINUE.
+
+## 2026-09-13 structured Text failure result checkpoint
+
+- `flowtinyrun` now carries a recognized tagged Text failure into its
+  machine-readable execution record as `Outcome<Text,TextFailure>` with the
+  stable failure code. The existing TinyVM fault and trap fields remain for
+  compatibility, and LLVM's native process disposition remains unchanged.
+- Exhaustion coverage now asserts the structured `exhausted` code in addition
+  to the deterministic TinyVM trap. The complete fresh CTest graph passed
+  **86/86** in 37.43s.
+
+## Exact next action
+
+Add a Flow-level `Outcome<Text,TextFailure>` carrier and explicit recovery
+branching for the bounded concat example, then prove that successful values are
+disposed exactly once after the final consumer on LLVM and TinyVM. State
+remains CONTINUE.

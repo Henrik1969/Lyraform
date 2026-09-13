@@ -59,3 +59,13 @@ consume that tagged transport and observe its code before mapping failure to
 their transitional trap/fault behavior. The semantic failure value is still
 not recoverable by Flow code, and cleanup remains provider-activation scoped;
 explicit language-level recovery and last-owner cleanup are the next slice.
+
+For TinyVM, `flowtinyrun` now preserves the observed failure as an execution
+record field:
+
+```json
+{"outcome":{"type":"Outcome","failure_type":"TextFailure","failure_code":"exhausted"}}
+```
+
+This is an external execution result, not yet a Flow value. LLVM native
+execution still exposes the transitional nonzero process disposition.

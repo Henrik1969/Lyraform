@@ -59,6 +59,6 @@ set +e
 overflow_status=$?
 set -e
 test "$overflow_status" -ne 0
-jq -e '.status == "faulted" and .trap == 7' "$tmpdir/overflow.execution.json" >/dev/null
+jq -e '.status == "faulted" and .trap == 7 and .outcome.type == "Outcome" and .outcome.failure_type == "TextFailure" and .outcome.failure_code == "exhausted"' "$tmpdir/overflow.execution.json" >/dev/null
 
 echo 'Runtime Text LLVM/TinyVM parity: PASS (owned bounded concat and governed output)'

@@ -13,6 +13,12 @@ static unsigned version(const char *path) {
     return (unsigned)header[8]|(unsigned)header[9]<<8|(unsigned)header[10]<<16|(unsigned)header[11]<<24;
 }
 
+static const char *text_outcome_code(const char *fault) {
+    static const char prefix[] = "text outcome ";
+    if (!fault || strncmp(fault, prefix, sizeof(prefix) - 1) != 0) return NULL;
+    return fault + sizeof(prefix) - 1;
+}
+
 static int run_v2(const char *path,const char *policy,const char *engine,int argument_count,char **arguments) {
     TinyvmArtifactV2 artifact; char diagnostic[160];
     if(!tinyvm_artifact_v2_read(path,&artifact,diagnostic,sizeof diagnostic)){fprintf(stderr,"flowtinyrun: %s\n",diagnostic);return 1;}
@@ -32,7 +38,10 @@ static int run_v2(const char *path,const char *policy,const char *engine,int arg
     if(artifact.import_count){context.import_resolver=tinyvm_runtime_provider_resolve;context.import_user=&provider;}
     const bool ok=!strcmp(engine,"computed")?tinyvm_isa_v1_run_computed(&artifact,&context):tinyvm_isa_v1_run_switch(&artifact,&context);
     if(!ok&&context.fault)fprintf(stderr,"flowtinyrun: %s\n",context.fault);
-    printf("{\"format\":\"flowtiny.execution_record\",\"version\":1,\"status\":\"%s\",\"artifact_format\":2,\"artifact_id\":\"%s\",\"target_policy_id\":\"%s\",\"carrier\":%u,\"result\":%" PRIu64 ",\"pc\":%" PRIu64 ",\"trap\":%u}\n",ok?"completed":"faulted",artifact.artifact_id,artifact.target_policy_id,context.result.carrier,context.result.bits,context.pc,context.trap);
+    const char *outcome_code = text_outcome_code(context.fault);
+    printf("{\"format\":\"flowtiny.execution_record\",\"version\":1,\"status\":\"%s\",\"artifact_format\":2,\"artifact_id\":\"%s\",\"target_policy_id\":\"%s\",\"carrier\":%u,\"result\":%" PRIu64 ",\"pc\":%" PRIu64 ",\"trap\":%u",ok?"completed":"faulted",artifact.artifact_id,artifact.target_policy_id,context.result.carrier,context.result.bits,context.pc,context.trap);
+    if (outcome_code) printf(",\"outcome\":{\"type\":\"Outcome\",\"failure_type\":\"TextFailure\",\"failure_code\":\"%s\"}", outcome_code);
+    puts("}");
     tinyvm_isa_v1_context_destroy(&context); tinyvm_runtime_provider_destroy(&provider); tinyvm_artifact_v2_destroy(&artifact); return ok?0:1;
 }
 
