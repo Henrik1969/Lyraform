@@ -508,6 +508,7 @@ struct GraphNodeSyntax {
     std::string name;
     std::string implementation;
     bool source_function = false;
+    bool persistent = false;
     SourceLocation location;
 };
 
@@ -531,6 +532,13 @@ struct GraphPolicySyntax {
     SourceLocation location;
 };
 
+struct GraphStateSyntax {
+    std::string node;
+    std::string type;
+    std::string value_text;
+    SourceLocation location;
+};
+
 struct AstModule {
     SourceUnit source_unit;
     std::vector<TopLevelDecl> declaration_pool;
@@ -543,6 +551,7 @@ struct AstModule {
     std::vector<GraphNodeSyntax> graph_nodes;
     std::vector<GraphWireSyntax> graph_wires;
     std::vector<GraphPolicySyntax> graph_policies;
+    std::vector<GraphStateSyntax> graph_states;
 };
 
 const char* to_string(SourceUnitKind kind);

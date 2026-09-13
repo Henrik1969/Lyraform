@@ -177,6 +177,8 @@ public:
                 module_.wires.push_back(parseWireDecl());
             } else if (match(TokenKind::KeywordPolicy)) {
                 module_.policies.push_back(parsePolicyDecl());
+            } else if (match(TokenKind::KeywordState)) {
+                parseStateDecl();
             } else if (looksLikePlacement()) {
                 [[maybe_unused]] const Step ignored = parsePlacementAsStep();
             } else if (check(TokenKind::Identifier) && lookahead(1).kind == TokenKind::Colon) {
@@ -243,7 +245,17 @@ private:
         expect(TokenKind::Colon, "expected ':' after node id");
         decl.source_function = match(TokenKind::KeywordFn);
         decl.kind = parseQualifiedName();
+        decl.persistent = match(TokenKind::KeywordPersistent);
         return decl;
+    }
+
+    void parseStateDecl() {
+        expectIdentifier("expected state receiver id");
+        expect(TokenKind::Colon, "expected ':' after state receiver id");
+        (void)parseQualifiedName();
+        expect(TokenKind::Equals, "expected '=' in state declaration");
+        if (match(TokenKind::Minus)) expect(TokenKind::Number, "expected state integer");
+        else expect(TokenKind::Number, "expected state integer");
     }
 
     void lowerReceivers() {

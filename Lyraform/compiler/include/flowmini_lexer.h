@@ -18,6 +18,8 @@ namespace flowmini {
         KeywordSink,
         KeywordWire,
         KeywordPolicy,
+        KeywordState,
+        KeywordPersistent,
         KeywordTarget,
         KeywordMain,
         KeywordFn,

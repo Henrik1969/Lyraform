@@ -182,7 +182,8 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
             const auto& parameters = required_array(fn, "parameters");
             const auto activation = receiver ? std::string{} : json::string(json::required(node, "activation"), "$.activation");
             const auto stream = !receiver && activation == "finite_stream_once";
-            if (parameters.size() != (receiver || stream ? 1u : 0u) ||
+            const auto persistent = receiver && json::optional(node, "state_contract") != nullptr;
+            if (parameters.size() != (receiver ? (persistent ? 2u : 1u) : (stream ? 1u : 0u)) ||
                 json::string(json::required(fn, "return_type"), "$.return_type") != json::string(json::required(node, "output_type"), "$.output_type"))
                 throw json::Error(std::string(base), "graph function signature differs from callable catalog");
             if (!receiver) {
@@ -213,6 +214,16 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
                     json::string(json::required(param, "type"), "$.type") != json::string(json::required(node, "input_type"), "$.input_type") ||
                     json::string(json::required(fn, "availability"), "$.availability") != "definition")
                     throw json::Error(std::string(base), "graph receiver definition differs from callable catalog");
+                if (persistent) {
+                    const auto& state = node;
+                    const auto& state_param = json::object(parameters[1]);
+                    if (json::string(json::required(state, "state_contract"), "$.state_contract") != "persistent_scalar_v1" ||
+                        json::string(json::required(state, "state_type"), "$.state_type") != "c_long" ||
+                        json::string(json::required(state, "state_initial_value"), "$.state_initial_value").empty() ||
+                        json::integer(json::required(state, "state_parameter_symbol_id"), "$.state_parameter_symbol_id") != json::integer(json::required(state_param, "symbol_id"), "$.state_parameter_symbol_id") ||
+                        json::string(json::required(state_param, "type"), "$.state_parameter.type") != "c_long")
+                        throw json::Error(std::string(base), "graph persistent receiver state differs from callable catalog");
+                }
             }
         };
         for (const auto& node : graph.receivers) resolve(node, true);

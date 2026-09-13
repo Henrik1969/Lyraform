@@ -12,6 +12,9 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
     using namespace json;
     const auto graph = source_graph(graph_value);
     if (!graph.executable) throw Error("$.source_graph", "source graph execution is not admitted");
+    for (const auto& receiver : graph.receivers)
+        if (optional(object(receiver, "$.receivers[]"), "state_contract"))
+            throw Error("$.graph_schedule", "persistent receiver schedule is not yet admitted");
     std::vector<const json::Value*> stream_providers;
     for (const auto& provider : graph.providers)
         if (string(required(object(provider, "$.providers[]"), "activation", "$.providers[]"), "$.providers[].activation") == "finite_stream_once")

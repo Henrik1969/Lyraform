@@ -2797,7 +2797,7 @@ namespace flowmini::ast {
             const auto start = i;
             const auto kind = tokens[i].kind;
             if (kind != K::KeywordProducer && kind != K::KeywordNode &&
-                kind != K::KeywordSink && kind != K::KeywordWire && kind != K::KeywordPolicy) continue;
+                kind != K::KeywordSink && kind != K::KeywordWire && kind != K::KeywordPolicy && kind != K::KeywordState) continue;
             auto require = [&](K expected) -> const flowmini::Token& {
                 if (i >= tokens.size() || tokens[i].kind != expected)
                     throw flow::DiagnosticError{"parser", "malformed graph declaration at line " +
@@ -2813,7 +2813,19 @@ namespace flowmini::ast {
                 return value;
             };
             ++i;
-            if (kind == K::KeywordPolicy) {
+            if (kind == K::KeywordState) {
+                GraphStateSyntax state;
+                state.location = location_from_token(tokens[start]);
+                state.node = require(K::Identifier).text;
+                require(K::Colon);
+                state.type = name();
+                require(K::Equals);
+                bool negative = i < tokens.size() && tokens[i].kind == K::Minus;
+                if (negative) ++i;
+                const auto& value = require(K::Number);
+                state.value_text = (negative ? "-" : "") + value.text;
+                module.graph_states.push_back(std::move(state));
+            } else if (kind == K::KeywordPolicy) {
                 GraphPolicySyntax policy;
                 policy.location = location_from_token(tokens[start]);
                 policy.node = require(K::Identifier).text;
@@ -2858,6 +2870,8 @@ namespace flowmini::ast {
                     node.source_function = true;
                 }
                 node.implementation = name();
+                node.persistent = i < tokens.size() && tokens[i].kind == K::KeywordPersistent;
+                if (node.persistent) ++i;
                 module.graph_nodes.push_back(std::move(node));
             }
             if (i < tokens.size() && tokens[i].kind != K::Newline && tokens[i].kind != K::End)

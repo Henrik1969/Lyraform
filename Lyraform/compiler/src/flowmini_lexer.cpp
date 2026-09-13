@@ -20,6 +20,8 @@ const char* tokenKindName(TokenKind kind) {
         case TokenKind::KeywordSink:     return "sink";
         case TokenKind::KeywordWire:     return "wire";
         case TokenKind::KeywordPolicy:   return "policy";
+        case TokenKind::KeywordState:    return "state";
+        case TokenKind::KeywordPersistent:return "persistent";
         case TokenKind::KeywordTarget:   return "target";
         case TokenKind::KeywordMain:     return "main";
         case TokenKind::KeywordFn:       return "fn";
@@ -81,6 +83,8 @@ namespace {
     if (text == "sink") { return TokenKind::KeywordSink; }
     if (text == "wire") { return TokenKind::KeywordWire; }
     if (text == "policy") { return TokenKind::KeywordPolicy; }
+    if (text == "state") { return TokenKind::KeywordState; }
+    if (text == "persistent") { return TokenKind::KeywordPersistent; }
     if (text == "target") { return TokenKind::KeywordTarget; }
     if (text == "main") { return TokenKind::KeywordMain; }
     if (text == "fn") { return TokenKind::KeywordFn; }

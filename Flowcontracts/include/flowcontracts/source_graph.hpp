@@ -9,6 +9,7 @@ namespace flowcontracts {
 
 struct SourceGraphNode {
     std::string id, role, implementation_kind, implementation_name;
+    bool persistent = false;
 };
 struct SourceGraphEndpoint { std::string node, port; };
 struct SourceGraphWire { std::string id; SourceGraphEndpoint from, to; };
@@ -55,7 +56,9 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
     for (const auto& value : array(required(syntax, "nodes", syntax_path), syntax_path + ".nodes")) {
         const auto p = syntax_path + ".nodes[" + std::to_string(result.nodes.size()) + "]";
         const auto& item = object(value, p);
-        SourceGraphNode node{nonempty(item, "node_id", p), str(item, "role", p), str(item, "implementation_kind", p), nonempty(item, "implementation_name", p)};
+        bool persistent = false;
+        if (const auto* value = optional(item, "persistent")) persistent = boolean(*value, p + ".persistent");
+        SourceGraphNode node{nonempty(item, "node_id", p), str(item, "role", p), str(item, "implementation_kind", p), nonempty(item, "implementation_name", p), persistent};
         if (node.role != "producer" && node.role != "node" && node.role != "sink") throw Error(p + ".role", "unknown graph node role");
         if (node.implementation_kind != "source_function" && node.implementation_kind != "provider_atom") throw Error(p, "unknown graph implementation kind");
         if (!nodes.emplace(node.id, node).second) throw Error(p, "duplicate graph node identity");
@@ -81,6 +84,22 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
         result.wires.push_back(std::move(wire));
     }
     result.policies = array(required(syntax, "policies", syntax_path), syntax_path + ".policies");
+    std::map<std::string, std::string> state_initial_values;
+    if (const auto* states = optional(syntax, "states")) {
+        for (std::size_t i = 0; i < array(*states, syntax_path + ".states").size(); ++i) {
+            const auto p = syntax_path + ".states[" + std::to_string(i) + "]";
+            const auto& item = object(array(*states, syntax_path + ".states")[i], p);
+            const auto node = nonempty(item, "node_id", p);
+            if (!nodes.count(node) || !nodes.at(node).persistent || !state_initial_values.emplace(node, nonempty(item, "value_text", p)).second)
+                throw Error(p, "state declaration does not match one persistent receiver");
+            if (nonempty(item, "type", p) != "c_long") throw Error(p + ".type", "persistent state requires c_long");
+            Integer value = 0;
+            const auto text = str(item, "value_text", p);
+            const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+            if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size()) throw Error(p + ".value_text", "invalid persistent state literal");
+            provenance(item, p);
+        }
+    }
     std::set<std::pair<std::string, std::string>> policies;
     for (std::size_t i = 0; i < result.policies.size(); ++i) {
         const auto p = syntax_path + ".policies[" + std::to_string(i) + "]";
@@ -111,6 +130,14 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             if (integer(required(item, key, p), p + "." + key) < 0) throw Error(p, "invalid receiver function identity");
         if (str(item, "activation_contract", p) != "fresh_single_input_v1" || str(item, "input_port", p) != "in" || str(item, "output_port", p) != "out")
             throw Error(p, "unsupported receiver activation contract");
+        const bool persistent = nodes.at(node).persistent;
+        if (persistent) {
+            if (str(item, "state_contract", p) != "persistent_scalar_v1" || str(item, "state_type", p) != "c_long" ||
+                integer(required(item, "state_parameter_symbol_id", p), p + ".state_parameter_symbol_id") < 0 || !state_initial_values.count(node) ||
+                str(item, "state_initial_value", p) != state_initial_values.at(node))
+                throw Error(p, "persistent receiver state contract is incomplete");
+            if (str(item, "output_type", p) != "c_long") throw Error(p + ".output_type", "persistent receiver must return c_long state");
+        } else if (optional(item, "state_contract")) throw Error(p, "non-persistent receiver carries state contract");
         types[node] = {nonempty(item, "input_type", p), nonempty(item, "output_type", p)};
         provenance(item, p);
     }

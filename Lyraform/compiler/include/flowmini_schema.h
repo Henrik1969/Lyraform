@@ -22,6 +22,7 @@ struct NodeDecl {
     std::string id;
     std::string kind;
     bool source_function = false;
+    bool persistent = false;
 };
 
 struct WireDecl {

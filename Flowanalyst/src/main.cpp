@@ -294,6 +294,22 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 !list(nodes).empty() ? list(nodes).front() : list(wires).front());
         std::set<std::string> node_ids, wire_ids;
         std::map<std::string, const Callable*> receiver_functions;
+        std::map<std::string, const Json*> graph_states;
+        for (const auto& state : list(field(graph, "states"))) {
+            const auto state_node = text(field(state, "node_id"));
+            if (state_node.empty() || !graph_states.emplace(state_node, &state).second)
+                graph_diagnostic("FLOWANALYST_GRAPH_STATE_ID", "empty or duplicate persistent state identity", state);
+            const auto state_type = text(field(state, "type"));
+            const auto state_value = text(field(state, "value_text"));
+            if (state_type != "c_long") graph_diagnostic("FLOWANALYST_GRAPH_STATE_TYPE", "persistent state requires c_long", state);
+            try {
+                std::size_t parsed = 0;
+                (void)std::stoll(state_value, &parsed);
+                if (parsed != state_value.size()) throw std::invalid_argument("trailing state literal");
+            } catch (const std::exception&) {
+                graph_diagnostic("FLOWANALYST_GRAPH_STATE_VALUE", "persistent state requires a signed 64-bit literal", state);
+            }
+        }
         for (const auto& node : list(nodes)) {
             const auto id = text(field(node, "node_id"));
             if (id.empty() || !node_ids.insert(id).second)
@@ -371,6 +387,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 continue;
             }
             const auto name = text(field(node, "implementation_name"));
+            const bool persistent = field(node, "persistent") && std::holds_alternative<bool>(*field(node, "persistent")) && std::get<bool>(*field(node, "persistent"));
             std::vector<const Callable*> candidates;
             for (const auto& callable : callables)
                 if (!callable.entry && callable.name == name) candidates.push_back(&callable);
@@ -381,10 +398,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             }
             const auto& callable = *candidates.front();
             if (text(field(node, "role")) != "node" || callable.availability != "definition" ||
-                callable.body_block < 0 || callable.parameters.size() != 1 ||
-                callable.return_type.empty() || callable.return_type == "void") {
+                callable.body_block < 0 || callable.parameters.size() != (persistent ? 2u : 1u) ||
+                callable.return_type.empty() || callable.return_type == "void" ||
+                (persistent && (!graph_states.count(id) || callable.parameters[1].second != "c_long" || callable.return_type != "c_long"))) {
                 graph_diagnostic("FLOWANALYST_GRAPH_RECEIVER_CONTRACT",
-                    "source receiver requires a defined one-input one-result function and node role", node);
+                    persistent ? "persistent receiver requires a defined (input, c_long) -> c_long function and state declaration"
+                               : "source receiver requires a defined one-input one-result function and node role", node);
                 continue;
             }
             if (graph_plan_version == 2) {
@@ -393,19 +412,34 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                         type == "c_int" || type == "c_long" || type == "c_ulong" ||
                         type == "c_size_t" || type == "c_string";
                 };
-                if (!native_carrier(callable.parameters.front().second) || !native_carrier(callable.return_type)) {
+                if (!native_carrier(callable.parameters.front().second) || (persistent && !native_carrier(callable.parameters[1].second)) || !native_carrier(callable.return_type)) {
                     graph_diagnostic("FLOWANALYST_GRAPH_RECEIVER_CARRIER",
                         "native source receiver requires an admitted scalar carrier", node);
                     continue;
                 }
             }
-            graph_receivers.push_back(Object{{"node_id", id}, {"function_symbol_id", callable.symbol},
+            Object receiver = Object{{"node_id", id}, {"function_symbol_id", callable.symbol},
                 {"parameter_symbol_id", callable.parameters.front().first},
                 {"input_port", std::string("in")}, {"input_type", callable.parameters.front().second},
                 {"output_port", std::string("out")}, {"output_type", callable.return_type},
                 {"provenance", field(node, "provenance") ? *field(node, "provenance") : Json(nullptr)},
-                {"activation_contract", std::string("fresh_single_input_v1")}});
+                {"activation_contract", std::string("fresh_single_input_v1")}};
+            if (persistent) {
+                const auto& state = *graph_states.at(id);
+                receiver.emplace("state_contract", "persistent_scalar_v1");
+                receiver.emplace("state_type", "c_long");
+                receiver.emplace("state_initial_value", text(field(state, "value_text")));
+                receiver.emplace("state_parameter_symbol_id", callable.parameters[1].first);
+            }
+            graph_receivers.push_back(std::move(receiver));
             receiver_functions.emplace(id, &callable);
+        }
+        for (const auto& [state_node, state] : graph_states) {
+            bool target = false;
+            for (const auto& node : list(nodes))
+                if (text(field(node, "node_id")) == state_node && text(field(node, "implementation_kind")) == "source_function" &&
+                    field(node, "persistent") && std::holds_alternative<bool>(*field(node, "persistent")) && std::get<bool>(*field(node, "persistent"))) target = true;
+            if (!target) graph_diagnostic("FLOWANALYST_GRAPH_STATE_TARGET", "persistent state must target a persistent source receiver", *state);
         }
         std::set<std::string> connected_receivers;
         for (const auto& wire : list(wires)) {

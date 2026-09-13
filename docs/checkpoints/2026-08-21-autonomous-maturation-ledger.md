@@ -1970,3 +1970,23 @@ State remains CONTINUE.
 Capture the persistent declaration in frontend/source-graph artifacts and add
 identity/initial-value validation before admitting it to a state-aware schedule.
 State remains CONTINUE.
+
+## 2026-09-13 persistent state artifact checkpoint
+
+- Added generic frontend syntax for an explicit persistent receiver marker and
+  state declaration: `node ... persistent` with `state <receiver> : c_long =
+  <signed-64-bit-literal>`.
+- Flowanalyst now requires the persistent `(input, c_long) -> c_long` callable
+  shape and carries state contract, state parameter identity, type, and initial
+  value into `flowcore.source_graph`.
+- Source-graph validation binds the declaration to exactly one receiver,
+  preserves its initial literal, and rejects forged, duplicated, retargeted,
+  wrong-type, and out-of-range state artifacts. Focused evidence passes **1/1**.
+- Persistent schedules remain intentionally refused until state transition
+  identity and commit/rollback lowering are implemented.
+
+## Exact next action
+
+Define and emit the state-aware schedule template, then implement ordered native
+before/after state transitions with commit-on-success and rollback-on-failure.
+State remains CONTINUE.

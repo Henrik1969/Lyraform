@@ -182,4 +182,44 @@ for mutation in '.providers[0].node_id = "receiver"' '.providers[0].implementati
     fi
 done
 
+cat > "$tmpdir/persistent.flow" <<'FLOW'
+program persistent_graph
+abi host {
+    library "libc.so.6"
+    convention c
+    extern fn selected(): c_int {
+        symbol "getpid"
+        effect readonly
+    }
+}
+producer source : injected.renamed
+state receiver : c_long = 5
+node receiver : fn accumulate persistent
+wire source.out => receiver.in
+fn accumulate(value : c_int, prior : c_long): c_long { return prior }
+main { return 0 }
+FLOW
+"$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/persistent.flow" > "$tmpdir/persistent.frontend.json"
+jq -e '.graph_syntax.nodes[] | select(.node_id == "receiver") | .persistent == true' "$tmpdir/persistent.frontend.json" >/dev/null
+jq -e '.graph_syntax.states[0] | .node_id == "receiver" and .type == "c_long" and .value_text == "5" and .provenance.line == 11' "$tmpdir/persistent.frontend.json" >/dev/null
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/persistent.frontend.json" > "$tmpdir/persistent.semantic.json"
+jq -e '(.status == "ok") and ((.lowering_plan.source_graph.receivers[0] |
+    .state_contract == "persistent_scalar_v1" and .state_type == "c_long" and
+    .state_initial_value == "5" and .state_parameter_symbol_id >= 0))' "$tmpdir/persistent.semantic.json" >/dev/null
+jq '.lowering_plan.source_graph' "$tmpdir/persistent.semantic.json" > "$tmpdir/persistent.graph.json"
+"$FLOWVALIDATE_BIN" "$tmpdir/persistent.graph.json" | jq -e '.classification == "valid"' >/dev/null
+for mutation in \
+    '.receivers[0].state_initial_value = "6"' \
+    '.receivers[0].state_type = "c_int"' \
+    '.receivers[0].state_parameter_symbol_id = -1' \
+    '.syntax.states[0].value_text = "9223372036854775808"' \
+    '.syntax.states += [.syntax.states[0]]'; do
+    jq "$mutation" "$tmpdir/persistent.graph.json" > "$tmpdir/bad-persistent.graph.json"
+    if "$FLOWVALIDATE_BIN" "$tmpdir/bad-persistent.graph.json" >/dev/null; then
+        echo "invalid persistent graph accepted: $mutation" >&2; exit 1
+    fi
+done
+"$FLOWPARALLEL_BIN" < "$tmpdir/persistent.semantic.json" > "$tmpdir/persistent.execution.json" 2> "$tmpdir/persistent.error" || true
+grep -Fq 'persistent receiver schedule is not yet admitted' "$tmpdir/persistent.error"
+
 echo 'source graph artifact and provider selection: PASS'
