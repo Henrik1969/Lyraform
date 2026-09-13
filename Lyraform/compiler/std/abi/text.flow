@@ -18,6 +18,18 @@ abi text_runtime {
         effect memory
     }
 
+    // Atomic backend-neutral carrier. The native provider returns the tagged
+    // {code,value} value by value; host pointers never enter serialized plans.
+    extern fn concat_outcome(left : Text, right : Text): TextOutcome {
+        symbol "flow_text_concat_value"
+        effect memory
+    }
+
+    extern fn dispose(value : Text): c_int {
+        symbol "flow_text_dispose"
+        effect memory
+    }
+
     extern fn concat_status(left : Text, right : Text): c_int {
         symbol "flow_text_concat_status"
         effect memory

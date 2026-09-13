@@ -451,6 +451,7 @@ int verify(const std::string& report, const std::string& policy_path, const std:
             declared_representations[json_text(json_field(type, "name"))] = json_text(json_field(type, "repr"));
     auto supported_type = [&](const std::string& type) {
         if (type == "c_int" || type == "c_long" || type == "c_ulong" || type == "c_size_t" || type == "c_string" || type == "c_pointer") return true;
+        if (type == "TextOutcome") return true;
         const auto found = declared_representations.find(type);
         return found != declared_representations.end() && (found->second == "void*" || found->second == "const void*" ||
                                                             (type == "Text" && found->second == "const char*"));
@@ -461,6 +462,10 @@ int verify(const std::string& report, const std::string& policy_path, const std:
     for (const auto& item : needed) {
         if (!granted(grants, item)) failures.push_back(item.library + ": symbol '" + item.symbol + "' denied by capability policy");
         if (item.convention != "c") failures.push_back(item.symbol + ": unsupported calling convention '" + item.convention + "'");
+        if (item.return_type == "TextOutcome" &&
+            !(item.contract == "text_runtime" && item.library == "libflowtext.so" &&
+              item.symbol == "flow_text_concat_value" && item.parameter_types == "Text,Text"))
+            failures.push_back(item.symbol + ": TextOutcome is reserved for the atomic text provider contract");
         if (!supported_type(item.return_type)) failures.push_back(item.symbol + ": unsupported return ABI type '" + item.return_type + "'");
         std::size_t start = 0;
         while (start < item.parameter_types.size()) {

@@ -535,6 +535,13 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             for (const auto& callable : callables) if (callable.name == callee && callable.return_type == "Text") return true;
             return false;
         }
+        if (kind == "field_access") {
+            const auto* payload = field(*expression, "payload");
+            const int base = integer(field(payload, "base"));
+            const int symbol = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
+            return symbol >= 0 && symbol_types[symbol] == "TextOutcome" &&
+                text(field(payload, "field")) == "value";
+        }
         if (kind != "binary") return false;
         const auto* payload = field(*expression, "payload");
         return text(field(payload, "operator")) == "+" &&
@@ -872,7 +879,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         operation.arguments = site.arguments;
         if (const auto provider = provider_functions.find(site.callee_symbol); provider != provider_functions.end()) {
             const auto& requirement = provider->second;
-            operation.kind = "external_call";
+            operation.kind = requirement.contract == "text_runtime" &&
+                requirement.symbol == "flow_text_concat_value" &&
+                requirement.parameter_types == "Text,Text" &&
+                requirement.return_type == "TextOutcome"
+                ? "text_outcome" : "external_call";
             operation.contract = requirement.contract;
             operation.evidence = requirement.evidence;
             operation.library = requirement.library;
@@ -1093,6 +1104,19 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             const auto value = text(field(field(expression, "payload"), "value_text"));
             std::cout << ",\"type\":" << quote(declared_type == "Text" ? "Text" : "c_string")
                       << ",\"value\":" << quote(value);
+        } else if (kind == "field_access") {
+            const auto* payload = field(expression, "payload");
+            const auto field_name = text(field(payload, "field"));
+            const int base = integer(field(payload, "base"));
+            const int base_symbol = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
+            const auto base_type = symbol_types.count(base_symbol) ? symbol_types.at(base_symbol) : std::string{};
+            if (base_type != "TextOutcome" || (field_name != "code" && field_name != "value")) {
+                std::cout << ",\"type\":\"unsupported\"";
+            } else {
+                std::cout << ",\"type\":" << quote(field_name == "code" ? "c_int" : "Text")
+                          << ",\"field\":" << quote(field_name) << ",\"base\":";
+                emit_operand(base, "TextOutcome");
+            }
         } else if (kind == "bool_literal") {
             std::cout << ",\"type\":\"bool\",\"value\":" << quote(text(field(field(expression, "payload"), "value_text"), "false"));
         } else if (kind == "identifier") {
@@ -1214,7 +1238,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             std::cout << ",\"effect_contract\":{\"external\":" << quote(operation.effect)
                       << ",\"determinism\":" << quote(operation.effect == "pure" ? "deterministic" : "unspecified")
                       << ",\"certainty\":\"declared\"}";
-            if (runtime_text_concats.count(operation.expression))
+            if (operation.kind == "text_outcome")
                 std::cout << ",\"result_outcome\":{\"type\":\"Outcome\",\"representation\":\"tagged\",\"success_type\":\"Text\",\"failure_type\":\"TextFailure\",\"failure_codes\":[\"invalid_input\",\"exhausted\",\"provider_unavailable\"]}";
             std::cout << ",\"argument_resources\":[";
             const auto parameter_carriers = operation.parameter_types.empty()

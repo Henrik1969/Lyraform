@@ -38,6 +38,7 @@ bool tinyvm_isa_v1_validate(const TinyvmArtifactV2 *a,char *d,size_t capacity){
         case TV1_STRING_HANDLE:if(!slot(a,w->a)||w->b<=0||(uint64_t)w->b>UINT64_C(0x00ffffffffffffff)||!string_value(a,(uint64_t)w->b)||w->pad){diagnose(d,capacity,"ISA v1 string handle is invalid");return false;}break;
         case TV1_STORAGE_HANDLE:if(!slot(a,w->a)||w->b<=0||(uint64_t)w->b>UINT64_C(0x00ffffffffffffff)||!storage_value(a,(uint64_t)w->b)||w->pad){diagnose(d,capacity,"ISA v1 storage handle is invalid");return false;}break;
         case TV1_CALL_IMPORT:{const TinyvmImport *x=w->b>0?import_value(a,(uint64_t)w->b):NULL;if(!slot(a,w->a)||!x||w->pad<0||(uint64_t)w->pad>a->data_words||import_parameter_count(x)>a->data_words-(uint64_t)w->pad){diagnose(d,capacity,"ISA v1 import call is invalid");return false;}break;}
+        case TV1_TEXT_OUTCOME_CODE:case TV1_TEXT_OUTCOME_VALUE:if(!slot(a,w->a)||!slot(a,w->b)||w->pad){diagnose(d,capacity,"ISA v1 TextOutcome projection is invalid");return false;}break;
         }
     }
     const int64_t terminal=a->code[a->code_count-1].opcode;if(terminal!=TV1_RETURN&&terminal!=TV1_TRAP&&terminal!=TV1_HALT){diagnose(d,capacity,"ISA v1 code has no terminal final instruction");return false;}
@@ -65,6 +66,7 @@ static bool comparison(TinyvmIsaV1Context *ctx,int64_t opcode,uint64_t dst,uint6
     TinyvmValue *x=read_slot(ctx,left,instruction),*y=read_slot(ctx,right,instruction);if(!x||!y)return false;if(x->carrier!=y->carrier||(!integer_carrier(x->carrier)&&x->carrier!=TINYVM_CARRIER_I1))return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"comparison carrier mismatch",instruction);int64_t a=x->carrier==TINYVM_CARRIER_I32?(int32_t)x->bits:signed_bits(x->bits),b=y->carrier==TINYVM_CARRIER_I32?(int32_t)y->bits:signed_bits(y->bits);bool r=opcode==TV1_CMP_EQ?a==b:opcode==TV1_CMP_NE?a!=b:opcode==TV1_CMP_LT?a<b:opcode==TV1_CMP_LE?a<=b:opcode==TV1_CMP_GT?a>b:a>=b;ctx->slots[dst]=(TinyvmValue){TINYVM_CARRIER_I1,r?1:0,true};return true;
 }
 static bool call_import(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx,const InstrWord *w,uint64_t instruction){const TinyvmImport *x=import_value(a,(uint64_t)w->b);const size_t count=import_parameter_count(x);for(size_t i=0;i<count;++i)if(!read_slot(ctx,(uint64_t)w->pad+i,instruction))return false;if(!ctx->import_resolver)return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,"authorized import has no runtime resolver",instruction);TinyvmValue result={0};const char *fault="runtime provider rejected import";if(!ctx->import_resolver(ctx->import_user,a,x,&ctx->slots[w->pad],count,&result,&fault))return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,fault?fault:"runtime provider rejected import",instruction);if(!result.initialized)return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,"runtime provider returned an uninitialized value",instruction);ctx->slots[w->a]=result;return true;}
+static bool text_outcome_projection(TinyvmIsaV1Context *ctx,uint64_t destination,uint64_t source,bool value_field,uint64_t instruction){TinyvmValue *outcome=read_slot(ctx,source,instruction);if(!outcome)return false;if(outcome->carrier!=TINYVM_CARRIER_TEXT_OUTCOME||!ctx->text_outcome_resolver)return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"TextOutcome projection is unavailable",instruction);TinyvmValue result={0};const char *fault="TextOutcome projection failed";if(!ctx->text_outcome_resolver(ctx->text_outcome_user,outcome,value_field,&result,&fault))return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,fault,instruction);if(!result.initialized)return trap(ctx,TV1_TRAP_UNRESOLVED_IMPORT,"TextOutcome projection returned an uninitialized value",instruction);ctx->slots[destination]=result;return true;}
 
 static void execution_inputs(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx){if(a->isa_version!=2||!ctx->slot_count)return;ctx->slots[0]=(TinyvmValue){TINYVM_CARRIER_I32,canonical_i32((int32_t)ctx->argument_count),true};for(size_t i=0;i<ctx->argument_count&&i+1<ctx->slot_count;++i)ctx->slots[i+1]=(TinyvmValue){TINYVM_CARRIER_OPAQUE_HANDLE,UINT64_C(0x0300000000000000)|i,true};}
 
@@ -88,6 +90,8 @@ bool tinyvm_isa_v1_run_switch(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx)
         case TV1_STRING_HANDLE:ctx->slots[w->a]=(TinyvmValue){TINYVM_CARRIER_OPAQUE_HANDLE,UINT64_C(0x0100000000000000)|(uint64_t)w->b,true};break;
         case TV1_STORAGE_HANDLE:ctx->slots[w->a]=(TinyvmValue){TINYVM_CARRIER_OPAQUE_HANDLE,UINT64_C(0x0200000000000000)|(uint64_t)w->b,true};break;
         case TV1_CALL_IMPORT:call_import(a,ctx,w,at);break;
+        case TV1_TEXT_OUTCOME_CODE:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,false,at);break;
+        case TV1_TEXT_OUTCOME_VALUE:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,true,at);break;
         default:return trap(ctx,TV1_TRAP_EXPLICIT,"invalid validated opcode",at);
         }
     }
@@ -103,7 +107,8 @@ bool tinyvm_isa_v1_run_computed(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ct
         [TV1_CMP_GT]=&&do_compare,[TV1_CMP_GE]=&&do_compare,[TV1_JMP]=&&do_jump,
         [TV1_BRANCH]=&&do_branch,[TV1_RETURN]=&&do_return,[TV1_TRAP]=&&do_trap,
         [TV1_HALT]=&&do_halt,[TV1_STRING_HANDLE]=&&do_string,
-        [TV1_STORAGE_HANDLE]=&&do_storage,[TV1_CALL_IMPORT]=&&do_import};
+        [TV1_STORAGE_HANDLE]=&&do_storage,[TV1_CALL_IMPORT]=&&do_import,
+        [TV1_TEXT_OUTCOME_CODE]=&&do_outcome_code,[TV1_TEXT_OUTCOME_VALUE]=&&do_outcome_value};
     if(!a||!ctx||(a->isa_version!=1&&a->isa_version!=2)||ctx->slot_count<a->data_words)return false;
     execution_inputs(a,ctx);
     ctx->pc=a->entrypoint;uint64_t at=0;const InstrWord *w=NULL;
@@ -125,6 +130,8 @@ do_halt:ctx->result=(TinyvmValue){TINYVM_CARRIER_I32,0,true};ctx->returned=true;
 do_string:ctx->slots[w->a]=(TinyvmValue){TINYVM_CARRIER_OPAQUE_HANDLE,UINT64_C(0x0100000000000000)|(uint64_t)w->b,true};goto next;
 do_storage:ctx->slots[w->a]=(TinyvmValue){TINYVM_CARRIER_OPAQUE_HANDLE,UINT64_C(0x0200000000000000)|(uint64_t)w->b,true};goto next;
 do_import:call_import(a,ctx,w,at);goto next;
+do_outcome_code:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,false,at);goto next;
+do_outcome_value:text_outcome_projection(ctx,(uint64_t)w->a,(uint64_t)w->b,true,at);goto next;
 done:
     return ctx->returned&&ctx->trap==0;
 }

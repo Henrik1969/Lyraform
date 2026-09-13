@@ -65,6 +65,8 @@ inline std::string llvm_type(std::string_view carrier) {
     if (carrier == "c_int") return "i32";
     if (carrier == "c_long" || carrier == "c_ulong" || carrier == "c_size_t") return "i64";
     if (carrier == "c_string" || carrier == "c_pointer" || carrier == "Text") return "ptr";
+    if (carrier == "TextFailure") return "i32";
+    if (carrier == "TextOutcome") return "{ i32, ptr }";
     return {};
 }
 inline bool c_symbol(std::string_view symbol) {
@@ -422,6 +424,16 @@ private:
             else if(native_type=="i64"&&wanted=="i32") out<<"  "<<converted<<" = trunc i64 "<<loaded<<" to i32\n"; else return {};
             return {wanted,converted};
         }
+        if(kind=="field_access") {
+            const auto field_name=text(field(value,"field"));
+            const auto* base=field(value,"base");
+            if(!base || (field_name!="code" && field_name!="value")) return {};
+            auto [base_type,base_value]=expression(*base,out,"TextOutcome");
+            if(base_type!="{ i32, ptr }" || base_value.empty()) return {};
+            const auto result="%flow_text_outcome_field_"+std::to_string(temporary_++);
+            out<<"  "<<result<<" = extractvalue { i32, ptr } "<<base_value<<", "<<(field_name=="code"?"0":"1")<<"\n";
+            return {field_name=="code"?"i32":"ptr",result};
+        }
         if(kind=="call_result") {
             const int expression_id=integer(field(value,"expression_id"),"expression_id");
             const auto found=call_results_.find(expression_id); return found==call_results_.end()?std::pair<std::string,std::string>{}:found->second;
@@ -504,7 +516,11 @@ private:
                 if(params.size()!=operands.size()) throw std::runtime_error("structured call operand count mismatch");
                 std::vector<std::pair<std::string,std::string>> args; for(std::size_t i=0;i<params.size();++i) args.push_back(expression(operands[i],out,params[i]));
                 std::string result;
-                if (op->kind == "text_outcome") {
+                if (op->kind == "text_outcome" && p.result == "TextOutcome") {
+                    result = "%flow_text_outcome_value_" + std::to_string(op->id);
+                    out << "  " << result << " = call { i32, ptr } @" << p.symbol << "(";
+                    for(std::size_t i=0;i<args.size();++i){if(i)out<<", ";out<<args[i].first<<" "<<args[i].second;} out << ")\n";
+                } else if (op->kind == "text_outcome") {
                     out << "  %flow_text_outcome_" << op->id << " = alloca { i32, ptr }, align 8\n"
                         << "  %flow_text_status_" << op->id << " = call i32 @flow_text_concat_outcome(ptr " << args[0].second << ", ptr " << args[1].second << ", ptr %flow_text_outcome_" << op->id << ")\n"
                         << "  %flow_text_code_ptr_" << op->id << " = getelementptr { i32, ptr }, ptr %flow_text_outcome_" << op->id << ", i32 0, i32 0\n"

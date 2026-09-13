@@ -6,7 +6,8 @@ typedef enum {
     TINYVM_CARRIER_I1 = 1,
     TINYVM_CARRIER_I32 = 2,
     TINYVM_CARRIER_I64 = 3,
-    TINYVM_CARRIER_OPAQUE_HANDLE = 4
+    TINYVM_CARRIER_OPAQUE_HANDLE = 4,
+    TINYVM_CARRIER_TEXT_OUTCOME = 5
 } TinyvmCarrier;
 
 typedef struct { uint64_t id; uint32_t carrier; uint64_t bits; } TinyvmConstant;

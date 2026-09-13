@@ -138,6 +138,7 @@ private:
         if (type == "int" || type == "c_int") return TINYVM_CARRIER_I32;
         if (type == "c_long" || type == "c_ulong" || type == "c_size_t") return TINYVM_CARRIER_I64;
         if (type == "c_string" || type == "c_pointer" || type == "Text") return TINYVM_CARRIER_OPAQUE_HANDLE;
+        if (type == "TextOutcome") return TINYVM_CARRIER_TEXT_OUTCOME;
         throw Unsupported("type carrier '" + std::string(type) + "' is not admitted by the scalar slice");
     }
     std::size_t slot() { return next_slot_++; }
@@ -191,6 +192,16 @@ private:
             const auto result = slot(); slot_types_[result] = TINYVM_CARRIER_OPAQUE_HANDLE; emit(TV1_STORAGE_HANDLE, result, id, 0); return result;
         }
         if (kind == "identifier") return symbol_slot(integer(required(node, "symbol_id", "$.expression"), "$.expression.symbol_id"));
+        if (kind == "field_access") {
+            const auto base = expression(required(node, "base", "$.expression"));
+            if (slot_types_.at(base) != TINYVM_CARRIER_TEXT_OUTCOME) throw Unsupported("field access requires a TextOutcome carrier");
+            const auto field = string(required(node, "field", "$.expression"), "$.expression.field");
+            const auto result = slot();
+            if (field == "code") { slot_types_[result] = TINYVM_CARRIER_I32; emit(TV1_TEXT_OUTCOME_CODE, result, base, 0); }
+            else if (field == "value") { slot_types_[result] = TINYVM_CARRIER_OPAQUE_HANDLE; emit(TV1_TEXT_OUTCOME_VALUE, result, base, 0); }
+            else throw Unsupported("unknown TextOutcome field '" + field + "'");
+            return result;
+        }
         if (kind == "call_result") {
             const auto identity = integer(required(node, "expression_id", "$.expression"), "$.expression.expression_id");
             if (!call_results_.contains(identity)) throw Unsupported("call result expression is not available");
@@ -296,7 +307,9 @@ private:
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
                                   (symbol == "puts" && (parameters == "c_string" || parameters == "Text") && result_type == "c_int") ||
                                   (symbol == "flow_text_concat" && parameters == "Text,Text" && result_type == "Text") ||
+                                  (symbol == "flow_text_concat_value" && parameters == "Text,Text" && result_type == "TextOutcome") ||
                                   (symbol == "flow_text_concat_status" && parameters == "Text,Text" && result_type == "c_int") ||
+                                  (symbol == "flow_text_dispose" && parameters == "Text" && result_type == "c_int") ||
                                   (symbol == "memset" && parameters == "c_pointer,c_int,c_size_t" && result_type == "c_pointer") ||
                                   (symbol == "memcpy" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_pointer") ||
                                   (symbol == "memcmp" && parameters == "c_pointer,c_pointer,c_size_t" && result_type == "c_int") ||

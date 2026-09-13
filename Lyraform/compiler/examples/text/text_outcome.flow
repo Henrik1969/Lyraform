@@ -1,0 +1,18 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/text.flow"
+
+program text_outcome
+
+main {
+    outcome : TextOutcome(concat_outcome("Lyra", "form"))
+    zero : c_int(0)
+    code : c_int(outcome.code)
+
+    if code == zero {
+        puts_text(outcome.value) -> code
+        dispose(outcome.value) -> code
+    }
+    if code != zero {
+        puts("concat failed") -> code
+    }
+}

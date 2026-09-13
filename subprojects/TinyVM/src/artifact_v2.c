@@ -45,7 +45,7 @@ bool tinyvm_artifact_v2_validate(const TinyvmArtifactV2 *a,char *d,size_t cap){
     if((a->isa_version==1||a->isa_version==2)&&!tinyvm_isa_v1_validate(a,d,cap))return false;
     if(a->provenance_count!=a->code_count||(!a->provenance&&a->code_count)){diag(d,cap,"provenance count does not match code");return false;}
     if(a->constant_count&&(!a->constants||!ids_sorted_u64(&a->constants[0].id,a->constant_count,sizeof(*a->constants)))){diag(d,cap,"constant identities are not unique and sorted");return false;}
-    for(size_t i=0;i<a->constant_count;++i){const TinyvmConstant *c=&a->constants[i];if(c->carrier<1||c->carrier>4||(c->carrier==1&&c->bits>1)||(c->carrier==2&&(int64_t)(int32_t)c->bits!=(int64_t)c->bits)||(c->carrier==4&&c->bits)){diag(d,cap,"invalid canonical constant");return false;}}
+    for(size_t i=0;i<a->constant_count;++i){const TinyvmConstant *c=&a->constants[i];if(c->carrier<1||c->carrier>5||(c->carrier==1&&c->bits>1)||(c->carrier==2&&(int64_t)(int32_t)c->bits!=(int64_t)c->bits)||(c->carrier==4&&c->bits)||(c->carrier==5&&c->bits)){diag(d,cap,"invalid canonical constant");return false;}}
     if(a->string_count&&(!a->strings||!ids_sorted_u64(&a->strings[0].id,a->string_count,sizeof(*a->strings)))){diag(d,cap,"string identities are not unique and sorted");return false;}
     for(size_t i=0;i<a->string_count;++i)if(a->strings[i].length&&!a->strings[i].bytes){diag(d,cap,"string bytes are absent");return false;}
     if(a->storage_count&&(!a->storage||!ids_sorted_u64(&a->storage[0].id,a->storage_count,sizeof(*a->storage)))){diag(d,cap,"storage identities are not unique and sorted");return false;}

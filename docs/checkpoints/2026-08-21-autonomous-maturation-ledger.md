@@ -1520,3 +1520,26 @@ Replace the two-operation status recovery facade with an atomic backend-neutral
 `Outcome<Text,TextFailure>` value and prove that successful values are disposed
 exactly once after the final consumer on LLVM and TinyVM. State remains
 CONTINUE.
+
+## 2026-09-13 atomic TextOutcome carrier checkpoint
+
+- Added `concat_outcome(Text,Text):TextOutcome` as the Flow-level atomic result
+  carrier. The provider returns the tagged `{code,value}` value by value, while
+  serialized plans contain only the declared carrier and exact provider tuple.
+- Added Flow field projection for `.code` and `.value`, explicit recovery
+  branching, and the `dispose(Text)` final-owner capability. LLVM lowers the
+  carrier as a local `{i32,ptr}` value; TinyVM uses a checked outcome handle and
+  governed projections, with runtime cleanup clearing the value before teardown.
+- Added success and bounded-exhaustion parity coverage. Both backends print the
+  same recovered result, the LLVM artifact contains exactly one dispose call,
+  and the complete atomic gate passed.
+- Focused evidence: `ctest --test-dir /tmp/flowcore-canonical-build
+  --output-on-failure -R text_outcome_boundary` passed **1/1**; the dependent
+  recovery gate passed **2/2**.
+
+## Exact next action
+
+Select and mature the next non-Text standard capability as a complete
+policy-gated library slice, beginning with its ABI contract, provider/runtime
+boundary, LLVM/TinyVM evidence where applicable, and onboarding/documentation
+coverage. State remains CONTINUE.

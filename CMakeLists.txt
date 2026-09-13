@@ -301,6 +301,24 @@ add_test(NAME text_recovery_boundary
 set_tests_properties(text_recovery_boundary PROPERTIES
     DEPENDS "text_runtime_tagged_api;tinyvm_memory_parity")
 
+add_test(NAME text_outcome_boundary
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
+        FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
+        FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
+        FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
+        FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-outcome.sh)
+set_tests_properties(text_outcome_boundary PROPERTIES
+    DEPENDS "text_recovery_boundary")
+
 add_test(NAME namespace_ambiguity
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>

@@ -1,6 +1,6 @@
 # Text outcome contract v0.1 — proposed
 
-**Status:** proposed backend-neutral value contract; typed artifact boundary implemented
+**Status:** bounded backend-neutral value contract implemented; wider ownership remains scoped
 **Scope:** failure representation for owned Text construction
 
 The current `flow_text_concat(Text,Text): Text` provider shape is useful for
@@ -47,24 +47,27 @@ to the same failure code.
 
 ## Migration shape
 
-The lowering plan now marks the bounded construction operation as
-`text_outcome`, and validates a serializable `result_outcome` declaration with
-the `Outcome<Text,TextFailure>` shape. `flow_text_concat` remains the current
-provider adapter: its non-null pointer is still the backend carrier for the
-success variant, while null maps to the tested backend failure disposition.
-The provider also exposes `flow_text_concat_outcome` and
-`flow_text_outcome_dispose`, which carry the explicit code and owned success
-value in a runtime-local struct. The LLVM and TinyVM `text_outcome` paths now
-consume that tagged transport and observe its code before mapping failure to
-their transitional trap/fault behavior.
+The lowering plan marks the bounded construction operation as `text_outcome`,
+and validates a serializable `result_outcome` declaration with the
+`Outcome<Text,TextFailure>` shape. `concat_outcome` returns the provider's
+tagged `{code,value}` carrier atomically. LLVM represents that carrier as a
+local `{i32,ptr}` value; TinyVM represents it as a checked opaque outcome
+handle whose fields are projected only by the governed runtime. Neither
+representation serializes a host pointer.
 
-Flow code can now use the separate `flow_text_concat_status(Text,Text):c_int`
-probe to branch on the stable failure code before requesting the owned Text;
-the probe disposes its temporary success allocation internally. This is an
-explicit recovery facade, not yet the atomic `Outcome<Text,TextFailure>` value:
-the success value and failure code are still produced by separate provider
-operations, and cleanup remains provider-activation scoped. The atomic carrier
-and last-owner cleanup are the next slice.
+`flow_text_concat` remains a compatibility adapter for existing programs. The
+provider also exposes `flow_text_concat_outcome` and
+`flow_text_outcome_dispose` for its runtime-local pointer form. A successful
+Flow value is consumed by its final `puts_text` call and then passed exactly
+once to the explicit `dispose` capability. TinyVM clears the corresponding
+runtime-owned value before provider teardown, so teardown cannot free it a
+second time.
+
+Flow code can still use the separate `flow_text_concat_status(Text,Text):c_int`
+probe as a compatibility recovery facade. New code should use the atomic
+`TextOutcome(concat_outcome(left,right))` value and branch on `.code` before
+consuming `.value`; the status probe and atomic call are not combined in the
+same path.
 
 For TinyVM, `flowtinyrun` now preserves the observed failure as an execution
 record field:
@@ -73,5 +76,7 @@ record field:
 {"outcome":{"type":"Outcome","failure_type":"TextFailure","failure_code":"exhausted"}}
 ```
 
-This is an external execution result, not yet a Flow value. LLVM native
-execution still exposes the transitional nonzero process disposition.
+This is an external execution result in addition to the Flow value. LLVM
+native execution returns the normal process result after Flow-level recovery;
+TinyVM retains its machine-readable result and governed fault fields for the
+older adapter's compatibility path.

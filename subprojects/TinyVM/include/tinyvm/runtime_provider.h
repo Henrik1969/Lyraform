@@ -21,6 +21,9 @@ typedef struct {
     size_t owned_string_capacity;
     TinyvmRuntimeStorage *storage;
     size_t storage_count;
+    void *text_outcomes;
+    size_t text_outcome_count;
+    size_t text_outcome_capacity;
 } TinyvmRuntimeProvider;
 
 void tinyvm_runtime_provider_destroy(TinyvmRuntimeProvider *provider);
@@ -36,3 +39,8 @@ bool tinyvm_runtime_provider_resolve(void *user,
                                      size_t argument_count,
                                      TinyvmValue *result,
                                      const char **fault);
+bool tinyvm_runtime_provider_resolve_text_outcome(void *user,
+                                                  const TinyvmValue *outcome,
+                                                  bool value_field,
+                                                  TinyvmValue *result,
+                                                  const char **fault);

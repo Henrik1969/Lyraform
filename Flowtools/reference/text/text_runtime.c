@@ -31,11 +31,22 @@ FlowTextOutcomeCode flow_text_concat_outcome(const char *left, const char *right
     return outcome->code;
 }
 
+FlowTextOutcome flow_text_concat_value(const char *left, const char *right) {
+    FlowTextOutcome outcome = {FLOW_TEXT_PROVIDER_UNAVAILABLE, NULL};
+    flow_text_concat_outcome(left, right, &outcome);
+    return outcome;
+}
+
 void flow_text_outcome_dispose(FlowTextOutcome *outcome) {
     if (!outcome) return;
     free(outcome->value);
     outcome->value = NULL;
     outcome->code = FLOW_TEXT_PROVIDER_UNAVAILABLE;
+}
+
+int flow_text_dispose(char *value) {
+    free(value);
+    return 0;
 }
 
 FlowTextOutcomeCode flow_text_concat_status(const char *left, const char *right) {
