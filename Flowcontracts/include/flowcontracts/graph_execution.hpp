@@ -13,6 +13,8 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
     if (!graph.executable) throw Error("$.source_graph", "source graph execution is not admitted");
     Array steps;
     struct Pending { std::string node; Integer from; const SourceGraphWire* wire; };
+    std::map<std::string, std::vector<const SourceGraphWire*>> outgoing;
+    for (const auto& wire : graph.wires) outgoing[wire.from.node].push_back(&wire);
     for (const auto& root : graph.nodes) {
         if (root.role != "producer") continue;
         std::deque<Pending> pending{{root.id, -1, nullptr}};
@@ -21,9 +23,10 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
             if (steps.size() >= 65536) throw Error("$.graph_schedule", "native graph exceeds 65536 activation bound");
             const auto identity = static_cast<Integer>(steps.size());
             bool connected = false;
-            for (const auto& wire : graph.wires) if (wire.from.node == current.node) {
-                connected = true;
-                pending.push_back({wire.to.node, identity, &wire});
+            if (const auto found = outgoing.find(current.node); found != outgoing.end()) {
+                connected = !found->second.empty();
+                for (const auto* wire : found->second)
+                    pending.push_back({wire->to.node, identity, wire});
             }
             steps.push_back(Object{
                 {"activation_id", identity}, {"node_id", current.node},

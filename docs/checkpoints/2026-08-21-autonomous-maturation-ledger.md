@@ -1832,3 +1832,19 @@ scheduling, activation, and payload carriers. State remains CONTINUE.
 Continue Gate 6 with the next receiver/graph boundary while preserving strict
 schedule identity, fresh activation, and failure provenance. State remains
 CONTINUE.
+
+## 2026-09-13 native graph schedule-bound checkpoint
+
+- Added a generated 65,537-activation graph fixture. Flowparallel rejects it at
+  the documented 65,536 static-schedule limit, and no partial execution plan is
+  produced for backend lowering.
+- Indexed graph wires by source node during schedule expansion so the bound is
+  checked without rescanning the complete wire set for every activation.
+- The bounded positive graph paths and all existing identity/failure checks
+  remain unchanged. Focused native graph evidence passed **1/1**.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph boundary while retaining the
+bounded schedule, strict identity validation, fresh activation, and failure
+provenance laws. State remains CONTINUE.

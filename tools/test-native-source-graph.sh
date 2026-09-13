@@ -334,6 +334,34 @@ PY
 mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
 mv "$tmpdir/scalar-root.selection.json" "$tmpdir/selection.json"
 compile
+# The static native schedule has a hard 65,536-activation bound. Generate one
+# extra receiver activation and require Flowparallel to reject the plan before
+# any backend lowering can observe a partial schedule.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+set +e
+"$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 \
+    --graph-providers "$tmpdir/selection.json" < "$tmpdir/frontend.json" > "$tmpdir/oversized.base.json"
+jq '
+    . as $root
+    | ($root.lowering_plan.source_graph.syntax.wires[] | select(.wire_id == "wire:0")) as $wire
+    | $root
+    | .lowering_plan.source_graph.syntax.nodes =
+        [.lowering_plan.source_graph.syntax.nodes[] | select(.node_id == "source" or .node_id == "receiver")]
+    | .lowering_plan.source_graph.syntax.wires =
+        [range(0; 65536) as $index
+         | ($wire | .wire_id = ("wire:" + ($index | tostring)))]
+    | .lowering_plan.source_graph.receivers =
+        [.lowering_plan.source_graph.receivers[] | select(.node_id == "receiver")]
+    | .lowering_plan.source_graph.providers =
+        [.lowering_plan.source_graph.providers[] | select(.node_id == "source")]
+' "$tmpdir/oversized.base.json" > "$tmpdir/oversized.semantic.json"
+"$FLOWPARALLEL_BIN" < "$tmpdir/oversized.semantic.json" > "$tmpdir/oversized.execution.json"
+status=$?
+set -e
+test "$status" -ne 0
+test ! -s "$tmpdir/oversized.execution.json"
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
 for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.policy = "parallel"' '.graph_schedule.activation_contract = "persistent"' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do
     jq "$mutation" "$tmpdir/execution.json" > "$tmpdir/bad.execution.json"
