@@ -1884,3 +1884,21 @@ State remains CONTINUE.
 
 Reconcile the final state file and push the closing checkpoint. State remains
 CONTINUE until that clean pushed checkpoint is verified.
+
+## 2026-09-13 finite stream phase opened
+
+- Henrik reprioritized post-v0.29 maturation as streams first, then persistent
+  state, aggregate payloads, reentrant/parallel scheduling, and TinyVM graph
+  execution last.
+- Opened the finite scalar stream contract in
+  `source-graph-stream-activation-decision.md`: explicit count/item provider
+  identities, ascending bounded indices, fresh receiver activations, preserved
+  signal/wire/delivery identity, and stop-on-failure semantics.
+- The stream phase starts with a maximum of 4,096 items and remains synchronous,
+  scalar, and non-persistent. No stream implementation is claimed yet.
+
+## Exact next action
+
+Implement the finite stream provider-map and source-graph artifact contract,
+then add independent schedule and native execution evidence. State remains
+CONTINUE.
