@@ -495,6 +495,8 @@ the already captured recovered-ISA boundary.
   advances the signal identity, while retaining the per-item `$index` carrier.
 - The refreshed Clang 18 ASan/UBSan TinyVM-focused run passed all 21 tests,
   including the new pipeline path.
+- A branch from an intermediate pipeline receiver is rejected during schedule
+  construction with no execution plan, preserving the linear-only contract.
 
 ### Persistent-state parallel refusal — `tinyvm-persistent-parallel-boundary-v1`
 

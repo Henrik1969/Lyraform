@@ -148,6 +148,43 @@ jq -e '.status == "emitted" and .backend == "tinyvm"' "$tmpdir/pipeline.tiny.rep
 "$tiny_lower" "$tmpdir/pipeline.tiny.backend.json" "$tmpdir/pipeline-again.tvm" >/dev/null
 cmp "$tmpdir/pipeline.tvm" "$tmpdir/pipeline-again.tvm"
 
+cat > "$tmpdir/branch.flow" <<FLOW
+import "$tmpdir/provider.flow" as stream
+import "$root/Lyraform/compiler/std/abi/libc.flow"
+program tinyvm_stream_pipeline_branch
+producer source : injected.stream
+node increment : fn increment
+node announce : fn announce
+node right : fn announce_right
+wire source.out => increment.in
+wire increment.out => announce.in
+wire increment.out => right.in
+fn increment(value : c_int): c_int {
+    one : c_int(1)
+    return value + one
+}
+fn announce(value : c_int): c_int {
+    result : c_int(0)
+    libc.puts("tinyvm pipeline branch") -> result
+    return value
+}
+fn announce_right(value : c_int): c_int {
+    result : c_int(0)
+    libc.puts("tinyvm pipeline branch right") -> result
+    return value
+}
+main { return 0 }
+FLOW
+"$flowmini" --dump-frontend-bundle "$tmpdir/branch.flow" > "$tmpdir/branch.frontend.json"
+"$analyst" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/branch.frontend.json" > "$tmpdir/branch.semantic.json"
+set +e
+"$parallel" < "$tmpdir/branch.semantic.json" > "$tmpdir/branch.execution.json" 2> "$tmpdir/branch.error"
+branch_status=$?
+set -e
+test "$branch_status" -ne 0
+test ! -s "$tmpdir/branch.execution.json"
+grep -Fq 'cannot fan out or merge' "$tmpdir/branch.error"
+
 mv "$tmpdir/fanout.flow" "$tmpdir/program.flow"
 
 jq '.providers[0].max_items = 2' "$tmpdir/providers.json" > "$tmpdir/bounded.providers.json"
