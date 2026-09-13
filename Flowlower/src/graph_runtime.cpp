@@ -31,6 +31,18 @@ extern "C" void flow_graph_enter(const char* value) {
 extern "C" void flow_graph_operation(std::uint64_t operation) { active_operation = operation; }
 extern "C" void flow_graph_event(const char* value) { if (tracing()) record(value); }
 extern "C" void flow_graph_drop(const char* value) { record(value); }
+extern "C" void flow_graph_state_before(const char* node, std::int64_t activation_id, std::int64_t state) {
+    if (!tracing()) return;
+    const auto value = std::string{"{\"format\":\"flowcore.graph_state\",\"version\":1,\"event\":\"before\",\"node_id\":"} +
+        quote(node) + ",\"activation_id\":" + std::to_string(activation_id) + ",\"state\":" + std::to_string(state) + "}";
+    record(value.c_str());
+}
+extern "C" void flow_graph_state_after(const char* node, std::int64_t activation_id, std::int64_t state) {
+    if (!tracing()) return;
+    const auto value = std::string{"{\"format\":\"flowcore.graph_state\",\"version\":1,\"event\":\"after\",\"node_id\":"} +
+        quote(node) + ",\"activation_id\":" + std::to_string(activation_id) + ",\"state\":" + std::to_string(state) + "}";
+    record(value.c_str());
+}
 extern "C" void flow_graph_stream_item_enter(const char* node, std::int64_t activation_id,
                                               std::int64_t index, std::int64_t signal) {
     stream_activation = "{\"format\":\"flowcore.graph_activation\",\"version\":1,\"event\":\"enter\",\"node_id\":" + quote(node) +

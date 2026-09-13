@@ -166,6 +166,7 @@ void dump_frontend_bundle_json(std::ostream& out,
         out << ",\"role\":"; dump_json_string(out, node.role);
         out << ",\"implementation_kind\":"; dump_json_string(out, node.source_function ? "source_function" : "provider_atom");
         out << ",\"implementation_name\":"; dump_json_string(out, node.implementation);
+        if (node.persistent) out << ",\"persistent\":true";
         out << ",\"provenance\":"; provenance(node.location);
         out << '}';
     }
@@ -194,6 +195,16 @@ void dump_frontend_bundle_json(std::ostream& out,
         out << ",\"value_kind\":"; dump_json_string(out, policy.value_kind);
         out << ",\"value_text\":"; dump_json_string(out, policy.value_text);
         out << ",\"provenance\":"; provenance(policy.location);
+        out << '}';
+    }
+    out << "],\"states\":[";
+    for (std::size_t i = 0; i < module.graph_states.size(); ++i) {
+        const auto& state = module.graph_states[i];
+        if (i) out << ',';
+        out << "{\"node_id\":"; dump_json_string(out, state.node);
+        out << ",\"type\":"; dump_json_string(out, state.type);
+        out << ",\"value_text\":"; dump_json_string(out, state.value_text);
+        out << ",\"provenance\":"; provenance(state.location);
         out << '}';
     }
     out << "]},\n  \"diagnostics\": [";

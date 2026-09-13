@@ -76,6 +76,18 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
         const auto& root_provider = object(graph.providers.front(), "$.providers[0]");
         if (string(required(root_provider, "activation", "$.providers[0]"), "$.providers[0].activation") != "startup_once")
             throw Error("$.graph_schedule", "persistent template requires a startup root");
+        const auto root = string(required(root_provider, "node_id", "$.providers[0]"), "$.providers[0].node_id");
+        for (const auto& receiver : graph.receivers)
+            if (!optional(object(receiver, "$.receivers[]"), "state_contract"))
+                throw Error("$.graph_schedule", "persistent template cannot mix persistent and fresh receivers");
+        for (const auto& wire : graph.wires) {
+            if (wire.from.node != root || wire.from.port != "out" || wire.to.port != "in")
+                throw Error("$.graph_schedule", "persistent template admits only direct startup-to-receiver deliveries");
+            const auto receiver = std::find_if(graph.receivers.begin(), graph.receivers.end(), [&](const auto& item) {
+                return string(required(object(item, "$.receivers[]"), "node_id", "$.receivers[]"), "$.receivers[].node_id") == wire.to.node;
+            });
+            if (receiver == graph.receivers.end()) throw Error("$.graph_schedule", "persistent delivery target is not a receiver");
+        }
     }
     Array steps;
     struct Pending { std::string node; Integer from; const SourceGraphWire* wire; };

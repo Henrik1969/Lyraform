@@ -335,7 +335,7 @@ private:
         return flowcontracts::json::serialize(record);
     }
     void emit_graph_globals(std::ostringstream& out) const {
-        out<<"declare void @flow_graph_enter(ptr)\ndeclare void @flow_graph_operation(i64)\ndeclare void @flow_graph_event(ptr)\ndeclare void @flow_graph_drop(ptr)\ndeclare void @flow_graph_fail(i64, ptr) noreturn\n"
+        out<<"declare void @flow_graph_enter(ptr)\ndeclare void @flow_graph_operation(i64)\ndeclare void @flow_graph_event(ptr)\ndeclare void @flow_graph_drop(ptr)\ndeclare void @flow_graph_fail(i64, ptr) noreturn\ndeclare void @flow_graph_state_before(ptr, i64, i64)\ndeclare void @flow_graph_state_after(ptr, i64, i64)\n"
            <<"declare void @flow_graph_stream_item_enter(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_enter(ptr, ptr, i64, i64, i64, i64)\ndeclare void @flow_graph_stream_event(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_drop(ptr, ptr, i64, i64, i64)\n";
         out<<"@flow.graph.division = private constant [17 x i8] c\"invalid_division\\00\"\n";
         for (const auto& step : graph_steps()) {
@@ -344,7 +344,7 @@ private:
                 const auto value = graph_record(step, event);
                 out<<"@flow.graph."<<event<<"."<<id<<" = private constant ["<<value.size()+1<<" x i8] c\""<<escaped_string(value)<<"\"\n";
             }
-            if (text(field(step, "kind")) == "stream_root" || text(field(step, "kind")) == "stream_receiver") {
+            if (text(field(step, "kind")) == "stream_root" || text(field(step, "kind")) == "stream_receiver" || text(field(step, "kind")) == "persistent_receiver") {
                 const auto node = text(field(step, "node_id"));
                 const auto wire = text(field(step, "wire_id"));
                 out<<"@flow.graph.stream.node."<<id<<" = private constant ["<<node.size()+1<<" x i8] c\""<<escaped_string(node)<<"\"\n";
@@ -361,6 +361,10 @@ private:
         const auto schedule_version = schedule ? integer(field(*schedule, "version"), "graph_schedule.version") : 1;
         if (schedule_version == 2) {
             emit_stream_graph_main(entry, out, providers, receivers);
+            return;
+        }
+        if (schedule_version == 3) {
+            emit_persistent_graph_main(entry, out, providers, receivers);
             return;
         }
         std::map<int, std::string> output_types;
@@ -444,6 +448,58 @@ private:
         out<<"  %flow.stream.next = add i64 %flow.stream.index, 1\n"
            <<"  br label %flow.stream.check\n"
            <<"flow.stream.exit:\n  call void @flow_graph_enter(ptr null)\n  %graph.exit = call i32 @"<<callable_name(entry)<<"()\n  ret i32 %graph.exit\n}\n";
+    }
+    void emit_persistent_graph_main(const Callable& entry, std::ostringstream& out,
+                                    const std::map<std::string, const Json*>& providers,
+                                    const std::map<std::string, const Json*>& receivers) {
+        if (providers.size() != 1) throw std::runtime_error("persistent lowering requires one startup provider");
+        const auto& root = *providers.begin()->second;
+        const auto root_provider = provider(*field(root, "provider"));
+        const auto root_type = llvm_type(root_provider.result);
+        const auto& steps = graph_steps();
+        if (steps.size() < 2 || text(field(steps.front(), "kind")) != "startup")
+            throw std::runtime_error("persistent schedule has no startup root");
+        std::map<std::string, std::string> state_slots;
+        for (std::size_t index = 1; index < steps.size(); ++index) {
+            const auto& step = steps[index];
+            const auto node = text(field(step, "node_id"));
+            if (text(field(step, "kind")) != "persistent_receiver" || !receivers.count(node))
+                throw std::runtime_error("persistent schedule contains a non-persistent delivery");
+            if (!state_slots.count(node)) {
+                const auto initial = text(field(step, "state_initial_value"));
+                try { (void)std::stoll(initial); } catch (...) { throw std::runtime_error("invalid persistent state initial value"); }
+                state_slots.emplace(node, "%flow.state." + std::to_string(state_slots.size()));
+            }
+        }
+        out<<"define i32 @main() {\nentry:\n";
+        for (const auto& [node, slot_name] : state_slots) {
+            const auto& step = *std::find_if(steps.begin(), steps.end(), [&](const auto& item) { return text(field(item, "node_id")) == node; });
+            out<<"  "<<slot_name<<" = alloca i64, align 8\n  store i64 "<<text(field(step, "state_initial_value"))<<", ptr "<<slot_name<<"\n";
+        }
+        out<<"  call void @flow_graph_enter(ptr @flow.graph.enter.0)\n"
+           <<"  %persistent.root = call "<<root_type<<" @"<<root_provider.symbol<<"()\n";
+        for (std::size_t index = 1; index < steps.size(); ++index) {
+            const auto& step = steps[index];
+            const auto id = integer(field(step, "activation_id"), "activation_id");
+            const auto node = text(field(step, "node_id"));
+            const auto& receiver = *receivers.at(node);
+            const auto function = integer(field(receiver, "function_symbol_id"), "function_symbol_id");
+            if (!callables_.count(function)) throw std::runtime_error("persistent receiver identity is unavailable");
+            const auto& callable = callables_.at(function);
+            if (callable.parameters.size() != 2 || llvm_type(callable.parameters[0].second) != root_type ||
+                callable.parameters[1].second != "c_long" || callable.result != "c_long")
+                throw std::runtime_error("persistent receiver carrier mismatch");
+            const auto& slot_name = state_slots.at(node);
+            out<<"  call void @flow_graph_enter(ptr @flow.graph.enter."<<id<<")\n"
+               <<"  %persistent.state.before."<<id<<" = load i64, ptr "<<slot_name<<"\n"
+               <<"  call void @flow_graph_state_before(ptr @flow.graph.stream.node."<<id<<", i64 "<<id<<", i64 %persistent.state.before."<<id<<")\n"
+               <<"  %persistent.state.after."<<id<<" = call i64 @"<<callable_name(callable)<<"("<<root_type<<" %persistent.root, i64 %persistent.state.before."<<id<<")\n"
+               <<"  store i64 %persistent.state.after."<<id<<", ptr "<<slot_name<<"\n"
+               <<"  call void @flow_graph_state_after(ptr @flow.graph.stream.node."<<id<<", i64 "<<id<<", i64 %persistent.state.after."<<id<<")\n"
+               <<"  call void @flow_graph_event(ptr @flow.graph.output."<<id<<")\n";
+            if (!std::get<bool>(*field(step, "output_connected"))) out<<"  call void @flow_graph_drop(ptr @flow.graph.drop."<<id<<")\n";
+        }
+        out<<"  call void @flow_graph_enter(ptr null)\n  %graph.exit = call i32 @"<<callable_name(entry)<<"()\n  ret i32 %graph.exit\n}\n";
     }
     void emit_function(const Callable& function,std::ostringstream& out) {
         temporary_=0; label_=0; call_results_.clear();

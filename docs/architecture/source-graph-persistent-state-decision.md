@@ -43,8 +43,8 @@ serialization, joins, async suspension, or parallel mutation.
 State declarations must be unique, target a source receiver, use `c_long`, and
 fit the signed 64-bit literal contract. Persistent receivers cannot be used in
 the v0.30 finite-stream direct template. The state-aware schedule carries the
-state transition contract explicitly, but native lowering remains gated until
-commit/rollback execution is proven. Aggregate payloads and reentrant/parallel
+state transition contract explicitly, and the bounded direct native lowering
+now proves commit/rollback execution. Aggregate payloads and reentrant/parallel
 delivery remain later phases.
 
 ## Required implementation evidence
@@ -61,5 +61,6 @@ The implementation must add independent positive and hostile evidence for:
 6. a native execution trace records before/after state for each successful
    activation.
 
-The next slice is frontend capture and source-graph validation. Native lowering
-must remain refused until those identities are carried through the schedule.
+The frontend, source graph, schedule, and native lowering now carry these
+identities through the bounded direct path. Receiver pipelines, aggregate
+payloads, and reentrant/parallel delivery remain outside this phase.

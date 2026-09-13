@@ -2007,3 +2007,22 @@ State remains CONTINUE.
 Implement native state-slot execution for the v3 direct schedule, including
 before/after trace records, commit-on-success, and unchanged state on failure.
 State remains CONTINUE.
+
+## 2026-09-13 persistent state native checkpoint
+
+- Flowlower now gives each persistent receiver one native `c_long` slot, loads
+  it before the fresh `(input, state)` activation, and stores the returned next
+  state only after successful return. State-before/state-after trace records
+  preserve node and activation identity.
+- Native evidence passes two ordered deliveries observing `5 -> 6 -> 7`, and a
+  failure path that emits only `before = 5`, leaves state uncommitted, suppresses
+  the second delivery, and exits with the authorized source failure.
+- Focused native evidence passes **1/1**. The bounded persistent direct slice is
+  complete; receiver pipelines, aggregate payloads, and parallel/reentrant
+  mutation remain intentionally outside it.
+
+## Exact next action
+
+Run the complete canonical gate, commit/push the persistent-state phase, then
+open the aggregate payload contract as the next user-ordered phase.
+State remains CONTINUE.

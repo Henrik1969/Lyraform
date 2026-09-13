@@ -173,6 +173,37 @@ assert failure['format'] == 'flowcore.graph_failure' and failure['reason'] == 's
 assert failure['code'] == 31 and failure['activation']['stream_index'] == 1
 assert not any(r.get('stream_index') == 2 for r in records)
 PY
+cat > "$tmpdir/persistent.flow" <<'FLOW'
+import "provider.flow" as host
+program persistent_native_graph
+producer source : injected.batch
+state receiver : c_long = 5
+node receiver : fn accumulate persistent
+wire source.out => receiver.in
+wire source.out => receiver.in
+fn accumulate(value : c_int, prior : c_long): c_long {
+    result : c_int(0)
+    one : c_long(1)
+    host.observe_long(prior) -> result
+    return prior + one
+}
+main { return 0 }
+FLOW
+cat > "$tmpdir/persistent.selection.json" <<'JSON'
+{"format":"flowcore.graph_provider_map","version":1,"providers":[{"implementation":"injected.batch","source_callable":"host.input","activation":"startup_once","output_port":"out"}]}
+JSON
+cp "$tmpdir/persistent.flow" "$tmpdir/program.flow"
+cp "$tmpdir/persistent.selection.json" "$tmpdir/selection.json"
+compile
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf '5\n6\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+states = [r for r in records if r.get('format') == 'flowcore.graph_state']
+assert [(r['event'], r['state']) for r in states] == [('before', 5), ('after', 6), ('before', 6), ('after', 7)]
+PY
 mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
 mv "$tmpdir/scalar-root.selection.json" "$tmpdir/selection.json"
 compile
@@ -640,6 +671,43 @@ assert failure['format'] == 'flowcore.graph_failure' and failure['reason'] == 's
 assert failure['code'] == 17 and failure['operation_id'] >= 0
 assert failure['activation']['node_id'] == 'receiver' and failure['activation']['wire_id'] == 'wire:0'
 assert not any(r.get('event') == 'output' and r['node_id'] == 'receiver' for r in records)
+PY
+cat > "$tmpdir/persistent-failure.flow" <<'FLOW'
+import "provider.flow" as host
+import "runtime.flow" as runtime
+program persistent_failure_graph
+producer source : injected.batch
+state receiver : c_long = 5
+node receiver : fn fail_persistent persistent
+wire source.out => receiver.in
+wire source.out => receiver.in
+fn fail_persistent(value : c_int, prior : c_long): c_long {
+    result : c_int(0)
+    host.observe_long(prior) -> result
+    runtime.raise(37) -> result
+    return prior
+}
+main { return 0 }
+FLOW
+cp "$tmpdir/persistent-failure.flow" "$tmpdir/program.flow"
+cp "$tmpdir/persistent.selection.json" "$tmpdir/selection.json"
+compile
+set +e
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+status=$?
+set -e
+test "$status" -eq 70
+printf '5\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+states = [r for r in records if r.get('format') == 'flowcore.graph_state']
+assert [(r['event'], r['state']) for r in states] == [('before', 5)]
+failure = records[-1]
+assert failure['reason'] == 'source_failure' and failure['code'] == 37
+assert failure['activation']['node_id'] == 'receiver'
+assert not any(r.get('event') == 'after' for r in states)
 PY
 sha256sum --check --status "$tmpdir/tools.sha256"
 echo 'native source graph: PASS'
