@@ -1874,6 +1874,9 @@ State remains CONTINUE.
   with `ASAN_OPTIONS=detect_leaks=0:verify_asan_link_order=0`; the link-order
   option is required here for dynamically loaded text-runtime tests and avoids
   preloading ASan into external helper tools.
+- A fresh CMake install under `/tmp/flowcore-latest-install` built the installed
+  `flow_less` example with only installed tools, runtime, source, generator,
+  and providers; the linked binary rendered `-- page 3/3 --` and `epsilon`.
 
 ## Exact next action
 
