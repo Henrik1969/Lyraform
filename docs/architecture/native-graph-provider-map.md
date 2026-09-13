@@ -12,6 +12,19 @@ external function in the captured frontend symbol table:
 ]}
 ```
 
+Map v2 retains the v1 startup form and adds the bounded finite-stream form:
+
+```json
+{"format":"flowcore.graph_provider_map","version":2,"providers":[
+  {"implementation":"input.stream","count_callable":"host.count",
+   "item_callable":"host.item","activation":"finite_stream_once",
+   "max_items":4096,"output_port":"out"}
+]}
+```
+
+The stream selection names both provider callables explicitly. It is selection
+evidence only; Flowbind must authorize both exact ABI tuples before execution.
+
 The bounded adapter requires a producer node, a zero-argument external function,
 and one returned value on `out`. Startup invokes a producer once, consistent with
 the existing serial interpreter's initial producer activation. It defines no

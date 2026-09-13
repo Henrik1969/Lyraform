@@ -1902,3 +1902,17 @@ CONTINUE until that clean pushed checkpoint is verified.
 Implement the finite stream provider-map and source-graph artifact contract,
 then add independent schedule and native execution evidence. State remains
 CONTINUE.
+
+## 2026-09-13 finite stream provider-map checkpoint
+
+- Added `flowcore.graph_provider_map` v2 validation for explicit finite streams:
+  count callable, indexed item callable, `finite_stream_once` activation, and
+  a hard `1..4096` item bound. Legacy v1 startup selections remain unchanged.
+- Added valid and hostile provider-map fixtures. Focused source-graph artifact
+  evidence passed **1/1** after the contract extension.
+
+## Exact next action
+
+Carry the finite-stream identities into `flowcore.source_graph` and its
+validated schedule template without changing legacy startup graph artifacts.
+State remains CONTINUE.

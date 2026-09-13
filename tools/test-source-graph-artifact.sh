@@ -112,10 +112,25 @@ fi
 jq '.lowering_plan.source_graph' "$tmpdir/producer.semantic.json" > "$tmpdir/producer.graph.json"
 jq -e '.providers[0] | .node_id == "source" and .source_callable == "host.selected" and .output_type == "c_int" and .provider.symbol == "getpid" and .function_symbol_id >= 0' "$tmpdir/producer.graph.json" >/dev/null
 "$FLOWVALIDATE_BIN" "$tmpdir/producer.graph.json" | jq -e '.classification == "valid"' >/dev/null
-for mutation in '.version = 2' '.providers += [.providers[0]]' '.providers[0].activation = "stream"' '.providers[0].source_callable = ""'; do
+for mutation in '.version = 3' '.providers += [.providers[0]]' '.providers[0].activation = "stream"' '.providers[0].source_callable = ""'; do
     jq "$mutation" "$tmpdir/providers.json" > "$tmpdir/bad-providers.json"
     if "$FLOWVALIDATE_BIN" "$tmpdir/bad-providers.json" >/dev/null; then
         echo "invalid provider map accepted: $mutation" >&2; exit 1
+    fi
+done
+cat > "$tmpdir/stream-providers.json" <<'JSON'
+{"format":"flowcore.graph_provider_map","version":2,"providers":[{"implementation":"injected.stream","count_callable":"host.count","item_callable":"host.item","activation":"finite_stream_once","max_items":4096,"output_port":"out"}]}
+JSON
+"$FLOWVALIDATE_BIN" "$tmpdir/stream-providers.json" | jq -e '.classification == "valid"' >/dev/null
+for mutation in \
+    '.providers[0].count_callable = ""' \
+    '.providers[0].item_callable = ""' \
+    '.providers[0].max_items = 0' \
+    '.providers[0].max_items = 4097' \
+    '.providers[0].activation = "startup_once"'; do
+    jq "$mutation" "$tmpdir/stream-providers.json" > "$tmpdir/bad-stream-providers.json"
+    if "$FLOWVALIDATE_BIN" "$tmpdir/bad-stream-providers.json" >/dev/null; then
+        echo "invalid stream provider map accepted: $mutation" >&2; exit 1
     fi
 done
 for mutation in '.providers[0].node_id = "receiver"' '.providers[0].implementation = "other"' '.providers[0].provider.parameter_types = "c_int"' '.providers[0].output_type = "Bool"' '.providers[0].provider.evidence = "invented"' '.syntax.wires[0].from.port_id = "wrong"'; do
