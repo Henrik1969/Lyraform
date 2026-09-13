@@ -2286,57 +2286,6 @@ observation slice, but not the general TinyVM scheduler: runtime-owned queues,
 reentrancy, cancellation, effectful or nested parallel delivery, and
 branching/merging stream execution remain ordinary implementation work.
 
-## 2026-09-13 TinyVM runtime activation-record checkpoint
-
-- TinyVM now copies every validated graph activation into runtime-owned
-  `TinyvmIsaV1Context` storage, assigns a monotonic execution sequence, retains
-  the static or dynamic stream index, and releases the record storage with the
-  execution context. The observer receives the runtime record rather than a
-  direct pointer into artifact metadata.
-- Serial graph and aggregate pipeline trace assertions now verify the runtime
-  sequence in both switch and computed engines. The complete canonical GCC
-  graph passes **107/107** in **58.79s**; the fresh Clang 18.1.3 ASan/UBSan
-  graph passes **107/107** in **114.50s** with the documented leak settings.
-- A stale sanitizer CTest environment was diagnosed and corrected by
-  reconfiguring the isolated temporary tree so native graph demonstrations use
-  the matching `clang++` sanitizer link flags. The unsuppressed failure was
-  infrastructure-only (LeakSanitizer/ptrace or missing sanitizer link flags).
-
-State remains CONTINUE. Runtime-owned records are now evidenced for the
-admitted schedules, but runtime-owned queues, reentrancy, cancellation,
-effectful or nested parallel delivery, and branching/merging stream execution
-remain ordinary implementation work.
-
-## 2026-09-13 TinyVM activation trace corpus checkpoint
-
-- Extended runtime-record assertions to persistent aggregate state and pure
-  dependency-wave schedule v4. These paths now verify static root/receiver
-  records, monotonic sequence, activation identity, ports and wires through
-  `flowtinyrun --trace-graph`, with unchanged switch/computed output.
-- Focused GCC and Clang 18.1.3 ASan/UBSan checks pass **2/2** in each tree.
-  The full canonical graph remains **107/107** in both previously verified
-  trees.
-
-State remains CONTINUE. The trace corpus is broader, but runtime scheduling
-queues, reentrancy, cancellation, effectful or nested parallel delivery, and
-branching/merging stream execution remain ordinary implementation work.
-
-## 2026-09-13 TinyVM scheduling-hook checkpoint
-
-- Added an explicit `TinyvmGraphScheduleHook` at the ISA context boundary. It
-  receives the copied runtime activation record before observation and can
-  refuse an activation with a deterministic explicit trap; bytecode semantics
-  remain independent of host scheduling policy.
-- Added conformance coverage for switch/computed hook refusal, matching fault,
-  runtime record identity and sequence. The full TinyVM subset passes **25/25**
-  under GCC and **25/25** under Clang 18.1.3 ASan/UBSan with the documented
-  leak settings.
-
-State remains CONTINUE. The hook is an embedding boundary, not a scheduler
-queue: runtime-owned queues, reentrancy, cancellation, effectful or nested
-parallel delivery, and branching/merging stream execution remain ordinary
-implementation work.
-
 ## 2026-09-13 TinyVM aggregate-stream parity checkpoint
 
 - Admitted bounded finite-stream-v2 delivery for verified packed one-64-bit
@@ -2413,3 +2362,54 @@ State remains CONTINUE. The remaining TinyVM work is the documented general
 activation runtime boundary (runtime-held wire/signal/port identities and
 effectful/nested parallel or branching/merging stream delivery), not another
 unverified aggregate proof path.
+
+## 2026-09-13 TinyVM runtime activation-record checkpoint
+
+- TinyVM now copies every validated graph activation into runtime-owned
+  `TinyvmIsaV1Context` storage, assigns a monotonic execution sequence, retains
+  the static or dynamic stream index, and releases the record storage with the
+  execution context. The observer receives the runtime record rather than a
+  direct pointer into artifact metadata.
+- Serial graph and aggregate pipeline trace assertions now verify the runtime
+  sequence in both switch and computed engines. The complete canonical GCC
+  graph passes **107/107** in **58.79s**; the fresh Clang 18.1.3 ASan/UBSan
+  graph passes **107/107** in **114.50s** with the documented leak settings.
+- A stale sanitizer CTest environment was diagnosed and corrected by
+  reconfiguring the isolated temporary tree so native graph demonstrations use
+  the matching `clang++` sanitizer link flags. The unsuppressed failure was
+  infrastructure-only (LeakSanitizer/ptrace or missing sanitizer link flags).
+
+State remains CONTINUE. Runtime-owned records are now evidenced for the
+admitted schedules, but runtime-owned queues, reentrancy, cancellation,
+effectful or nested parallel delivery, and branching/merging stream execution
+remain ordinary implementation work.
+
+## 2026-09-13 TinyVM activation trace corpus checkpoint
+
+- Extended runtime-record assertions to persistent aggregate state and pure
+  dependency-wave schedule v4. These paths now verify static root/receiver
+  records, monotonic sequence, activation identity, ports and wires through
+  `flowtinyrun --trace-graph`, with unchanged switch/computed output.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks pass **2/2** in each tree.
+  The full canonical graph remains **107/107** in both previously verified
+  trees.
+
+State remains CONTINUE. The trace corpus is broader, but runtime scheduling
+queues, reentrancy, cancellation, effectful or nested parallel delivery, and
+branching/merging stream execution remain ordinary implementation work.
+
+## 2026-09-13 TinyVM scheduling-hook checkpoint
+
+- Added an explicit `TinyvmGraphScheduleHook` at the ISA context boundary. It
+  receives the copied runtime activation record before observation and can
+  refuse an activation with a deterministic explicit trap; bytecode semantics
+  remain independent of host scheduling policy.
+- Added conformance coverage for switch/computed hook refusal, matching fault,
+  runtime record identity and sequence. The full TinyVM subset passes **25/25**
+  under GCC and **25/25** under Clang 18.1.3 ASan/UBSan with the documented
+  leak settings.
+
+State remains CONTINUE. The hook is an embedding boundary, not a scheduler
+queue: runtime-owned queues, reentrancy, cancellation, effectful or nested
+parallel delivery, and branching/merging stream execution remain ordinary
+implementation work.
