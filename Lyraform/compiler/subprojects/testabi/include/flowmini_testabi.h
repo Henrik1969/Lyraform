@@ -1,6 +1,8 @@
 #ifndef FLOWMINI_TESTABI_H
 #define FLOWMINI_TESTABI_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +25,8 @@ int point_weighted_sum(FlowminiTestAbiPoint point);
 FlowminiTestAbiPoint point_input(void);
 int point_observe(int value);
 FlowminiTestAbiLongValue long_input(void);
+size_t long_count(void);
+FlowminiTestAbiLongValue long_item(size_t index);
 int long_sum(FlowminiTestAbiLongValue value);
 
 #ifdef __cplusplus

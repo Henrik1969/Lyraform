@@ -256,8 +256,9 @@ private:
         }
         if (schedule_version == 2 || schedule_version == 5) {
             const auto stream_contract = string(required(schedule, "stream_contract", "$.graph_schedule"), "$.graph_schedule.stream_contract");
-            if ((schedule_version == 2 && stream_contract != "finite_scalar_stream_v1") ||
-                (schedule_version == 5 && stream_contract != "finite_scalar_stream_pipeline_v1"))
+            const bool aggregate_stream = stream_contract == "finite_aggregate_stream_v1" || stream_contract == "finite_aggregate_stream_pipeline_v1";
+            if ((schedule_version == 2 && stream_contract != "finite_scalar_stream_v1" && stream_contract != "finite_aggregate_stream_v1") ||
+                (schedule_version == 5 && stream_contract != "finite_scalar_stream_pipeline_v1" && stream_contract != "finite_aggregate_stream_pipeline_v1"))
                 throw Unsupported("TinyVM stream graph contains an unsupported stream contract");
             if (required_array(schedule, "streams", "$.graph_schedule").size() != 1)
                 throw Unsupported("TinyVM stream graph requires one stream descriptor");
@@ -270,6 +271,9 @@ private:
             const auto& count_provider = object(required(provider_node, "count_provider", "$.source_graph.providers[]"), "$.source_graph.providers[].count_provider");
             if (!authorized_graph_provider(item_provider) || !authorized_graph_provider(count_provider))
                 throw Unsupported("TinyVM stream providers are not exactly authorized by the backend artifact");
+            const auto item_type = string(required(provider_node, "output_type", "$.source_graph.providers[]"), "$.source_graph.providers[].output_type");
+            if (aggregate_stream != (aggregate_types_.count(item_type) != 0))
+                throw Unsupported("TinyVM stream contract and verified item carrier differ");
             const auto max_items = integer(required(stream, "max_items", "$.graph_schedule.streams[]"), "$.graph_schedule.streams[].max_items");
             if (max_items < 0) throw Unsupported("TinyVM stream bound is negative");
             const auto count = emit_graph_provider(count_provider, 3000000);
@@ -564,17 +568,19 @@ private:
                                   ((symbol == "getpgid" || symbol == "getsid") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "getpriority" && parameters == "c_int,c_int" && result_type == "c_int") ||
                                   ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int") ||
-                                  (contract == "stream" && effect == "readonly" && ((parameters.empty() && result_type == "c_size_t") || (parameters == "c_size_t" && result_type == "c_int"))) ||
-                                  ((aggregate_result && parameters.empty()) || (aggregate_parameter && result_type == "c_int"));
+                                  (effect == "readonly" && ((parameters.empty() && result_type == "c_size_t") || (parameters == "c_size_t" && result_type == "c_int"))) ||
+                                  ((aggregate_result && ((parameters.empty() && (effect == "pure" || effect == "io")) || (effect == "readonly" && parameters == "c_size_t"))) || (aggregate_parameter && result_type == "c_int"));
             const bool authority = ((effect == "pure" || effect == "io") && (contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io")) ||
                                    (effect == "memory" && contract == "text_runtime") ||
                                    (effect == "readonly" && (contract == "kernel" || contract == "linux")) ||
                                    (contract == "stream" && effect == "readonly") ||
-                                   ((aggregate_result || aggregate_parameter) && (effect == "pure" || effect == "io"));
+                                   (effect == "readonly" && parameters.empty() && result_type == "c_size_t") ||
+                                   ((aggregate_result && ((effect == "pure" || effect == "io") || (effect == "readonly" && parameters == "c_size_t"))) || (aggregate_parameter && (effect == "pure" || effect == "io")));
             const auto library = string(required(provider, "library", "$.operation.provider"), "$.operation.provider.library");
             const bool library_admitted = ((contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
                                           (contract == "text_runtime" && library == "libflowtext.so") ||
                                           (contract == "stream" && !library.empty()) ||
+                                          (effect == "readonly" && parameters.empty() && result_type == "c_size_t" && !library.empty()) ||
                                           ((aggregate_result || aggregate_parameter) && !library.empty());
             if (!admitted || !authority || !library_admitted ||
                 string(required(provider, "convention", "$.operation.provider"), "$.operation.provider.convention") != "c")

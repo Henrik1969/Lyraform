@@ -18,6 +18,14 @@ FlowminiTestAbiLongValue long_input(void) {
     return (FlowminiTestAbiLongValue){42};
 }
 
+size_t long_count(void) {
+    return 2;
+}
+
+FlowminiTestAbiLongValue long_item(size_t index) {
+    return (FlowminiTestAbiLongValue){42 + (long)index};
+}
+
 int long_sum(FlowminiTestAbiLongValue value) {
     return (int)value.value;
 }

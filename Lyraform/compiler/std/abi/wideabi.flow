@@ -13,6 +13,16 @@ abi wideabi {
         effect pure
     }
 
+    extern fn long_count(): c_size_t {
+        symbol "long_count"
+        effect readonly
+    }
+
+    extern fn long_item(index : c_size_t): LongValue {
+        symbol "long_item"
+        effect readonly
+    }
+
     extern fn long_sum(value : LongValue): c_int {
         symbol "long_sum"
         effect pure

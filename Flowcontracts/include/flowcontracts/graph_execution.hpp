@@ -32,6 +32,11 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
         const auto item_symbol = integer(required(provider, "function_symbol_id", "$.providers[0]"), "$.providers[0].function_symbol_id");
         const auto max_items = integer(required(provider, "max_items", "$.providers[0]"), "$.providers[0].max_items");
         const auto item_type = string(required(provider, "output_type", "$.providers[0]"), "$.providers[0].output_type");
+        bool aggregate_item = false;
+        if (const auto* layouts = optional(object(graph_value), "aggregate_abi_layouts"))
+            for (const auto& value : array(*layouts, "$.aggregate_abi_layouts"))
+                if (string(required(object(value, "$.aggregate_abi_layouts[]"), "name", "$.aggregate_abi_layouts[]"), "$.aggregate_abi_layouts[].name") == item_type)
+                    aggregate_item = true;
         std::map<std::string, std::vector<const SourceGraphWire*>> outgoing;
         for (const auto& wire : graph.wires) outgoing[wire.from.node].push_back(&wire);
         const auto found = outgoing.find(root);
@@ -101,7 +106,7 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
             }
             return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{5}},
                 {"policy", "fifo_per_root_source_order_v1"}, {"activation_contract", "fresh_single_input_v1"},
-                {"stream_contract", "finite_scalar_stream_pipeline_v1"},
+                {"stream_contract", aggregate_item ? "finite_aggregate_stream_pipeline_v1" : "finite_scalar_stream_pipeline_v1"},
                 {"streams", Array{Object{{"root_node", root}, {"count_callable", count_callable},
                     {"count_function_symbol_id", count_symbol}, {"item_callable", item_callable},
                     {"item_function_symbol_id", item_symbol}, {"max_items", max_items},
@@ -122,7 +127,7 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
         }
         return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{2}},
             {"policy", "fifo_per_root_source_order_v1"}, {"activation_contract", "fresh_single_input_v1"},
-            {"stream_contract", "finite_scalar_stream_v1"},
+            {"stream_contract", aggregate_item ? "finite_aggregate_stream_v1" : "finite_scalar_stream_v1"},
             {"streams", Array{Object{{"root_node", root}, {"count_callable", count_callable},
                 {"count_function_symbol_id", count_symbol}, {"item_callable", item_callable},
                 {"item_function_symbol_id", item_symbol}, {"max_items", max_items},

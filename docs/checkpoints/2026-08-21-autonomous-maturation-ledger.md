@@ -2265,6 +2265,27 @@ activation runtime boundary (runtime-held wire/signal/port identities and
 effectful/nested parallel or branching/merging stream delivery), not another
 unverified aggregate proof path.
 
+## 2026-09-13 TinyVM aggregate-stream parity checkpoint
+
+- Admitted bounded finite-stream-v2 delivery for verified packed one-64-bit
+  aggregate items, with explicit `finite_aggregate_stream_v1` scheduling and
+  exact read-only count/item provider authorization. Scalar stream contracts
+  remain unchanged; larger, padded, mixed, branching, and parallel aggregate
+  stream shapes remain refused.
+- Added `tinyvm_aggregate_stream_parity`, covering Flowmini through Flowanalyst,
+  Flowbind, Flowparallel, Flowoptimize, backend preparation, native LLVM, and
+  TinyVM switch/computed execution. The test checks aggregate item metadata,
+  exact policy identity, output parity, and deterministic bytecode.
+- The complete canonical graph passes **106/106** under GCC in **51.14s** and
+  **106/106** under Clang 18.1.3 ASan/UBSan in **109.71s** with the documented
+  `detect_leaks=0` ptrace-compatible settings. The focused aggregate-stream
+  test passes **1/1** in both trees.
+
+State remains CONTINUE. The next larger boundary is the general TinyVM
+activation runtime: runtime-held wire/signal/port identities, effectful or
+nested parallel delivery, branching/merging stream semantics, and generalized
+aggregate stream shapes remain unimplemented.
+
 ## 2026-09-13 TinyVM persistent-aggregate parity checkpoint
 
 - Extended the persistent schedule-v3 contract from `c_long` state to the

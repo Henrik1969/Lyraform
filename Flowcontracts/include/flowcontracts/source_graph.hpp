@@ -244,8 +244,6 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             }
             if (activation == "startup_once" && !native_carrier(type))
                 throw Error(p + ".output_type", "unsupported native startup provider carrier");
-            if (activation == "finite_stream_once" && aggregate_types.count(type))
-                throw Error(p + ".output_type", "aggregate stream payloads are not admitted in this phase");
             provider_types.emplace(node, type);
             provenance(item, p);
         }

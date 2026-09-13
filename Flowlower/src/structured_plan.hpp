@@ -441,11 +441,14 @@ private:
         const auto item_type = llvm_type(item.result);
         const auto schedule_version = integer(field(*field(root_, "graph_schedule"), "version"), "graph_schedule.version");
         const auto stream_contract = text(field(*field(root_, "graph_schedule"), "stream_contract"));
+        const bool aggregate_stream = stream_contract == "finite_aggregate_stream_v1" || stream_contract == "finite_aggregate_stream_pipeline_v1";
         if ((schedule_version != 2 && schedule_version != 5) ||
-            (schedule_version == 2 && stream_contract != "finite_scalar_stream_v1") ||
-            (schedule_version == 5 && stream_contract != "finite_scalar_stream_pipeline_v1"))
+            (schedule_version == 2 && stream_contract != "finite_scalar_stream_v1" && stream_contract != "finite_aggregate_stream_v1") ||
+            (schedule_version == 5 && stream_contract != "finite_scalar_stream_pipeline_v1" && stream_contract != "finite_aggregate_stream_pipeline_v1"))
             throw std::runtime_error("unsupported finite stream schedule contract");
-        if (item_type.empty() || item.parameters != "c_size_t" || count.parameters != "" || count.result != "c_size_t")
+        if (item_type.empty() || item.parameters != "c_size_t" || count.parameters != "" || count.result != "c_size_t" ||
+            (aggregate_stream && aggregate_types_.find(item.result) == aggregate_types_.end()) ||
+            (!aggregate_stream && aggregate_types_.find(item.result) != aggregate_types_.end()))
             throw std::runtime_error("unsupported finite stream provider ABI");
         const auto max_items = integer(field(stream, "max_items"), "stream.max_items");
         const auto& steps = graph_steps();
