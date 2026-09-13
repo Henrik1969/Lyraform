@@ -246,6 +246,19 @@ add_test(NAME profile_free_generic_lowering
 set_tests_properties(profile_free_generic_lowering PROPERTIES
     DEPENDS "flow_less_ncurses_pager")
 
+add_test(NAME text_value_boundary
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWBIND_BIN=$<TARGET_FILE:flowbind>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-value.sh)
+set_tests_properties(text_value_boundary PROPERTIES
+    DEPENDS "profile_free_generic_lowering")
+
 add_test(NAME namespace_ambiguity
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>

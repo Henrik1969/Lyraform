@@ -451,7 +451,8 @@ int verify(const std::string& report, const std::string& policy_path, const std:
     auto supported_type = [&](const std::string& type) {
         if (type == "c_int" || type == "c_long" || type == "c_ulong" || type == "c_size_t" || type == "c_string" || type == "c_pointer") return true;
         const auto found = declared_representations.find(type);
-        return found != declared_representations.end() && (found->second == "void*" || found->second == "const void*");
+        return found != declared_representations.end() && (found->second == "void*" || found->second == "const void*" ||
+                                                            (type == "Text" && found->second == "const char*"));
     };
     std::map<std::string, void*> handles;
     std::vector<std::string> failures;

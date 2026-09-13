@@ -1,0 +1,12 @@
+import "../../std/abi/libc.flow"
+
+program text_value
+
+main {
+    empty : Text("")
+    prefix : Text("Lyra")
+    suffix : Text("form")
+    value : Text(prefix + suffix + " — Igor")
+    print empty
+    print value
+}

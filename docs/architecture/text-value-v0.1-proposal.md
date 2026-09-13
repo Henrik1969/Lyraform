@@ -1,6 +1,6 @@
 # Text value contract v0.1 — proposal
 
-**Status:** proposed; not current language semantics
+**Status:** implemented slice; full v0.1 remains open
 **Scope:** smallest provider-independent Text slice for Lyraform
 **Related:** [`Lyraform/backlog.txt`](../../Lyraform/backlog.txt)
 
@@ -79,11 +79,31 @@ and adversarial coverage for:
 
 ## Compatibility boundary
 
-Existing `c_string` ABI declarations and fixtures remain unchanged while this
-proposal is evaluated. They continue to mean borrowed, read-only native string
-carriers at authorized external calls. No current program gains `Text` behavior
-until the language syntax, artifact schema, providers, lowerers, and acceptance
-corpus are implemented together.
+Existing `c_string` ABI declarations and fixtures remain unchanged. They
+continue to mean borrowed, read-only native string carriers at authorized
+external calls. `Text` is now admitted only when the source declares the Text
+type and the output operation is authorized against the separate `puts_text`
+provider contract; there is no implicit Text/c_string conversion.
+
+## Implemented v0.1 slice
+
+The current generic chain admits the following bounded slice:
+
+- `Text` is a recognized language type and string literals used in Text
+  initializers are validated as UTF-8;
+- literal and initializer-known `Text + Text` expressions are folded in the
+  semantic artifact with left-to-right ordering preserved;
+- empty Text values are materialized as non-null NUL-terminated views for an
+  authorized call, and non-ASCII UTF-8 bytes survive LLVM/native lowering;
+- `print` resolves only to a declared `puts_text(Text): c_int` capability;
+- Text operation identity, provider identity, and Text carrier type survive
+  Flowparallel, Flowoptimize, Flowbind, and Flowlower;
+- c_string-to-Text initializers, c_string printing, dynamic Text concatenation,
+  and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
+
+This slice deliberately does not claim general runtime Text allocation or
+function-return ownership yet. Dynamic concatenation, bounded-storage failure,
+and TinyVM parity remain admission gates for the complete v0.1 contract.
 
 ## Open review questions
 

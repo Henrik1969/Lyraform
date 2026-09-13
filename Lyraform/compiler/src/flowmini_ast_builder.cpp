@@ -2609,7 +2609,7 @@ namespace flowmini::ast {
                     const bool hasValue = has_expression_until_statement_boundary(tokens, i + 1);
                     if (hasValue && i + 1 < tokens.size()) {
                         statement.payload = ExpressionStatement{
-                            add_expression_placeholder_at(expressionPool, tokens, i + 1)
+                            add_expression_placeholder_at(expressionPool, tokens, i + 1), true
                         };
                     }
                     statementPool.push_back(std::move(statement));

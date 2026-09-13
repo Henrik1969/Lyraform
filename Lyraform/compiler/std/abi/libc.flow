@@ -13,6 +13,17 @@ abi libc {
         terminator nul
     }
 
+    // Text is an owned Lyraform value. The provider receives a temporary
+    // nul-terminated read view for the duration of this call only.
+    type Text {
+        repr "const char*"
+        ownership borrowed
+        access read
+        lifetime call
+        nullable false
+        terminator nul
+    }
+
     extern fn strlen(text : c_string): c_size_t {
         symbol "strlen"
         effect pure
@@ -29,6 +40,11 @@ abi libc {
     }
 
     extern fn puts(text : c_string): c_int {
+        symbol "puts"
+        effect io
+    }
+
+    extern fn puts_text(text : Text): c_int {
         symbol "puts"
         effect io
     }

@@ -1,0 +1,9 @@
+program bad_text_dynamic_concat
+
+fn join(left : Text, right : Text): Text {
+    value : Text(left + right)
+    return value
+}
+
+main {
+}

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <optional>
 #include <sstream>
 #include <set>
 #include <algorithm>
@@ -60,6 +61,28 @@ std::string trim_copy(std::string value) {
     if (first == std::string::npos) return {};
     const auto last = value.find_last_not_of(" \t\n\r");
     return value.substr(first, last - first + 1);
+}
+
+bool valid_utf8(std::string_view value) {
+    for (std::size_t index = 0; index < value.size();) {
+        const unsigned char lead = static_cast<unsigned char>(value[index++]);
+        std::size_t continuation = 0;
+        unsigned int codepoint = 0;
+        unsigned int minimum = 0;
+        if (lead <= 0x7f) continue;
+        if (lead >= 0xc2 && lead <= 0xdf) { continuation = 1; codepoint = lead & 0x1f; minimum = 0x80; }
+        else if (lead >= 0xe0 && lead <= 0xef) { continuation = 2; codepoint = lead & 0x0f; minimum = 0x800; }
+        else if (lead >= 0xf0 && lead <= 0xf4) { continuation = 3; codepoint = lead & 0x07; minimum = 0x10000; }
+        else return false;
+        if (index + continuation > value.size()) return false;
+        for (std::size_t offset = 0; offset < continuation; ++offset) {
+            const unsigned char byte = static_cast<unsigned char>(value[index++]);
+            if ((byte & 0xc0) != 0x80) return false;
+            codepoint = (codepoint << 6) | (byte & 0x3f);
+        }
+        if (codepoint < minimum || codepoint > 0x10ffff || (codepoint >= 0xd800 && codepoint <= 0xdfff)) return false;
+    }
+    return true;
 }
 
 std::vector<std::string> split_generic_arguments(const std::string& value) {
@@ -164,7 +187,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
     }
     int resolved_types = 0, unresolved_types = 0;
-    const std::vector<std::string> builtin = {"bool", "Bool", "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "float16", "float32", "float64", "float128", "char8", "char16", "char32", "int", "float", "string", "void"};
+    const std::vector<std::string> builtin = {"bool", "Bool", "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "float16", "float32", "float64", "float128", "char8", "char16", "char32", "int", "float", "string", "Text", "void"};
     auto is_builtin = [&](const std::string& value) { for (const auto& item : builtin) if (item == value) return true; return false; };
     const std::vector<std::string> abi_types = {"c_int", "c_long", "c_ulong", "c_size_t", "c_string", "c_pointer"};
     auto is_abi_type = [&](const std::string& value) { for (const auto& item : abi_types) if (item == value) return true; return false; };
@@ -478,6 +501,85 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             break;
         }
     }
+    std::map<int, int> text_initializers;
+    for (const auto& [statement_id, statement] : statements) {
+        if (text(field(*statement, "kind")) != "let") continue;
+        const auto* payload = field(*statement, "payload");
+        const int initializer = integer(field(payload, "initializer_expression"));
+        const int scope_id = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
+        const auto name = text(field(*statement, "name"));
+        if (initializer < 0 || scope_id < 0 || !scopes.count(scope_id)) continue;
+        for (const auto& candidate : list(field(*scopes.at(scope_id), "symbol_ids"))) {
+            const int symbol_id = integer(&candidate);
+            if (symbols.count(symbol_id) && text(field(*symbols.at(symbol_id), "name")) == name &&
+                symbol_types[symbol_id] == "Text") {
+                text_initializers[symbol_id] = initializer;
+                break;
+            }
+        }
+    }
+    std::function<bool(int)> expression_is_text = [&](int expression_id) {
+        if (!expressions.count(expression_id)) return false;
+        const auto* expression = expressions.at(expression_id);
+        const auto kind = text(field(*expression, "kind"));
+        if (kind == "string_literal") return true;
+        if (kind == "identifier") {
+            const int symbol = resolved_expression_symbols.count(expression_id) ? resolved_expression_symbols.at(expression_id) : -1;
+            return symbol >= 0 && symbol_types[symbol] == "Text";
+        }
+        if (kind != "binary") return false;
+        const auto* payload = field(*expression, "payload");
+        return text(field(payload, "operator")) == "+" &&
+               expression_is_text(integer(field(payload, "left"))) &&
+               expression_is_text(integer(field(payload, "right")));
+    };
+    std::function<std::optional<std::string>(int)> constant_text = [&](int expression_id) -> std::optional<std::string> {
+        if (!expressions.count(expression_id)) return std::nullopt;
+        const auto* expression = expressions.at(expression_id);
+        const auto kind = text(field(*expression, "kind"));
+        if (kind == "string_literal") return text(field(field(*expression, "payload"), "value_text"));
+        if (kind == "identifier") {
+            const int symbol = resolved_expression_symbols.count(expression_id) ? resolved_expression_symbols.at(expression_id) : -1;
+            if (text_initializers.count(symbol)) return constant_text(text_initializers.at(symbol));
+            return std::nullopt;
+        }
+        if (kind != "binary") return std::nullopt;
+        const auto* payload = field(*expression, "payload");
+        if (text(field(payload, "operator")) != "+") return std::nullopt;
+        const auto left = constant_text(integer(field(payload, "left")));
+        const auto right = constant_text(integer(field(payload, "right")));
+        if (!left || !right) return std::nullopt;
+        return *left + *right;
+    };
+    for (const auto& [expression_id, expression] : expressions) {
+        if (text(field(*expression, "kind")) != "string_literal") continue;
+        if (!valid_utf8(text(field(field(*expression, "payload"), "value_text"))))
+            add_diagnostic("FLOWANALYST_TEXT_INVALID_UTF8", "Text literal is not valid UTF-8", -1, "expression:" + std::to_string(expression_id));
+    }
+    for (const auto& [statement_id, statement] : statements) {
+        if (text(field(*statement, "kind")) != "let") continue;
+        const auto* payload = field(*statement, "payload");
+        const int initializer = integer(field(payload, "initializer_expression"));
+        const auto name = text(field(*statement, "name"));
+        const int scope_id = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
+        int symbol_id = -1;
+        if (scopes.count(scope_id)) for (const auto& candidate : list(field(*scopes.at(scope_id), "symbol_ids"))) {
+            const int candidate_id = integer(&candidate);
+            if (symbols.count(candidate_id) && text(field(*symbols.at(candidate_id), "name")) == name) { symbol_id = candidate_id; break; }
+        }
+        if (symbol_id >= 0 && symbol_types[symbol_id] == "Text" && initializer >= 0 && !expression_is_text(initializer))
+            add_diagnostic("FLOWANALYST_TEXT_CSTRING_CONFUSION", "Text initializer requires a Text value; c_string is borrowed and cannot convert implicitly", symbol_id, "symbol:" + std::to_string(symbol_id));
+    }
+    for (const auto& [expression_id, expression] : expressions) {
+        if (text(field(*expression, "kind")) != "binary") continue;
+        const auto* payload = field(*expression, "payload");
+        const bool left_text = expression_is_text(integer(field(payload, "left")));
+        const bool right_text = expression_is_text(integer(field(payload, "right")));
+        if (text(field(payload, "operator")) == "+" && left_text != right_text)
+            add_diagnostic("FLOWANALYST_TEXT_CSTRING_CONFUSION", "Text concatenation does not implicitly accept c_string", -1, "expression:" + std::to_string(expression_id));
+        if (text(field(payload, "operator")) == "+" && left_text && right_text && !constant_text(expression_id))
+            add_diagnostic("FLOWANALYST_TEXT_DYNAMIC_CONCAT", "v0.1 Text concatenation requires compile-time-known operands", -1, "expression:" + std::to_string(expression_id));
+    }
     for (const auto& [expression_id, expression] : expressions) if (text(field(*expression, "kind")) == "field_access") {
         const auto* payload = field(*expression, "payload");
         const int base = integer(field(*payload, "base"));
@@ -631,10 +733,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
     }
     std::set<int> called_provider_symbols;
-    for (const auto& site : call_sites) if (provider_functions.count(site.callee_symbol))
-        called_provider_symbols.insert(site.callee_symbol);
-    if (graph_native) for (const auto& provider : graph_providers) called_provider_symbols.insert(integer(field(provider, "function_symbol_id")));
-    for (const auto symbol : called_provider_symbols) binding_requirements.push_back(provider_functions.at(symbol));
+    std::set<int> text_output_symbols;
     std::vector<LoweringOperation> lowering_operations;
     auto containing_function = [&](int scope_id) {
         int current = scope_id;
@@ -652,6 +751,58 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         for (const auto& [block_id, block] : blocks) for (const auto& member : list(field(*block, "statements"))) if (integer(&member) == statement_id) return block_id;
         return -1;
     };
+    for (const auto& [statement_id, statement] : statements) {
+        if (text(field(*statement, "kind")) != "expression") continue;
+        const auto* payload = field(*statement, "payload");
+        const auto* print = field(payload, "print");
+        if (!print || !std::holds_alternative<bool>(*print) || !std::get<bool>(*print)) continue;
+        const int expression_id = integer(field(payload, "expression"));
+        if (!expression_is_text(expression_id)) {
+            const auto* expression = expressions.count(expression_id) ? expressions.at(expression_id) : nullptr;
+            const int symbol = expression && text(field(*expression, "kind")) == "identifier" &&
+                resolved_expression_symbols.count(expression_id) ? resolved_expression_symbols.at(expression_id) : -1;
+            if (symbol >= 0 && symbol_types[symbol] == "c_string")
+                add_diagnostic("FLOWANALYST_TEXT_CSTRING_CONFUSION", "print does not implicitly reinterpret c_string as Text", symbol, "symbol:" + std::to_string(symbol));
+            continue;
+        }
+        std::vector<int> candidates;
+        for (const auto& [symbol_id, requirement] : provider_functions) {
+            if (requirement.parameter_types == "Text" && requirement.return_type == "c_int" &&
+                requirement.effect == "io" && text(field(*symbols.at(symbol_id), "name")) == "puts_text")
+                candidates.push_back(symbol_id);
+        }
+        if (candidates.size() != 1) {
+            add_diagnostic("FLOWANALYST_TEXT_OUTPUT_CAPABILITY", "print requires exactly one declared Text output capability (puts_text)", -1, "statement:" + std::to_string(statement_id));
+            continue;
+        }
+        const int provider_symbol = candidates.front();
+        text_output_symbols.insert(provider_symbol);
+        LoweringOperation operation;
+        operation.expression = expression_id;
+        operation.statement = statement_id;
+        operation.scope = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
+        operation.block = containing_block(statement_id);
+        operation.function_symbol = containing_function(operation.scope);
+        operation.callee_symbol = provider_symbol;
+        operation.callee = "print";
+        operation.kind = "external_call";
+        operation.arguments.push_back(expression_id);
+        const auto& requirement = provider_functions.at(provider_symbol);
+        operation.contract = requirement.contract;
+        operation.evidence = requirement.evidence;
+        operation.library = requirement.library;
+        operation.convention = requirement.convention;
+        operation.symbol = requirement.symbol;
+        operation.effect = requirement.effect;
+        operation.parameter_types = requirement.parameter_types;
+        operation.return_type = requirement.return_type;
+        lowering_operations.push_back(std::move(operation));
+    }
+    for (const auto& site : call_sites) if (provider_functions.count(site.callee_symbol))
+        called_provider_symbols.insert(site.callee_symbol);
+    called_provider_symbols.insert(text_output_symbols.begin(), text_output_symbols.end());
+    if (graph_native) for (const auto& provider : graph_providers) called_provider_symbols.insert(integer(field(provider, "function_symbol_id")));
+    for (const auto symbol : called_provider_symbols) binding_requirements.push_back(provider_functions.at(symbol));
     for (const auto& site : call_sites) {
         LoweringOperation operation;
         operation.expression = site.expression;
@@ -866,7 +1017,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 ? text(field(field(*expressions.at(base), "payload"), "name")) : std::string{};
             ordinary_call = callee != "length";
         }
-        std::cout << "{\"expression_id\":" << expression_id << ",\"kind\":" << quote(carrier_conversion ? "conversion" : (writable_storage ? "writable_storage" : (ordinary_call ? "call_result" : kind)));
+        const bool folded_text = kind == "binary" && text(field(field(expression, "payload"), "operator")) == "+" &&
+            expression_is_text(expression_id) && constant_text(expression_id).has_value();
+        std::cout << "{\"expression_id\":" << expression_id << ",\"kind\":"
+                  << quote(carrier_conversion ? "conversion" : (writable_storage ? "writable_storage" : (ordinary_call ? "call_result" : (folded_text ? "string_literal" : kind))));
         if (carrier_conversion) {
             std::cout << ",\"type\":" << quote(declared_type) << ",\"from_type\":" << quote(identifier_type)
                       << ",\"conversion\":\"explicit_typed_initializer\",\"operand\":";
@@ -878,7 +1032,9 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (kind == "integer_literal") {
             std::cout << ",\"type\":" << quote(declared_type.empty() ? "c_int" : declared_type) << ",\"value\":" << quote(literal);
         } else if (kind == "string_literal") {
-            std::cout << ",\"type\":\"c_string\",\"value\":" << quote(text(field(field(expression, "payload"), "value_text")));
+            const auto value = text(field(field(expression, "payload"), "value_text"));
+            std::cout << ",\"type\":" << quote(declared_type == "Text" ? "Text" : "c_string")
+                      << ",\"value\":" << quote(value);
         } else if (kind == "bool_literal") {
             std::cout << ",\"type\":\"bool\",\"value\":" << quote(text(field(field(expression, "payload"), "value_text"), "false"));
         } else if (kind == "identifier") {
@@ -925,6 +1081,22 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         } else if (kind == "binary") {
             const auto* payload = field(expression, "payload");
             const auto operator_name = text(field(payload, "operator"));
+            const bool text_binary = operator_name == "+" &&
+                expression_is_text(integer(field(payload, "left"))) &&
+                expression_is_text(integer(field(payload, "right")));
+            if (text_binary) {
+                const auto value = constant_text(expression_id);
+                if (value) {
+                    std::cout << ",\"type\":\"Text\",\"value\":" << quote(*value);
+                } else {
+                    std::cout << ",\"type\":\"Text\",\"operator\":\"+\",\"left\":";
+                    emit_operand(integer(field(payload, "left")), "Text");
+                    std::cout << ",\"right\":";
+                    emit_operand(integer(field(payload, "right")), "Text");
+                }
+                std::cout << "}";
+                return;
+            }
             const bool comparison = operator_name == "==" || operator_name == "!=" || operator_name == "<" || operator_name == "<=" || operator_name == ">" || operator_name == ">=";
             std::cout << ",\"type\":" << (comparison ? "\"bool\"" : "\"c_int\"") << ",\"operator\":" << quote(operator_name) << ",\"left\":";
             emit_operand(integer(field(payload, "left")), {});
@@ -956,13 +1128,17 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         std::cout << "],\"operands\":[";
         for (std::size_t argument = 0; argument < operation.arguments.size(); ++argument) {
             if (argument) std::cout << ',';
-            auto declared_type = operation.kind == "value_definition" && operation.result_symbol >= 0 && symbol_types.count(operation.result_symbol)
+            auto declared_type = (operation.kind == "value_definition" || operation.kind == "assignment") && operation.result_symbol >= 0 && symbol_types.count(operation.result_symbol)
                 ? symbol_types.at(operation.result_symbol) : std::string{};
             if (operation.kind == "return_value" && lowering_plan_version == 2)
                 for (const auto& callable : callables) if (callable.symbol == operation.function_symbol) {
                     declared_type = callable.return_type;
                     break;
                 }
+            if (operation.kind == "external_call") {
+                const auto parameter_types = split_generic_arguments(operation.parameter_types);
+                if (argument < parameter_types.size()) declared_type = parameter_types[argument];
+            }
             emit_operand(operation.arguments[argument], declared_type);
         }
         std::cout << "]";

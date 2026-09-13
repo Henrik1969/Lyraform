@@ -1,7 +1,7 @@
 # Lyraform alpha-readiness checkpoint
 
 **Date:** 2026-09-13
-**Status:** verified onboarding/documentation checkpoint
+**Status:** verified onboarding plus Text-slice checkpoint
 **Canonical branch:** `main`
 
 ## Purpose
@@ -43,6 +43,11 @@ git diff --check                           PASS
 The fresh onboarding build compiled 146 targets and the canonical CTest suite
 passed all 81 tests in 35.89 seconds on the verified Linux x86-64 environment.
 
+After the Text slice, a fresh `/tmp/lyraform-text-build` compiled 115 targets
+and the complete CTest graph passed 82/82 in 34.51 seconds. The two pager tests
+were rerun after a compatibility repair for empty legacy `c_string` values and
+also passed.
+
 ## Current scope
 
 The onboarding baseline exercises the current experimental Lyraform surface:
@@ -52,15 +57,28 @@ and native execution. It does not establish production readiness, formal
 verification, memory safety, universal portability, aggregate/streaming graph
 semantics, or complete language closure.
 
-## Next maturation slice
+## Text maturation slice
 
-The next language-closure candidate is the [explicit Text semantics
-proposal](../architecture/text-value-v0.1-proposal.md): a documented `Text`
-value contract, Text literals/concatenation, and a provider-independent print
-path. Before implementation, the acceptance boundary must define ownership,
-encoding, concatenation allocation/failure behavior, source provenance,
-lowering representation, and native/TinyVM parity. The existing `c_string` ABI
-carrier is not silently promoted into that language contract.
+The first bounded Text slice is now implemented and tested through the generic
+chain. The focused command was:
+
+```text
+tools/test-text-value.sh
+  PASS: semantic Text artifacts, Flowbind authorization, LLVM/native output,
+        empty/non-ASCII values, c_string confusion, dynamic concat, and invalid UTF-8 refusals
+tools/run-flowcore-pass-corpus.sh
+  Flowcore pass corpus: 92 programs passed semantic and lowering boundaries
+```
+
+The native fixture prints an empty line followed by `Lyraform — Igor`, proving
+that empty Text is not lowered as the legacy null c_string compatibility value.
+The implementation is intentionally bounded: concatenation is admitted only
+when operands are initializer-known constants, and `puts_text(Text)` provides a
+declared borrowed view at the native call boundary. Runtime owned allocation,
+explicit failure/exhaustion, Text returns, and TinyVM parity remain open gates.
+
+The existing `c_string` ABI carrier remains unchanged and is not silently
+promoted into the language contract.
 
 That distinction is the next design-and-test checkpoint. Until it is specified,
 the current string ABI compatibility path remains unchanged.

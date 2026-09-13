@@ -281,7 +281,10 @@ struct ReturnStatement {
     std::optional<std::size_t> value_expression;
     StatementSourceForm source_form = StatementSourceForm::KeywordReturn;
 };
-struct ExpressionStatement { std::size_t expression; };
+struct ExpressionStatement {
+    std::size_t expression;
+    bool print = false;
+};
 struct FlowStatement { std::vector<std::size_t> expressions; };
 
 struct Statement {

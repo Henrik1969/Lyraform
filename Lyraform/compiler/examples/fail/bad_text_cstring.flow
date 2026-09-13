@@ -1,0 +1,8 @@
+import "../../std/abi/libc.flow"
+
+program bad_text_cstring
+
+main {
+    borrowed : c_string("borrowed")
+    value : Text(borrowed)
+}

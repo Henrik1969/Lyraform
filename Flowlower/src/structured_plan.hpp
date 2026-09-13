@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <functional>
 #include <map>
 #include <optional>
 #include <set>
@@ -63,7 +64,7 @@ inline std::string llvm_type(std::string_view carrier) {
     if (carrier == "bool" || carrier == "Bool") return "i1";
     if (carrier == "c_int") return "i32";
     if (carrier == "c_long" || carrier == "c_ulong" || carrier == "c_size_t") return "i64";
-    if (carrier == "c_string" || carrier == "c_pointer") return "ptr";
+    if (carrier == "c_string" || carrier == "c_pointer" || carrier == "Text") return "ptr";
     return {};
 }
 inline bool c_symbol(std::string_view symbol) {
@@ -128,6 +129,7 @@ private:
     std::string return_carrier_ = "c_int";
     std::map<int,std::pair<std::string,std::string>> call_results_;
     bool has_list_length_ = false;
+    std::map<int, std::size_t> string_sizes_;
 
     static Provider provider(const Json& value) {
         return {text(field(value,"contract")), text(field(value,"library")), text(field(value,"convention")),
@@ -254,9 +256,28 @@ private:
         }
         return result+"\\00";
     }
-    void emit_globals(std::ostringstream& out) const {
-        for (const auto& [symbol, value]:definitions_) if (text(field(*value,"kind"))=="string_literal") {
-            const auto literal=text(field(*value,"value")); out << "@flow_string_"<<symbol<<" = private unnamed_addr constant ["<<literal.size()+1<<" x i8] c\""<<escaped_string(literal)<<"\"\n";
+    void emit_globals(std::ostringstream& out) {
+        const auto* plan = field(root_, "lowering_plan");
+        const auto& operations = array(field(*plan, "operations"), "lowering_plan.operations");
+        std::map<int, std::string> strings;
+        std::function<void(const Json&)> collect = [&](const Json& value) {
+            if (const auto* object = std::get_if<Object>(&value)) {
+                const auto kind = text(field(value, "kind"));
+                if (kind == "string_literal") {
+                    const int expression_id = integer(field(value, "expression_id"), "string_literal.expression_id");
+                    const auto literal = text(field(value, "value"));
+                    strings[expression_id] = literal;
+                }
+                for (const auto& [key, child] : *object) { (void)key; collect(child); }
+            } else if (const auto* values = std::get_if<Array>(&value)) {
+                for (const auto& child : *values) collect(child);
+            }
+        };
+        for (const auto& operation : operations) collect(operation);
+        for (const auto& [expression_id, literal] : strings) {
+            string_sizes_[expression_id] = literal.size() + 1;
+            out << "@flow_string_expr_" << expression_id << " = private unnamed_addr constant ["
+                << literal.size() + 1 << " x i8] c\"" << escaped_string(literal) << "\"\n";
         }
     }
     void emit_declarations(std::ostringstream& out) const {
@@ -352,7 +373,7 @@ private:
         const auto name=callable_name(function);
         return_carrier_ = function.result;
         const auto result_type = llvm_type(return_carrier_);
-        if(result_type.empty() || (result_type == "ptr" && function.result != "c_string") || (function.entry && result_type != "i32"))throw std::runtime_error("unsupported callable function signature");
+        if(result_type.empty() || (result_type == "ptr" && function.result != "c_string" && function.result != "Text") || (function.entry && result_type != "i32"))throw std::runtime_error("unsupported callable function signature");
         out<<"define "<<result_type<<" @"<<name<<"(";
         for(std::size_t index=0;index<function.parameters.size();++index){if(index)out<<", ";const auto type=llvm_type(function.parameters[index].second);if(type.empty())throw std::runtime_error("unsupported callable parameter type");out<<type<<" %flow_arg_"<<function.parameters[index].first;}
         out<<") {\nentry:\n"; emit_allocations(out);
@@ -379,7 +400,17 @@ private:
             if(literal=="false") return {"i1","false"};
             return {};
         }
-        if(kind=="string_literal" && text(field(value,"value")).empty()) return {"ptr","null"};
+        if(kind=="string_literal") {
+            const auto literal = text(field(value, "value"));
+            if (literal.empty() && type != "Text") return {"ptr", "null"};
+            const int expression_id = integer(field(value, "expression_id"), "string_literal.expression_id");
+            const auto found = string_sizes_.find(expression_id);
+            if (found == string_sizes_.end()) return {};
+            const auto result = "%flow_string_ptr_" + std::to_string(temporary_++);
+            out << "  " << result << " = getelementptr [" << found->second << " x i8], ptr @flow_string_expr_"
+                << expression_id << ", i64 0, i64 0\n";
+            return {"ptr", result};
+        }
         if(kind=="identifier") {
             const int symbol=integer(field(value,"symbol_id"),"symbol_id"); const auto native_type=llvm_type(symbol_types_[symbol]); auto loaded=load_symbol(symbol,out);
             const auto wanted=expected.empty()?native_type:llvm_type(expected); if(wanted==native_type) return {native_type,loaded};
@@ -447,7 +478,7 @@ private:
             if(op->kind=="value_definition") {
                 const auto kind=text(field(*op->operand,"kind"));
                 if(kind=="writable_storage") out<<"  store ptr %flow_storage_ptr_"<<op->result_symbol<<", ptr "<<slot(op->result_symbol)<<"\n";
-                else if(kind=="string_literal") out<<"  store ptr @flow_string_"<<op->result_symbol<<", ptr "<<slot(op->result_symbol)<<"\n";
+                else if(kind=="string_literal") { auto [type,value]=expression(*op->operand,out,"Text"); if(value.empty()) throw std::runtime_error("unsupported structured string definition"); out<<"  store ptr "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
                 else { auto [type,value]=expression(*op->operand,out); if(value.empty()) throw std::runtime_error("unsupported structured value definition"); out<<"  store "<<type<<" "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
             } else if(op->kind=="call") {
                 if(!callables_.count(op->callee_symbol))throw std::runtime_error("ordinary call target is unavailable");

@@ -534,7 +534,8 @@ namespace flowmini::ast {
                     dump_json_string(out, to_string(payload.source_form));
                 } else if constexpr (std::is_same_v<Payload, ExpressionStatement>) {
                     out << "\"expression\": ";
-                    out << payload.expression;
+                    out << payload.expression << ", \"print\": "
+                        << (payload.print ? "true" : "false");
                 } else if constexpr (std::is_same_v<Payload, FlowStatement>) {
                     out << "\"expressions\": ";
                     dump_id_array(out, payload.expressions);
