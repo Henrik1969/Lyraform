@@ -137,7 +137,7 @@ private:
         if (type == "bool" || type == "Bool") return TINYVM_CARRIER_I1;
         if (type == "int" || type == "c_int") return TINYVM_CARRIER_I32;
         if (type == "c_long" || type == "c_ulong" || type == "c_size_t") return TINYVM_CARRIER_I64;
-        if (type == "c_string" || type == "c_pointer") return TINYVM_CARRIER_OPAQUE_HANDLE;
+        if (type == "c_string" || type == "c_pointer" || type == "Text") return TINYVM_CARRIER_OPAQUE_HANDLE;
         throw Unsupported("type carrier '" + std::string(type) + "' is not admitted by the scalar slice");
     }
     std::size_t slot() { return next_slot_++; }
@@ -294,7 +294,7 @@ private:
             const bool admitted = (symbol == "abs" && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "labs" && parameters == "c_long" && result_type == "c_long") ||
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
-                                  (symbol == "puts" && parameters == "c_string" && result_type == "c_int") ||
+                                  (symbol == "puts" && (parameters == "c_string" || parameters == "Text") && result_type == "c_int") ||
                                   ((symbol == "getpgid" || symbol == "getsid") && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "getpriority" && parameters == "c_int,c_int" && result_type == "c_int") ||
                                   ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int");
@@ -315,7 +315,8 @@ private:
             field(imported.contract,"contract"); field(imported.library,"library"); field(imported.convention,"convention"); field(imported.symbol,"symbol"); field(imported.effect,"effect"); field(imported.parameters,"parameter_types"); field(imported.result,"return_type");
             if (!imported.parameters[0]) copy(imported.parameters, "none");
             copy(imported.evidence, identity("authorization-", serialize(provider))); imports.push_back(imported);
-            const auto destination = symbol_slot(integer(required(operation, "result_symbol_id", "$.operation"), "$.operation.result_symbol_id"));
+            const auto* result_identity = optional(operation, "result_symbol_id");
+            const auto destination = result_identity ? symbol_slot(integer(*result_identity, "$.operation.result_symbol_id")) : slot();
             slot_types_[destination] = carrier(result_type);
             emit(TV1_CALL_IMPORT, destination, imported.id, argument_start); return;
         }

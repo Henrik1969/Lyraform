@@ -43,10 +43,11 @@ git diff --check                           PASS
 The fresh onboarding build compiled 146 targets and the canonical CTest suite
 passed all 81 tests in 35.89 seconds on the verified Linux x86-64 environment.
 
-After the Text slice, a fresh `/tmp/lyraform-text-build` compiled 115 targets
-and the complete CTest graph passed 82/82 in 34.51 seconds. The two pager tests
-were rerun after a compatibility repair for empty legacy `c_string` values and
-also passed.
+After the first Text slice, a fresh `/tmp/lyraform-text-build` compiled 115
+targets and the complete CTest graph passed 82/82 in 34.51 seconds. After the
+TinyVM parity gate was added, the same fresh build passed 83/83 in 36.68
+seconds. The two pager tests were rerun after a compatibility repair for empty
+legacy `c_string` values and also passed.
 
 ## Current scope
 
@@ -68,6 +69,8 @@ tools/test-text-value.sh
         empty/non-ASCII values, c_string confusion, dynamic concat, and invalid UTF-8 refusals
 tools/run-flowcore-pass-corpus.sh
   Flowcore pass corpus: 92 programs passed semantic and lowering boundaries
+tools/test-tinyvm-text-parity.sh
+  PASS: the admitted compile-time Text slice has LLVM/TinyVM output parity
 ```
 
 The native fixture prints an empty line followed by `Lyraform — Igor`, proving
@@ -77,7 +80,8 @@ printing it, covering the callable boundary.
 The implementation is intentionally bounded: concatenation is admitted only
 when operands are initializer-known constants, and `puts_text(Text)` provides a
 declared borrowed view at the native call boundary. Runtime owned allocation,
-explicit failure/exhaustion, Text returns, and TinyVM parity remain open gates.
+explicit failure/exhaustion, and general owned Text returns remain open gates;
+the compile-time slice now has TinyVM parity.
 
 The existing `c_string` ABI carrier remains unchanged and is not silently
 promoted into the language contract.

@@ -1297,3 +1297,24 @@ recorded. Historical DONE claims do not describe this checkout.
 Implement runtime Text concatenation with an explicit bounded-storage policy,
 then add failure-path and TinyVM parity evidence. Keep the compile-time-only
 slice clearly distinguished until that gate passes.
+
+## 2026-09-13 TinyVM Text parity checkpoint
+
+- Extended TinyVM's existing opaque string-handle carrier to admit the declared
+  `Text` carrier. The runtime provider accepts `puts(Text)` only through the
+  exact `libc.so.6` / `puts` / `c` / `io` / `Text` / `c_int` policy tuple.
+- Fixed a generic TinyVM lowering gap exposed by this fixture: an external call
+  that intentionally discards its result now receives a typed temporary slot;
+  no result symbol is fabricated in the source artifact.
+- Evidence: `tools/test-tinyvm-text-parity.sh` passed independently captured
+  LLVM and TinyVM execution with identical Text output; the fresh complete CTest
+  graph passed **83/83** in 36.68s.
+- Compatibility boundary: this proves parity only for literal and
+  initializer-known Text values. It does not admit runtime-created Text or
+  allocation ownership.
+
+## Exact next action
+
+Define the bounded runtime Text storage contract and implement one owned
+concatenation path with explicit exhaustion behavior. Then add the corresponding
+LLVM/TinyVM differential and failure evidence. State remains CONTINUE.

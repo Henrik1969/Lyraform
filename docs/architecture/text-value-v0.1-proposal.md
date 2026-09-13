@@ -100,13 +100,15 @@ The current generic chain admits the following bounded slice:
 - `print` resolves only to a declared `puts_text(Text): c_int` capability;
 - Text operation identity, provider identity, and Text carrier type survive
   Flowparallel, Flowoptimize, Flowbind, and Flowlower;
+- the admitted compile-time slice has LLVM/TinyVM output parity through the
+  exact `puts(Text)` import boundary;
 - c_string-to-Text initializers, c_string printing, dynamic Text concatenation,
   and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
 
 This slice deliberately does not claim general runtime Text allocation or
 general function-return ownership yet. Dynamic concatenation,
-bounded-storage failure, and TinyVM parity remain admission gates for the
-complete v0.1 contract.
+bounded-storage failure, and parity for runtime-created Text values remain
+admission gates for the complete v0.1 contract.
 
 ## Open review questions
 
