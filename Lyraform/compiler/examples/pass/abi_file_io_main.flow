@@ -7,12 +7,17 @@ main {
     reader : c_int(open("/dev/zero", 0))
     writer : c_int(open("/dev/null", 1))
     failing_writer : c_int(open("/dev/full", 1))
+    partial_reader : c_int(open("/etc/hostname", 0))
     buffer : c_pointer(8)
     count : c_size_t(8)
     read_count : c_long(0)
     write_count : c_long(0)
     failure_count : c_long(0)
+    partial_count : c_long(0)
     expected : c_long(8)
+    partial_limit : c_size_t(4096)
+    partial_limit_long : c_long(4096)
+    partial_buffer : c_pointer(4096)
     status : c_int(0)
 
     if reader >= 0 {
@@ -35,5 +40,14 @@ main {
             puts("write failure ok") -> status
         }
         close(failing_writer) -> status
+    }
+    if partial_reader >= 0 {
+        read(partial_reader, partial_buffer, partial_limit) -> partial_count
+        if partial_count > 0 {
+            if partial_count < partial_limit_long {
+                puts("partial read ok") -> status
+            }
+        }
+        close(partial_reader) -> status
     }
 }

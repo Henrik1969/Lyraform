@@ -41,7 +41,7 @@ grep -q 'call i64 @read' "$work/file.ll"
 grep -q 'call i64 @write' "$work/file.ll"
 clang "$work/file.ll" -o "$work/file-native"
 native_output="$($work/file-native)"
-printf '%s\n' 'read bounded ok' 'write bounded ok' 'write failure ok' > "$work/expected"
+printf '%s\n' 'read bounded ok' 'write bounded ok' 'write failure ok' 'partial read ok' > "$work/expected"
 printf '%s\n' "$native_output" > "$work/native-output"
 cmp -s "$work/expected" "$work/native-output"
 

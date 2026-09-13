@@ -1694,3 +1694,20 @@ Continue the first unfinished mission gate with partial-transfer semantics or
 the next approved receiver/graph contract; keep raw-pointer offset operations
 such as `sendfile` explicitly unsupported until their storage representation is
 complete. State remains CONTINUE.
+
+## 2026-09-13 partial-transfer file I/O checkpoint
+
+- Extended `abi_file_io_main` with a bounded `/etc/hostname` read using a
+  4096-byte storage handle. The fixture requires a positive transfer smaller
+  than the requested limit, proving that the actual transfer count—not the
+  requested count—is the initialized range.
+- Focused evidence: `file_io_boundary` passed **1/1** with partial read,
+  bounded read/write, EOF, `/dev/full` error, uninitialized-write refusal,
+  descriptor cleanup, and `sendfile` refusal. The complete canonical CTest
+  suite passed **94/94** in 37.74 seconds.
+
+## Exact next action
+
+Continue with the next approved receiver/graph contract while retaining the
+file boundary’s explicit refusal for raw-pointer offset operations and broader
+platform-dependent transfer cases. State remains CONTINUE.
