@@ -79,3 +79,6 @@ and activation provenance, and exit 70. Calling it requires the same generated
 provider evidence and explicit grant as any other external capability. Its
 implementation never returns a normal result. It permits Flow-owned validation
 without encoding application-specific error cases in the compiler or runtime.
+The same failure law applies when a startup provider invokes this capability:
+the root activation is recorded, no output activation is published, and no
+downstream receiver is entered.

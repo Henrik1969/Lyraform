@@ -7,15 +7,17 @@ sha256sum "$FLOWMINI_BIN" "$FLOWANALYST_BIN" "$FLOWBIND_BIN" "$FLOWPARALLEL_BIN"
 cat > "$tmpdir/provider.c" <<'C'
 #include <stdio.h>
 static int calls;
+extern int flow_graph_raise(int code);
 int input_value(void) { ++calls; return 3; }
 int other_value(void) { ++calls; return 8; }
 long wide_value(void) { return 4294967297L; }
+int failing_value(void) { return flow_graph_raise(23); }
 int input_count(void) { return calls; }
 int observe_value(int value) { printf("%d\n", value); return 0; }
 int observe_long(long value) { printf("%ld\n", value); return 0; }
 C
 clang -shared -fPIC "$tmpdir/provider.c" -o "$tmpdir/provider.so"
-jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
+jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"failure",symbol:"failing_value",effect:"failure",parameters:[],return_type:"c_int"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/spec.json" --flow-output "$tmpdir/provider.flow" --policy-output "$tmpdir/policy" --manifest-output "$tmpdir/manifest.json" >/dev/null
 cat > "$tmpdir/selection.json" <<'JSON'
 {"format":"flowcore.graph_provider_map","version":1,"providers":[{"implementation":"injected.batch","source_callable":"host.input","activation":"startup_once","output_port":"out"}]}
@@ -287,6 +289,50 @@ jq -e '.status == "error" and
     any(.diagnostics[]; .code == "FLOWANALYST_GRAPH_RECEIVER_CARRIER")' \
     "$tmpdir/aggregate.semantic.json" >/dev/null
 mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+compile
+# A startup provider failure is an activation failure: it has no normal output
+# and cannot activate the receiver downstream.
+cp "$tmpdir/program.flow" "$tmpdir/scalar-root.flow"
+cp "$tmpdir/selection.json" "$tmpdir/scalar-root.selection.json"
+cat > "$tmpdir/provider-failure.flow" <<'FLOW'
+import "provider.flow" as host
+program provider_failure_graph
+producer source : injected.failure
+node receiver : fn should_not_run
+wire source.out => receiver.in
+fn should_not_run(value : c_int): c_int {
+    result : c_int(0)
+    host.observe(value) -> result
+    return value
+}
+main {
+    return 0
+}
+FLOW
+cp "$tmpdir/provider-failure.flow" "$tmpdir/program.flow"
+jq '.providers += [{implementation:"injected.failure",source_callable:"host.failure",activation:"startup_once",output_port:"out"}]' \
+    "$tmpdir/selection.json" > "$tmpdir/provider-failure.selection.json"
+mv "$tmpdir/provider-failure.selection.json" "$tmpdir/selection.json"
+compile
+set +e
+FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+status=$?
+set -e
+test "$status" -eq 70
+test ! -s "$tmpdir/output"
+python3 - "$tmpdir/trace" <<'PY'
+import json, sys
+records = [json.loads(line) for line in open(sys.argv[1])]
+failure = records[-1]
+assert failure['format'] == 'flowcore.graph_failure'
+assert failure['reason'] == 'source_failure' and failure['code'] == 23
+assert failure['activation']['node_id'] == 'source'
+assert failure['activation']['kind'] == 'startup'
+assert failure['activation']['wire_id'] == ''
+assert not any(r.get('node_id') == 'receiver' for r in records)
+PY
+mv "$tmpdir/scalar-root.flow" "$tmpdir/program.flow"
+mv "$tmpdir/scalar-root.selection.json" "$tmpdir/selection.json"
 compile
 # Every consumer reads a durable captured file and refuses mutated scheduling.
 for mutation in '.graph_schedule.steps |= reverse' '.graph_schedule.steps[1].wire_id = "wrong"' '.graph_schedule.steps[2].input_signal_id = 99' '.graph_schedule.steps[1].input_port = "out"' 'del(.graph_schedule)' '.lowering_plan.source_graph.syntax.wires += [(.lowering_plan.source_graph.syntax.wires[0] | .wire_id = "cycle" | .from.node_id = "left")]' '.lowering_plan.source_graph.receivers[0].function_symbol_id = 999' '.lowering_plan.source_graph.providers[0].provider.symbol = "other_value"'; do

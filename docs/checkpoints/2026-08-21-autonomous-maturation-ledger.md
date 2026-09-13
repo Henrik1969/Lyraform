@@ -1798,3 +1798,20 @@ remains CONTINUE.
 Continue Gate 6 with the next receiver/graph law while preserving explicit
 scalar-carrier admission and refusal of aggregate, streaming, persistent-state,
 and raw-pointer graph semantics.
+
+## 2026-09-13 native startup failure checkpoint
+
+- Extended `native_source_graph` with an authorized startup provider that calls
+  `flow_graph_raise(23)`. The root activation emits a structured
+  `source_failure` with startup provenance and exit 70, publishes no normal
+  output, and never enters its downstream receiver.
+- This proves the same failure law at both receiver and root-provider activation
+  boundaries without adding provider-name or application-specific dispatch.
+- Focused native graph evidence passed **1/1**; the canonical suite remains
+  **94/94**.
+
+## Exact next action
+
+Continue Gate 6 with the next receiver/graph contract while retaining the
+no-output-on-failure law and explicit separation of provider authority,
+scheduling, activation, and payload carriers. State remains CONTINUE.
