@@ -273,7 +273,8 @@ typed 64-bit payloads for provider returns and aggregate-parameter calls. The
 This remains a bounded graph specialization, not yet a general TinyVM
 scheduler: ISA 2 graph artifacts now carry validated wire, signal, port and
 delivery identity in optional activation metadata and expose it through the
-`--trace-graph` runtime observer. The observer is diagnostic; it does not yet
+`--trace-graph` runtime observer; the ISA context retains copied records with
+execution sequence and stream index. The observer is diagnostic; it does not yet
 provide effectful scheduling, reentrancy, cancellation or runtime-owned
 activation queues. Effectful or nested-call parallel activations,
 branching/merging stream pipelines, larger/non-packed aggregate layouts and

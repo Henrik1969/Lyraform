@@ -83,6 +83,7 @@ cmp "$tmpdir/tiny.program.stdout" "$tmpdir/tiny.computed.program.stdout"
 cmp "$tmpdir/tiny.stdout" "$tmpdir/tiny.trace.stdout"
 jq -s -e 'length == 5 and
     all(.[]; .format == "flowcore.tinyvm_graph_activation" and .event == "enter") and
+    ([.[].sequence]) == [0, 1, 2, 3, 4] and
     .[0].kind == "stream_root" and .[0].node_id == "source" and .[0].wire_id == "-" and .[0].stream_index == null and
     ([.[1:][] | .node_id]) == ["pass", "receiver", "pass", "receiver"] and
     ([.[1:][] | .stream_index]) == [0, 0, 1, 1] and

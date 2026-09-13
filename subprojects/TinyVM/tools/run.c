@@ -19,10 +19,11 @@ static const char *text_outcome_code(const char *fault) {
     return fault + sizeof(prefix) - 1;
 }
 
-static void trace_graph_activation(void *user,const TinyvmArtifactV2 *artifact,const TinyvmGraphActivation *activation,uint64_t stream_index) {
+static void trace_graph_activation(void *user,const TinyvmArtifactV2 *artifact,const TinyvmGraphActivationRecord *record) {
     FILE *out=user?(FILE *)user:stderr;
-    fprintf(out,"{\"format\":\"flowcore.tinyvm_graph_activation\",\"version\":1,\"event\":\"enter\",\"artifact_id\":\"%s\",\"activation_id\":%" PRIu64 ",\"input_activation_id\":%" PRIu64 ",\"input_signal_id\":%" PRIu64 ",\"output_signal_id\":%" PRIu64 ",\"delivery_id\":%" PRIu64 ",\"kind\":\"%s\",\"node_id\":\"%s\",\"wire_id\":\"%s\",\"input_port\":\"%s\",\"output_port\":\"%s\",\"stream_index\":", artifact->artifact_id, activation->activation_id, activation->input_activation_id, activation->input_signal_id, activation->output_signal_id, activation->delivery_id, activation->kind, activation->node_id, activation->wire_id, activation->input_port, activation->output_port);
-    if(stream_index==UINT64_MAX)fputs("null",out);else fprintf(out,"%" PRIu64,stream_index);
+    const TinyvmGraphActivation *activation=&record->identity;
+    fprintf(out,"{\"format\":\"flowcore.tinyvm_graph_activation\",\"version\":1,\"event\":\"enter\",\"artifact_id\":\"%s\",\"sequence\":%" PRIu64 ",\"activation_id\":%" PRIu64 ",\"input_activation_id\":%" PRIu64 ",\"input_signal_id\":%" PRIu64 ",\"output_signal_id\":%" PRIu64 ",\"delivery_id\":%" PRIu64 ",\"kind\":\"%s\",\"node_id\":\"%s\",\"wire_id\":\"%s\",\"input_port\":\"%s\",\"output_port\":\"%s\",\"stream_index\":", artifact->artifact_id, record->sequence, activation->activation_id, activation->input_activation_id, activation->input_signal_id, activation->output_signal_id, activation->delivery_id, activation->kind, activation->node_id, activation->wire_id, activation->input_port, activation->output_port);
+    if(record->stream_index==UINT64_MAX)fputs("null",out);else fprintf(out,"%" PRIu64,record->stream_index);
     fputs("}\n",out);
 }
 

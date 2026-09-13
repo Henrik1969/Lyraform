@@ -27,8 +27,10 @@ The instruction's `a` operand names a record in optional artifact section 7;
 `b` is either `-1` for a static activation or a slot containing a canonical
 `i64` stream index, and `pad` is zero. A configured runner observer receives
 the record at execution time, including activation, signal, delivery, wire and
-port identities. Without an observer the instruction is a validated no-op;
-the artifact still carries the same metadata for independent inspection.
+port identities. The context retains a copied runtime record with a monotonic
+execution sequence and stream index. Without an observer the instruction is a
+validated no-op; the artifact still carries the same metadata for independent
+inspection.
 
 Portable-switch and computed-goto execution initialize identical values and
 their complete post-execution states remain differentially tested.

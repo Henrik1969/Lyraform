@@ -51,7 +51,7 @@ bool tinyvm_isa_v1_context_init(TinyvmIsaV1Context *ctx,size_t slots,uint64_t st
     if(!ctx||!step_limit)return false;
     memset(ctx,0,sizeof(*ctx));if(slots){ctx->slots=calloc(slots,sizeof(*ctx->slots));if(!ctx->slots)return false;}ctx->slot_count=slots;ctx->step_limit=step_limit;ctx->running=true;return true;
 }
-void tinyvm_isa_v1_context_destroy(TinyvmIsaV1Context *ctx){if(!ctx)return;free(ctx->slots);memset(ctx,0,sizeof(*ctx));}
+void tinyvm_isa_v1_context_destroy(TinyvmIsaV1Context *ctx){if(!ctx)return;free(ctx->slots);free(ctx->graph_records);memset(ctx,0,sizeof(*ctx));}
 static bool trap(TinyvmIsaV1Context *ctx,uint32_t code,const char *fault,uint64_t instruction){ctx->trap=code;ctx->fault=fault;ctx->trap_instruction=instruction;ctx->running=false;return false;}
 static TinyvmValue *read_slot(TinyvmIsaV1Context *ctx,uint64_t index,uint64_t instruction){TinyvmValue *v=&ctx->slots[index];if(!v->initialized){trap(ctx,TV1_TRAP_UNINITIALIZED_SLOT,"uninitialized virtual slot",instruction);return NULL;}return v;}
 static uint64_t canonical_i32(int32_t value){return (uint64_t)(int64_t)value;}
@@ -73,7 +73,17 @@ static bool graph_activate(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx,con
     const TinyvmGraphActivation *activation=graph_activation_value(a,(uint64_t)w->a);if(!activation)return trap(ctx,TV1_TRAP_EXPLICIT,"graph activation metadata is unavailable",instruction);
     uint64_t stream_index=UINT64_MAX;
     if(w->b>=0){TinyvmValue *value=read_slot(ctx,(uint64_t)w->b,instruction);if(!value)return false;if(value->carrier!=TINYVM_CARRIER_I64)return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"graph stream index is not i64",instruction);stream_index=value->bits;}
-    if(ctx->graph_observer)ctx->graph_observer(ctx->graph_observer_user,a,activation,stream_index);
+    if(ctx->graph_record_count==ctx->graph_record_capacity){
+        const size_t capacity=ctx->graph_record_capacity?ctx->graph_record_capacity*2:16;
+        if(capacity<ctx->graph_record_capacity||capacity>SIZE_MAX/sizeof(*ctx->graph_records))return trap(ctx,TV1_TRAP_EXPLICIT,"graph activation record capacity overflow",instruction);
+        TinyvmGraphActivationRecord *records=realloc(ctx->graph_records,capacity*sizeof(*records));
+        if(!records)return trap(ctx,TV1_TRAP_EXPLICIT,"graph activation record allocation failed",instruction);
+        ctx->graph_records=records;ctx->graph_record_capacity=capacity;
+    }
+    TinyvmGraphActivationRecord *record=&ctx->graph_records[ctx->graph_record_count];
+    record->identity=*activation;record->sequence=ctx->graph_record_count;record->stream_index=stream_index;
+    ++ctx->graph_record_count;
+    if(ctx->graph_observer)ctx->graph_observer(ctx->graph_observer_user,a,record);
     return true;
 }
 

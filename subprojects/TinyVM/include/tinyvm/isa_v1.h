@@ -62,10 +62,15 @@ typedef bool (*TinyvmTextOutcomeResolver)(void *user,
                                           TinyvmValue *result,
                                           const char **fault);
 
+typedef struct {
+    TinyvmGraphActivation identity;
+    uint64_t sequence;
+    uint64_t stream_index;
+} TinyvmGraphActivationRecord;
+
 typedef void (*TinyvmGraphActivationObserver)(void *user,
                                               const TinyvmArtifactV2 *artifact,
-                                              const TinyvmGraphActivation *activation,
-                                              uint64_t stream_index);
+                                              const TinyvmGraphActivationRecord *record);
 
 typedef struct {
     TinyvmValue *slots;
@@ -87,6 +92,9 @@ typedef struct {
     void *text_outcome_user;
     TinyvmGraphActivationObserver graph_observer;
     void *graph_observer_user;
+    TinyvmGraphActivationRecord *graph_records;
+    size_t graph_record_count;
+    size_t graph_record_capacity;
 } TinyvmIsaV1Context;
 
 bool tinyvm_isa_v1_validate(const TinyvmArtifactV2 *artifact,

@@ -75,6 +75,7 @@ cmp "$tmpdir/llvm.stdout" "$tmpdir/tiny.computed.program.stdout"
 cmp "$tmpdir/tiny.stdout" "$tmpdir/tiny.trace.stdout"
 jq -s -e 'length == 4 and
     all(.[]; .format == "flowcore.tinyvm_graph_activation" and .event == "enter" and .stream_index == null) and
+    ([.[].sequence]) == [0, 1, 2, 3] and
     ([.[].activation_id]) == [0, 1, 2, 3] and
     .[0].kind == "startup" and .[0].node_id == "source" and .[0].wire_id == "-" and
     all(.[1:][]; .kind == "receiver" and .input_port == "in" and .output_port == "out" and .wire_id != "-")' "$tmpdir/tiny.trace.jsonl" >/dev/null
