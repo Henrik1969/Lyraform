@@ -19,10 +19,26 @@ deterministic even though a future worker runtime may dispatch a wave
 concurrently. Fan-out retains one source output signal and distinct delivery
 identities.
 
-This checkpoint is intentionally schedule-only. Flowlower refuses version 4
-parallel schedules until the worker runtime contract exists; it cannot silently
-turn a requested parallel schedule into serial execution. Reentrant receiver
-pipelines continue to use the existing topological activation identity law.
+## v0.34 bounded worker runtime
+
+Version 4 schedules now have a deliberately narrow native execution contract.
+The runtime receives one immutable `c_int` input per activation, starts one
+worker for each activation in the current wave, and joins the complete wave
+before publishing any result to the next wave. Lowering requires one startup
+provider and return-only `c_int` receiver bodies; this is the current proof
+that worker-local evaluation has no shared mutable state or borrowed payload
+lifetime. Joined results are recorded as `flowcore.graph_parallel` evidence
+when graph tracing is enabled.
+
+`flow_graph_fail` remains process-fatal. A worker failure therefore cannot
+publish a partial result or advance a later wave, and no state commit occurs.
+There is not yet a recoverable cancellation API, a worker pool, aggregate
+worker carrier, or persistent-state parallel contract; those are explicit
+future slices. A requested version-4 schedule still cannot be silently
+downgraded to serial execution.
+
+Reentrant receiver pipelines continue to use the existing topological
+activation identity law.
 
 The next gate is a worker runtime with explicit join, failure, cancellation,
 and side-effect/lifetime proof rules. Aggregate payloads may participate only

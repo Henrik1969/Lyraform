@@ -2089,3 +2089,25 @@ State remains CONTINUE.
 No native worker execution is claimed yet. The next action is to add hostile
 wave/policy validation and then implement explicit worker join/failure rules.
 State remains CONTINUE.
+
+## 2026-09-13 bounded parallel worker checkpoint
+
+- Added `flow_graph_parallel_run`, which dispatches one bounded worker per
+  activation in a dependency wave and joins every worker before the next wave
+  is published. Trace writes are mutex-protected, and joined values are
+  emitted as `flowcore.graph_parallel` result evidence.
+- Flowlower now executes version-4 schedules instead of refusing them, but
+  only for one `c_int` startup provider and return-only `c_int` receiver
+  functions. This is an explicit local-state/immutable-value proof boundary;
+  effectful receiver bodies are not admitted to concurrent workers.
+- Native evidence proves a three-wave graph: startup value `3`, a serial
+  transform to `4`, then independent receiver results `4` and `5`; the final
+  output evidence is deterministic after the join. `native_parallel_graph`
+  passes.
+- Worker failure remains process-fatal through the existing graph failure ABI,
+  so no partial wave result is published. Recoverable cancellation, worker
+  pooling, aggregate carriers, and persistent state sharing remain unclaimed.
+
+Focused worker evidence passes **1/1**. State remains CONTINUE; the next
+ordered gate is to mature stream/persistent/aggregate interoperability around
+this worker boundary before considering TinyVM.

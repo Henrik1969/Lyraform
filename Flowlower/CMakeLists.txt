@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 project(flowlower LANGUAGES CXX)
 
+find_package(Threads REQUIRED)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -69,3 +71,4 @@ endif()
 
 add_library(flowgraph_runtime SHARED src/graph_runtime.cpp)
 target_compile_options(flowgraph_runtime PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowgraph_runtime PRIVATE Threads::Threads)
