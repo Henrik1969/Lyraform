@@ -82,7 +82,7 @@ cmake --build /tmp/lyraform-build
 ctest --test-dir /tmp/lyraform-build --output-on-failure
 ```
 
-The clean root graph currently registers 94 CTest tests. Individual stage
+The clean root graph currently registers 103 CTest tests. Individual stage
 builds remain useful for focused development; the root graph is the canonical
 clean-checkout verification path.
 

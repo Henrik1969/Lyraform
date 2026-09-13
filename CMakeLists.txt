@@ -596,6 +596,14 @@ add_test(NAME tinyvm_memory_parity
 set_tests_properties(tinyvm_memory_parity PROPERTIES
     DEPENDS "flowcore_stdlib_boundary;tinyvm_runtime_text_parity")
 
+add_test(NAME tinyvm_install_shape
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_BUILD=${CMAKE_BINARY_DIR}
+        CMAKE_COMMAND_PATH=${CMAKE_COMMAND}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-tinyvm-install-shape.sh)
+set_tests_properties(tinyvm_install_shape PROPERTIES
+    DEPENDS "tinyvm_memory_parity")
+
 # Canonical installed shape. Debian packaging consumes this staged install and
 # splits runtime, development, and documentation payloads without depending on
 # the source-tree layout.
@@ -607,6 +615,9 @@ install(TARGETS
     flowprepare
     flowtarget
     flowlower
+    flowtinylower
+    flowtinyvalidate
+    flowtinyrun
     flowkernel
     flowparallel
     franken_ls
@@ -667,6 +678,18 @@ install(DIRECTORY
     FILES_MATCHING PATTERN "*.flow"
 )
 
+install(DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/Flowlower/target-policies/
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/flowcore/target-policies
+    FILES_MATCHING PATTERN "*.json"
+)
+
+install(DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/TinyVM/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flowcore/tinyvm
+    FILES_MATCHING PATTERN "*.h"
+)
+
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Lyraform/compiler/examples/apps/flowcat/policy.conf
     DESTINATION ${CMAKE_INSTALL_DATADIR}/flowcore/examples/flowcat
@@ -687,6 +710,13 @@ install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md
     ${CMAKE_CURRENT_SOURCE_DIR}/docs/flowmini/stdlib-capability-matrix.md
     DESTINATION ${CMAKE_INSTALL_DOCDIR}
+)
+
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/TinyVM/README.md
+    ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/TinyVM/ARTIFACT-V2.md
+    ${CMAKE_CURRENT_SOURCE_DIR}/subprojects/TinyVM/ISA-V2.md
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}/tinyvm
 )
 
 add_test(NAME native_source_graph
