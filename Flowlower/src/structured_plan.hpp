@@ -171,11 +171,21 @@ private:
                 else if (size > 4 && size <= 8) type = "i64";
                 else throw std::runtime_error("unsupported aggregate ABI size for native value carrier");
                 const auto& fields = array(field(item, "fields"), "aggregate_abi_layout.fields");
+                int expected_size = 0;
+                int expected_alignment = 1;
                 for (const auto& field_value : fields) {
                     const auto field_type = text(field(field_value, "type"));
                     if (field_type != "c_int" && field_type != "c_long" && field_type != "c_ulong" && field_type != "c_size_t")
                         throw std::runtime_error("unsupported aggregate ABI field carrier");
+                    const auto offset = integer(field(field_value, "offset"), "aggregate_abi_layout.field.offset");
+                    const auto field_size = field_type == "c_int" ? 4 : 8;
+                    if (offset != expected_size) throw std::runtime_error("unsupported aggregate ABI padding or field offset");
+                    expected_size += field_size;
+                    expected_alignment = std::max(expected_alignment, field_size);
                 }
+                const auto alignment = integer(field(item, "alignment"), "aggregate_abi_layout.alignment");
+                if (size != expected_size || alignment != expected_alignment)
+                    throw std::runtime_error("unsupported aggregate ABI size or alignment proof");
                 aggregate_types_[name] = type;
             }
         }

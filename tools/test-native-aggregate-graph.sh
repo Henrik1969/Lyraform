@@ -56,4 +56,15 @@ if "$bind" --policy "$tmpdir/policy" --abi-manifest "$tmpdir/hostile-layout.json
     exit 1
 fi
 
+# A consumer must independently recheck the verified layout proof; a forged
+# backend artifact must not become native LLVM merely because Flowbind was
+# bypassed.
+jq '.aggregate_abi_layouts[0].fields[0].type = "c_long"' "$tmpdir/backend.json" > "$tmpdir/hostile-backend.json"
+if "$lower" --emit-llvm "$tmpdir/hostile.ll" < "$tmpdir/hostile-backend.json" > "$tmpdir/hostile-lowering.json" 2>/dev/null; then
+    echo 'hostile aggregate backend artifact unexpectedly lowered' >&2
+    exit 1
+fi
+test ! -e "$tmpdir/hostile.ll"
+jq -e '.status == "unsupported" and (.diagnostic.reason | contains("aggregate ABI"))' "$tmpdir/hostile-lowering.json" >/dev/null
+
 echo 'Native aggregate graph: PASS'

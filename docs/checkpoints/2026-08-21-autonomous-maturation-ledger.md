@@ -2204,3 +2204,26 @@ and the remaining bounded TinyVM/compatibility maturity work.
 State remains CONTINUE. The next ordered work is to rerun the complete Clang
 sanitizer matrix against this expanded contract, then address the remaining
 TinyVM activation/runtime and compatibility-bridge gates.
+
+## 2026-09-13 native aggregate consumer-proof checkpoint
+
+- Hardened Flowlower so native lowering independently validates the verified
+  packed integer aggregate proof: supported field carriers must have exact
+  contiguous offsets, size and alignment, with no padding. This prevents a
+  forged backend artifact from becoming native LLVM after Flowbind is bypassed.
+- Added a hostile backend-artifact refusal assertion to
+  `native_aggregate_graph`; the malformed artifact is rejected before an LLVM
+  file is published and returns the structured `unsupported` aggregate-ABI
+  diagnostic.
+- Refreshed the canonical GCC build targets and reran the complete CTest graph:
+  **104/104** passed. The prior one-test failure was stale-build evidence (the
+  newly registered wide-ABI fixture and then `flowprepare` had not yet been
+  rebuilt); after refreshing those targets, `tinyvm_wide_aggregate_parity`
+  passes **1/1** and the full graph is green.
+- The older sanitizer tree remains non-authoritative for this checkpoint: its
+  stale Flowanalyst executable aborts before the aggregate test body under the
+  runner's ptrace setup. No sanitizer count is upgraded here.
+
+State remains CONTINUE. The next ordered work is to rerun the complete Clang
+sanitizer matrix against the expanded contract, then address the remaining
+TinyVM activation/runtime and compatibility-bridge gates.
