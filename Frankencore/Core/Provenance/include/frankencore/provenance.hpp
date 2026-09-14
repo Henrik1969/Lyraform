@@ -97,6 +97,14 @@ struct HistoryResult {
     std::string quarantine_path;
 };
 
+struct HistoryReadResult {
+    bool valid = false;
+    std::size_t records = 0;
+    std::vector<std::string> json_records;
+    std::string status;
+    std::string error;
+};
+
 // Project-local append-only error-state history. The file is JSONL with one
 // complete ErrorStateEvent per line; callers must explicitly repair a torn
 // final line before appending again.
@@ -105,6 +113,7 @@ public:
     explicit ErrorStateHistory(std::string path, std::size_t max_line_bytes = 1024 * 1024);
 
     HistoryResult inspect() const noexcept;
+    HistoryReadResult read_records() const noexcept;
     HistoryResult append(const MutationRecord& record) const noexcept;
     HistoryResult append(const MutationRejection& rejection) const noexcept;
     HistoryResult append(const ErrorStateEvent& event) const noexcept;

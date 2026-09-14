@@ -58,6 +58,11 @@ int main() {
         .retryable = false, .observed_revision = 2};
     rejection.attempt.attempt_id = generate_ulid();
     assert(history.append(rejection).status == "appended");
+    const auto readable = history.read_records();
+    assert(readable.valid);
+    assert(readable.records == 4);
+    assert(readable.json_records.size() == 4);
+    assert(readable.json_records.front().find("frankencore.error_state_event") != std::string::npos);
 
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);
@@ -76,6 +81,7 @@ int main() {
     assert(repaired.status == "repaired");
     assert(std::filesystem::exists(repaired.quarantine_path));
     assert(history.inspect().status == "valid");
+    assert(history.read_records().json_records.size() == 4);
     assert(history.append(third).status == "appended");
     assert(history.inspect().records == 5);
 

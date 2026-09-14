@@ -18,6 +18,7 @@ namespace {
 struct HistoryScan {
     HistoryResult result;
     std::unordered_map<std::string, std::string> events;
+    std::vector<std::string> records;
     std::size_t valid_prefix = 0;
     bool incomplete_tail = false;
     std::string tail;
@@ -116,6 +117,7 @@ HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes) {
             scan.result = {false, false, scan.events.size(), "invalid", "history contains a duplicate event_id", {}};
             return scan;
         }
+        scan.records.push_back(line);
         offset = newline + 1;
         scan.valid_prefix = offset;
     }
@@ -445,6 +447,24 @@ HistoryResult ErrorStateHistory::inspect() const noexcept {
         return {false, false, 0, "error", error.what(), {}};
     } catch (...) {
         return {false, false, 0, "error", "history inspection failed with an unknown non-standard failure", {}};
+    }
+}
+
+HistoryReadResult ErrorStateHistory::read_records() const noexcept {
+    try {
+        const int lock = lock_history(path_, LOCK_SH);
+        if (lock < 0)
+            return {false, 0, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
+        const auto scan = scan_history(path_, max_line_bytes_);
+        ::flock(lock, LOCK_UN);
+        ::close(lock);
+        if (!scan.result.valid)
+            return {false, scan.result.records, scan.records, scan.result.status, scan.result.error};
+        return {true, scan.result.records, scan.records, scan.result.status, {}};
+    } catch (const std::exception& error) {
+        return {false, 0, {}, "error", error.what()};
+    } catch (...) {
+        return {false, 0, {}, "error", "history read failed with an unknown non-standard failure"};
     }
 }
 
