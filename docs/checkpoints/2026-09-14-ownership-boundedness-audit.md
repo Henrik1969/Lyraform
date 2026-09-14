@@ -19,11 +19,17 @@
 - The CUDA provider wrappers close their dynamic libraries and perform
   explicit device-resource cleanup on their currently admitted linear paths.
 
+## Implemented in this slice
+
+- The CUDA graph executor now tracks device buffers and the cuBLAS handle in
+  one explicit cleanup owner. Cleanup is idempotent, runs on both success and
+  failure, and reports the first cleanup error instead of silently discarding
+  it. The public process boundary also labels an unknown non-standard failure.
+
 ## Gaps requiring Gate 3 work
 
-- CUDA/device allocations are manually released after fallible calls. A
-  thrown or non-standard failure between allocation and the cleanup sequence
-  needs fault-injection evidence or an RAII/checked cleanup boundary.
+- CUDA/device allocations still need injected provider-failure tests covering
+  every allocation, transfer, execution, and cleanup operation.
 - The runtime-provider and artifact allocators have bounded behavior checks,
   but do not yet expose systematic allocation-failure injection at every
   ownership-transfer point.
