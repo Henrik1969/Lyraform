@@ -113,6 +113,18 @@ struct HistoryLookupResult {
     std::string error;
 };
 
+struct HistoryReconciliationResult {
+    bool valid = false;
+    std::size_t left_records = 0;
+    std::size_t right_records = 0;
+    std::size_t common_events = 0;
+    std::size_t left_only_events = 0;
+    std::size_t right_only_events = 0;
+    std::size_t conflicting_events = 0;
+    std::string status;
+    std::string error;
+};
+
 // Project-local append-only error-state history. The file is JSONL with one
 // complete ErrorStateEvent per line; callers must explicitly repair a torn
 // final line before appending again.
@@ -146,5 +158,10 @@ std::string to_json(const ErrorStateEvent& event);
 JsonResult to_json_checked(const MutationRecord& record);
 JsonResult to_json_checked(const MutationRejection& rejection);
 JsonResult to_json_checked(const ErrorStateEvent& event);
+
+// Read-only comparison of two independently produced project-local histories.
+// Both inputs are validated before comparison; neither file is rewritten.
+HistoryReconciliationResult reconcile_histories(const std::string& left_path,
+                                                const std::string& right_path) noexcept;
 
 } // namespace frankencore::provenance

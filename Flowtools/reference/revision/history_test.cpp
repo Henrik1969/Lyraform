@@ -154,6 +154,24 @@ int main() {
     assert(history.append(third).status == "appended");
     assert(history.inspect().records == 5);
 
+    const auto left_path = base / "branch-left.jsonl";
+    const auto right_path = base / "branch-right.jsonl";
+    std::filesystem::copy_file(path, left_path);
+    std::filesystem::copy_file(path, right_path);
+    ErrorStateHistory right_history(right_path.string());
+    auto branch_event = event("reopened");
+    branch_event.error_state_id = first.error_state_id;
+    assert(right_history.append(branch_event).status == "appended");
+    const auto reconciliation = reconcile_histories(left_path.string(), right_path.string());
+    assert(reconciliation.valid);
+    assert(reconciliation.status == "diverged");
+    assert(reconciliation.left_records == 5);
+    assert(reconciliation.right_records == 6);
+    assert(reconciliation.common_events == 5);
+    assert(reconciliation.left_only_events == 0);
+    assert(reconciliation.right_only_events == 1);
+    assert(reconciliation.conflicting_events == 0);
+
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);
         output << "{\"format\":\"frankencore.error_state_event\",\"event_id\":\""

@@ -37,6 +37,7 @@ abrupt-process-exit with torn tail recovery: PASS
 explicit quarantine and repair: PASS
 quarantine collision / uncertain-recovery refusal: PASS
 post-repair append: PASS
+read-only branch divergence reconciliation: PASS
 ordered validated read/replay projection: PASS
 exact identity lookup and invalid-ID refusal: PASS
 total-history bound and no-publication exhaustion: PASS
@@ -46,11 +47,13 @@ linear mutation revision/state replay refusal: PASS
 ```
 
 This is a durable error-state boundary, not a complete history subsystem.
-Mutation replay projection, retention, deeper crash fault injection, and
-cross-branch history reconciliation remain open Gate 5 work. The history test
+Mutation replay projection, retention, and deeper crash fault injection remain
+open Gate 5 work. The history test
 now uses a child process that exits immediately after writing an incomplete
 record, then proves the parent refuses publication until explicit quarantine
-and repair. Error-state lifecycle replay
+and repair. It also compares two independently copied histories without
+rewriting either input: common events are counted and branch-only events are
+reported explicitly. Error-state lifecycle replay
 now rejects records that do not begin with `opened` or that violate the
 documented transition graph. Linear mutation replay also requires each
 subsequent record's old revision and before-state reference to match the

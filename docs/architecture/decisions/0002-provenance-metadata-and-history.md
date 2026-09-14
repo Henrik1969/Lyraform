@@ -108,10 +108,13 @@ requires explicit quarantine/repair for an incomplete final line. The current
 implementation performs full JSON syntax validation and known-record
 type/status validation, plus bounded inspection, ordered reads, and exact
 identity lookup, error-state lifecycle replay, and linear mutation
-revision/state replay. Retention, crash fault injection, and cross-branch
-reconciliation remain future work. No deletion or compaction operation is
-currently admitted; the bounded store therefore refuses further publication
-at exhaustion rather than silently applying retention.
+revision/state replay, and a read-only lock-ordered reconciliation API for
+independently produced branch histories. Reconciliation reports common,
+branch-only, and conflicting event identities; it never chooses a winner or
+rewrites either input. Retention and deeper crash fault injection remain
+future work. No deletion or compaction operation is currently admitted; the
+bounded store therefore refuses further publication at exhaustion rather than
+silently applying retention.
 
 ## Revisit triggers
 

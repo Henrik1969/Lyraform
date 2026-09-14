@@ -614,6 +614,54 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
 
 } // namespace
 
+HistoryReconciliationResult reconcile_histories(const std::string& left_path,
+                                                const std::string& right_path) noexcept {
+    try {
+        const std::string first = left_path < right_path ? left_path : right_path;
+        const std::string second = left_path < right_path ? right_path : left_path;
+        const int first_lock = lock_history(first, LOCK_SH);
+        if (first_lock < 0)
+            return {false, 0, 0, 0, 0, 0, 0, "error", std::string("cannot lock history: ") + std::strerror(errno)};
+        const int second_lock = second == first ? -1 : lock_history(second, LOCK_SH);
+        if (second != first && second_lock < 0) {
+            const int saved = errno;
+            ::flock(first_lock, LOCK_UN);
+            ::close(first_lock);
+            return {false, 0, 0, 0, 0, 0, 0, "error", std::string("cannot lock history: ") + std::strerror(saved)};
+        }
+        const auto left = scan_history(left_path, 1024 * 1024, 64 * 1024 * 1024);
+        const auto right = scan_history(right_path, 1024 * 1024, 64 * 1024 * 1024);
+        if (second_lock >= 0) {
+            ::flock(second_lock, LOCK_UN);
+            ::close(second_lock);
+        }
+        ::flock(first_lock, LOCK_UN);
+        ::close(first_lock);
+        if (!left.result.valid || left.incomplete_tail || !right.result.valid || right.incomplete_tail)
+            return {false, left.result.records, right.result.records, 0, 0, 0, 0, "invalid", "both histories must have valid complete prefixes"};
+
+        HistoryReconciliationResult result;
+        result.valid = true;
+        result.left_records = left.result.records;
+        result.right_records = right.result.records;
+        for (const auto& [event_id, content] : left.events) {
+            const auto found = right.events.find(event_id);
+            if (found == right.events.end()) ++result.left_only_events;
+            else if (found->second == content) ++result.common_events;
+            else ++result.conflicting_events;
+        }
+        for (const auto& [event_id, content] : right.events)
+            if (!left.events.count(event_id)) ++result.right_only_events;
+        result.status = result.conflicting_events != 0 ? "conflict" :
+                        (result.left_only_events == 0 && result.right_only_events == 0 ? "identical" : "diverged");
+        return result;
+    } catch (const std::exception& error) {
+        return {false, 0, 0, 0, 0, 0, 0, "error", error.what()};
+    } catch (...) {
+        return {false, 0, 0, 0, 0, 0, 0, "error", "history reconciliation failed with an unknown non-standard failure"};
+    }
+}
+
 ErrorStateHistory::ErrorStateHistory(std::string path, std::size_t max_line_bytes,
                                      std::size_t max_history_bytes)
     : path_(std::move(path)), max_line_bytes_(max_line_bytes),
