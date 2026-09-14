@@ -9,6 +9,7 @@
 
 namespace {
 constexpr std::int64_t max_parallel_workers = 256;
+constexpr std::size_t max_diagnostic_bytes = 16U * 1024U * 1024U;
 thread_local const char* activation = nullptr;
 thread_local std::string stream_activation;
 thread_local std::uint64_t active_operation = 0;
@@ -18,10 +19,20 @@ bool tracing() {
     return value && std::strcmp(value, "1") == 0;
 }
 std::mutex trace_mutex;
+std::size_t diagnostic_bytes = 0;
+bool diagnostic_truncated = false;
 void record(const char* value) {
     if (!value) return;
     std::lock_guard lock(trace_mutex);
-    std::fputs(value, stderr); std::fputc('\n', stderr);
+    const auto length = std::strlen(value);
+    if (length + 1 <= max_diagnostic_bytes - diagnostic_bytes) {
+        std::fputs(value, stderr); std::fputc('\n', stderr);
+        diagnostic_bytes += length + 1;
+    } else if (!diagnostic_truncated) {
+        static constexpr char marker[] = "{\"format\":\"flowcore.graph_trace\",\"version\":1,\"event\":\"truncated\",\"limit_bytes\":16777216}";
+        std::fputs(marker, stderr); std::fputc('\n', stderr);
+        diagnostic_truncated = true;
+    }
 }
 std::string quote(const char* value) {
     std::string result = "\"";

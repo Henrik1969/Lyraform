@@ -3389,6 +3389,17 @@ effectful parallelism remain outside the admitted contract.
 State remains CONTINUE. General effectful, reentrant, and asynchronous
 parallelism remains refused.
 
+## 2026-09-14 graph diagnostic-output bound
+
+- Added a 16 MiB aggregate cap to graph-runtime diagnostic output, including
+  trace and drop records; subsequent records are suppressed after one
+  structured truncation marker.
+- Added a file-backed hostile test proving twenty 1 MiB diagnostic records do
+  not exceed the bounded output contract.
+
+State remains CONTINUE. External log retention and general asynchronous
+parallelism remain outside the admitted contract.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure
