@@ -2597,6 +2597,16 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 runtime planner numeric-policy boundary
+
+- Replaced prefix-accepting `stod` conversion with complete finite-number
+  parsing for the minimum-speedup policy.
+- Added hostile `1.2junk` coverage, including the case where the malformed
+  policy precedes `--diagnostics json`.
+
+State remains CONTINUE. Native provider fault injection and remaining Stage 0
+API boundaries still require dedicated coverage.
+
 The canonical normal CTest graph after this checkpoint is **112/112 PASS**;
 the benchmark diagnostic test is hardware-independent, while CUDA
 execution/calibration remain explicitly host-gated.

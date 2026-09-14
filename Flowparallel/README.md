@@ -164,6 +164,9 @@ This planner deliberately consumes snapshots rather than discovering hardware
 inside the optimizer. Compile-time legality, runtime facts, policy, and
 provider execution remain separate.
 
+The planner requires complete finite numeric policy tokens; malformed suffixes
+such as `1.2junk` are rejected before any provider selection.
+
 Malformed plans, capability snapshots, calibration reports, and argument
 failures do not produce a provider selection. `flowparallel_runtime_planner
 --diagnostics json` exposes those failures as stable machine-readable

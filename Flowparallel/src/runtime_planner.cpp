@@ -1,4 +1,5 @@
 #include <flowcontracts/artifacts.hpp>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -49,6 +50,15 @@ std::string json_escape(std::string_view value) {
     return escaped;
 }
 
+double parse_number(std::string_view text, const char* option) {
+    std::size_t consumed = 0;
+    double value = 0.0;
+    try { value = std::stod(std::string(text), &consumed); }
+    catch (...) { throw std::runtime_error(std::string(option) + " requires a complete number"); }
+    if (consumed != text.size() || !std::isfinite(value)) throw std::runtime_error(std::string(option) + " requires a complete finite number");
+    return value;
+}
+
 int reject_unsupported(std::string_view request, std::string_view reason) {
     std::cout << "{\n  \"format\": \"flowparallel.provider_decision\",\n"
                  "  \"version\": 1,\n  \"status\": \"unsupported\",\n"
@@ -69,7 +79,7 @@ Options parse(int argc, char** argv) {
         if (argument == "--plan") options.plan_path = value("--plan");
         else if (argument == "--capabilities") options.capabilities_path = value("--capabilities");
         else if (argument == "--calibration") options.calibration_path = value("--calibration");
-        else if (argument == "--min-speedup") options.minimum_speedup = std::stod(value("--min-speedup"));
+        else if (argument == "--min-speedup") options.minimum_speedup = parse_number(value("--min-speedup"), "--min-speedup");
         else if (argument == "--diagnostics") { if (value("--diagnostics") != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
         else if (argument == "-h" || argument == "-?" || argument == "--help") {
             std::cout << "flowparallel_runtime_planner - explainable CPU/CUDA provider decision\n\n"
@@ -162,9 +172,10 @@ int run(const Options& options) {
 
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
+    for (int index = 1; index + 1 < argc; ++index)
+        if (std::string(argv[index]) == "--diagnostics" && std::string(argv[index + 1]) == "json") structured_diagnostics = true;
     try {
         const auto options = parse(argc, argv);
-        structured_diagnostics = options.structured_diagnostics;
         return run(options);
     } catch (const std::exception& error) {
         if (structured_diagnostics)

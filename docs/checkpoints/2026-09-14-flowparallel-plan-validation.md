@@ -47,4 +47,5 @@ Plan-producing CLI structured-diagnostics test: PASS
 Matrix-benchmark structured-diagnostics test: PASS
 
 CPU provider numeric-policy hostile-input test: PASS
+Runtime planner numeric-policy hostile-input test: PASS
 ```
