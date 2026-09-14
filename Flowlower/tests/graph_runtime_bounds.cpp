@@ -42,6 +42,8 @@ int main() {
     assert(dup2(descriptor, STDERR_FILENO) >= 0);
     const std::string large(1024U * 1024U, 'x');
     for (int index = 0; index < 20; ++index) flow_graph_drop(large.c_str());
+    const std::string oversized(17U * 1024U * 1024U, 'y');
+    flow_graph_drop(oversized.c_str());
     std::fflush(stderr);
     assert(dup2(saved_stderr, STDERR_FILENO) >= 0);
     close(saved_stderr);

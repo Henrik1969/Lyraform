@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -24,7 +25,15 @@ bool diagnostic_truncated = false;
 void record(const char* value) {
     if (!value) return;
     std::lock_guard lock(trace_mutex);
-    const auto length = std::strlen(value);
+    const auto length = ::strnlen(value, max_diagnostic_bytes + 1);
+    if (length > max_diagnostic_bytes) {
+        if (!diagnostic_truncated) {
+            static constexpr char marker[] = "{\"format\":\"flowcore.graph_trace\",\"version\":1,\"event\":\"truncated\",\"limit_bytes\":16777216}";
+            std::fputs(marker, stderr); std::fputc('\n', stderr);
+            diagnostic_truncated = true;
+        }
+        return;
+    }
     if (length + 1 <= max_diagnostic_bytes - diagnostic_bytes) {
         std::fputs(value, stderr); std::fputc('\n', stderr);
         diagnostic_bytes += length + 1;
@@ -36,9 +45,15 @@ void record(const char* value) {
 }
 std::string quote(const char* value) {
     std::string result = "\"";
-    if (value) for (const unsigned char* p = reinterpret_cast<const unsigned char*>(value); *p; ++p) {
-        if (*p == '\\' || *p == '"') result += '\\';
-        result += static_cast<char>(*p);
+    if (value) {
+        const auto limit = ::strnlen(value, max_diagnostic_bytes + 1);
+        const auto length = std::min(limit, max_diagnostic_bytes);
+        for (std::size_t index = 0; index < length; ++index) {
+            const auto character = static_cast<unsigned char>(value[index]);
+            if (character == '\\' || character == '"') result += '\\';
+            result += static_cast<char>(character);
+        }
+        if (limit > max_diagnostic_bytes) result += "...";
     }
     result += '"';
     return result;

@@ -3394,8 +3394,11 @@ parallelism remains refused.
 - Added a 16 MiB aggregate cap to graph-runtime diagnostic output, including
   trace and drop records; subsequent records are suppressed after one
   structured truncation marker.
+- Bounded C-string scanning and quoting at the same diagnostic limit so an
+  oversized or unterminated producer value cannot force an unbounded scan or
+  temporary diagnostic allocation.
 - Added a file-backed hostile test proving twenty 1 MiB diagnostic records do
-  not exceed the bounded output contract.
+  not exceed the bounded output contract, including an oversized value.
 
 State remains CONTINUE. External log retention and general asynchronous
 parallelism remain outside the admitted contract.
