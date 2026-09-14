@@ -5,6 +5,7 @@
 #include <fstream>
 #include <new>
 #include <sstream>
+#include <stdexcept>
 #include <string_view>
 #include <unistd.h>
 
@@ -84,6 +85,9 @@ CudaFacts discover_cuda() {
 } // namespace
 
 Capabilities discover() {
+#ifdef FRANKENCORE_RUNTIME_DISCOVERY_TEST_FAULT
+    throw std::runtime_error("injected runtime capability discovery failure");
+#endif
     Capabilities result;
     const long processors = sysconf(_SC_NPROCESSORS_ONLN);
     result.cpu.logical_processors = processors > 0 ? static_cast<std::uint64_t>(processors) : 0;

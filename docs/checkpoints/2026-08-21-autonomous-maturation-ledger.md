@@ -2618,8 +2618,11 @@ stronger trust anchors, and multi-platform assurance remain unfinished.
 - The probe now emits no capability artifact on discovery failure and retains a
   deterministic human diagnostic; checked serialization remains the canonical
   projection path.
+- Added a test-only fault-injected runtime variant and process test proving an
+  exception raised inside discovery is contained by the real probe boundary;
+  stdout remains empty and the expected diagnostic is emitted.
 
-State remains CONTINUE. Injected discovery/library failures and broader
+State remains CONTINUE. Injected provider/library failures and broader
 Frankencore API containment still require dedicated evidence.
 
 ## 2026-09-14 runtime probe sanitizer revalidation
@@ -2631,8 +2634,8 @@ Frankencore API containment still require dedicated evidence.
   no sanitizer diagnostics.
 
 State remains CONTINUE. This confirms the new process-boundary containment
-under instrumentation; it does not close injected discovery/library failure
-coverage or the broader future trust and platform gates.
+under instrumentation; injected provider/library failure coverage and the
+broader future trust and platform gates remain open.
 
 ## 2026-09-14 Flowkernel structured failure boundary
 
