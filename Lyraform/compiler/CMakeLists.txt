@@ -54,6 +54,7 @@ add_executable(flowmini
 target_include_directories(flowmini PRIVATE
         include
         subprojects/testabi/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../Flowcontracts/include
 )
 
 target_compile_options(flowmini PRIVATE

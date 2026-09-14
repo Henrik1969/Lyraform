@@ -5,6 +5,7 @@
 #include "flowmini_runtime.h"
 #include "flowmini_structural.h"
 #include "flowmini_token_tree_bridge.h"
+#include <flowcontracts/bounded_input.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -30,9 +31,11 @@ namespace {
             throw flow::DiagnosticError{"cli", "could not open source file: " + path};
         }
 
-        std::ostringstream buffer;
-        buffer << input.rdbuf();
-        return buffer.str();
+        try {
+            return flowcontracts::read_bounded(input, "source file");
+        } catch (const std::exception& error) {
+            throw flow::DiagnosticError{"source", error.what()};
+        }
     }
 
     [[nodiscard]] auto trimCopy(const std::string& value) -> std::string {

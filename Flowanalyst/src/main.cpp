@@ -1,4 +1,5 @@
 #include <flowcontracts/json.hpp>
+#include <flowcontracts/bounded_input.hpp>
 #include <flowcontracts/graph_provider_map.hpp>
 #include <flowcontracts/source_graph.hpp>
 #include <cctype>
@@ -1493,17 +1494,16 @@ int main(int argc, char** argv) {
             else if (input_path.empty()) input_path = argument;
             else throw std::runtime_error("too many input paths");
         }
-        std::ostringstream input;
-        if (!input_path.empty()) { std::ifstream file(input_path); if (!file) throw std::runtime_error("cannot open bundle"); input << file.rdbuf(); }
-        else input << std::cin.rdbuf();
+        std::string input_text;
+        if (!input_path.empty()) { std::ifstream file(input_path); if (!file) throw std::runtime_error("cannot open bundle"); input_text = flowcontracts::read_bounded(file, "frontend bundle"); }
+        else input_text = flowcontracts::read_bounded(std::cin, "frontend bundle");
         Json provider_map = Object{{"format", std::string("flowcore.graph_provider_map")}, {"version", 1}, {"providers", Array{}}};
         if (!graph_provider_path.empty()) {
             std::ifstream file(graph_provider_path);
             if (!file) throw std::runtime_error("cannot open graph provider map");
-            std::ostringstream contents; contents << file.rdbuf();
-            provider_map = Parser(contents.str()).parse();
+            provider_map = Parser(flowcontracts::read_bounded(file, "graph provider map")).parse();
         }
-        return run(Parser(input.str()).parse(), lowering_plan_version, provider_map, graph_plan_version);
+        return run(Parser(input_text).parse(), lowering_plan_version, provider_map, graph_plan_version);
     }
     catch (const std::exception& error) {
         if (structured_diagnostics) write_structured_failure("FLOWANALYST_FAILURE", "cli", error.what());

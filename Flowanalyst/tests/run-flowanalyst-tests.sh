@@ -158,4 +158,12 @@ if "$flowmini" --dump-frontend-bundle "$fixture" | jq '.symbol_table.symbols[1].
   echo 'Flowanalyst accepted duplicate symbol identity' >&2
   exit 1
 fi
+dd if=/dev/zero of="$tmpdir/oversized.bundle" bs=1048576 count=17 2>/dev/null
+set +e
+"$bin" --diagnostics json "$tmpdir/oversized.bundle" >"$tmpdir/oversized-stdout" 2>"$tmpdir/oversized-stderr"
+status=$?
+set -e
+test "$status" -eq 1
+test ! -s "$tmpdir/oversized-stdout"
+jq -e '.status == "failed" and .code == "FLOWANALYST_FAILURE" and .disposition == "no_artifact" and (.message | contains("16 MiB input limit"))' "$tmpdir/oversized-stderr" >/dev/null
 echo 'Flowanalyst tests: PASS'

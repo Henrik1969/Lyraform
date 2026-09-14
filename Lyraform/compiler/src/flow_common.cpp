@@ -1,4 +1,5 @@
 #include "flow_common.h"
+#include <flowcontracts/bounded_input.hpp>
 
 #include <cstdlib>
 #include <iostream>
@@ -107,11 +108,8 @@ StdinProducer::StdinProducer(PipelineContext& ctx)
     : ctx_(&ctx) {}
 
 Envelope<ByteBuffer> StdinProducer::produce() const {
-    std::ostringstream buffer;
-    buffer << std::cin.rdbuf();
-
     return Envelope<ByteBuffer>{
-        ByteBuffer{buffer.str()},
+        ByteBuffer{flowcontracts::read_bounded(std::cin, "stdin")},
         ctx_,
         {},
         {},

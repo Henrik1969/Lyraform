@@ -2623,6 +2623,20 @@ State remains CONTINUE. Flowanalyst graph/provider-map ingress and compiler
 source ingress still need dedicated bounded-reader tests; archived readers are
 historical and remain unchanged.
 
+## 2026-09-14 active frontend ingress boundary
+
+- Bounded Flowanalyst frontend-bundle and graph-provider-map input with the
+  shared 16 MiB reader.
+- Bounded active Flowmini source-file and stdin text ingress at 16 MiB, and
+  preserved the existing `source` diagnostic classification for oversized
+  source files.
+- Added hostile oversized-source and oversized-bundle cases; both reject with
+  empty artifact output and structured diagnostics.
+
+State remains CONTINUE. Historical implementation snapshots remain unchanged;
+provider/library fault injection and the Flow-written bootstrap source reader
+are still separate gates.
+
 ## 2026-09-14 package-provider cardinality bounds
 
 - Added 100,000-entry caps for dpkg package observations, APT directory

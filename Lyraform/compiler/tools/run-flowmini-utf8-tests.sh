@@ -34,4 +34,13 @@ check_invalid overlong_4 '\360\200\200\200'
 check_invalid surrogate '\355\240\200'
 check_invalid out_of_range '\364\220\200\200'
 check_invalid truncated_4 '\360\220\200'
+
+dd if=/dev/zero of="$tmpdir/oversized.flow" bs=1048576 count=17 2>/dev/null
+set +e
+output=$("$compiler" --diagnostics json "$tmpdir/oversized.flow" 2>"$tmpdir/oversized.error.json")
+status=$?
+set -e
+test "$status" -eq 1
+test -z "$output"
+jq -e '.status == "failed" and .code == "FLOW_DIAGNOSTIC_ERROR" and .disposition == "no_artifact" and (.message | contains("16 MiB input limit"))' "$tmpdir/oversized.error.json" >/dev/null
 echo 'Flowmini UTF-8 source boundary: PASS'

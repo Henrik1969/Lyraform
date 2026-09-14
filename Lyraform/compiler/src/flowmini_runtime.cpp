@@ -2,6 +2,7 @@
 #include "flowmini_testabi.h"
 
 #include "flow_common.h"
+#include <flowcontracts/bounded_input.hpp>
 
 #include <cctype>
 #include <algorithm>
@@ -328,9 +329,7 @@ public:
             throw flow::DiagnosticError{"stdin.text", "missing pipeline context"};
         }
 
-        std::ostringstream buffer;
-        buffer << std::cin.rdbuf();
-        env.payload = TextPayload{buffer.str()};
+        env.payload = TextPayload{flowcontracts::read_bounded(std::cin, "stdin.text input")};
         return {Route{"out", std::move(env)}};
     }
 };
