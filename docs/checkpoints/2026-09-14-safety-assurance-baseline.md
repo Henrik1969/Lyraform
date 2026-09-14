@@ -377,6 +377,22 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel graph-planner allocation-fault boundary — 2026-09-15
+
+The graph representation/provider planner now has a test-only fault-injected
+executable that raises `std::bad_alloc` before consuming graph or capability
+evidence. Its public structured boundary returns
+`FLOWPARALLEL_GRAPH_PLANNER_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowparallel_graph_planner_allocation_fault` test is part of the canonical
+CTest suite.
+
+This covers exhaustion at the graph-planner process boundary only. It does not
+claim graph execution, CUDA availability, or effectful parallelism; those
+remain separately bounded or refused by policy.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel CUDA-provider allocation-fault boundary — 2026-09-15
 
 The optional CUDA provider-probe boundary now has a test-only fault-injected
