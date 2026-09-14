@@ -1,4 +1,5 @@
 #include <flowcontracts/artifacts.hpp>
+#include <flowparallel/bounded_input.hpp>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -23,9 +24,7 @@ struct Options {
 std::string read_file(const std::string& path, const char* label) {
     std::ifstream file(path);
     if (!file) throw std::runtime_error(std::string("cannot open ") + label);
-    std::ostringstream input;
-    input << file.rdbuf();
-    return input.str();
+    return flowparallel::read_bounded(file, label);
 }
 
 std::string quote(std::string_view value) {

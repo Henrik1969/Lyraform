@@ -2597,6 +2597,20 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 Flowparallel bounded ingress boundary
+
+- Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA
+  providers, graph CPU/CUDA consumers, and runtime/graph planners with a shared
+  16 MiB reader.
+- Oversized stdin and file-equivalent input now fails before JSON parsing with
+  structured `no_artifact` diagnostics; the stream is still drained only up to
+  the bounded read that detects the violation.
+- Added hostile coverage for all seven current planning/report ingress points.
+
+State remains CONTINUE. Runtime-planner and graph-planner file inputs, broader
+Frankencore API containment, and injected allocation/library failures remain
+open for separate bounded slices.
+
 ## 2026-09-14 package-provider cardinality bounds
 
 - Added 100,000-entry caps for dpkg package observations, APT directory

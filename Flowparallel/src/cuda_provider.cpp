@@ -1,6 +1,7 @@
 #include <dlfcn.h>
 #include <flowcontracts/artifacts.hpp>
 #include <flowcontracts/json.hpp>
+#include <flowparallel/bounded_input.hpp>
 
 #include <charconv>
 #include <cstdint>
@@ -49,10 +50,8 @@ int reject_unsupported(std::string_view request, std::string_view reason) {
 }
 
 std::string input(const Options& options) {
-    std::ostringstream stream;
-    if (!options.plan_path.empty()) { std::ifstream file(options.plan_path); if (!file) throw std::runtime_error("cannot open execution plan"); stream << file.rdbuf(); }
-    else stream << std::cin.rdbuf();
-    return stream.str();
+    if (!options.plan_path.empty()) { std::ifstream file(options.plan_path); if (!file) throw std::runtime_error("cannot open execution plan"); return flowparallel::read_bounded(file, "execution plan"); }
+    return flowparallel::read_bounded(std::cin, "execution plan");
 }
 
 struct CudaProbe { std::string status = "unknown"; std::string diagnostic; unsigned devices = 0; };

@@ -1,4 +1,5 @@
 #include <flowcontracts/artifacts.hpp>
+#include <flowparallel/bounded_input.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -13,10 +14,8 @@ constexpr std::string_view VERSION = "0.1.0";
 std::string read_input(int argc, char** argv) {
     if (argc > 2 && !(argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json"))
         throw std::runtime_error("usage: flowparallel [semantic-report.json]");
-    std::ostringstream input;
-    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); input << file.rdbuf(); }
-    else input << std::cin.rdbuf();
-    return input.str();
+    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); return flowparallel::read_bounded(file, "semantic report"); }
+    return flowparallel::read_bounded(std::cin, "semantic report");
 }
 
 std::string json_escape(std::string_view value) {

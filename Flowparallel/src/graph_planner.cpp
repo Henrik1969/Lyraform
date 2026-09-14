@@ -1,4 +1,5 @@
 #include <flowcontracts/artifacts.hpp>
+#include <flowparallel/bounded_input.hpp>
 
 #include <cmath>
 #include <fstream>
@@ -10,7 +11,7 @@
 
 namespace {
 constexpr std::string_view version = "0.1.0";
-std::string read_file(const std::string& path) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open " + path); std::ostringstream text; text << file.rdbuf(); return text.str(); }
+std::string read_file(const std::string& path) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open " + path); return flowparallel::read_bounded(file, "graph planner input"); }
 std::string quote(std::string_view value) { std::string result = "\""; for (const char c : value) { if (c == '\\' || c == '"') result.push_back('\\'); result.push_back(c); } result.push_back('"'); return result; }
 std::string json_escape(std::string_view value) { std::string escaped; for (const char c : value) { if (c == '\\' || c == '"') escaped.push_back('\\'); if (c == '\n') escaped += "\\n"; else if (c == '\r') escaped += "\\r"; else if (c == '\t') escaped += "\\t"; else escaped.push_back(c); } return escaped; }
 double parse_number(std::string_view text, const char* option) { std::size_t consumed = 0; double value = 0.0; try { value = std::stod(std::string(text), &consumed); } catch (...) { throw std::runtime_error(std::string(option) + " requires a complete finite number"); } if (consumed != text.size() || !std::isfinite(value)) throw std::runtime_error(std::string(option) + " requires a complete finite number"); return value; }

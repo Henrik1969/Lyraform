@@ -1,5 +1,6 @@
 #include <dlfcn.h>
 #include <flowcontracts/artifacts.hpp>
+#include <flowparallel/bounded_input.hpp>
 #include <flowparallel/cuda_resources.hpp>
 
 #include <cstddef>
@@ -32,10 +33,8 @@ void check(error_t value, const char* operation) { if (value != success) throw s
 std::string read_input(int argc, char** argv) {
     if (argc > 2 && !(argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json"))
         throw std::runtime_error("usage: flowparallel_graph_cuda [semantic-report.json]");
-    std::ostringstream input;
-    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); input << file.rdbuf(); }
-    else input << std::cin.rdbuf();
-    return input.str();
+    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); return flowparallel::read_bounded(file, "semantic report"); }
+    return flowparallel::read_bounded(std::cin, "semantic report");
 }
 
 std::string quote(std::string_view value) { std::string result = "\""; for (char character : value) { if (character == '\\' || character == '"') result.push_back('\\'); result.push_back(character); } result.push_back('"'); return result; }

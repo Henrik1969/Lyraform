@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <flowcontracts/json.hpp>
+#include <flowparallel/bounded_input.hpp>
 #include <fstream>
 #include <iostream>
 #include <cmath>
@@ -19,10 +20,8 @@ constexpr std::string_view VERSION = "0.1.0";
 struct Options { std::string plan_path; double observed_speedup = 0.0; double minimum_speedup = 1.25; unsigned requested_workers = 0; bool structured_diagnostics = false; };
 
 std::string read_input(const Options& options) {
-    std::ostringstream input;
-    if (!options.plan_path.empty()) { std::ifstream file(options.plan_path); if (!file) throw std::runtime_error("cannot open execution plan"); input << file.rdbuf(); }
-    else input << std::cin.rdbuf();
-    return input.str();
+    if (!options.plan_path.empty()) { std::ifstream file(options.plan_path); if (!file) throw std::runtime_error("cannot open execution plan"); return flowparallel::read_bounded(file, "execution plan"); }
+    return flowparallel::read_bounded(std::cin, "execution plan");
 }
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
