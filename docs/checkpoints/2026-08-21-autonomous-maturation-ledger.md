@@ -2608,6 +2608,17 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Broader provider fault injection and independently
 sized limits for future provider schemas remain unfinished.
 
+## 2026-09-14 package-provider failure evidence
+
+- Added a deterministic fake APT executable that emits one malformed row, one
+  valid row, and exits unsuccessfully. The package provider preserves the
+  valid observation while reporting both malformed output and provider failure.
+- This proves provider loss is visible and does not become an all-clear result;
+  the existing bounded file and cardinality limits remain active.
+
+State remains CONTINUE. Broader native provider fault injection and future
+provider schemas still require independent evidence.
+
 ## 2026-09-14 APT metadata file bound
 
 - Added bounded byte ingestion for APT release and Deb822 source metadata,
