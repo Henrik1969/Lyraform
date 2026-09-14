@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-13",
     "branch": "main",
-    "commit": "aa5735007c08bb8390ad9e5c657a70f58fa06eab"
+    "commit": "80fc713645f69031aa481fbe0e5baaf6181401db"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
@@ -32,7 +32,8 @@
     "Installed newly named gettid acceptance with unchanged compiler binaries",
     "Verified packed integer aggregate payloads and bounded aggregate streams through LLVM and TinyVM",
     "TinyVM ISA 2 graph activation metadata with switch/computed trace parity",
-    "Deterministic TinyVM graph activation-record budgets with switch/computed refusal parity"
+    "Deterministic TinyVM graph activation-record budgets with switch/computed refusal parity",
+    "Bounded TinyVM graph activation FIFO with switch/computed order and drain parity"
   ],
   "verification": {
     "gcc_superbuild": "pass",
