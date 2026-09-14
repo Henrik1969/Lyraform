@@ -1,6 +1,6 @@
 # Stage 0 exception-containment boundary
 
-**Status:** safety mission requirement; CLI slice implemented, wider boundary incomplete
+**Status:** safety mission requirement; compiler/runtime/reference CLI slices implemented, wider boundary incomplete
 **Date:** 2026-09-14
 
 ## Decision boundary
@@ -56,8 +56,9 @@ exit distinction.
 - Frankencore provenance validation and ULID generation still use C++ standard
   exceptions for invalid records and entropy exhaustion.
 - The Clock and Revision reference CLIs still use exception-based argument
-  parsing and human-only error output; their provider reports and provenance
-  records otherwise use explicit structured data.
+  parsing internally, but their public failure boundary now supports
+  `--diagnostics json` with stable failure codes, empty artifact stdout, and a
+  `no_artifact` disposition.
 - Package inventory, language, requirements, policy, and runtime capability
   projections already return explicit diagnostic/result structures for their
   normal provider failures, but their serialization APIs still need a common
@@ -71,9 +72,14 @@ The compiler CLI now accepts `--diagnostics json`. For a caught
 emits a structured failure record on stderr, keeps artifact stdout empty, and
 returns a nonzero status. The current CLI codes are intentionally conservative:
 `FLOW_DIAGNOSTIC_ERROR`, `FLOW_RESOURCE_EXHAUSTED`, and
-`FLOW_UNEXPECTED_EXCEPTION`, and `FLOW_UNKNOWN_FAILURE`. This closes only the CLI projection slice; it does
-not make the internal exception mechanisms themselves part of the language
-contract or close provider/runtime/API containment.
+`FLOW_UNEXPECTED_EXCEPTION`, and `FLOW_UNKNOWN_FAILURE`. The Clock and
+Revision reference CLIs provide the corresponding provider/provenance slice
+with `FRANKENCORE_CLOCK_FAILURE`, `FRANKENCORE_CLOCK_UNKNOWN_FAILURE`,
+`FRANKENCORE_REVISION_FAILURE`, and
+`FRANKENCORE_REVISION_UNKNOWN_FAILURE`. These changes close only the tested
+CLI/reference projection slices; they do not make the internal exception
+mechanisms themselves part of the language contract or close all provider/API
+containment.
 
 The runtime graph now also exposes `runModuleChecked`, which translates
 runtime, allocation, and unexpected standard failures into an explicit

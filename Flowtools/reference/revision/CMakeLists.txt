@@ -15,3 +15,8 @@ add_test(NAME frankencore_revision_rejects_non_monotonic
 set_tests_properties(frankencore_revision_rejects_non_monotonic PROPERTIES WILL_FAIL TRUE)
 add_test(NAME frankencore_provenance_api
     COMMAND frankencore_provenance_api_test)
+add_test(NAME frankencore_reference_structured_diagnostics
+    COMMAND ${CMAKE_COMMAND} -E env
+        CLOCK_BIN=$<TARGET_FILE:frankencore_clock>
+        REVISION_BIN=$<TARGET_FILE:frankencore_revision_probe>
+        ${CMAKE_CURRENT_LIST_DIR}/../../../tools/test-reference-structured-diagnostics.sh)

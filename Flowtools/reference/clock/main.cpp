@@ -16,6 +16,28 @@ struct ClockReading {
     std::string name;
 };
 
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (const unsigned char character : value) {
+        if (character == '\\') escaped += "\\\\";
+        else if (character == '"') escaped += "\\\"";
+        else if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(static_cast<char>(character));
+    }
+    return escaped;
+}
+
+void write_structured_failure(std::string_view code, std::string_view message) {
+    std::cerr << "{\"status\":\"failed\",\"code\":\""
+              << json_escape(code)
+              << "\",\"message\":\""
+              << json_escape(message)
+              << "\",\"disposition\":\"no_artifact\"}\n";
+}
+
 ClockReading select_clock(std::string_view name) {
     if (name == "monotonic") return {CLOCK_MONOTONIC, "monotonic"};
     if (name == "realtime") return {CLOCK_REALTIME, "realtime"};
@@ -61,6 +83,7 @@ int run(std::string_view clock_name) {
 } // namespace
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         std::string clock_name = "monotonic";
         for (int index = 1; index < argc; ++index) {
@@ -68,6 +91,10 @@ int main(int argc, char** argv) {
             if (argument == "--clock") {
                 if (++index >= argc) throw std::runtime_error("--clock requires monotonic or realtime");
                 clock_name = argv[index];
+            } else if (argument == "--diagnostics") {
+                if (++index >= argc || std::string_view(argv[index]) != "json")
+                    throw std::runtime_error("--diagnostics requires json");
+                structured_diagnostics = true;
             } else if (argument == "-h" || argument == "-?" || argument == "--help") {
                 std::cout << "frankencore_clock - expose a typed Clock reference object\n\n"
                              "Usage: frankencore_clock [--clock monotonic|realtime]\n"
@@ -86,7 +113,12 @@ int main(int argc, char** argv) {
         }
         return run(clock_name);
     } catch (const std::exception& error) {
-        std::cerr << "frankencore_clock error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FRANKENCORE_CLOCK_FAILURE", error.what());
+        else std::cerr << "frankencore_clock error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics) write_structured_failure("FRANKENCORE_CLOCK_UNKNOWN_FAILURE", "unknown non-standard failure");
+        else std::cerr << "frankencore_clock error: unknown non-standard failure\n";
         return 1;
     }
 }

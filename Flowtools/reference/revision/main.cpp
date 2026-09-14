@@ -11,6 +11,28 @@ namespace {
 
 constexpr std::string_view VERSION = "0.1.0";
 
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (const unsigned char character : value) {
+        if (character == '\\') escaped += "\\\\";
+        else if (character == '"') escaped += "\\\"";
+        else if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(static_cast<char>(character));
+    }
+    return escaped;
+}
+
+void write_structured_failure(std::string_view code, std::string_view message) {
+    std::cerr << "{\"status\":\"failed\",\"code\":\""
+              << json_escape(code)
+              << "\",\"message\":\""
+              << json_escape(message)
+              << "\",\"disposition\":\"no_artifact\"}\n";
+}
+
 std::uint64_t parse_revision(std::string_view text) {
     if (text.empty()) throw std::runtime_error("revision must not be empty");
     std::uint64_t value = 0;
@@ -60,6 +82,7 @@ int run(std::uint64_t old_revision, std::uint64_t new_revision,
 } // namespace
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         std::string old_revision = "1";
         std::string new_revision = "2";
@@ -75,6 +98,10 @@ int main(int argc, char** argv) {
             else if (argument == "--new-revision") new_revision = value_for(argument);
             else if (argument == "--old-value") old_value = value_for(argument);
             else if (argument == "--new-value") new_value = value_for(argument);
+            else if (argument == "--diagnostics") {
+                if (value_for(argument) != "json") throw std::runtime_error("--diagnostics requires json");
+                structured_diagnostics = true;
+            }
             else if (argument == "-h" || argument == "-?" || argument == "--help") {
                 std::cout << "frankencore_revision_probe - emit mutation provenance evidence\n\n"
                              "Usage: frankencore_revision_probe [--old-revision N --new-revision N]\n"
@@ -94,7 +121,12 @@ int main(int argc, char** argv) {
         }
         return run(parse_revision(old_revision), parse_revision(new_revision), old_value, new_value);
     } catch (const std::exception& error) {
-        std::cerr << "frankencore_revision_probe error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FRANKENCORE_REVISION_FAILURE", error.what());
+        else std::cerr << "frankencore_revision_probe error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics) write_structured_failure("FRANKENCORE_REVISION_UNKNOWN_FAILURE", "unknown non-standard failure");
+        else std::cerr << "frankencore_revision_probe error: unknown non-standard failure\n";
         return 1;
     }
 }
