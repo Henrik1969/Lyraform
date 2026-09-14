@@ -107,7 +107,10 @@ The current generic chain admits the following bounded slice:
 - the admitted compile-time slice and the bounded runtime concat shape have
   LLVM/TinyVM output parity through exact import boundaries;
 - c_string-to-Text initializers, c_string printing, dynamic Text concatenation,
-  and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
+and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
+Allocation failure in the bounded native Text provider is reported as the
+explicit `FLOW_TEXT_EXHAUSTED` outcome; it does not masquerade as provider
+absence and does not publish a partial value.
 
 This slice deliberately does not claim general runtime allocation policy or
 TinyVM ownership beyond the bounded provider shape. Portable failure outcomes,

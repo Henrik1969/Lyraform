@@ -22,7 +22,10 @@ FlowTextOutcomeCode flow_text_concat_outcome(const char *left, const char *right
         return outcome->code;
     }
     char *result = malloc(left_bytes + right_bytes + 1);
-    if (!result) return outcome->code;
+    if (!result) {
+        outcome->code = FLOW_TEXT_EXHAUSTED;
+        return outcome->code;
+    }
     memcpy(result, left, left_bytes);
     memcpy(result + left_bytes, right, right_bytes);
     result[left_bytes + right_bytes] = '\0';

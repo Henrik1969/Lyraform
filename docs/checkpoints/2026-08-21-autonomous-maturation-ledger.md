@@ -2668,6 +2668,17 @@ and the remaining Gate 5/6/8 evidence are unfinished.
 State remains CONTINUE. Native fault injection, signed trust declarations,
 and the remaining Gate 5/6/8 evidence are unfinished.
 
+## 2026-09-14 bounded Text allocation-failure injection
+
+- Corrected the native bounded Text provider so failed result allocation
+  returns `FLOW_TEXT_EXHAUSTED`, with no value published.
+- Added a linker-injected allocation-failure test covering the exhausted
+  outcome, null ownership state, subsequent successful allocation, and
+  explicit disposal. The focused test passes.
+
+State remains CONTINUE. Broader native/provider fault injection, isolation and
+trust, and the remaining Gate 5/6/8 evidence are unfinished.
+
 ## 2026-09-14 CUDA cleanup callback containment
 
 - Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are
