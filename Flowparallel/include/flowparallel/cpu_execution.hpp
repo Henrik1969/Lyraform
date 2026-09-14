@@ -7,6 +7,8 @@
 
 namespace flowparallel::cpu {
 
+inline constexpr unsigned max_workers = 256;
+
 struct Task {
     std::function<void()> execute;
 };

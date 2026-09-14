@@ -3368,6 +3368,16 @@ boundaries still require the same containment audit.
 State remains CONTINUE. Platform permission skips and cross-platform assurance
 remain explicitly provisional.
 
+## 2026-09-14 CPU worker-admission boundary
+
+- Added a 256-worker ceiling to the public independent-task executor; requests
+  above the ceiling fail before any thread is launched.
+- Extended the execution smoke test to prove both zero-worker and excessive-
+  worker rejection with explicit no-artifact outcomes.
+
+State remains CONTINUE. General scheduler admission, cancellation, and
+effectful parallelism remain outside the admitted contract.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure

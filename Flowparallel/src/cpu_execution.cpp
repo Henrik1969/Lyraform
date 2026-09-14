@@ -12,6 +12,7 @@ namespace flowparallel::cpu {
 ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned workers) {
     ExecutionResult result;
     if (workers == 0) { result.status = "error"; result.code = "INVALID_WORKER_COUNT"; result.error = "workers must be greater than zero"; return result; }
+    if (workers > max_workers) { result.status = "error"; result.code = "WORKER_COUNT_EXCEEDED"; result.error = "workers exceed the 256-worker limit"; return result; }
     if (tasks.empty()) return result;
     const auto actual_workers = std::min<unsigned>(workers, static_cast<unsigned>(tasks.size()));
     std::atomic<std::size_t> next{0};
