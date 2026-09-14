@@ -17,4 +17,7 @@ namespace creation, cgroup changes, reboot, or host shutdown operations.
 
 Every report states its format, version, probe, effects, individual results,
 and status. The temporary filesystem probe cleans up its own directory and
-file before returning.
+file before returning. Callers that need complete evidence can add
+`--require-complete`; it returns a nonzero status when any requested probe is
+skipped, while the default mode remains a diagnostic report of environmental
+limitations.

@@ -2656,6 +2656,17 @@ fault injection remain open.
 State remains CONTINUE. Provider execution isolation, signed profiles, trust
 anchors, cross-platform assurance, and broader fault injection remain open.
 
+## 2026-09-14 Flowkernel complete-evidence mode
+
+- Added `flowkernel --probe all --require-complete` for callers that must not
+  accept a platform report containing skipped probes.
+- The mode returns explicit status 3 when this host's loopback probe is skipped;
+  on a complete host it returns 0. Added a host-independent CTest wrapper for
+  both outcomes.
+
+State remains CONTINUE. Provider execution isolation, signed profiles, trust
+anchors, cross-platform assurance, and broader fault injection remain open.
+
 ## 2026-09-14 current-source sanitizer and Memcheck revalidation
 
 - Rebuilt the Clang ASan/UBSan history target from the current checkout before

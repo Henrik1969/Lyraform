@@ -30,5 +30,8 @@ overall: ok-with-skips
 The loopback skip is an environmental permission result, not evidence that
 loopback isolation is available. No execution claim may rely on that probe
 until the required permission is present and the probe returns `ok`.
+The probe now supports `--require-complete`, which returns status 3 for this
+host rather than allowing a caller to treat `ok-with-skips` as complete
+evidence. The default report remains useful for diagnosis.
 Other platforms, kernels, privilege configurations, and deployment profiles
 remain unverified and are explicitly outside this baseline.

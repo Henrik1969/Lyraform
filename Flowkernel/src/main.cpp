@@ -189,7 +189,7 @@ void print_result(const Result& result) {
     std::cout << "}";
 }
 
-int run(std::string_view probe) {
+int run(std::string_view probe, bool require_complete) {
     if (probe != "readonly" && probe != "tempfs" && probe != "ipc" && probe != "socket_ipc" && probe != "loopback" && probe != "namespaces" && probe != "all") throw std::runtime_error("unknown probe; choose readonly, tempfs, ipc, socket_ipc, loopback, namespaces, or all");
     const bool run_readonly = probe == "readonly" || probe == "all";
     const bool run_tempfs = probe == "tempfs" || probe == "all";
@@ -214,6 +214,7 @@ int run(std::string_view probe) {
     const bool all_ok = readonly.ok && tempfs.ok && ipc.ok && socket_ipc.ok && loopback.ok && namespaces.ok;
     const bool any_skipped = readonly.skipped || tempfs.skipped || ipc.skipped || socket_ipc.skipped || loopback.skipped || namespaces.skipped;
     std::cout << "] ,\"status\":\"" << (all_ok ? (any_skipped ? "ok-with-skips" : "ok") : "error") << "\"}\n";
+    if (require_complete && any_skipped) return 3;
     return all_ok ? 0 : 2;
 }
 
@@ -223,11 +224,13 @@ int main(int argc, char** argv) {
     try {
         if (argc == 2) {
             const std::string option = argv[1];
-            if (option == "-h" || option == "--help" || option == "-?") { std::cout << "flowkernel - isolated Linux kernel boundary probes\n\nUsage: flowkernel --probe readonly|tempfs|all\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n\nMore help: Flowkernel/README.md\n"; return 0; }
+            if (option == "-h" || option == "--help" || option == "-?") { std::cout << "flowkernel - isolated Linux kernel boundary probes\n\nUsage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all [--require-complete]\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n         --require-complete  fail if any requested probe is skipped\n\nMore help: Flowkernel/README.md\n"; return 0; }
             if (option == "-a" || option == "--about") { std::cout << "Flowkernel runs explicitly scoped, non-privileged Linux boundary probes.\nMore help: Flowkernel/README.md\n"; return 0; }
             if (option == "-v" || option == "--version") { std::cout << VERSION << '\n'; return 0; }
         }
-        if (argc != 3 || std::string(argv[1]) != "--probe") throw std::runtime_error("usage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all");
-        return run(argv[2]);
+        const bool require_complete = argc == 4 && std::string(argv[3]) == "--require-complete";
+        if ((argc != 3 && !require_complete) || (argc == 4 && !require_complete) || std::string(argv[1]) != "--probe")
+            throw std::runtime_error("usage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all [--require-complete]");
+        return run(argv[2], require_complete);
     } catch (const std::exception& error) { std::cerr << "flowkernel error: " << error.what() << '\n'; return 1; }
 }
