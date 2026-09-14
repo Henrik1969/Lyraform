@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -82,6 +83,11 @@ Options parse(int argc, char** argv) {
 }
 
 int resolve(const std::string& plan, const Options& options) {
+#ifdef FLOWPARALLEL_CPU_TEST_ALLOCATION_FAILURE
+    (void)plan;
+    (void)options;
+    throw std::bad_alloc();
+#endif
     using namespace flowcontracts::json;
     const auto root = object(flowcontracts::json::parse(plan));
     if (string(required(root, "format"), "$.format") != "flowparallel.execution_plan")
@@ -136,6 +142,11 @@ int main(int argc, char** argv) {
     try {
         const auto options = parse(argc, argv);
         return resolve(read_input(options), options);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CPU_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cpu error: allocation failed\n";
+        return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics)
             std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CPU_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";

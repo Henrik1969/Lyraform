@@ -377,6 +377,20 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel CPU-provider allocation-fault boundary — 2026-09-15
+
+The CPU provider-selection boundary now has a test-only fault-injected
+executable that raises `std::bad_alloc` before consuming the execution plan.
+Its public structured boundary returns `FLOWPARALLEL_CPU_RESOURCE_EXHAUSTED`
+with `disposition: no_artifact` and leaves stdout empty. The focused
+`flowparallel_cpu_allocation_fault` test is part of the canonical CTest suite.
+
+This covers exhaustion at the CPU provider-selection process boundary only.
+It does not claim that effectful parallelism, asynchronous execution, or
+cancellation is admitted; those remain open Gate 4 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel runtime-planner allocation-fault boundary — 2026-09-15
 
 The runtime provider-planning boundary now has a test-only fault-injected
