@@ -58,10 +58,11 @@ printf 'program bad_text_encoding\n\nmain {\n    value : Text("bad-' > "$tmpdir/
 printf '\377' >> "$tmpdir/bad-encoding.flow"
 printf '%s\n' '")' '}' >> "$tmpdir/bad-encoding.flow"
 set +e
-"$flowmini" --dump-frontend-bundle "$tmpdir/bad-encoding.flow" | "$analyst" > "$tmpdir/bad-encoding.json"
+"$flowmini" --diagnostics json --dump-frontend-bundle "$tmpdir/bad-encoding.flow" > "$tmpdir/bad-encoding.stdout.json" 2> "$tmpdir/bad-encoding.json"
 encoding_status=$?
 set -e
-test "$encoding_status" -eq 2
-jq -e '.status == "error" and any(.diagnostics[]; .code == "FLOWANALYST_TEXT_INVALID_UTF8")' "$tmpdir/bad-encoding.json" >/dev/null
+test "$encoding_status" -eq 1
+test ! -s "$tmpdir/bad-encoding.stdout.json"
+jq -e '.status == "failed" and .code == "FLOW_DIAGNOSTIC_ERROR" and .stage == "source" and (.message | contains("invalid UTF-8 at byte 57")) and .disposition == "no_artifact"' "$tmpdir/bad-encoding.json" >/dev/null
 
 printf '%s\n' 'Text value boundary: PASS (semantic, authorized native lowering, output, and refusals)'
