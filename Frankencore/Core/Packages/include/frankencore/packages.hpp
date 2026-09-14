@@ -75,12 +75,14 @@ struct JsonResult {
 // reported as diagnostics rather than accumulated without limit.
 Inventory read_dpkg_status(const std::string& path);
 
-// Read-only projection of APT's locally acquired list metadata. Signature
-// verification remains APT's responsibility; this function reports evidence
-// shape and does not claim cryptographic verification itself.
+// Read-only projection of APT's locally acquired list metadata. Files are
+// bounded to 4 MiB. Signature verification remains APT's responsibility; this
+// function reports evidence shape and does not claim cryptographic
+// verification itself.
 Inventory read_apt_lists(const std::string& directory);
 
 // Read-only projection of .sources and legacy .list configuration files.
+// Deb822 source files are bounded to 4 MiB.
 Inventory read_apt_sources(const std::string& directory);
 
 // Delegate read-only target discovery to the native apt-get interface.

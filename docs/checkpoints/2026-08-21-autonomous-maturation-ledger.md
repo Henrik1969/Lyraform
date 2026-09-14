@@ -2597,6 +2597,19 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 APT metadata file bound
+
+- Added bounded byte ingestion for APT release and Deb822 source metadata,
+  capped at 4 MiB per file. Oversized files are skipped with an explicit
+  `metadata-too-large` diagnostic.
+- Added a hostile oversized `InRelease` fixture to
+  `frankencore_packages_probe`; the focused package-provider test passes.
+- The package inventory now documents per-record and per-file bounds while
+  keeping total inventory cardinality as a separate open contract.
+
+State remains CONTINUE. Provider/library fault injection, aggregate inventory
+cardinality, and broader Frankencore API containment remain unfinished.
+
 ## 2026-09-14 package-provider record bound
 
 - Added bounded character ingestion for native dpkg status records. A record

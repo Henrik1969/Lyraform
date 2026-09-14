@@ -60,6 +60,20 @@ int main() {
     assert(repositories.repositories[0].authentication == "inrelease-present");
     std::filesystem::remove_all(apt_fixture);
 
+    const auto oversized_apt_fixture = std::filesystem::temp_directory_path() /
+                                       "frankencore-apt-oversized-metadata-test";
+    std::filesystem::create_directories(oversized_apt_fixture);
+    {
+        std::ofstream output(oversized_apt_fixture / "oversized_InRelease");
+        output << "Origin: Example\n" << std::string(4U * 1024U * 1024U, 'x');
+    }
+    const auto oversized_apt = frankencore::packages::read_apt_lists(
+        oversized_apt_fixture.string());
+    assert(oversized_apt.repositories.empty());
+    assert(oversized_apt.diagnostics.size() == 1);
+    assert(oversized_apt.diagnostics[0].code == "metadata-too-large");
+    std::filesystem::remove_all(oversized_apt_fixture);
+
     const auto source_fixture = std::filesystem::temp_directory_path() /
                                 "frankencore-apt-sources-test";
     std::filesystem::create_directories(source_fixture);

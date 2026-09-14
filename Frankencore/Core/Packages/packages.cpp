@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <sstream>
 #include <new>
+#include <optional>
 #include <sys/wait.h>
 #include <utility>
 
@@ -14,6 +15,7 @@ namespace frankencore::packages {
 namespace {
 
 constexpr std::size_t MAX_DPKG_RECORD_BYTES = 1024U * 1024U;
+constexpr std::size_t MAX_APT_METADATA_BYTES = 4U * 1024U * 1024U;
 
 std::string json_escape(const std::string& value) {
     std::string result;
@@ -136,19 +138,30 @@ void parse_legacy_source(Inventory& inventory, const std::string& line,
     inventory.apt_sources.push_back(std::move(source));
 }
 
-RepositoryFact repository_from_metadata(const std::filesystem::path& path,
-                                        const std::string& authentication) {
+std::optional<std::string> read_bounded_text(const std::filesystem::path& path) {
     std::ifstream input(path);
-    std::ostringstream contents;
-    contents << input.rdbuf();
-    const auto text = contents.str();
+    if (!input) return std::nullopt;
+    std::string text;
+    text.reserve(4096);
+    char character = '\0';
+    while (input.get(character)) {
+        if (text.size() == MAX_APT_METADATA_BYTES) return std::nullopt;
+        text.push_back(character);
+    }
+    return text;
+}
+
+std::optional<RepositoryFact> repository_from_metadata(
+    const std::filesystem::path& path, const std::string& authentication) {
+    const auto text = read_bounded_text(path);
+    if (!text) return std::nullopt;
     RepositoryFact repository{
         path.filename().string(),
-        field(text, "Origin"),
-        field(text, "Suite"),
-        field(text, "Codename"),
-        field(text, "Components"),
-        field(text, "Architectures"),
+        field(*text, "Origin"),
+        field(*text, "Suite"),
+        field(*text, "Codename"),
+        field(*text, "Components"),
+        field(*text, "Architectures"),
         path.string(),
         authentication};
     return repository;
@@ -287,12 +300,16 @@ Inventory read_apt_lists(const std::string& directory) {
         const auto filename = path.filename().string();
         if (filename.size() >= 10 &&
             filename.compare(filename.size() - 10, 10, "_InRelease") == 0) {
-            inventory.repositories.push_back(
-                repository_from_metadata(path, "inrelease-present"));
+            const auto repository = repository_from_metadata(path, "inrelease-present");
+            if (repository) inventory.repositories.push_back(*repository);
+            else add_diagnostic(inventory, "metadata-too-large",
+                                "APT release metadata exceeds the 4 MiB safety bound", 0);
         } else if (filename.size() >= 7 &&
                    filename.compare(filename.size() - 7, 7, "_Release") == 0) {
-            inventory.repositories.push_back(
-                repository_from_metadata(path, "release-present"));
+            const auto repository = repository_from_metadata(path, "release-present");
+            if (repository) inventory.repositories.push_back(*repository);
+            else add_diagnostic(inventory, "metadata-too-large",
+                                "APT release metadata exceeds the 4 MiB safety bound", 0);
         }
     }
     if (error) {
@@ -330,9 +347,13 @@ Inventory read_apt_sources(const std::string& directory) {
             continue;
         }
         if (extension == ".sources") {
-            std::ostringstream contents;
-            contents << input.rdbuf();
-            parse_deb822_source(inventory, contents.str(), path.string());
+            const auto contents = read_bounded_text(path);
+            if (!contents) {
+                add_diagnostic(inventory, "metadata-too-large",
+                               "APT source metadata exceeds the 4 MiB safety bound", 0);
+                continue;
+            }
+            parse_deb822_source(inventory, *contents, path.string());
         } else if (extension == ".list") {
             std::string line;
             while (std::getline(input, line)) {
