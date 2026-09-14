@@ -43,6 +43,10 @@ int main() {
 
     record.new_revision = record.old_revision;
     assert(!validate(record).valid);
+    const auto invalid_json = to_json_checked(record);
+    assert(!invalid_json.valid);
+    assert(invalid_json.json.empty());
+    assert(invalid_json.error.find("new_revision") != std::string::npos);
 
     MutationRejection rejection{
         .attempt = record.attempt,

@@ -82,11 +82,22 @@ struct ValidationResult {
     std::string error;
 };
 
+struct JsonResult {
+    bool valid = false;
+    std::string json;
+    std::string error;
+};
+
 ValidationResult validate(const MutationRecord& record);
 
 // JSON is an inspectable projection of the canonical C++ record.
 std::string to_json(const MutationRecord& record);
 std::string to_json(const MutationRejection& rejection);
 std::string to_json(const ErrorStateEvent& event);
+
+// Non-throwing public serialization boundary for language/runtime consumers.
+JsonResult to_json_checked(const MutationRecord& record);
+JsonResult to_json_checked(const MutationRejection& rejection);
+JsonResult to_json_checked(const ErrorStateEvent& event);
 
 } // namespace frankencore::provenance

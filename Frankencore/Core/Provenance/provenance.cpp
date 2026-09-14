@@ -1,6 +1,7 @@
 #include "frankencore/provenance.hpp"
 
 #include <sstream>
+#include <new>
 #include <stdexcept>
 #include <utility>
 
@@ -220,6 +221,35 @@ std::string to_json(const ErrorStateEvent& event) {
     out << ",\"operator_action_required\":"
         << (event.operator_action_required ? "true" : "false") << "}";
     return out.str();
+}
+
+namespace {
+
+template <typename Value>
+JsonResult checked_json(const Value& value) {
+    try {
+        return {true, to_json(value), {}};
+    } catch (const std::invalid_argument& error) {
+        return {false, {}, error.what()};
+    } catch (const std::bad_alloc&) {
+        return {false, {}, "serialization allocation failed"};
+    } catch (const std::exception& error) {
+        return {false, {}, std::string{"serialization failed: "} + error.what()};
+    }
+}
+
+} // namespace
+
+JsonResult to_json_checked(const MutationRecord& record) {
+    return checked_json(record);
+}
+
+JsonResult to_json_checked(const MutationRejection& rejection) {
+    return checked_json(rejection);
+}
+
+JsonResult to_json_checked(const ErrorStateEvent& event) {
+    return checked_json(event);
 }
 
 } // namespace frankencore::provenance
