@@ -3,218 +3,181 @@ set -Eeuo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: tools/run-autonomous-codex
+Usage: tools/run-autonomous-codex --task PATH [options]
 
-Repeatedly runs Codex against the autonomous reusable-chain task until the
-repository state file says DONE or BLOCKED, or a safety limit is reached.
+Run an explicitly selected Lyraform mission until its local state says DONE or
+BLOCKED, or a safety limit is reached. This runner grants no commit, push, or
+continuation authority; those permissions belong to the selected mission.
+
+Required:
+  --task PATH             Mission document inside this repository
+
+Optional context:
+  --state-file PATH       State file; default: local Git state codex/run-state
+  --architecture PATH     Explicit architecture context inside this repository
+  --ledger PATH            Explicit ledger context inside this repository
+  --context PATH           Additional explicit context file (repeatable)
 
 Environment:
-  FLOWCORE_CODEX_MAX_ITERATIONS  Maximum turns; default: 20
-  FLOWCORE_CODEX_MAX_FAILURES    Consecutive failed turns; default: 2
-  FLOWCORE_CODEX_STALL_LIMIT     Consecutive no-progress turns; default: 3
-  FLOWCORE_CODEX_LOG_DIR         Transcript directory; default: /tmp/flowcore-codex-$UID
-  FLOWCORE_CODEX_MODEL           Optional explicit Codex model
-  FLOWCORE_CODEX_PERMISSION_MODE auto-review (default) or isolated-full
+  LYRAFORM_CODEX_MAX_ITERATIONS       Maximum turns; default: 20
+  LYRAFORM_CODEX_MAX_FAILURES         Consecutive failed turns; default: 2
+  LYRAFORM_CODEX_STALL_LIMIT          No-progress turns; default: 3
+  LYRAFORM_CODEX_LOG_DIR              Transcript directory; default: /tmp/lyraform-codex-$UID
+  LYRAFORM_CODEX_MODEL                Optional explicit Codex model
+  LYRAFORM_CODEX_PERMISSION_MODE      auto-review (default) or isolated-full
 
-The isolated-full mode is intended only for a disposable VM or development
-container containing the working clone and minimum necessary credentials.
+The default state is resolved with `git rev-parse --git-path codex/run-state`
+and initialized locally as CONTINUE when a mission is launched.
 EOF
 }
 
-if [[ ${1:-} == "--help" || ${1:-} == "-h" ]]; then
-    usage
-    exit 0
-fi
-
-if (($# != 0)); then
-    usage >&2
-    exit 64
-fi
-
-command -v git >/dev/null 2>&1 || { echo "git is required" >&2; exit 69; }
-command -v codex >/dev/null 2>&1 || { echo "codex is required" >&2; exit 69; }
-command -v sha256sum >/dev/null 2>&1 || { echo "sha256sum is required" >&2; exit 69; }
-
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
-    echo "Run this tool from inside the Flowcore Git repository." >&2
-    exit 69
-}
-cd "$repo_root"
-
-task_file="$repo_root/docs/tasks/reusable-flow-chain-autonomous.md"
-state_file="$repo_root/.codex-run-state"
-architecture_file="$repo_root/docs/architecture/reusable-flow-chain-plan.md"
-ledger_file="$repo_root/docs/checkpoints/2026-08-21-autonomous-maturation-ledger.md"
-
-for required_file in "$task_file" "$state_file"; do
-    if [[ ! -f $required_file ]]; then
-        echo "Missing required file: $required_file" >&2
-        exit 66
-    fi
+die() { echo "error: $*" >&2; exit 64; }
+task_arg=''; state_arg=''; architecture_arg=''; ledger_arg=''; context_args=()
+while (($#)); do
+    case "$1" in
+        --help|-h) usage; exit 0 ;;
+        --task|--state-file|--architecture|--ledger|--context)
+            (($# >= 2)) || die "$1 requires a path"
+            case "$1" in
+                --task) task_arg=$2 ;; --state-file) state_arg=$2 ;;
+                --architecture) architecture_arg=$2 ;; --ledger) ledger_arg=$2 ;;
+                --context) context_args+=("$2") ;;
+            esac
+            shift 2 ;;
+        --) shift; (($# == 0)) || die "unexpected positional argument '$1'" ;;
+        -*) die "unknown argument '$1'" ;;
+        *) die "unexpected positional argument '$1'" ;;
+    esac
 done
+[[ -n $task_arg ]] || die '--task PATH is required'
 
-max_iterations=${FLOWCORE_CODEX_MAX_ITERATIONS:-20}
-max_failures=${FLOWCORE_CODEX_MAX_FAILURES:-2}
-stall_limit=${FLOWCORE_CODEX_STALL_LIMIT:-3}
-log_dir=${FLOWCORE_CODEX_LOG_DIR:-/tmp/flowcore-codex-$UID}
-permission_mode=${FLOWCORE_CODEX_PERMISSION_MODE:-auto-review}
-
-for numeric_value in "$max_iterations" "$max_failures" "$stall_limit"; do
-    if [[ ! $numeric_value =~ ^[1-9][0-9]*$ ]]; then
-        echo "Iteration, failure and stall limits must be positive integers." >&2
-        exit 64
-    fi
+for required_command in git codex sha256sum realpath; do
+    command -v "$required_command" >/dev/null 2>&1 || { echo "$required_command is required" >&2; exit 69; }
 done
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo 'Run this tool from inside a Lyraform Git repository.' >&2; exit 69; }
+repo_root=$(realpath "$repo_root"); cd "$repo_root"
 
-mkdir -p "$log_dir"
-export GIT_TERMINAL_PROMPT=0
-
-read_state() {
-    local state
-    state=$(tr -d '[:space:]' < "$state_file")
-    case "$state" in
-        CONTINUE|BLOCKED|DONE) printf '%s\n' "$state" ;;
-        *)
-            echo "Invalid state '$state' in $state_file" >&2
-            return 65
-            ;;
+repo_file() {
+    local raw=$1 candidate resolved
+    if [[ $raw = /* ]]; then candidate=$raw; else candidate=$repo_root/$raw; fi
+    [[ -f $candidate ]] || { echo "Missing repository file: $raw" >&2; return 66; }
+    resolved=$(realpath "$candidate")
+    case "$resolved" in
+        "$repo_root"/*) printf '%s\n' "$resolved" ;;
+        *) echo "Path must remain inside the repository: $raw" >&2; return 66 ;;
     esac
 }
 
+task_file=$(repo_file "$task_arg") || exit $?
+architecture_file=''; ledger_file=''; context_files=()
+if [[ -n $architecture_arg ]]; then architecture_file=$(repo_file "$architecture_arg") || exit $?; fi
+if [[ -n $ledger_arg ]]; then ledger_file=$(repo_file "$ledger_arg") || exit $?; fi
+for context_arg in "${context_args[@]}"; do context_files+=("$(repo_file "$context_arg")"); done
+
+default_state=$(git rev-parse --git-path codex/run-state)
+if [[ $default_state = /* ]]; then state_file=$default_state; else state_file=$repo_root/$default_state; fi
+if [[ -n $state_arg ]]; then
+    if [[ $state_arg = /* ]]; then state_file=$state_arg; else state_file=$repo_root/$state_arg; fi
+fi
+state_file=$(realpath -m "$state_file"); mkdir -p "$(dirname "$state_file")"
+if [[ ! -e $state_file ]]; then
+    printf '%s\n' CONTINUE >"$state_file"
+elif [[ ! -f $state_file ]]; then
+    echo "State path is not a regular file: $state_file" >&2; exit 65
+fi
+
+max_iterations=${LYRAFORM_CODEX_MAX_ITERATIONS:-20}
+max_failures=${LYRAFORM_CODEX_MAX_FAILURES:-2}
+stall_limit=${LYRAFORM_CODEX_STALL_LIMIT:-3}
+log_dir=${LYRAFORM_CODEX_LOG_DIR:-/tmp/lyraform-codex-$UID}
+permission_mode=${LYRAFORM_CODEX_PERMISSION_MODE:-auto-review}
+for numeric_value in "$max_iterations" "$max_failures" "$stall_limit"; do
+    [[ $numeric_value =~ ^[1-9][0-9]*$ ]] || { echo 'Iteration, failure and stall limits must be positive integers.' >&2; exit 64; }
+done
+
+read_state() {
+    local state; state=$(tr -d '[:space:]' <"$state_file")
+    case "$state" in
+        CONTINUE|BLOCKED|DONE) printf '%s\n' "$state" ;;
+        *) echo "Invalid state '$state' in $state_file" >&2; return 65 ;;
+    esac
+}
 snapshot() {
-    {
-        git rev-parse HEAD
-        git status --porcelain=v1 --untracked-files=all
-    } | sha256sum | awk '{print $1}'
+    { git rev-parse HEAD; git status --porcelain=v1 --untracked-files=all; } |
+        sha256sum | awk '{print $1}'
 }
 
 codex_command=(codex)
-if [[ -n ${FLOWCORE_CODEX_MODEL:-} ]]; then
-    codex_command+=(--model "$FLOWCORE_CODEX_MODEL")
-fi
-
+if [[ -n ${LYRAFORM_CODEX_MODEL:-} ]]; then codex_command+=(--model "$LYRAFORM_CODEX_MODEL"); fi
 case "$permission_mode" in
-    auto-review)
-        codex_command+=(
-            --sandbox workspace-write
-            --ask-for-approval on-request
-            -c approvals_reviewer=auto_review
-            -c sandbox_workspace_write.network_access=true
-            exec
-        )
-        ;;
-    isolated-full)
-        codex_command+=(
-            --sandbox danger-full-access
-            --ask-for-approval never
-            exec
-        )
-        ;;
-    *)
-        echo "Unknown FLOWCORE_CODEX_PERMISSION_MODE: $permission_mode" >&2
-        exit 64
-        ;;
+    auto-review) codex_command+=(--sandbox workspace-write --ask-for-approval on-request -c approvals_reviewer=auto_review -c sandbox_workspace_write.network_access=true exec) ;;
+    isolated-full) codex_command+=(--sandbox danger-full-access --ask-for-approval never exec) ;;
+    *) echo "Unknown LYRAFORM_CODEX_PERMISSION_MODE: $permission_mode" >&2; exit 64 ;;
 esac
-
+context_text=''
+if [[ -n $architecture_file ]]; then context_text+="- $architecture_file\n"; fi
+if [[ -n $ledger_file ]]; then context_text+="- $ledger_file\n"; fi
+for context_file in "${context_files[@]}"; do context_text+="- $context_file\n"; done
 prompt=$(cat <<EOF
-Execute the autonomous Flowcore mission in:
+Execute the explicitly selected Lyraform mission in:
 $task_file
 
-Read the repository AGENTS.md chain first, then read the mission completely.
-Also inspect these files when they exist:
-- $architecture_file
-- $ledger_file
-- $state_file
+Read the repository AGENTS.md chain and selected mission completely. Do not
+treat unselected historical documents as authority. Explicit context files:
+${context_text:-none}
 
-Recover the actual current state from Git history, the worktree and tests. Begin
-with the first unfinished gate and continue through coherent implementation,
-verification, documentation, commit and push checkpoints. Do not stop merely
-because one slice or checkpoint succeeds. Follow the state protocol exactly:
-leave CONTINUE while ordinary work remains, use BLOCKED only for a genuine total
-blocker recorded with evidence, and use DONE only when every definition-of-done
-gate passes and the final pushed worktree is clean.
+Follow only the selected mission's scope and definition of done. This runner
+grants no commit, push, or continuation authority. Use those actions only when
+the selected mission explicitly authorizes them.
 EOF
 )
 
 initial_state=$(read_state)
-if [[ $initial_state == DONE ]]; then
-    echo "Mission already reports DONE."
-    exit 0
-fi
+if [[ $initial_state == DONE ]]; then echo 'Mission already reports DONE.'; exit 0; fi
 if [[ $initial_state == BLOCKED ]]; then
-    echo "Mission reports BLOCKED. Review the maturation ledger." >&2
-    exit 2
+    echo "Mission reports BLOCKED. Review $task_file." >&2; exit 2
 fi
-
+mkdir -p "$log_dir"
+export GIT_TERMINAL_PROMPT=0
 consecutive_failures=0
 consecutive_stalls=0
 
 for ((iteration = 1; iteration <= max_iterations; ++iteration)); do
     state=$(read_state)
-    case "$state" in
-        DONE)
-            echo "Mission reports DONE."
-            exit 0
-            ;;
-        BLOCKED)
-            echo "Mission reports BLOCKED. Review the maturation ledger." >&2
-            exit 2
-            ;;
-    esac
-
+    if [[ $state == DONE ]]; then echo 'Mission reports DONE.'; exit 0; fi
+    if [[ $state == BLOCKED ]]; then echo "Mission reports BLOCKED. Review $task_file." >&2; exit 2; fi
     before=$(snapshot)
     timestamp=$(date -u +%Y%m%dT%H%M%SZ)
     log_file="$log_dir/iteration-$(printf '%03d' "$iteration")-$timestamp.log"
-
-    echo "Starting Codex iteration $iteration of $max_iterations"
+    echo "Starting Lyraform Codex iteration $iteration of $max_iterations"
     echo "Transcript: $log_file"
-
     set +e
     "${codex_command[@]}" "$prompt" 2>&1 | tee "$log_file"
     codex_status=${PIPESTATUS[0]}
     set -e
-
     after=$(snapshot)
     state=$(read_state)
-
     if ((codex_status == 0)); then
         consecutive_failures=0
     else
         ((consecutive_failures += 1))
         echo "Codex exited with status $codex_status." >&2
     fi
-
     if [[ $before == "$after" && $state == CONTINUE ]]; then
         ((consecutive_stalls += 1))
-        echo "No Git/worktree progress detected in this iteration." >&2
+        echo 'No Git/worktree progress detected.' >&2
     else
         consecutive_stalls=0
     fi
-
-    case "$state" in
-        DONE)
-            echo "Mission reports DONE after iteration $iteration."
-            exit 0
-            ;;
-        BLOCKED)
-            echo "Mission reports BLOCKED after iteration $iteration." >&2
-            exit 2
-            ;;
-    esac
-
+    if [[ $state == DONE ]]; then echo "Mission reports DONE after iteration $iteration."; exit 0; fi
+    if [[ $state == BLOCKED ]]; then echo "Mission reports BLOCKED after iteration $iteration." >&2; exit 2; fi
     if ((consecutive_failures >= max_failures)); then
-        echo "Stopping after $consecutive_failures consecutive failed Codex runs." >&2
-        echo "State remains CONTINUE; inspect $log_file and resume after correction." >&2
-        exit 3
+        echo "Stopping after $consecutive_failures consecutive failed Codex runs." >&2; exit 3
     fi
-
     if ((consecutive_stalls >= stall_limit)); then
-        echo "Stopping after $consecutive_stalls consecutive no-progress runs." >&2
-        echo "State remains CONTINUE; inspect the transcripts before resuming." >&2
-        exit 4
+        echo "Stopping after $consecutive_stalls consecutive no-progress runs." >&2; exit 4
     fi
 done
 
-echo "Reached the maximum of $max_iterations iterations with work remaining." >&2
-echo "State remains CONTINUE; raise the limit or resume in a later session." >&2
+echo 'Reached the maximum iteration limit with work remaining.' >&2
 exit 5

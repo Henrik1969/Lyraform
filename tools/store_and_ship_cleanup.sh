@@ -3,7 +3,7 @@ set -euo pipefail
 
 # store-and-ship-clean.sh
 #
-# Clean local build/output artifacts from the Flowcore/Flowmini lab tree so the
+# Clean local build/output artifacts from the Lyraform/Flowmini lab tree so the
 # workspace is in a clean "store and ship" state.
 #
 # Default mode is DRY RUN. Use --apply to actually delete.

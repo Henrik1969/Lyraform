@@ -1,5 +1,9 @@
 # Autonomous reusable Flow compiler-chain mission
 
+> **Historical completed mission — superseded.** This task records the
+> reusable-chain work completed before the Lyraform housekeeping migration. It
+> is retained as evidence and is not ambient authority for future work.
+
 ## Authority
 
 Execute this mission autonomously to completion. Normal commits and pushes to

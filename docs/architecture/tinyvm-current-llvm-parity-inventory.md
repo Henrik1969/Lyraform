@@ -41,7 +41,7 @@ drift and unimplemented tuples fail closed.
 | memory | `memcpy`, `memmove`, `memset`, `memcmp` | handle ranges, alias/overlap laws and initialized-byte tracking |
 | ncurses/TUI | `initscr`, `endwin`, `noecho`, `cbreak`, `waddnstr`, `wrefresh`, `wgetch`, `keypad` | external window lifetime, terminal ownership, cleanup and interactive evidence |
 | provider aggregates beyond packed scalar slice | verified layouts larger than 8 bytes, padded/mixed layouts and aggregate-to-aggregate calls | TinyVM admits only packed verified integer aggregates up to 8 bytes in this slice; `c_long` coverage is exercised by `tinyvm_wide_aggregate_parity` |
-| graph activation runtime | effectful/nested schedule v4 parallel waves; branching/merging stream pipelines; runtime-owned queues and reentrancy | pure parallel waves, direct scalar or verified aggregate stream fan-out and linear stream pipelines are admitted; ISA 2 artifacts now carry validated activation metadata and `flowtinyrun --trace-graph` observes it, while scheduling and general activation queues remain unimplemented |
+| graph activation runtime | effectful/nested schedule v4 parallel waves; branching/merging stream pipelines; runtime-owned queues and reentrancy | parallelizable waves with deterministic serial projection, direct scalar or verified aggregate stream fan-out and linear stream pipelines are admitted; ISA 2 artifacts now carry validated activation metadata and `flowtinyrun --trace-graph` observes it, while general scheduling and activation queues remain unimplemented |
 
 These are exact remaining implementation slices, not silently substituted LLVM
 fallbacks. Target-policy work may select LLVM explicitly for them, but may not

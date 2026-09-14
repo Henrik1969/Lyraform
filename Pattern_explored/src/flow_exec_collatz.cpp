@@ -41,6 +41,7 @@
 //   odd.out  -> check.in
 
 #include <cctype>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <iostream>

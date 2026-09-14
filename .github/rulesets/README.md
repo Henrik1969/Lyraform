@@ -1,6 +1,6 @@
-# Flowcore repository rulesets
+# Lyraform repository rulesets
 
-`protect-main.json` is the reviewable policy artifact for Flowcore's
+`protect-main.json` is the reviewable policy artifact for Lyraform's
 canonical `main` branch.
 
 ## Invariant
@@ -21,7 +21,7 @@ checks. It declares no bypass actors.
 
 ## Import
 
-In the Flowcore repository on GitHub, open **Settings → Rules → Rulesets**,
+In the Lyraform repository on GitHub, open **Settings → Rules → Rulesets**,
 choose **New ruleset → Import a ruleset**, select
 `.github/rulesets/protect-main.json`, review the preview, and create it.
 
@@ -41,9 +41,9 @@ After importing, verify in **Settings → Rules → Rulesets** that:
 The ruleset API can also be used to inspect the live configuration:
 
 ```bash
-gh api repos/Henrik1969/Flowcore/rulesets
-gh api repos/Henrik1969/Flowcore/rulesets/<RULESET_ID>
-gh api repos/Henrik1969/Flowcore/rules/branches/main
+gh api repos/Henrik1969/Lyraform/rulesets
+gh api repos/Henrik1969/Lyraform/rulesets/<RULESET_ID>
+gh api repos/Henrik1969/Lyraform/rules/branches/main
 ```
 
 The first two responses expose the ruleset definition. The branch-rules

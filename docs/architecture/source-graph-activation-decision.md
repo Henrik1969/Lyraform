@@ -118,7 +118,8 @@ contracts, executable graph planning and activation lowering remain unfinished.
 ## Native scalar activation — 2026-09-07
 
 Explicit graph v2 now admits selected zero-argument external startup providers
-and source-defined scalar receivers. Flowparallel's durable FIFO schedule keeps
+and source-defined scalar receivers. Flowparallel's runtime-owned deterministic
+activation-record FIFO keeps
 wire, port, signal and delivery identity; LLVM invokes each receiver once per
 delivery with a fresh native frame. Successful fan-out reuses the output value.
 Missing function results are rejected, and arithmetic failure publishes a

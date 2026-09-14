@@ -35,7 +35,7 @@ Options:
   --top DIR          Project root. Default: parent of tools/
   --flowmini DIR     Active compiler root. Default: Lyraform/compiler
   --note             Create a dated session note under docs/sessions/
-  --suite            Run the Flowmini suite after entering.
+  --suite            Run the Lyraform compatibility suite after entering.
   --print-env        Print export commands and exit. Useful with eval.
   --quiet            Suppress dashboard.
   -h, --help         Show this help.
@@ -99,7 +99,7 @@ else
 fi
 
 if [[ ! -d "$FLOWMINI_RESOLVED" ]]; then
-    echo "error: could not resolve Flowmini root: $FLOWMINI_RESOLVED" >&2
+    echo "error: could not resolve Lyraform compiler root: $FLOWMINI_RESOLVED" >&2
     return 2 2>/dev/null || exit 2
 fi
 
@@ -177,7 +177,7 @@ create_session_note() {
 
     cat > "$note" <<EOF
 ---
-title: Flowcore session $(date +%Y-%m-%d)
+title: Lyraform session $(date +%Y-%m-%d)
 status: draft
 kind: session-note
 tags:
@@ -186,7 +186,7 @@ tags:
   - flowmini
 ---
 
-# Flowcore session $(date +%Y-%m-%d)
+# Lyraform session $(date +%Y-%m-%d)
 
 ## Starting point
 
@@ -222,16 +222,16 @@ $TOP/tools/run-flowmini-test-suite.sh
 
 ## Related
 
-- [Flowmini current](../../Lyraform/CURRENT.md)
-- [Flowmini roadmap](../flowmini/roadmap.md)
-- [Flowmini testing](../flowmini/testing.md)
+- [Lyraform compiler current](../../Lyraform/CURRENT.md)
+- [Flowmini compatibility roadmap](../flowmini/roadmap.md)
+- [Flowmini compatibility testing](../flowmini/testing.md)
 EOF
 
     printf "%s" "$note"
 }
 
 print_dashboard() {
-    echo "== Flowcore session =="
+    echo "== Lyraform session =="
     echo "TOP:             $TOP"
     echo "FLOWMINI_ROOT:   $FLOWMINI_ROOT"
     echo "DOCS:            $FLOWCORE_DOCS"

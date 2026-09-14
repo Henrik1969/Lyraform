@@ -27,7 +27,7 @@
     "One shared tokenizer/document scalar classifier executed through LLVM and both TinyVM engines",
     "Validated dependency graph for remaining Stage 1, Stage 2, and Stage 3 bootstrap work",
     "Exact generated contract and live-provider evidence authorization",
-    "Native scalar source graphs with durable FIFO scheduling and fresh receiver frames",
+    "Native scalar source graphs with runtime-owned deterministic activation-record FIFO and fresh receiver frames",
     "Flow-owned paging with injectable batch input, terminal and output providers",
     "Installed newly named gettid acceptance with unchanged compiler binaries",
     "Verified packed integer aggregate payloads and bounded aggregate streams through LLVM and TinyVM",

@@ -24,7 +24,8 @@ The native scalar/control-flow and Flow-owned pager migrations are implemented.
 `flow_less` uses ordinary source functions for navigation, validation and rendering;
 separate native libraries supply raw input and output transport.
 Explicit graph v2 supports selected scalar startup providers and native source
-receivers through durable FIFO scheduling. The default graph v1 remains
+receivers through a runtime-owned deterministic activation-record FIFO. The
+default graph v1 remains
 non-executable evidence; unsupported graphs fail rather than being dropped. See the [activation decision](source-graph-activation-decision.md).
 
 - For the admitted scalar/control-flow surface, every required compiler stage consumes or preserves the versioned structured

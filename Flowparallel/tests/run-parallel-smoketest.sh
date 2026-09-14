@@ -3,6 +3,22 @@ set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 smoke=${FLOWPARALLEL_SMOKETEST_BIN:-$root/Flowparallel/build/flowparallel_smoketest}
+report_output=''
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --output)
+            [ "$#" -ge 2 ] || { echo 'missing value for --output' >&2; exit 2; }
+            report_output=$2
+            shift 2
+            ;;
+        --help|-h)
+            echo 'Usage: run-parallel-smoketest.sh [--output PATH]'
+            echo '  Keep the validated report temporarily by default; copy it to PATH when requested.'
+            exit 0
+            ;;
+        *) echo "unknown argument: $1" >&2; exit 2 ;;
+    esac
+done
 test -x "$smoke"
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
@@ -55,8 +71,13 @@ jq -n \
     '{format:"flowparallel.smoketest_report",version:1,status:"ok",sandbox:$sandbox,serial:$serial,parallel:$parallel,cost_model:{minimum_speedup:$minimum_speedup,observed_speedup:($serial.elapsed_ns / $parallel.elapsed_ns),decision:(if ($serial.elapsed_ns / $parallel.elapsed_ns) >= $minimum_speedup then "parallel" else "serial" end)},correctness:{matching_result:($serial.result == $parallel.result),repeated_serial_match:(($serial.result|tostring) == $repeated)}}' \
     > "$tmpdir/report.json"
 jq -e '.status == "ok" and .correctness.matching_result and .correctness.repeated_serial_match' "$tmpdir/report.json" >/dev/null
-cp "$tmpdir/report.json" ./flowparallel-smoketest-report.json
+if [ -n "$report_output" ]; then
+    cp "$tmpdir/report.json" "$report_output"
+    report_display=$report_output
+else
+    report_display='temporary output (not retained)'
+fi
 echo 'Flowparallel parallel smoke test: PASS'
 echo "  serial: $serial_result"
 echo "  parallel: $parallel_result (workers=$workers)"
-echo '  report: flowparallel-smoketest-report.json'
+echo "  report: $report_display"

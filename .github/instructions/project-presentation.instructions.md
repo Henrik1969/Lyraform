@@ -4,7 +4,7 @@ applyTo: "README.md,Lyraform/README.md,docs/index.md,docs/presentation/**"
 
 # Lyraform project-presentation instructions
 
-These files form Flowcore's public-facing presentation layer. Keep them concise,
+These files form Lyraform's public-facing presentation layer. Keep them concise,
 navigable, and evidence-bound.
 
 - Use `docs/presentation/current-status-v1.json` as the current factual index.

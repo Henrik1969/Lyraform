@@ -1,6 +1,6 @@
-# Flowcore Copilot contract
+# Lyraform Copilot contract
 
-Flowcore is an experimental language and system-architecture project. Treat
+Lyraform is an experimental language and system-architecture project. Treat
 repository evidence as authoritative and never infer maturity from aspirations,
 file names, issue titles, or prose that predates the latest tagged checkpoint.
 
@@ -22,7 +22,7 @@ For project-presentation work:
   pull-request targets.
 - Do not merge your own pull request.
 
-Presentation should explain Flowcore accurately to a technically curious reader
+Presentation should explain Lyraform accurately to a technically curious reader
 without marketing inflation. Prefer concrete verified capabilities, explicit
 non-claims, and links to durable repository evidence.
 

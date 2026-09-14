@@ -26,7 +26,8 @@ current lineage:  v0.29 reusable native language chain
 ```
 
 The current verified boundary includes source-driven scalar/control-flow
-lowering, exact generated ABI evidence, durable scalar graph activation,
+lowering, exact generated ABI evidence, runtime-owned deterministic scalar
+activation-record FIFO,
 Flow-owned pager behavior, and governed LLVM/TinyVM backend boundaries. See the
 [current verification ledger](docs/checkpoints/2026-09-07-reusable-flow-chain-result.md)
 for exact evidence and scoped limitations.

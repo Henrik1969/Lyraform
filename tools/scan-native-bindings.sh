@@ -21,7 +21,7 @@ EOF
             exit 0
             ;;
         -a|--about)
-            printf '%s\n' 'Inventory shared-library and C/C++ header candidates for later Flowcore binding review.'
+            printf '%s\n' 'Inventory shared-library and C/C++ header candidates for later Lyraform binding review.'
             exit 0
             ;;
         -v|--version)

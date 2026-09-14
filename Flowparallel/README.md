@@ -57,6 +57,13 @@ FLOWPARALLEL_SMOKETEST_WORKERS=4 \
 ./Flowparallel/tests/run-parallel-smoketest.sh
 ```
 
+The validated JSON report is temporary by default. Preserve one deliberately
+with an explicit path, for example:
+
+```sh
+./Flowparallel/tests/run-parallel-smoketest.sh --output /tmp/flowparallel-report.json
+```
+
 `FLOWPARALLEL_MIN_SPEEDUP` overrides the smoke-test observation threshold;
 the default is `1.25`. In the eventual runtime this value belongs to resolved
 policy, not to the source program.

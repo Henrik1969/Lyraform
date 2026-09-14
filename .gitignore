@@ -1,11 +1,11 @@
-# Build directories
+# Build directories and generated build-system files
 build/
 cmake-build-*/
 out/
 bin/
 obj/
-
-# CMake
+Pattern_explored/build/
+Pattern_explored/src/build/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -19,7 +19,7 @@ rules.ninja
 install_manifest.txt
 compile_commands.json
 
-# Compiled objects / libraries / binaries
+# Compiled objects, libraries, and platform binaries
 *.o
 *.obj
 *.a
@@ -28,60 +28,44 @@ compile_commands.json
 *.dll
 *.dylib
 *.exe
+*.app
 *.out
 !Lyraform/flowmini_v24_explicit_ast/tests/expected/stdout/*.out
-*.app
+Pattern_explored/src/Base64
+Pattern_explored/src/base64
+Pattern_explored/src/bart
+Pattern_explored/src/flow_exec_collatz
+Pattern_explored/src/hex
 
-# Generated / temporary files
+# Generated reports and local operational state
+.codex-run-state
+flowparallel-smoketest-report.json
 *.log
 *.tmp
 *.bak
 *.orig
 *.rej
-*~
-core
-core.*
+test-report/
+**/test-report/
+tempresult*.txt
 
-# Editors
+# Editors and OS/file-manager state
 .vscode/
 .idea/
 .intellijPlatform/
 *.swp
 *.swo
 Session.vim
-
-# OS / file manager junk
 .DS_Store
 Thumbs.db
 
-# Local project scratch / private config
+# Local project scratch and private configuration
 .local/
 tmp/
 scratch/
-
-# Flowmini test reports
-test-report/
-**/test-report/
-
-# Flowmini generated test reports
-test-report/
-**/test-report/
-
-# Flowmini generated test reports
-test-report/
-**/test-report/
-
-# Local build/test/IDE artifacts
-build/
-cmake-build-*/
-test-report/
-.idea/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
-*.tmp
-tempresult*.txt
 _local_archive/
 __pycache__/
 *.py[cod]
+core
+core.*
+*~
