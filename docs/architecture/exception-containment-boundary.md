@@ -76,6 +76,9 @@ exit distinction.
 - The plan-producing Flowparallel CLI provides a structured contract-failure
   projection through `--diagnostics json`; malformed semantic reports leave
   artifact stdout empty.
+- The graph-reference Flowparallel consumer also provides a structured
+  `no_artifact` failure projection for malformed or unsupported semantic graph
+  input, preserving the independent artifact boundary.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.

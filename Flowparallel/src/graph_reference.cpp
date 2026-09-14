@@ -14,11 +14,24 @@ namespace {
 constexpr std::string_view version = "0.1.0";
 
 std::string read_input(int argc, char** argv) {
-    if (argc > 2) throw std::runtime_error("usage: flowparallel_graph_reference [semantic-report.json]");
+    if (argc > 2 && !(argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json"))
+        throw std::runtime_error("usage: flowparallel_graph_reference [semantic-report.json]");
     std::ostringstream input;
     if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); input << file.rdbuf(); }
     else input << std::cin.rdbuf();
     return input.str();
+}
+
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const char character : value) {
+        if (character == '\\' || character == '"') escaped.push_back('\\');
+        if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(character);
+    }
+    return escaped;
 }
 
 std::string quote(std::string_view value) {
@@ -55,10 +68,21 @@ int run(std::string_view report) {
 }
 
 int main(int argc, char** argv) {
+    const bool structured_diagnostics = argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json";
     try {
         if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_reference - CPU reference graph reachability\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel computes verified Boolean graph reachability as the CPU reference provider.\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << version << '\n'; return 0; }
         return run(read_input(argc, argv));
-    } catch (const std::exception& error) { std::cerr << "flowparallel_graph_reference error: " << error.what() << '\n'; return 1; }
+    } catch (const std::exception& error) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_graph_reference error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_graph_reference error: unknown non-standard failure\n";
+        return 1;
+    }
 }

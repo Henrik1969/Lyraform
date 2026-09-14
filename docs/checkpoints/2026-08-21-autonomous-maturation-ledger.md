@@ -2597,6 +2597,16 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 graph-reference structured diagnostic boundary
+
+- Added `flowparallel_graph_reference --diagnostics json` for malformed and
+  unsupported semantic graph input.
+- Added hostile coverage proving empty graph-artifact stdout, stable failure
+  stderr, `no_artifact` disposition, and nonzero exit status.
+
+State remains CONTINUE. Independent CUDA graph execution and graph-planner
+boundaries still require the same containment audit.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure

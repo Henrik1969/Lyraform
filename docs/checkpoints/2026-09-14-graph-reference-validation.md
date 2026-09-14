@@ -1,7 +1,7 @@
 # Graph-reference input validation checkpoint
 
 **Date:** 2026-09-14  
-**Status:** implemented for the CPU graph-reference boundary
+**Status:** implemented for the CPU graph-reference and diagnostic boundaries
 
 `flowparallel_graph_reference` now consumes `flowanalyst.semantic_report` via
 the shared typed artifact parser. It validates the complete report, including
@@ -20,3 +20,7 @@ normal CTest: 111/111 PASS
 The reference provider remains CPU-only and does not imply admission of
 unsupported graph scheduling, effectful parallelism, cancellation, or async
 semantics.
+
+The consumer also supports `--diagnostics json`. Malformed semantic graph
+input produces no graph artifact on stdout and a stable
+`FLOWPARALLEL_GRAPH_REFERENCE_FAILURE` record with `no_artifact` disposition.
