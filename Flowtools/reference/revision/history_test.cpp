@@ -63,6 +63,10 @@ int main() {
     assert(readable.records == 4);
     assert(readable.json_records.size() == 4);
     assert(readable.json_records.front().find("frankencore.error_state_event") != std::string::npos);
+    const auto found = history.find_event(first.event_id);
+    assert(found.valid && found.found && found.status == "found");
+    assert(history.find_event(generate_ulid()).status == "not_found");
+    assert(!history.find_event("not-a-ulid").valid);
 
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);

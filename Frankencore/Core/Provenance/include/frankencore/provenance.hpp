@@ -105,6 +105,14 @@ struct HistoryReadResult {
     std::string error;
 };
 
+struct HistoryLookupResult {
+    bool valid = false;
+    bool found = false;
+    std::string json;
+    std::string status;
+    std::string error;
+};
+
 // Project-local append-only error-state history. The file is JSONL with one
 // complete ErrorStateEvent per line; callers must explicitly repair a torn
 // final line before appending again.
@@ -114,6 +122,7 @@ public:
 
     HistoryResult inspect() const noexcept;
     HistoryReadResult read_records() const noexcept;
+    HistoryLookupResult find_event(const std::string& event_id) const noexcept;
     HistoryResult append(const MutationRecord& record) const noexcept;
     HistoryResult append(const MutationRejection& rejection) const noexcept;
     HistoryResult append(const ErrorStateEvent& event) const noexcept;

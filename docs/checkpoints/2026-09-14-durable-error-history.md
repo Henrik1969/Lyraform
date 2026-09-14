@@ -10,7 +10,8 @@ error-state lifecycle events. It uses an exclusive lock file, validates
 the complete valid prefix before publication, appends and flushes one complete
 event per line, deduplicates exact replay by `event_id`, rejects conflicting
 duplicate content, and exposes an ordered `read_records()` projection only
-after the history prefix validates.
+after the history prefix validates. `find_event(event_id)` provides exact
+identity lookup with explicit `found`, `not_found`, and rejected-ID outcomes.
 
 Successful append and repair operations now flush both the history file and
 its parent directory, so file creation/truncation durability is part of the
@@ -33,8 +34,9 @@ torn-tail refusal: PASS
 explicit quarantine and repair: PASS
 post-repair append: PASS
 ordered validated read/replay projection: PASS
+exact identity lookup and invalid-ID refusal: PASS
 ```
 
 This is a durable error-state boundary, not a complete history subsystem.
-Full JSON parsing, semantic event lookup/replay, retention, and cross-branch
-history reconciliation remain open Gate 5 work.
+Full JSON parsing, semantic event replay, retention, and cross-branch history
+reconciliation remain open Gate 5 work.

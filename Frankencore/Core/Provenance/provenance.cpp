@@ -485,6 +485,28 @@ HistoryReadResult ErrorStateHistory::read_records() const noexcept {
     }
 }
 
+HistoryLookupResult ErrorStateHistory::find_event(const std::string& event_id) const noexcept {
+    if (!is_valid_ulid(event_id))
+        return {false, false, {}, "rejected", "event_id must be a valid ULID"};
+    try {
+        const int lock = lock_history(path_, LOCK_SH);
+        if (lock < 0)
+            return {false, false, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
+        const auto scan = scan_history(path_, max_line_bytes_);
+        ::flock(lock, LOCK_UN);
+        ::close(lock);
+        if (!scan.result.valid)
+            return {false, false, {}, scan.result.status, scan.result.error};
+        const auto found = scan.events.find(event_id);
+        if (found == scan.events.end()) return {true, false, {}, "not_found", {}};
+        return {true, true, found->second, "found", {}};
+    } catch (const std::exception& error) {
+        return {false, false, {}, "error", error.what()};
+    } catch (...) {
+        return {false, false, {}, "error", "history lookup failed with an unknown non-standard failure"};
+    }
+}
+
 HistoryResult ErrorStateHistory::append(const MutationRecord& record) const noexcept {
     const auto serialized = to_json_checked(record);
     return serialized.valid ? append_serialized(path_, max_line_bytes_, serialized.json)
