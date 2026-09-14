@@ -70,7 +70,9 @@ struct JsonResult {
     std::string error;
 };
 
-// Read-only projection of the native dpkg status database.
+// Read-only projection of the native dpkg status database. Individual
+// paragraphs are bounded to 1 MiB; oversized provider records are skipped and
+// reported as diagnostics rather than accumulated without limit.
 Inventory read_dpkg_status(const std::string& path);
 
 // Read-only projection of APT's locally acquired list metadata. Signature

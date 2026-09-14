@@ -2597,6 +2597,18 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 package-provider record bound
+
+- Added bounded character ingestion for native dpkg status records. A record
+  over 1 MiB is discarded without accumulating the hostile line and is
+  reported as `record-too-large`.
+- Added an oversized-record regression to `frankencore_packages_probe` and
+  documented the narrower claim: APT metadata and total inventory cardinality
+  still require separate bounded contracts.
+
+State remains CONTINUE. Provider/library fault injection, APT bounds, and
+broader Frankencore API containment remain unfinished.
+
 ## 2026-09-14 governed ABI unsupported-shape evidence
 
 - Added hostile Flowbind coverage for an unsupported native return carrier and

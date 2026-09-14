@@ -13,6 +13,8 @@
 namespace frankencore::packages {
 namespace {
 
+constexpr std::size_t MAX_DPKG_RECORD_BYTES = 1024U * 1024U;
+
 std::string json_escape(const std::string& value) {
     std::string result;
     result.reserve(value.size() + 2);
@@ -167,9 +169,16 @@ Inventory read_dpkg_status(const std::string& path) {
 
     std::string paragraph;
     std::string line;
+    line.reserve(4096);
     std::size_t line_number = 0;
     std::size_t paragraph_start = 1;
+    bool discard_record = false;
     auto consume = [&] {
+        if (discard_record) {
+            discard_record = false;
+            paragraph.clear();
+            return;
+        }
         if (paragraph.empty()) return;
         PackageFact package{
             field(paragraph, "Package"),
@@ -188,15 +197,67 @@ Inventory read_dpkg_status(const std::string& path) {
         paragraph.clear();
     };
 
-    while (std::getline(input, line)) {
+    auto process_line = [&](const std::string& current_line) {
         ++line_number;
-        if (line.empty()) {
+        if (current_line.empty()) {
             consume();
             paragraph_start = line_number + 1;
-            continue;
+            return;
+        }
+        if (discard_record) return;
+        const auto separator = paragraph.empty() ? 0U : 1U;
+        if (paragraph.size() > MAX_DPKG_RECORD_BYTES - separator ||
+            current_line.size() > MAX_DPKG_RECORD_BYTES - separator - paragraph.size()) {
+            add_diagnostic(inventory, "record-too-large",
+                           "dpkg status record exceeds the 1 MiB safety bound",
+                           paragraph_start);
+            paragraph.clear();
+            discard_record = true;
+            return;
         }
         if (!paragraph.empty()) paragraph.push_back('\n');
-        paragraph += line;
+        paragraph += current_line;
+    };
+    bool line_too_large = false;
+    char character = '\0';
+    while (input.get(character)) {
+        if (character == '\n') {
+            if (line_too_large) {
+                ++line_number;
+                if (!discard_record) {
+                    add_diagnostic(inventory, "record-too-large",
+                                   "dpkg status record exceeds the 1 MiB safety bound",
+                                   paragraph_start);
+                    paragraph.clear();
+                    discard_record = true;
+                }
+            } else {
+                process_line(line);
+            }
+            line.clear();
+            line_too_large = false;
+        } else if (!line_too_large) {
+            if (line.size() == MAX_DPKG_RECORD_BYTES) {
+                line.clear();
+                line_too_large = true;
+            } else {
+                line.push_back(character);
+            }
+        }
+    }
+    if (!line.empty() || line_too_large) {
+        if (line_too_large) {
+            ++line_number;
+            if (!discard_record) {
+                add_diagnostic(inventory, "record-too-large",
+                               "dpkg status record exceeds the 1 MiB safety bound",
+                               paragraph_start);
+                paragraph.clear();
+                discard_record = true;
+            }
+        } else {
+            process_line(line);
+        }
     }
     consume();
     inventory.provider_version = "native-status-format";

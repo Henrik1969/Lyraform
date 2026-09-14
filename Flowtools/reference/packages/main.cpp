@@ -96,6 +96,20 @@ int main() {
     assert(missing_apt.apt_index_targets.empty());
     assert(!missing_apt.diagnostics.empty());
 
+    const auto oversized = std::filesystem::temp_directory_path() /
+                           "frankencore-package-oversized-record-test";
+    {
+        std::ofstream output(oversized);
+        output << "Package: oversized\nMaintainer: "
+               << std::string(1024U * 1024U, 'x') << "\n\n";
+    }
+    const auto oversized_inventory =
+        frankencore::packages::read_dpkg_status(oversized);
+    assert(oversized_inventory.packages.empty());
+    assert(oversized_inventory.diagnostics.size() == 1);
+    assert(oversized_inventory.diagnostics[0].code == "record-too-large");
+    std::filesystem::remove(oversized);
+
     std::filesystem::remove(path);
     return 0;
 }
