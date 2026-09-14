@@ -57,7 +57,7 @@ not-claimed       no safety claim is made
 | Local override masquerades as authentication | Override remains policy evidence with diagnostic and provenance | verification contract and policy tests | implemented in contract | Broader admission policy integration remains incomplete |
 | Isolation label exceeds actual enforcement | `IsolationClaim` validates assurance/enforcement compatibility and requires explicit resource, identity, filesystem, network, privilege, teardown, provider, and verification fields | Contracts validation test; isolation ADRs | provisional | Provider execution and independent verifier remain incomplete; no production isolation claim |
 | Build-host hardware is mistaken for deployment capability | Runtime snapshot separated from compile-time policy | runtime capability and provider-planner tests | implemented | Runtime refresh and broader platform matrix remain open |
-| Unsupported platform is presented as portable | Linux x86-64 scope and explicit provider limitations | onboarding/current-status documentation | implemented | Cross-platform assurance has not been established |
+| Unsupported platform is presented as portable | Host-specific Linux x86-64 baseline and machine-readable Flowkernel result; unsupported platforms remain explicit | `2026-09-14-platform-assurance-linux-x86-64.md`; `flowkernel_all` | provisional | This host reports loopback `EPERM`; cross-platform assurance and complete permission profile remain open |
 | Human approval is silently affirmative | Structured authority questions with expiry and no implicit yes | ADR-0023 | provisional | Interactive trust negotiation is not fully implemented |
 
 ## Mission blockers before self-hosting

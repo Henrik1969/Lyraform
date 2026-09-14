@@ -2495,3 +2495,15 @@ The history and provenance API executables pass independently under Valgrind
 State remains CONTINUE. This closes claim-consistency checks only; provider
 isolation enforcement, signed profiles, trust-store lifecycle, and platform
 assurance remain provisional Gate 6 work.
+
+## 2026-09-14 Linux x86-64 platform assurance baseline
+
+- Captured the host-specific toolchain and kernel matrix and verified
+  `igor doctor`.
+- Flowkernel reports read-only, private-tempfs, child IPC, socket IPC, and
+  child namespaces as `ok`; loopback is explicitly `skipped` with `EPERM`, so
+  the overall status is `ok-with-skips` and no loopback claim is made.
+- Other platforms and privilege configurations remain unverified.
+
+State remains CONTINUE. Platform evidence is host-specific and does not close
+provider isolation or cross-platform assurance.
