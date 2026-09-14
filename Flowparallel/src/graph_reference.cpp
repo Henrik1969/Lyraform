@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -41,6 +42,10 @@ std::string quote(std::string_view value) {
 }
 
 int run(std::string_view report) {
+#ifdef FLOWPARALLEL_GRAPH_REFERENCE_TEST_ALLOCATION_FAILURE
+    (void)report;
+    throw std::bad_alloc();
+#endif
     const auto semantic = flowcontracts::semantic_report(flowcontracts::json::parse(report));
     if (semantic.artifact.status != "ok") {
         std::cout << "{\n  \"format\": \"flowparallel.graph_analysis\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"semantic report is not accepted\"\n}\n";
@@ -73,6 +78,11 @@ int main(int argc, char** argv) {
         if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel computes verified Boolean graph reachability as the CPU reference provider.\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << version << '\n'; return 0; }
         return run(read_input(argc, argv));
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_graph_reference error: allocation failed\n";
+        return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics)
             std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
