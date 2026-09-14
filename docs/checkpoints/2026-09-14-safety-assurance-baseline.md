@@ -360,6 +360,19 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## TinyVM runtime-provider string allocation classification — 2026-09-15
+
+The TinyVM runtime provider now distinguishes artifact-owned string-copy
+allocation failure from an invalid string handle and reports the explicit
+`runtime provider allocation exhausted` fault. The focused
+`tinyvm_runtime_provider_allocation_fault` test covers both string copying and
+provider-owned Text-outcome retention; neither path publishes an initialized
+result or partial provider state.
+
+The focused test passed under normal GCC, Clang 18.1.3 ASan/UBSan, and
+Valgrind 3.22.0 Memcheck with zero errors and zero leaks. The safety state
+remains `CONTINUE`.
+
 ## TinyVM runtime-provider allocation-fault boundary — 2026-09-15
 
 The TinyVM runtime provider now classifies failure to retain a provider-owned
