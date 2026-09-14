@@ -9,8 +9,9 @@ fixture=$root/Lyraform/compiler/examples/pass/abi_libc_demo.flow
 test -x "$flowmini"
 test -x "$flowanalyst"
 test -x "$bin"
-policy=$(mktemp)
-trap 'rm -f "$policy"' EXIT
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+policy="$tmpdir/policy"
 printf '%s\n' \
   'allow libc.so.6 strlen c pure c_string c_size_t' \
   'allow libc.so.6 abs c pure' \
@@ -96,4 +97,12 @@ denied_rc=$?
 set -e
 test "$denied_rc" -eq 2
 printf '%s\n' "$denied" | grep -q 'denied by capability policy'
+
+set +e
+printf '%s' '{"format":"wrong","version":1}' | "$bin" --diagnostics json >"$tmpdir/hostile-stdout" 2>"$tmpdir/hostile-stderr"
+hostile_rc=$?
+set -e
+test "$hostile_rc" -eq 1
+test ! -s "$tmpdir/hostile-stdout"
+jq -e '.status == "failed" and .code == "FLOWBIND_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
 echo 'Flowbind tests: PASS'

@@ -2619,6 +2619,18 @@ fault injection, and the remaining Gate 5/6/8 work are unfinished.
 State remains CONTINUE. Native provider fault injection and remaining Stage 0
 API containment work are unfinished.
 
+## 2026-09-14 Flowbind structured failure containment
+
+- Added `flowbind --diagnostics json` for malformed contract, policy, and CLI
+  failures at the governed ABI boundary. It emits a stable failure record on
+  stderr, keeps stdout empty, marks the attempt `no_artifact`, and returns
+  nonzero.
+- Added hostile malformed-envelope coverage to the Flowbind provider test;
+  the focused test passes without writing generated files into the checkout.
+
+State remains CONTINUE. Exact ABI evidence, native fault injection, isolation,
+and the remaining Gate 5/6/8 work are unfinished.
+
 ## 2026-09-14 CUDA cleanup callback containment
 
 - Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are

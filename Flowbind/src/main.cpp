@@ -27,7 +27,7 @@ constexpr std::string_view VERSION = "0.1.0";
 struct Requirement { std::string contract, library, convention, symbol, effect, parameter_types, return_type, evidence; };
 struct Grant { std::string library, symbol, convention, effect, parameter_types, return_type, evidence; bool exact_signature = false; };
 
-struct Options { std::string report_path, policy_path, abi_manifest_path; };
+struct Options { std::string report_path, policy_path, abi_manifest_path; bool structured_diagnostics = false; };
 
 using Json = flowcontracts::json::Value;
 using JsonArray = flowcontracts::json::Array;
@@ -66,7 +66,10 @@ Options parse_options(int argc, char** argv) {
     Options options;
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
-        if (argument == "--policy") {
+        if (argument == "--diagnostics") {
+            if (++i >= argc || std::string(argv[i]) != "json") throw std::runtime_error("--diagnostics requires json");
+            options.structured_diagnostics = true;
+        } else if (argument == "--policy") {
             if (++i >= argc) throw std::runtime_error("--policy requires a path");
             options.policy_path = argv[i];
         } else if (argument == "--abi-manifest") {
@@ -137,6 +140,13 @@ bool granted(const std::vector<Grant>& grants, const Requirement& requirement) {
 
 std::string json_string(const std::string& text) {
     return flowcontracts::json::serialize(Json{text});
+}
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) {
+    std::cerr << "{\"status\":\"failed\",\"code\":" << json_string(std::string(code))
+              << ",\"stage\":" << json_string(std::string(stage))
+              << ",\"message\":" << json_string(std::string(message))
+              << ",\"disposition\":\"no_artifact\"}\n";
 }
 
 std::string provider_digest(const std::string& path) {
@@ -590,8 +600,10 @@ int verify(const std::string& report, const std::string& policy_path, const std:
 }
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         const auto options = parse_options(argc, argv);
+        structured_diagnostics = options.structured_diagnostics;
         if (argc >= 2) {
             const std::string option = argv[1];
             if (option == "-h" || option == "--help" || option == "-?") { std::cout << "flowbind - verify and authorize external provider bindings\n\nUsage: flowbind [--policy policy.conf] [--abi-manifest manifest.json] [semantic-report.json]\n       flowmini ... | flowanalyst | flowbind --policy policy.conf\n\nPolicy: one exact grant per line: allow LIBRARY SYMBOL CONVENTION EFFECT\nABI manifest: provider-owned aggregate layout evidence\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n\nMore help: Flowbind/README.md\n"; return 0; }
@@ -599,5 +611,9 @@ int main(int argc, char** argv) {
             if (option == "-v" || option == "--version") { std::cout << VERSION << '\n'; return 0; }
         }
         return verify(read_input(options), options.policy_path, options.abi_manifest_path);
-    } catch (const std::exception& error) { std::cerr << "flowbind error: " << error.what() << '\n'; return 1; }
+    } catch (const std::exception& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWBIND_FAILURE", "cli", error.what());
+        else std::cerr << "flowbind error: " << error.what() << '\n';
+        return 1;
+    }
 }
