@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -48,6 +49,12 @@ void write_structured_failure(std::string_view code, std::string_view stage, std
 }
 
 int lower(std::string_view report, const Options& options, std::string_view binding_report) {
+#ifdef FLOWLOWER_TEST_ALLOCATION_FAILURE
+    (void)report;
+    (void)options;
+    (void)binding_report;
+    throw std::bad_alloc();
+#endif
     using namespace flowlower::structured;
     const auto root = Parser{std::string(report)}.parse();
     if (const auto* plan = field(root, "lowering_plan"))
@@ -173,6 +180,9 @@ int main(int argc, char** argv) {
                      "\"backend\":\"llvm\",\"diagnostic\":{\"code\":\"FLOWLOWER_CONTRACT\",\"path\":"
                   << quote(error.path()) << ",\"reason\":" << quote(error.reason()) << "}}\n";
         std::cerr << "flowlower error: " << error.what() << '\n'; return 1;
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_RESOURCE_EXHAUSTED", "runtime", "allocation failed"); return 1; }
+        std::cerr << "flowlower error: allocation failed\n"; return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics) { write_structured_failure("FLOWLOWER_FAILURE", "cli", error.what()); return 1; }
         std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"unsupported\","

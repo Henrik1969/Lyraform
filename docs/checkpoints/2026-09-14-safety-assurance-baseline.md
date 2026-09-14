@@ -377,6 +377,22 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowlower allocation-fault boundary — 2026-09-15
+
+The backend lowering boundary now has a test-only fault-injected executable
+that raises `std::bad_alloc` before consuming the input artifact. Its public
+structured boundary returns `FLOWLOWER_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowlower_allocation_fault` test is now part of the canonical CTest suite.
+The normal, Clang 18.1.3 ASan/UBSan, and Valgrind 3.22.0 runs all preserve
+the expected refusal; Valgrind reports no definite or indirect leaks.
+
+This covers exhaustion at the lowerer process boundary only. It does not claim
+complete allocation-fault coverage for every lowering-plan parser, provider,
+or backend emission allocation site; those remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowvalidate allocation-fault boundary — 2026-09-15
 
 The canonical artifact-validation command now has a test-only fault-injected
