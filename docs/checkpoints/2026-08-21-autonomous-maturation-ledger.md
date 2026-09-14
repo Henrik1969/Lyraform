@@ -2657,6 +2657,17 @@ allocation-failure coverage remain open.
 State remains CONTINUE. Schema-specific collection limits and injected native
 allocation/provider failures remain open.
 
+## 2026-09-14 Flowbind provider-handle cleanup boundary
+
+- Replaced Flowbind’s manual end-of-function `dlclose` loop with explicit RAII
+  ownership for every loaded provider library.
+- Handle cleanup now remains attached to the owning map entry across missing
+  symbols, provider-evidence failures, and exceptional unwinding.
+- Existing normal and hostile binding cases remain the regression evidence.
+
+State remains CONTINUE. Native provider execution fault injection and broader
+allocation-failure coverage remain open.
+
 ## 2026-09-14 package-provider cardinality bounds
 
 - Added 100,000-entry caps for dpkg package observations, APT directory

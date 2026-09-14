@@ -500,7 +500,8 @@ int verify(const std::string& report, const std::string& policy_path, const std:
                 graph_aggregate_names.insert(json_text(json_field(node, "output_type")));
         }
     }
-    std::map<std::string, void*> handles;
+    using LibraryHandle = std::unique_ptr<void, int (*)(void*)>;
+    std::map<std::string, LibraryHandle> handles;
     std::vector<std::string> failures;
     std::map<std::string, std::pair<std::string, std::string>> verified_providers;
     for (const auto& item : needed) {
@@ -522,16 +523,17 @@ int verify(const std::string& report, const std::string& policy_path, const std:
             start = end + 1;
         }
         if (!granted(grants, item)) continue;
-        if (!handles.count(item.library)) handles[item.library] = dlopen(item.library.c_str(), RTLD_LAZY | RTLD_LOCAL);
-        if (!handles[item.library]) { failures.push_back(item.library + ": library unavailable"); continue; }
-        void* symbol_address = dlsym(handles[item.library], item.symbol.c_str());
+        if (!handles.count(item.library))
+            handles.emplace(item.library, LibraryHandle{dlopen(item.library.c_str(), RTLD_LAZY | RTLD_LOCAL), &dlclose});
+        if (!handles.at(item.library)) { failures.push_back(item.library + ": library unavailable"); continue; }
+        void* symbol_address = dlsym(handles.at(item.library).get(), item.symbol.c_str());
         if (!symbol_address) { failures.push_back(item.library + ": symbol '" + item.symbol + "' unavailable"); continue; }
         if (!item.evidence.empty()) {
             try {
                 const auto expected = item.evidence.substr(item.evidence.size() - 64);
                 if (!verified_providers.count(item.library)) {
                     link_map* mapping = nullptr;
-                    if (dlinfo(handles[item.library], RTLD_DI_LINKMAP, &mapping) != 0 || !mapping || !mapping->l_name || !mapping->l_name[0])
+                    if (dlinfo(handles.at(item.library).get(), RTLD_DI_LINKMAP, &mapping) != 0 || !mapping || !mapping->l_name || !mapping->l_name[0])
                         throw std::runtime_error("loaded provider path is unavailable");
                     const std::string path = mapping->l_name;
                     verified_providers.emplace(item.library, std::pair{path, provider_digest(path)});
@@ -547,7 +549,6 @@ int verify(const std::string& report, const std::string& policy_path, const std:
             }
         }
     }
-    for (const auto& [library, handle] : handles) if (handle) dlclose(handle);
     if (!failures.empty()) {
         std::cout << "{\n  \"format\": \"flowbind.binding_report\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"provider\": \"dlopen+dlsym\",\n  \"failures\": [";
         for (std::size_t i = 0; i < failures.size(); ++i) { if (i) std::cout << ','; std::cout << json_string(failures[i]); }
