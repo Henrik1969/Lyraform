@@ -93,6 +93,9 @@ exit distinction.
 - The CPU execution API translates task and worker failures into explicit
   result metadata with stable codes and `no_artifact` disposition, publishing
   only after all already-launched workers have joined.
+- The CPU execution smoke boundary requires complete non-negative integer
+  tokens for worker and task counts, refusing prefix-valid garbage before any
+  workload is started.
 - The shared CUDA resource owner fails closed with `EINVAL` when a cleanup
   callback is absent, preventing an internal null-call from crossing a public
   provider boundary.

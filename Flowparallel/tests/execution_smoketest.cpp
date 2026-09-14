@@ -1,10 +1,12 @@
 #include "flowparallel/cpu_execution.hpp"
 
+#include <charconv>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -19,16 +21,25 @@ std::uint64_t mix(std::uint64_t value) {
 
 struct Options { unsigned workers = 2; unsigned tasks = 2; };
 
+unsigned parse_unsigned(const char* text, const char* option) {
+    unsigned value = 0;
+    const std::string_view input{text};
+    const auto parsed = std::from_chars(input.data(), input.data() + input.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr != input.data() + input.size())
+        throw std::runtime_error(std::string(option) + " requires a complete non-negative integer");
+    return value;
+}
+
 Options parse_options(int argc, char** argv) {
     Options options;
     for (int index = 1; index < argc; ++index) {
         const std::string argument = argv[index];
         if (argument == "--workers") {
             if (++index >= argc) throw std::runtime_error("--workers requires a value");
-            options.workers = static_cast<unsigned>(std::stoul(argv[index]));
+            options.workers = parse_unsigned(argv[index], "--workers");
         } else if (argument == "--tasks") {
             if (++index >= argc) throw std::runtime_error("--tasks requires a value");
-            options.tasks = static_cast<unsigned>(std::stoul(argv[index]));
+            options.tasks = parse_unsigned(argv[index], "--tasks");
         } else if (argument == "-h" || argument == "--help" || argument == "-?") {
             std::cout << "flowparallel_execution_smoketest - approved-task CPU execution test\n\n"
                          "Options: --workers N --tasks N\n"

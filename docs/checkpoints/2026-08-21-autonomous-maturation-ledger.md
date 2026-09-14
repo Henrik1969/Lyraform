@@ -2610,6 +2610,18 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Allocation/library fault injection and broader public
 API containment remain unfinished.
 
+## 2026-09-14 CPU execution workload ingress boundary
+
+- Replaced prefix-accepting `stoul` conversion in the execution smoke boundary
+  with complete-token parsing for worker and task counts.
+- Added hostile `--workers 2junk` coverage proving a nonzero failure and empty
+  execution output before task launch.
+- Focused CPU execution test passes; the canonical suite remains the
+  publication gate.
+
+State remains CONTINUE. Allocation/library fault injection and broader public
+API containment remain unfinished.
+
 ## 2026-09-14 graph planner numeric-policy boundary
 
 - Replaced prefix-accepting graph policy conversion with complete finite-token
