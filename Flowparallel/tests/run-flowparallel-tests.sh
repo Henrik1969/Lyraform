@@ -65,4 +65,11 @@ jq '.lowering_plan.operations = [(.lowering_plan.operations[0]),(.lowering_plan.
 reject duplicate-operation
 jq '(.analysis_graph.matrix_views[] | select(.name == "region_dependency") | .entries[0].row) = .analysis_graph.matrix_views[0].rows' "$tmpdir/semantic.json" > "$tmpdir/out-of-range-matrix.json"
 reject out-of-range-matrix
+set +e
+printf '%s' '{"format":"wrong"}' | "$bin" --diagnostics json >"$tmpdir/diagnostic.out" 2>"$tmpdir/diagnostic.err"
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -ne 0
+test ! -s "$tmpdir/diagnostic.out"
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CONTRACT_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$tmpdir/diagnostic.err" >/dev/null
 echo 'Flowparallel tests: PASS'

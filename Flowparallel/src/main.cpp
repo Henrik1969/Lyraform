@@ -11,11 +11,24 @@ namespace {
 constexpr std::string_view VERSION = "0.1.0";
 
 std::string read_input(int argc, char** argv) {
-    if (argc > 2) throw std::runtime_error("usage: flowparallel [semantic-report.json]");
+    if (argc > 2 && !(argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json"))
+        throw std::runtime_error("usage: flowparallel [semantic-report.json]");
     std::ostringstream input;
     if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); input << file.rdbuf(); }
     else input << std::cin.rdbuf();
     return input.str();
+}
+
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const char character : value) {
+        if (character == '\\' || character == '"') escaped.push_back('\\');
+        if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(character);
+    }
+    return escaped;
 }
 
 flowcontracts::json::Value text(std::string value) { return flowcontracts::json::Value{std::move(value)}; }
@@ -61,6 +74,7 @@ int analyze(std::string_view input) {
 } // namespace
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json";
     try {
         if (argc == 2) {
             const std::string option = argv[1];
@@ -70,6 +84,19 @@ int main(int argc, char** argv) {
         }
         return analyze(read_input(argc, argv));
     } catch (const flowcontracts::json::Error& error) {
-        std::cerr << "flowparallel contract error: " << error.what() << '\n'; return 1;
-    } catch (const std::exception& error) { std::cerr << "flowparallel error: " << error.what() << '\n'; return 1; }
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CONTRACT_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel contract error: " << error.what() << '\n';
+        return 1;
+    } catch (const std::exception& error) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel error: unknown non-standard failure\n";
+        return 1;
+    }
 }

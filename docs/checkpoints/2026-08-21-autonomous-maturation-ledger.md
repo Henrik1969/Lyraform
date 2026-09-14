@@ -2596,3 +2596,16 @@ containment audit before Gate 2 can close.
 
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
+
+## 2026-09-14 Flowparallel plan CLI diagnostic boundary
+
+- Added `flowparallel --diagnostics json` for stable contract-failure
+  projection at the plan-producing stage.
+- Added malformed semantic-report coverage proving no plan artifact is written
+  to stdout and the failure is identified on stderr with `no_artifact`.
+- All four Flowparallel planning/provider ingress points now have tested
+  structured failure projections: plan CLI, CPU provider, CUDA provider, and
+  runtime planner.
+
+State remains CONTINUE. The broader Stage 0 provider/API containment audit and
+fault-injection coverage remain unfinished.

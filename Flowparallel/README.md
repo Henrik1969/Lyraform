@@ -11,6 +11,10 @@ inspectable `flowparallel.execution_plan` v1. The first implementation carries
 the dependency-analysis boundary, preserves source provenance, requires a
 runtime capability snapshot, and always declares a serial CPU fallback.
 
+Contract and input failures can be requested as machine-readable
+`--diagnostics json` records with a `no_artifact` disposition; human-readable
+diagnostics remain the default.
+
 It emits only runtime-deferred candidates whose current proof includes pure
 callee behavior, disjoint inputs, and distinct outputs. Dependency structure
 alone does not prove purity, absence of mutation, ordering freedom, or safe

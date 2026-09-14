@@ -73,6 +73,9 @@ exit distinction.
 - The Flowparallel runtime planner provides the same tested projection for
   malformed plans, capability snapshots, calibration reports, and argument
   failures.
+- The plan-producing Flowparallel CLI provides a structured contract-failure
+  projection through `--diagnostics json`; malformed semantic reports leave
+  artifact stdout empty.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.
