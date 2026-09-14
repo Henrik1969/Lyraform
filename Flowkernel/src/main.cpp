@@ -189,6 +189,18 @@ void print_result(const Result& result) {
     std::cout << "}";
 }
 
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const char character : value) {
+        if (character == '\\' || character == '"') escaped.push_back('\\');
+        if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(character);
+    }
+    return escaped;
+}
+
 int run(std::string_view probe, bool require_complete) {
     if (probe != "readonly" && probe != "tempfs" && probe != "ipc" && probe != "socket_ipc" && probe != "loopback" && probe != "namespaces" && probe != "all") throw std::runtime_error("unknown probe; choose readonly, tempfs, ipc, socket_ipc, loopback, namespaces, or all");
     const bool run_readonly = probe == "readonly" || probe == "all";
@@ -221,16 +233,43 @@ int run(std::string_view probe, bool require_complete) {
 }
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
+    for (int index = 1; index + 1 < argc; ++index)
+        if (std::string(argv[index]) == "--diagnostics" && std::string(argv[index + 1]) == "json")
+            structured_diagnostics = true;
     try {
         if (argc == 2) {
             const std::string option = argv[1];
-            if (option == "-h" || option == "--help" || option == "-?") { std::cout << "flowkernel - isolated Linux kernel boundary probes\n\nUsage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all [--require-complete]\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n         --require-complete  fail if any requested probe is skipped\n\nMore help: Flowkernel/README.md\n"; return 0; }
+            if (option == "-h" || option == "--help" || option == "-?") { std::cout << "flowkernel - isolated Linux kernel boundary probes\n\nUsage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all [--require-complete] [--diagnostics json]\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n         --require-complete  fail if any requested probe is skipped\n         --diagnostics json  emit structured failure diagnostics\n\nMore help: Flowkernel/README.md\n"; return 0; }
             if (option == "-a" || option == "--about") { std::cout << "Flowkernel runs explicitly scoped, non-privileged Linux boundary probes.\nMore help: Flowkernel/README.md\n"; return 0; }
             if (option == "-v" || option == "--version") { std::cout << VERSION << '\n'; return 0; }
         }
-        const bool require_complete = argc == 4 && std::string(argv[3]) == "--require-complete";
-        if ((argc != 3 && !require_complete) || (argc == 4 && !require_complete) || std::string(argv[1]) != "--probe")
-            throw std::runtime_error("usage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all [--require-complete]");
-        return run(argv[2], require_complete);
-    } catch (const std::exception& error) { std::cerr << "flowkernel error: " << error.what() << '\n'; return 1; }
+        std::string probe;
+        bool require_complete = false;
+        for (int index = 1; index < argc; ++index) {
+            const std::string option = argv[index];
+            if (option == "--probe") {
+                if (++index >= argc) throw std::runtime_error("--probe requires a value");
+                probe = argv[index];
+            } else if (option == "--require-complete") {
+                require_complete = true;
+            } else if (option == "--diagnostics") {
+                if (++index >= argc || std::string(argv[index]) != "json") throw std::runtime_error("--diagnostics requires json");
+            } else {
+                throw std::runtime_error("unknown option '" + option + "'");
+            }
+        }
+        if (probe.empty()) throw std::runtime_error("usage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all [--require-complete] [--diagnostics json]");
+        return run(probe, require_complete);
+    } catch (const std::exception& error) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWKERNEL_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowkernel error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWKERNEL_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowkernel error: unknown non-standard failure\n";
+        return 1;
+    }
 }

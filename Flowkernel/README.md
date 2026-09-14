@@ -21,3 +21,5 @@ file before returning. Callers that need complete evidence can add
 `--require-complete`; it returns a nonzero status when any requested probe is
 skipped, while the default mode remains a diagnostic report of environmental
 limitations.
+Malformed command and probe input can request `--diagnostics json` to receive
+a stable failure record on stderr with no probe artifact on stdout.

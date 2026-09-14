@@ -33,5 +33,7 @@ until the required permission is present and the probe returns `ok`.
 The probe now supports `--require-complete`, which returns status 3 for this
 host rather than allowing a caller to treat `ok-with-skips` as complete
 evidence. The default report remains useful for diagnosis.
+Malformed probe input also has a structured `--diagnostics json` failure
+projection with `no_artifact` disposition.
 Other platforms, kernels, privilege configurations, and deployment profiles
 remain unverified and are explicitly outside this baseline.

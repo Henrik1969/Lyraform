@@ -26,3 +26,6 @@ add_test(NAME flowkernel_all
 add_test(NAME flowkernel_require_complete
     COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-require-complete.sh
         $<TARGET_FILE:flowkernel>)
+add_test(NAME flowkernel_structured_diagnostics
+    COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-structured-diagnostics.sh
+        $<TARGET_FILE:flowkernel>)

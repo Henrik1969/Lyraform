@@ -2597,6 +2597,15 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 Flowkernel structured failure boundary
+
+- Added `flowkernel --diagnostics json` for malformed command and probe input.
+- Hostile coverage proves nonzero exit, empty stdout, stable failure code, and
+  `no_artifact` disposition on stderr.
+
+State remains CONTINUE. Provider execution isolation, signed profiles, trust
+anchors, cross-platform assurance, and broader fault injection remain open.
+
 ## 2026-09-14 durable-history partial-write uncertainty
 
 - Changed the durable history append boundary to distinguish a completed write
