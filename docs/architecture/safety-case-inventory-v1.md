@@ -1,0 +1,86 @@
+# Lyraform safety-case inventory v1
+
+**Status:** baseline inventory, active safety mission
+**Date:** 2026-09-14
+**Authority:** current executable gates and admitted architecture contracts
+
+This is an assurance inventory, not a certification. A passing test supports
+only the named boundary; it does not prove safety outside that boundary.
+
+## Classification
+
+Each row uses the following status vocabulary:
+
+```text
+implemented       enforced and covered for the named boundary
+compatibility     retained legacy behavior with a limited contract
+provisional       approved direction not yet complete or stable
+future             intentionally outside the current admission surface
+not-claimed       no safety claim is made
+```
+
+## Admitted compiler and artifact boundaries
+
+| Hazard | Control/enforcement point | Evidence | Status | Residual risk |
+|---|---|---|---|---|
+| Malformed or truncated stage artifact is consumed | Typed version/field/identity validation at each consumer | `flowcontracts_json`, `flowvalidate_artifacts`, `tinyvm_artifact_v2_hostile` | implemented | New artifact fields require the same hostile coverage |
+| Duplicate keys or ambiguous authority alter meaning | Strict artifact parsing and duplicate-key refusal | Flowcontracts and fuzz gates | implemented | Schema expansion can reintroduce parser gaps |
+| Provider symbol exists but is unsafe or unauthorized | Exact provider/library/symbol/convention/carrier/effect policy grant | `provider_call_identity`, `flowbind_provider`, native binding tests | implemented | General ABI/FFI remains refused |
+| Binding evidence is mistaken for execution permission | Flowbind separates discovery, authorization, and lowering | `native_binding_inventory`, binding boundary tests | implemented | Broader policy resolver integration remains incomplete |
+| Target silently falls back to another backend | Versioned target-policy resolution with explicit fallback mode | `flowtarget_policy_boundary`, `flowtarget_cross_compile`, install-shape tests | implemented | More targets need independent evidence |
+| Backend receives forged aggregate layout | Independent size/alignment/offset/carrier validation | `tinyvm_aggregate_parity`, `native_aggregate_graph`, wide aggregate tests | implemented | Larger/mixed/padded layouts remain refused |
+| Portable artifact contains host authority | Opaque handles; no raw pointers or computed labels in artifact | TinyVM artifact and ISA hostile tests | implemented | Runtime provider bridges remain platform-specific |
+| A downstream stage silently loses an operation or identity | Complete versioned artifacts with provenance and identity preservation | `flowcontracts_identity_preservation`, pipeline matrix, pass corpus | implemented | General transformation provenance is incomplete |
+| Unsupported graph semantics are projected as executable | Explicit graph-lowering refusal and bounded activation contracts | `graph_lowering_refusal`, `source_receiver_frames`, native graph tests | implemented | General joins, reentrancy, effectful parallelism, and branching streams refused |
+| Fan-out duplicates computation or changes signal meaning | One activation per input; one result signal; distinct delivery identities | `native_source_graph`, TinyVM graph parity and trace tests | implemented | General scheduler queues and reentrant delivery remain open |
+
+## Runtime, resource, and failure boundaries
+
+| Hazard | Control/enforcement point | Evidence | Status | Residual risk |
+|---|---|---|---|---|
+| Receiver-local state leaks across activations | Fresh activation frame per delivery | `source_receiver_frames`, native graph tests | implemented | Persistent state has only bounded admitted forms |
+| Activation or queue growth exhausts memory | Explicit activation-record budget and bounded FIFO | TinyVM activation budget/FIFO evidence; graph parity | implemented | General async queue/backpressure contract not implemented |
+| Unconnected input/output produces hidden behavior | Required-input validation and explicit output-drop diagnostics | `flowcore_graph_routing`, source graph tests | implemented | Broader graph topology remains bounded |
+| Arithmetic or provider failure becomes a normal result | Structured trap/outcome; failed activation emits no normal result | graph failure tests, TinyVM ISA tests, Text outcome tests | implemented | Some native process-level failures remain terminal |
+| Text allocation failure is represented as success | Tagged `Outcome<Text,TextFailure>` boundary | `text_outcome_boundary`, `tinyvm_runtime_text_parity` | implemented | Wider owned-text semantics remain scoped |
+| File/terminal resources leak or close twice | Path-aware cleanup validation and explicit ownership metadata | `file_resource_boundary`, `file_io_boundary`, `sel_tui_pipeline` | implemented | Full cancellation cleanup is not yet admitted |
+| Invalid pointer/storage or partial transfer corrupts state | Bounded storage, initialized-byte and partial-transfer checks | `tinyvm_memory_parity`, file-I/O boundary tests | implemented | Compatibility pointer semantics remain narrower than final language design |
+| Retry or cancellation creates duplicate effects | No implicit retry; unsupported cancellation/reentrant effectful execution | source graph decisions and refusal tests | future | Must define idempotence, commit, cancel, and recovery contracts |
+| Torn history or recovery erases committed facts | Planned append-only durable history with atomic append and quarantine | ADR-0002/0003; no complete durable-store gate yet | provisional | Durable implementation and crash tests are required before mutation expansion |
+
+## Provider, trust, and deployment assurance
+
+| Hazard | Control/enforcement point | Evidence | Status | Residual risk |
+|---|---|---|---|---|
+| Unknown provider is treated as trusted | Explicit verified/unverified/invalid/expired/revoked states | verification ADRs; conformance tests | implemented for narrow providers | General signed profile and trust-store implementation is future |
+| Local override masquerades as authentication | Override remains policy evidence with diagnostic and provenance | verification contract and policy tests | implemented in contract | Broader admission policy integration remains incomplete |
+| Isolation label exceeds actual enforcement | Provider must declare and verify resource boundary and limitations | isolation ADRs; no complete provider gate | provisional | Execution isolation is not yet a production claim |
+| Build-host hardware is mistaken for deployment capability | Runtime snapshot separated from compile-time policy | runtime capability and provider-planner tests | implemented | Runtime refresh and broader platform matrix remain open |
+| Unsupported platform is presented as portable | Linux x86-64 scope and explicit provider limitations | onboarding/current-status documentation | implemented | Cross-platform assurance has not been established |
+| Human approval is silently affirmative | Structured authority questions with expiry and no implicit yes | ADR-0023 | provisional | Interactive trust negotiation is not fully implemented |
+
+## Mission blockers before self-hosting
+
+The following are not necessarily blockers for every Stage 1 experiment, but
+they block any claim that the self-hosted compiler inherits a complete safety
+model:
+
+1. The first Stage 1 slice must have explicit outcome, cleanup, boundedness,
+   and artifact-validation contracts available in Flow rather than only in
+   Stage 0 C++.
+2. Any mutation performed by the self-hosted slice needs the mutation-
+   provenance fields and recovery disposition defined by contract.
+3. Any asynchronous or parallel feature must remain refused until cancellation,
+   backpressure, effect, ordering, and commit semantics are admitted.
+4. Any foreign provider must pass exact ABI/effect/ownership evidence; arbitrary
+   FFI cannot be used as a bootstrap shortcut.
+5. Any isolation or trust claim must identify its actual assurance level and
+   environmental limitations.
+
+## Inventory maintenance rule
+
+New admitted behavior requires a row here before its implementation is called
+safe. A row may move from future or provisional to implemented only when the
+contract, enforcement point, positive tests, hostile tests, and residual-risk
+statement all exist. A green test without a named hazard does not close a
+safety case.
