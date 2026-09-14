@@ -2611,6 +2611,17 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Broader provider fault injection, signed profiles,
 stronger trust anchors, and multi-platform assurance remain unfinished.
 
+## 2026-09-14 runtime capability probe containment
+
+- Contained discovery-time `std::bad_alloc`, standard, and non-standard
+  exceptions at the public `frankencore_runtime_probe` process boundary.
+- The probe now emits no capability artifact on discovery failure and retains a
+  deterministic human diagnostic; checked serialization remains the canonical
+  projection path.
+
+State remains CONTINUE. Injected discovery/library failures and broader
+Frankencore API containment still require dedicated evidence.
+
 ## 2026-09-14 Flowkernel structured failure boundary
 
 - Added `flowkernel --diagnostics json` for malformed command and probe input.
