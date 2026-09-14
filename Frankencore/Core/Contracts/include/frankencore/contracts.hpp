@@ -43,6 +43,21 @@ struct VerificationEvidence {
     PolicyOutcome policy_outcome = PolicyOutcome::unresolved;
 };
 
+struct IsolationClaim {
+    std::string requested_boundary;
+    std::string assurance_level;
+    std::string enforcement;
+    std::string provider_identity;
+    std::string provider_version;
+    std::string resources;
+    std::string identity;
+    std::string filesystem;
+    std::string network;
+    std::string privilege;
+    std::string teardown;
+    std::string verification_method;
+};
+
 struct LanguageMap {
     std::string format = "frankencore.language-map";
     std::uint32_t version = 1;
@@ -94,6 +109,7 @@ struct FacadeInvocation {
 };
 
 ValidationResult validate(const VerificationEvidence& evidence);
+ValidationResult validate(const IsolationClaim& claim);
 ValidationResult validate(const LanguageMap& map);
 ValidationResult validate(const ChainPolicy& policy);
 ValidationResult validate(const FacadeInvocation& invocation);

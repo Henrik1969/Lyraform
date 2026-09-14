@@ -15,6 +15,17 @@ int main() {
     evidence.authenticity = "owner_attested";
     assert(!validate(evidence).valid);
 
+    IsolationClaim isolation{
+        "project execution", "constrained", "locally_verified", "namespace-provider", "1",
+        "cpu=2,memory=256MiB", "uid=unprivileged", "project-read-only", "denied",
+        "no-new-privileges", "joined-and-closed", "namespace-sanity-v1"};
+    assert(validate(isolation).valid);
+    isolation.assurance_level = "isolated";
+    assert(!validate(isolation).valid);
+    isolation.assurance_level = "constrained";
+    isolation.enforcement = "unknown";
+    assert(!validate(isolation).valid);
+
     LanguageMap language;
     language.id = "Danish";
     language.revision = "Danish.v1";

@@ -117,5 +117,11 @@ the verified claims and policy decisions that make it up.
 
 ## Revisit triggers
 
+The C++ contracts layer now validates the shape and consistency of an
+`IsolationClaim`. It rejects constrained claims without local or independent
+verification and rejects isolated or hardened claims without independent
+verification. This validates declarations; it does not itself create an
+isolation boundary or certify a provider.
+
 Revisit when defining the first isolation-provider ABI, default Linux profile,
 remote worker contract, or security-critical execution policy.
