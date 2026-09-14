@@ -2610,6 +2610,19 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Allocation/library fault injection and broader public
 API containment remain unfinished.
 
+## 2026-09-14 Stage 1 self-hosting readiness review
+
+- Recorded the Gate 9 decision before any Stage 1 implementation: the pure
+  callable classifier slice is not yet admissible.
+- Identified the concrete blocker as the missing complete callable-function
+  catalog, parameter bindings, entry root, and call-return structure at the
+  backend-neutral public artifact boundary.
+- Enumerated remaining Stage 0 privileges and required evidence for closing
+  `callable-scalar-slice`; no self-hosting code or language feature was added.
+
+State remains CONTINUE. The readiness review is intentionally a not-ready
+decision until the public callable artifact and Flow-written proof exist.
+
 ## 2026-09-14 CPU execution workload ingress boundary
 
 - Replaced prefix-accepting `stoul` conversion in the execution smoke boundary

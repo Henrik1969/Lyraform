@@ -62,6 +62,9 @@ not-claimed       no safety claim is made
 
 ## Mission blockers before self-hosting
 
+The current Gate 9 decision and the exact Stage 0 privilege inventory are
+recorded in [`2026-09-14-self-hosting-readiness-review.md`](../checkpoints/2026-09-14-self-hosting-readiness-review.md).
+
 The following are not necessarily blockers for every Stage 1 experiment, but
 they block any claim that the self-hosted compiler inherits a complete safety
 model:
