@@ -52,7 +52,12 @@ The optional `flowparallel_cuda` provider currently probes the CUDA driver and
 emits a linear-algebra workload contract for matrix multiplication. It includes
 host/device transfer costs and always requires a CPU fallback. On a host without
 a usable CUDA device it reports `unknown` or `unavailable`; it never claims a
-kernel executed. A future CUDA backend can consume the same contract.
+kernel executed. A future CUDA backend can consume the same contract. It
+refuses `parallel_effectful_v1`, cancellation, asynchronous execution, and
+backpressure before probing the driver, returning an explicit unsupported
+selection without a fallback artifact. `--diagnostics json` translates
+argument, input, and provider failures to a machine-readable `no_artifact`
+diagnostic; normal human-readable diagnostics remain available by default.
 
 ## Parallel smoke test
 

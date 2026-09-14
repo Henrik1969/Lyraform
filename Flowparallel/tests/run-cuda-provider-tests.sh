@@ -13,7 +13,9 @@ test -x "$flowmini"
 test -x "$analyst"
 
 unsupported_plan=$(mktemp)
-trap 'rm -f "$unsupported_plan"' EXIT
+diagnostic_out=$(mktemp)
+diagnostic_err=$(mktemp)
+trap 'rm -f "$unsupported_plan" "$diagnostic_out" "$diagnostic_err"' EXIT
 
 plan=$("$flowmini" --dump-frontend-bundle "$fixture" | "$analyst" | "$planner")
 report=$(printf '%s\n' "$plan" | "$cuda" --matrix-size 64)
@@ -36,6 +38,13 @@ printf '%s\n' "$unsupported" | jq -e '
   .request == "cancellation" and
   .fallback.emitted == false
 ' >/dev/null
+set +e
+printf '%s' '{"format":"wrong"}' | "$cuda" --diagnostics json >"$diagnostic_out" 2>"$diagnostic_err"
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+test ! -s "$diagnostic_out"
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
 if printf '%s' '{"format":"flowparallel.execution_plan","format":"flowparallel.execution_plan","version":1,"status":"ready"}' | "$cuda" >/dev/null 2>&1; then
   echo 'CUDA provider accepted duplicate execution-plan authority' >&2
   exit 1

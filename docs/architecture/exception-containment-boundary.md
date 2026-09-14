@@ -63,6 +63,10 @@ exit distinction.
   projections already return explicit diagnostic/result structures for their
   normal provider failures, but their serialization APIs still need a common
   checked boundary if they become Stage 1 dependencies.
+- The CUDA Flowparallel provider now supports `--diagnostics json`, translating
+  argument, input, and provider failures to a stable failure code with a
+  `no_artifact` disposition. Its normal human-readable diagnostics remain
+  unchanged.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.
@@ -77,7 +81,7 @@ Revision reference CLIs provide the corresponding provider/provenance slice
 with `FRANKENCORE_CLOCK_FAILURE`, `FRANKENCORE_CLOCK_UNKNOWN_FAILURE`,
 `FRANKENCORE_REVISION_FAILURE`, and
 `FRANKENCORE_REVISION_UNKNOWN_FAILURE`. These changes close only the tested
-CLI/reference projection slices; they do not make the internal exception
+CLI/reference/provider projection slices; they do not make the internal exception
 mechanisms themselves part of the language contract or close all provider/API
 containment.
 

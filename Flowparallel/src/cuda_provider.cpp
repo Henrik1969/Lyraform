@@ -13,9 +13,21 @@
 
 namespace {
 
-struct Options { std::string plan_path; unsigned matrix_size = 512; };
+struct Options { std::string plan_path; unsigned matrix_size = 512; bool structured_diagnostics = false; };
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
+
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const char character : value) {
+        if (character == '\\' || character == '"') escaped.push_back('\\');
+        if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(character);
+    }
+    return escaped;
+}
 
 int reject_unsupported(std::string_view request, std::string_view reason) {
     std::cout << "{\n  \"format\": \"flowparallel.cuda_selection\",\n"
@@ -60,7 +72,8 @@ Options parse(int argc, char** argv) {
         const std::string argument = argv[index];
         if (argument == "--plan") { if (++index >= argc) throw std::runtime_error("--plan requires a value"); options.plan_path = argv[index]; }
         else if (argument == "--matrix-size") { if (++index >= argc) throw std::runtime_error("--matrix-size requires a value"); options.matrix_size = static_cast<unsigned>(std::stoul(argv[index])); }
-        else if (argument == "-h" || argument == "--help" || argument == "-?") { std::cout << "flowparallel_cuda - optional CUDA provider probe\n\nOptions: --plan plan.json --matrix-size N\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0); }
+        else if (argument == "--diagnostics") { if (++index >= argc || std::string(argv[index]) != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
+        else if (argument == "-h" || argument == "--help" || argument == "-?") { std::cout << "flowparallel_cuda - optional CUDA provider probe\n\nOptions: --plan plan.json --matrix-size N --diagnostics json\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0); }
         else if (argument == "-a" || argument == "--about") { std::cout << "Flowparallel CUDA probes linear-algebra provider availability and preserves CPU fallback.\n"; std::exit(0); }
         else if (argument == "-v" || argument == "--version") { std::cout << "0.1.0\n"; std::exit(0); }
         else throw std::runtime_error("unknown option '" + argument + "'");
@@ -101,6 +114,20 @@ int run(const std::string& plan, const Options& options) {
 } // namespace
 
 int main(int argc, char** argv) {
-    try { const auto options = parse(argc, argv); return run(input(options), options); }
-    catch (const std::exception& error) { std::cerr << "flowparallel_cuda error: " << error.what() << '\n'; return 1; }
+    bool structured_diagnostics = false;
+    try {
+        const auto options = parse(argc, argv);
+        structured_diagnostics = options.structured_diagnostics;
+        return run(input(options), options);
+    } catch (const std::exception& error) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cuda error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cuda error: unknown non-standard failure\n";
+        return 1;
+    }
 }

@@ -40,4 +40,5 @@ Evidence:
 
 ```text
 CUDA-provider positive/refusal/duplicate-authority tests: PASS
+CUDA-provider structured-diagnostics test: PASS
 ```

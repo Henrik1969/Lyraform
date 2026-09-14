@@ -2557,3 +2557,15 @@ complete cancellation, effect, ordering, and commit contracts exist.
 
 State remains CONTINUE. The scheduling features are still intentionally
 refused; this checkpoint closes only the CUDA provider admission bypass.
+
+## 2026-09-14 CUDA structured diagnostic boundary
+
+- Added `flowparallel_cuda --diagnostics json` for a machine-readable failure
+  projection with stable code, useful message, and `no_artifact` disposition.
+- Added coverage proving malformed input produces no artifact on stdout and a
+  structured failure on stderr while preserving the nonzero exit status.
+- Human-readable diagnostics remain the default; this does not introduce
+  language exceptions or make internal C++ exceptions part of Lyraform.
+
+State remains CONTINUE. The CPU provider, runtime planner, and other public
+Stage 0 boundaries still require the same audit before Gate 2 can close.
