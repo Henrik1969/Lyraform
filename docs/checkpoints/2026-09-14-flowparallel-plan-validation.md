@@ -27,3 +27,7 @@ worktree: clean after publication
 This closes typed input validation at the CPU selection boundary; it does not
 admit cancellation, async execution, backpressure, effectful parallelism, or
 general scheduling semantics.
+
+The runtime planner now applies the same refusal at the provider-selection
+boundary, so an unsupported scheduling request cannot bypass the CPU-provider
+guard by entering through CUDA/runtime planning.

@@ -137,6 +137,12 @@ This planner deliberately consumes snapshots rather than discovering hardware
 inside the optimizer. Compile-time legality, runtime facts, policy, and
 provider execution remain separate.
 
+Before provider selection it also refuses execution plans that request
+cancellation, asynchronous execution, backpressure, or effectful parallel
+scheduling. These requests produce an explicit unsupported decision with no
+fallback artifact; the planner never turns an unimplemented capability into a
+serial or CUDA execution choice.
+
 `flowparallel_graph_reference` and `flowparallel_graph_cuda` provide the first
 paired graph-algebra operation: Boolean reachability over the
 `region_dependency` matrix. The CUDA provider uses a dense cuBLAS projection

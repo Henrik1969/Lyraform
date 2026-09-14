@@ -5,7 +5,8 @@ planner=${FLOWPARALLEL_RUNTIME_PLANNER_BIN:?FLOWPARALLEL_RUNTIME_PLANNER_BIN is 
 plan=$(mktemp)
 capabilities=$(mktemp)
 calibration=$(mktemp)
-trap 'rm -f "$plan" "$capabilities" "$calibration"' EXIT
+unsupported_plan=$(mktemp)
+trap 'rm -f "$plan" "$capabilities" "$calibration" "$unsupported_plan"' EXIT
 
 printf '%s\n' '{"format":"flowparallel.execution_plan","version":1,"status":"ready","source":{"path":"test.flow"},"targets":[],"external_operations":[],"abi_type_contracts":[],"lowering_plan":{"format":"flowcore.lowering_plan","version":1,"operations":[]},"graph_projection":{"name":"region_dependency","rows":0,"columns":0,"semiring":"boolean","storage":"coo","entries":[]}}' >"$plan"
 printf '%s\n' '{"format":"frankencore.runtime_capabilities","version":1,"cpu":{"logical_processors":8},"memory":{"total_bytes":1,"available_bytes":1},"cuda":{"status":"available","driver":"test","device_count":1,"diagnostic":"ok"}}' >"$capabilities"
@@ -29,5 +30,13 @@ fi
 printf '%s\n' '{"format":"frankencore.runtime_capabilities","version":1,"cpu":{"logical_processors":8},"memory":{"total_bytes":1,"available_bytes":1},"cuda":{"status":"unavailable","driver":"","device_count":0,"diagnostic":"none"}}' >"$capabilities"
 unavailable=$("$planner" --plan "$plan" --capabilities "$capabilities" --calibration "$calibration")
 printf '%s\n' "$unavailable" | jq -e '.selection.provider == "cpu.serial" and .evidence.cuda_available == false' >/dev/null
+
+jq '.cancellation = "requested"' "$plan" >"$unsupported_plan"
+set +e
+unsupported=$("$planner" --plan "$unsupported_plan" --capabilities "$capabilities" 2>/dev/null)
+unsupported_rc=$?
+set -e
+test "$unsupported_rc" -eq 2
+printf '%s\n' "$unsupported" | jq -e '.status == "unsupported" and .request == "cancellation" and .fallback.emitted == false' >/dev/null
 
 echo 'Flowparallel runtime planner: PASS'

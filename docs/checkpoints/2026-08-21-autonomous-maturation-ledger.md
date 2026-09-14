@@ -2531,3 +2531,15 @@ the refused scheduling semantics.
 
 State remains CONTINUE. This closes another artifact-consumer validation gap;
 unsupported scheduling and effect semantics remain explicitly refused.
+
+## 2026-09-14 runtime planner refusal consistency
+
+- Added the same explicit unsupported outcomes for cancellation, async,
+  backpressure, and effectful parallel scheduling to the runtime planner
+  before CPU/CUDA selection.
+- Added focused planner coverage proving no fallback artifact is emitted for
+  an unsupported cancellation request. The complete normal CTest graph remains
+  111/111.
+
+State remains CONTINUE. Scheduling semantics remain refused until their
+complete cancellation, effect, ordering, and commit contracts exist.
