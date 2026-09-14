@@ -4,3 +4,10 @@ target_compile_features(frankencore_requirements_probe PRIVATE cxx_std_20)
 target_compile_options(frankencore_requirements_probe PRIVATE -Wall -Wextra -Wpedantic)
 
 add_test(NAME frankencore_requirements_probe COMMAND frankencore_requirements_probe)
+
+add_executable(frankencore_requirements_allocation_fault allocation_fault.cpp)
+target_link_libraries(frankencore_requirements_allocation_fault PRIVATE Frankencore::RequirementsFault)
+target_compile_features(frankencore_requirements_allocation_fault PRIVATE cxx_std_20)
+target_compile_options(frankencore_requirements_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME frankencore_requirements_allocation_fault
+    COMMAND frankencore_requirements_allocation_fault)

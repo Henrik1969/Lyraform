@@ -1,12 +1,16 @@
 #include "frankencore/language.hpp"
 
 #include <exception>
+#include <new>
 
 namespace frankencore::language {
 
 Resolution resolve_moniker(const contracts::LanguageMap& map,
                            const std::string& input) {
     try {
+#ifdef FRANKENCORE_LANGUAGE_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
         Resolution result;
         if (input.size() > 4096) {
             result.diagnostic = "moniker exceeds the 4096-byte limit";

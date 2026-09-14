@@ -360,6 +360,22 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore language and requirements allocation faults — 2026-09-15
+
+Test-only fault-injected library variants now exercise allocation exhaustion
+inside the shared language resolver and version-requirement APIs. Language
+resolution returns an unresolved diagnostic; version validation and range
+evaluation return invalid structured results. The focused
+`frankencore_language_allocation_fault` and
+`frankencore_requirements_allocation_fault` tests passed in both the normal
+GCC tree and the Clang 18.1.3 ASan/UBSan tree.
+
+This extends exhaustion evidence across the current parser-result boundaries.
+It does not claim complete allocation-fault coverage for every Frankencore
+provider or contract API; those remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Frankencore package projection allocation fault — 2026-09-15
 
 The read-only package inventory now has a test-only library variant that

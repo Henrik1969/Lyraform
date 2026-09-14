@@ -2,6 +2,7 @@
 
 #include <charconv>
 #include <exception>
+#include <new>
 #include <sstream>
 #include <vector>
 
@@ -57,6 +58,9 @@ bool operator_matches(const int comparison, const std::string& operation) {
 
 VersionResult validate_version(const std::string& version) {
     try {
+#ifdef FRANKENCORE_REQUIREMENTS_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
         ParsedVersion parsed;
         if (!parse(version, parsed)) return {false, "version must be dotted non-negative integers"};
         return {true, {}};
@@ -69,6 +73,9 @@ VersionResult validate_version(const std::string& version) {
 
 MatchResult satisfies(const std::string& version, const std::string& expression) {
     try {
+#ifdef FRANKENCORE_REQUIREMENTS_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
         ParsedVersion actual;
         if (!parse(version, actual)) return {false, false, "invalid actual version"};
         if (expression.size() > max_version_bytes) return {false, false, "version range exceeds the 4096-byte limit"};

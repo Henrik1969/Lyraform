@@ -6,3 +6,13 @@ target_compile_features(frankencore_core_language PUBLIC cxx_std_20)
 target_compile_options(frankencore_core_language PRIVATE -Wall -Wextra -Wpedantic)
 
 add_library(Frankencore::Language ALIAS frankencore_core_language)
+
+add_library(frankencore_core_language_fault STATIC language.cpp)
+target_include_directories(frankencore_core_language_fault
+    PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(frankencore_core_language_fault PUBLIC Frankencore::Contracts)
+target_compile_features(frankencore_core_language_fault PUBLIC cxx_std_20)
+target_compile_options(frankencore_core_language_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_definitions(frankencore_core_language_fault PRIVATE
+    FRANKENCORE_LANGUAGE_TEST_ALLOCATION_FAILURE)
+add_library(Frankencore::LanguageFault ALIAS frankencore_core_language_fault)

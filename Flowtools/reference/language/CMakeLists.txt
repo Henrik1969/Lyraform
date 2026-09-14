@@ -4,3 +4,10 @@ target_compile_features(frankencore_language_probe PRIVATE cxx_std_20)
 target_compile_options(frankencore_language_probe PRIVATE -Wall -Wextra -Wpedantic)
 
 add_test(NAME frankencore_language_probe COMMAND frankencore_language_probe)
+
+add_executable(frankencore_language_allocation_fault allocation_fault.cpp)
+target_link_libraries(frankencore_language_allocation_fault PRIVATE Frankencore::LanguageFault)
+target_compile_features(frankencore_language_allocation_fault PRIVATE cxx_std_20)
+target_compile_options(frankencore_language_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME frankencore_language_allocation_fault
+    COMMAND frankencore_language_allocation_fault)
