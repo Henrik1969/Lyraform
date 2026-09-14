@@ -373,6 +373,10 @@ The focused test passed under normal GCC, Clang 18.1.3 ASan/UBSan, and
 Valgrind 3.22.0 Memcheck with zero errors and zero leaks. The safety state
 remains `CONTINUE`.
 
+The subsequent provider-string consumer expansion preserved the complete
+canonical result: 147/147 normal GCC tests and 147/147 Clang 18.1.3
+ASan/UBSan tests passed.
+
 ## TinyVM runtime-provider allocation-fault boundary — 2026-09-15
 
 The TinyVM runtime provider now classifies failure to retain a provider-owned
