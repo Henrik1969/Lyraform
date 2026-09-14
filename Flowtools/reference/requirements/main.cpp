@@ -1,6 +1,7 @@
 #include <frankencore/requirements.hpp>
 
 #include <cassert>
+#include <string>
 
 int main() {
     using namespace frankencore::requirements;
@@ -11,5 +12,10 @@ int main() {
     assert(satisfies("3.0", ">=2 <3").valid);
     assert(!satisfies("3.0", ">=2 <3").matches);
     assert(!satisfies("2.8", "latest").valid);
+    assert(!validate_version(std::string(4097, '1')).valid);
+    assert(!satisfies("1", std::string(4097, ' ')).valid);
+    std::string too_many_components = "1";
+    for (int index = 0; index < 128; ++index) too_many_components += ".1";
+    assert(!validate_version(too_many_components).valid);
     return 0;
 }

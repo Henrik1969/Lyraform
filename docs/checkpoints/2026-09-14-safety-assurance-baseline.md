@@ -93,3 +93,14 @@ failure record remains bounded.
 The safety state remains `CONTINUE`: this closes one current graph-runtime
 output boundary but does not add cancellation, async scheduling, generalized
 mutation durability, isolation, trust-anchor, or arbitrary-FFI semantics.
+
+## Requirement parser bound — 2026-09-14
+
+The public Frankencore version-requirement grammar now refuses version strings
+and range expressions above 4096 bytes and refuses more than 128 dotted
+components. The existing requirement probe covers oversized text and hostile
+component cardinality, keeping parser allocation and comparison work within
+an explicit contract.
+
+The safety state remains `CONTINUE`: this is a bounded parser boundary, not a
+general claim that every policy grammar or provider API is fully contained.

@@ -73,6 +73,7 @@ not-claimed       no safety claim is made
 | Graph worker exception terminates without a semantic outcome | Graph runtime catches standard and non-standard worker failures at the thread boundary and emits the structured graph-failure disposition | `flowgraph_runtime_bounds` throwing-worker case | implemented for the current graph runtime | Provider execution remains process-boundary and not recoverable in-place |
 | Partial graph worker launch leaves joinable threads | Graph runtime uses joining thread ownership so vector-growth or later launch failure cleans up already-started workers | `flowgraph_runtime_launch_fault` injected allocation case | implemented for the current graph runtime | Broader native allocation-failure injection remains separate |
 | Human approval is silently affirmative | Structured authority questions with expiry and no implicit yes | ADR-0023 | provisional | Interactive trust negotiation is not fully implemented |
+| Version requirement parsing consumes unbounded input | The public requirement parser refuses version text and range expressions above 4096 bytes and refuses more than 128 dotted components before comparison | `frankencore_requirements_probe` oversized-input and component-count cases | implemented for the current requirement grammar | Other policy grammars require their own bounds |
 
 ## Mission blockers before self-hosting
 

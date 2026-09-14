@@ -7,12 +7,16 @@
 namespace frankencore::requirements {
 namespace {
 
+constexpr std::size_t max_version_bytes = 4096;
+constexpr std::size_t max_version_components = 128;
+
 struct ParsedVersion { std::vector<unsigned long long> parts; };
 
 bool parse(const std::string& text, ParsedVersion& result) {
-    if (text.empty()) return false;
+    if (text.empty() || text.size() > max_version_bytes) return false;
     std::size_t start = 0;
     while (start < text.size()) {
+        if (result.parts.size() >= max_version_components) return false;
         const auto end = text.find('.', start);
         const auto stop = end == std::string::npos ? text.size() : end;
         if (stop == start) return false;
@@ -59,6 +63,7 @@ VersionResult validate_version(const std::string& version) {
 MatchResult satisfies(const std::string& version, const std::string& expression) {
     ParsedVersion actual;
     if (!parse(version, actual)) return {false, false, "invalid actual version"};
+    if (expression.size() > max_version_bytes) return {false, false, "version range exceeds the 4096-byte limit"};
     std::istringstream input(expression);
     std::string token;
     bool found = false;
