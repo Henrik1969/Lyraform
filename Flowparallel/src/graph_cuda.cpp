@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -41,6 +42,10 @@ std::string quote(std::string_view value) { std::string result = "\""; for (char
 std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
 int run(std::string_view report) {
+#ifdef FLOWPARALLEL_GRAPH_CUDA_TEST_ALLOCATION_FAILURE
+    (void)report;
+    throw std::bad_alloc();
+#endif
     const auto semantic = flowcontracts::semantic_report(flowcontracts::json::parse(report));
     if (semantic.artifact.status != "ok") { std::cout << "{\"format\":\"flowparallel.graph_cuda\",\"version\":1,\"status\":\"blocked\"}\n"; return 2; }
     const auto rows = static_cast<std::size_t>(semantic.dependency_matrix.rows);
@@ -99,6 +104,10 @@ int main(int argc, char** argv) {
         if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel computes Boolean graph reachability through CUDA cuBLAS with CPU differential verification.\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << "0.1.0\n"; return 0; }
         return run(read_input(argc, argv));
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_graph_cuda error: allocation failed\n";
+        return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
         else std::cerr << "flowparallel_graph_cuda error: " << error.what() << '\n';

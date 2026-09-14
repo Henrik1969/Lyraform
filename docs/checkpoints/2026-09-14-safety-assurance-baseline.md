@@ -377,6 +377,21 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel graph-CUDA allocation-fault boundary — 2026-09-15
+
+The optional CUDA graph-reachability boundary now has a test-only
+fault-injected executable that raises `std::bad_alloc` before semantic
+analysis or CUDA library access. Its public structured boundary returns
+`FLOWPARALLEL_GRAPH_CUDA_RESOURCE_EXHAUSTED` with `disposition: no_artifact`
+and leaves stdout empty. The focused
+`flowparallel_graph_cuda_allocation_fault` test is part of the canonical CTest
+suite and is independent of CUDA hardware.
+
+This covers exhaustion at the graph-CUDA process boundary only. It does not
+claim CUDA availability, kernel execution, or effectful parallelism.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel graph-reference allocation-fault boundary — 2026-09-15
 
 The CPU graph-reference reachability boundary now has a test-only

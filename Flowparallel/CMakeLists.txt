@@ -75,6 +75,11 @@ add_executable(flowparallel_graph_cuda src/graph_cuda.cpp)
 target_include_directories(flowparallel_graph_cuda PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel_graph_cuda PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_graph_cuda PRIVATE flowcontracts ${CMAKE_DL_LIBS})
+add_executable(flowparallel_graph_cuda_allocation_fault src/graph_cuda.cpp)
+target_compile_definitions(flowparallel_graph_cuda_allocation_fault PRIVATE FLOWPARALLEL_GRAPH_CUDA_TEST_ALLOCATION_FAILURE)
+target_include_directories(flowparallel_graph_cuda_allocation_fault PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(flowparallel_graph_cuda_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_graph_cuda_allocation_fault PRIVATE flowcontracts ${CMAKE_DL_LIBS})
 
 add_executable(flowparallel_graph_planner src/graph_planner.cpp)
 target_include_directories(flowparallel_graph_planner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -190,6 +195,10 @@ add_test(NAME flowparallel_graph_planner
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_GRAPH_PLANNER_BIN=$<TARGET_FILE:flowparallel_graph_planner>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-graph-planner-tests.sh)
+add_test(NAME flowparallel_graph_cuda_allocation_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPARALLEL_GRAPH_CUDA_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowparallel_graph_cuda_allocation_fault>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-graph-cuda-allocation-fault.sh)
 add_test(NAME flowparallel_graph_planner_allocation_fault
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_GRAPH_PLANNER_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowparallel_graph_planner_allocation_fault>
