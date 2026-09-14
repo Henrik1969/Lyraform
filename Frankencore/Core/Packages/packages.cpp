@@ -15,7 +15,11 @@ namespace frankencore::packages {
 namespace {
 
 constexpr std::size_t MAX_DPKG_RECORD_BYTES = 1024U * 1024U;
+constexpr std::size_t MAX_DPKG_PACKAGES = 100000U;
 constexpr std::size_t MAX_APT_METADATA_BYTES = 4U * 1024U * 1024U;
+constexpr std::size_t MAX_APT_DIRECTORY_ENTRIES = 100000U;
+constexpr std::size_t MAX_APT_SOURCES = 100000U;
+constexpr std::size_t MAX_APT_INDEX_TARGETS = 100000U;
 
 std::string json_escape(const std::string& value) {
     std::string result;
@@ -71,6 +75,22 @@ void add_diagnostic(Inventory& inventory, std::string code,
         Diagnostic{std::move(code), std::move(message), line});
 }
 
+void add_inventory_limit_diagnostic(Inventory& inventory) {
+    for (const auto& diagnostic : inventory.diagnostics)
+        if (diagnostic.code == "inventory-limit") return;
+    add_diagnostic(inventory, "inventory-limit",
+                   "package provider result exceeds the cardinality safety bound", 0);
+}
+
+bool append_source(Inventory& inventory, AptSourceFact source) {
+    if (inventory.apt_sources.size() >= MAX_APT_SOURCES) {
+        add_inventory_limit_diagnostic(inventory);
+        return false;
+    }
+    inventory.apt_sources.push_back(std::move(source));
+    return true;
+}
+
 void parse_deb822_source(Inventory& inventory, const std::string& text,
                          const std::string& path) {
     const auto types = split_words(field(text, "Types"));
@@ -87,9 +107,10 @@ void parse_deb822_source(Inventory& inventory, const std::string& text,
     }
     for (const auto& type : types) {
         for (const auto& uri : uris) {
-            inventory.apt_sources.push_back(
-                AptSourceFact{path, type, uri, suites, components, signed_by,
-                              is_enabled, false});
+            if (!append_source(inventory,
+                               AptSourceFact{path, type, uri, suites, components,
+                                             signed_by, is_enabled, false}))
+                return;
         }
     }
 }
@@ -135,7 +156,7 @@ void parse_legacy_source(Inventory& inventory, const std::string& line,
         if (!source.components.empty()) source.components += ' ';
         source.components += component;
     }
-    inventory.apt_sources.push_back(std::move(source));
+    append_source(inventory, std::move(source));
 }
 
 std::optional<std::string> read_bounded_text(const std::filesystem::path& path) {
@@ -186,6 +207,7 @@ Inventory read_dpkg_status(const std::string& path) {
     std::size_t line_number = 0;
     std::size_t paragraph_start = 1;
     bool discard_record = false;
+    bool stop_reading = false;
     auto consume = [&] {
         if (discard_record) {
             discard_record = false;
@@ -206,6 +228,10 @@ Inventory read_dpkg_status(const std::string& path) {
                            paragraph_start);
         } else {
             inventory.packages.push_back(std::move(package));
+            if (inventory.packages.size() == MAX_DPKG_PACKAGES) {
+                add_inventory_limit_diagnostic(inventory);
+                stop_reading = true;
+            }
         }
         paragraph.clear();
     };
@@ -233,7 +259,7 @@ Inventory read_dpkg_status(const std::string& path) {
     };
     bool line_too_large = false;
     char character = '\0';
-    while (input.get(character)) {
+    while (!stop_reading && input.get(character)) {
         if (character == '\n') {
             if (line_too_large) {
                 ++line_number;
@@ -293,7 +319,14 @@ Inventory read_apt_lists(const std::string& directory) {
     std::vector<std::filesystem::path> entries;
     for (const auto& entry : std::filesystem::directory_iterator(directory, error)) {
         if (error) break;
-        if (entry.is_regular_file()) entries.push_back(entry.path());
+        if (entry.is_regular_file()) {
+            entries.push_back(entry.path());
+            if (entries.size() > MAX_APT_DIRECTORY_ENTRIES) {
+                std::sort(entries.begin(), entries.end());
+                entries.pop_back();
+                add_inventory_limit_diagnostic(inventory);
+            }
+        }
     }
     std::sort(entries.begin(), entries.end());
     for (const auto& path : entries) {
@@ -335,7 +368,14 @@ Inventory read_apt_sources(const std::string& directory) {
     std::vector<std::filesystem::path> entries;
     for (const auto& entry : std::filesystem::directory_iterator(directory, error)) {
         if (error) break;
-        if (entry.is_regular_file()) entries.push_back(entry.path());
+        if (entry.is_regular_file()) {
+            entries.push_back(entry.path());
+            if (entries.size() > MAX_APT_DIRECTORY_ENTRIES) {
+                std::sort(entries.begin(), entries.end());
+                entries.pop_back();
+                add_inventory_limit_diagnostic(inventory);
+            }
+        }
     }
     std::sort(entries.begin(), entries.end());
     for (const auto& path : entries) {
@@ -385,6 +425,7 @@ Inventory read_apt_index_targets(const std::string& apt_get_path) {
     }
     char buffer[4096];
     std::size_t line_number = 0;
+    bool target_limit_reported = false;
     while (std::fgets(buffer, sizeof(buffer), stream) != nullptr) {
         ++line_number;
         std::string line(buffer);
@@ -399,8 +440,13 @@ Inventory read_apt_index_targets(const std::string& apt_get_path) {
                            line_number);
             continue;
         }
-        inventory.apt_index_targets.push_back(
-            AptIndexTargetFact{values[0], values[1], values[2], values[3], values[4]});
+        if (inventory.apt_index_targets.size() < MAX_APT_INDEX_TARGETS) {
+            inventory.apt_index_targets.push_back(
+                AptIndexTargetFact{values[0], values[1], values[2], values[3], values[4]});
+        } else if (!target_limit_reported) {
+            add_inventory_limit_diagnostic(inventory);
+            target_limit_reported = true;
+        }
     }
     const int status = pclose(stream);
     if (status == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {

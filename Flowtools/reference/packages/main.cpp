@@ -102,6 +102,25 @@ int main() {
     assert(saw_trusted_override);
     std::filesystem::remove_all(source_fixture);
 
+    const auto cardinality_fixture = std::filesystem::temp_directory_path() /
+                                     "frankencore-apt-cardinality-test";
+    std::filesystem::create_directories(cardinality_fixture);
+    {
+        std::ofstream output(cardinality_fixture / "many.sources");
+        output << "Types:";
+        for (std::size_t index = 0; index < 100001U; ++index) output << " deb";
+        output << "\nURIs: https://example.invalid/repo\n";
+    }
+    const auto cardinality = frankencore::packages::read_apt_sources(
+        cardinality_fixture.string());
+    assert(cardinality.apt_sources.size() == 100000U);
+    bool saw_cardinality_limit = false;
+    for (const auto& diagnostic : cardinality.diagnostics)
+        saw_cardinality_limit = saw_cardinality_limit ||
+                                diagnostic.code == "inventory-limit";
+    assert(saw_cardinality_limit);
+    std::filesystem::remove_all(cardinality_fixture);
+
     const auto apt_targets = frankencore::packages::read_apt_index_targets();
     assert(!apt_targets.apt_index_targets.empty() ||
            !apt_targets.diagnostics.empty());

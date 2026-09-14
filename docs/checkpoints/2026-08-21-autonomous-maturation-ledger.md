@@ -2597,6 +2597,17 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 package-provider cardinality bounds
+
+- Added 100,000-entry caps for dpkg package observations, APT directory
+  candidates, parsed APT sources, and native APT index targets.
+- Cardinality overflow is reported once as `inventory-limit`; the provider
+  does not silently substitute an unbounded collection or claim completeness.
+- Added a 100,001-source hostile fixture proving the cap and diagnostic.
+
+State remains CONTINUE. Broader provider fault injection and independently
+sized limits for future provider schemas remain unfinished.
+
 ## 2026-09-14 APT metadata file bound
 
 - Added bounded byte ingestion for APT release and Deb822 source metadata,
