@@ -6,6 +6,8 @@
 namespace frankencore::runtime {
 
 struct CpuFacts { std::uint64_t logical_processors = 0; };
+// Values are parsed from the Linux kB representation with strict numeric
+// validation and saturating conversion; malformed fields become 0.
 struct MemoryFacts { std::uint64_t total_bytes = 0; std::uint64_t available_bytes = 0; };
 struct CudaFacts {
     std::string status = "unknown";

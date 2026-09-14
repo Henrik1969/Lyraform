@@ -3,6 +3,8 @@
 #include <dlfcn.h>
 #include <exception>
 #include <fstream>
+#include <charconv>
+#include <limits>
 #include <new>
 #include <sstream>
 #include <stdexcept>
@@ -27,10 +29,20 @@ std::string quote(std::string_view value) {
 std::uint64_t parse_kibibytes(const std::string& line) {
     std::istringstream input(line);
     std::string label;
-    std::uint64_t value = 0;
+    std::string value_text;
     std::string unit;
-    input >> label >> value >> unit;
-    return unit == "kB" ? value * 1024ULL : value;
+    input >> label >> value_text >> unit;
+    if (label.empty() || unit != "kB" || value_text.empty()) return 0;
+    std::uint64_t value = 0;
+    const auto parsed = std::from_chars(value_text.data(),
+                                        value_text.data() + value_text.size(),
+                                        value);
+    if (parsed.ec != std::errc{} ||
+        parsed.ptr != value_text.data() + value_text.size()) return 0;
+    constexpr auto multiplier = std::uint64_t{1024};
+    if (value > std::numeric_limits<std::uint64_t>::max() / multiplier)
+        return std::numeric_limits<std::uint64_t>::max();
+    return value * multiplier;
 }
 
 MemoryFacts read_memory() {

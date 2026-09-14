@@ -2608,6 +2608,21 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Broader provider fault injection and independently
 sized limits for future provider schemas remain unfinished.
 
+## 2026-09-14 runtime memory capability arithmetic
+
+- Replaced unchecked `/proc/meminfo` `kB * 1024` conversion with strict
+  complete-token parsing and saturating arithmetic.
+- Malformed or non-`kB` fields now become zero rather than being partially
+  accepted; extreme values cannot wrap into a smaller capability.
+- The normal runtime probe and existing ASan/UBSan-focused boundary remain the
+  current evidence for this Linux projection.
+- Added `frankencore_runtime_memory`, a direct private-parser test covering a
+  valid value, wrong unit, trailing junk, missing value, and saturating
+  overflow.
+
+State remains CONTINUE. Field-level capability diagnostics and broader provider
+fault injection remain unfinished.
+
 ## 2026-09-14 package-provider failure evidence
 
 - Added a deterministic fake APT executable that emits one malformed row, one
