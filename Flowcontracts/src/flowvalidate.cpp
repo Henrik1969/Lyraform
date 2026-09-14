@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <string>
 
@@ -39,6 +40,9 @@ int main(int argc, char** argv) {
             else if (path.empty()) path = argument;
             else throw std::runtime_error("too many input paths");
         }
+#ifdef FLOWVALIDATE_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
         const auto value = flowcontracts::json::parse(read(path));
         const auto result = flowcontracts::validate(value);
         if (canonical && result.classification == flowcontracts::ValidationClass::valid) std::cout << flowcontracts::json::serialize(value) << '\n';
@@ -47,6 +51,12 @@ int main(int argc, char** argv) {
             {"classification", std::string(flowcontracts::name(result.classification))}, {"format", result.format},
             {"path", result.path}, {"reason", result.reason}, {"source", result.source}, {"version", result.version}}) << '\n';
         return exit_code(result.classification);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+            return 1;
+        }
+        std::cerr << "flowvalidate: allocation failed\n"; return 1;
     } catch (const flowcontracts::json::Error& error) {
         if (structured_diagnostics) {
             std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":"

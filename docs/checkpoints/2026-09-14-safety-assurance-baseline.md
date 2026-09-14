@@ -360,6 +360,22 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowvalidate allocation-fault boundary — 2026-09-15
+
+The canonical artifact-validation command now has a test-only fault-injected
+variant that raises `std::bad_alloc` after option parsing and before input
+consumption. Its public boundary emits valid structured JSON with
+`FLOWVALIDATE_RESOURCE_EXHAUSTED`, `stage: runtime`, and
+`disposition: no_artifact`; stdout remains empty. The focused
+`flowvalidate_allocation_fault` test passed in both the normal GCC tree and
+the Clang 18.1.3 ASan/UBSan tree.
+
+This covers exhaustion at the validator process boundary. It does not claim
+that every canonical parser allocation site has independent injection
+coverage; that remains open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Frankencore language and requirements allocation faults — 2026-09-15
 
 Test-only fault-injected library variants now exercise allocation exhaustion
