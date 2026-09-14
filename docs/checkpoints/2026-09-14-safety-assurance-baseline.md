@@ -137,6 +137,16 @@ and facade-argument cardinality.
 The safety state remains `CONTINUE`; serialized consumers still retain their
 own schema-specific limits and the broader isolation provider is future work.
 
+## Public contract text bounds — 2026-09-14
+
+All scalar text fields in the current language-map, chain-policy, target,
+facade, verification-evidence, and isolation-claim contracts now reject values
+larger than 4096 bytes. The conformance probe covers a hostile language-map
+identity in addition to the collection cases.
+
+The safety state remains `CONTINUE`; the bounds do not create an isolation
+provider or signed trust profile.
+
 ## Trust and isolation evidence bounds — 2026-09-14
 
 Verification evidence and isolation claims now reject text fields larger than

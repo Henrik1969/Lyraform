@@ -61,6 +61,9 @@ int main() {
     language.parent = "canonical";
     language.monikers["ask"] = {"Spørg"};
     assert(validate(language).valid);
+    language.id = std::string(4097, 'x');
+    assert(!validate(language).valid);
+    language.id = "Danish";
 
     ChainPolicy policy;
     policy.name = "test";

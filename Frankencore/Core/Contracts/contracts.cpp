@@ -134,6 +134,8 @@ ValidationResult validate(const IsolationClaim& claim) {
 ValidationResult validate(const LanguageMap& map) {
     if (map.format != "frankencore.language-map") return invalid("invalid language-map format");
     if (map.version != 1) return invalid("unsupported language-map version");
+    for (const auto* field : {&map.format, &map.id, &map.revision, &map.parser, &map.parent})
+        if (!bounded(*field)) return invalid("language-map field exceeds the 4096-byte limit");
     if (!nonempty(map.id) || !nonempty(map.revision) || !nonempty(map.parser) ||
         !nonempty(map.parent)) return invalid("language-map identity fields are required");
     if (map.monikers.size() > max_contract_items) return invalid("language-map exceeds the 100000-entry limit");
@@ -153,6 +155,9 @@ ValidationResult validate(const LanguageMap& map) {
 ValidationResult validate(const ChainPolicy& policy) {
     if (policy.format != "frankencore.chain-policy") return invalid("invalid chain-policy format");
     if (policy.version != 1) return invalid("unsupported chain-policy version");
+    for (const auto* field : {&policy.format, &policy.name, &policy.language_map, &policy.dialect,
+                              &policy.profile, &policy.failure_policy})
+        if (!bounded(*field)) return invalid("chain-policy field exceeds the 4096-byte limit");
     if (!nonempty(policy.name) || !nonempty(policy.language_map)) return invalid("chain-policy identity is required");
     if (policy.targets.empty()) return invalid("chain-policy requires a target");
     if (policy.prerequisites.size() > max_contract_items || policy.targets.size() > max_contract_items)
@@ -160,10 +165,13 @@ ValidationResult validate(const ChainPolicy& policy) {
     if (!valid_failure_policy(policy.failure_policy)) return invalid("invalid chain failure policy");
     for (const auto& requirement : policy.prerequisites) {
         if (!nonempty(requirement.capability) || !nonempty(requirement.version)) return invalid("invalid prerequisite");
+        if (!bounded(requirement.capability) || !bounded(requirement.version)) return invalid("prerequisite field exceeds the 4096-byte limit");
     }
     for (const auto& target : policy.targets) {
         if (!nonempty(target.name) || !nonempty(target.substrate) || !nonempty(target.version) ||
             !nonempty(target.optimizer) || !nonempty(target.lowering)) return invalid("invalid target profile");
+        for (const auto* field : {&target.name, &target.substrate, &target.version, &target.optimizer, &target.lowering})
+            if (!bounded(*field)) return invalid("target profile field exceeds the 4096-byte limit");
     }
     return valid();
 }
@@ -171,6 +179,9 @@ ValidationResult validate(const ChainPolicy& policy) {
 ValidationResult validate(const FacadeInvocation& invocation) {
     if (invocation.format != "frankencore.facade_invocation") return invalid("invalid facade format");
     if (invocation.version != 1) return invalid("unsupported facade version");
+    for (const auto* field : {&invocation.format, &invocation.facade, &invocation.backend,
+                              &invocation.backend_version, &invocation.policy, &invocation.schema})
+        if (!bounded(*field)) return invalid("facade field exceeds the 4096-byte limit");
     if (invocation.arguments.size() > max_contract_items || invocation.diagnostics.size() > max_contract_items ||
         invocation.provenance.size() > max_contract_items)
         return invalid("facade collection exceeds the 100000-entry limit");
