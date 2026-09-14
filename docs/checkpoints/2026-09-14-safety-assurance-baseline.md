@@ -157,6 +157,16 @@ rules remain unchanged. The recovery fault suite remains green.
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open.
 
+## Parent-directory close-error disposition — 2026-09-14
+
+The parent-directory durability barrier now treats a failed directory
+`close()` as a failed synchronization barrier. The fault-injection probe
+separately exercises file-close and directory-close failures, and both return
+`uncertain` without claiming durable publication.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and retention
+semantics remain open.
+
 ## Replay and reconciliation lock ownership — 2026-09-14
 
 Mutation replay and two-history reconciliation now use scoped shared-lock

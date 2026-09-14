@@ -186,8 +186,13 @@ int sync_parent_directory(const std::string& path) {
     const int descriptor = ::open(directory.c_str(), O_RDONLY | O_DIRECTORY);
     if (descriptor < 0) return -1;
     const int status = ::fsync(descriptor);
-    const int saved = errno;
-    ::close(descriptor);
+    const int sync_error = errno;
+    const int close_status = ::close(descriptor);
+    if (close_status != 0 && status == 0) {
+        errno = errno == 0 ? EIO : errno;
+        return -1;
+    }
+    const int saved = status == 0 ? sync_error : errno;
     errno = saved;
     return status;
 }
