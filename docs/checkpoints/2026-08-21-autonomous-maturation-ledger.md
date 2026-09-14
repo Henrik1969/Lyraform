@@ -2622,6 +2622,18 @@ State remains CONTINUE. The safety mission is not certification and still has
 open retention, deeper crash, isolation/trust, cancellation/async, and broader
 native/provider fault-injection work.
 
+## 2026-09-14 parent-directory durability fault boundary
+
+- Added independent fault injection for the parent-directory `fsync` barrier.
+- Verified that a durable file write followed by directory-sync failure returns
+  `uncertain` with the complete record visible, preventing a false success
+  claim while preserving inspectability.
+- Focused history test passes; the full canonical suite remains the next
+  checkpoint gate.
+
+State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
+cancellation/async, and broader native/provider fault injection remain open.
+
 ## 2026-09-14 durable-history uncertain fsync result
 
 - Distinguished a failed write from bytes-written-but-unsynchronized history

@@ -11,6 +11,7 @@
 namespace {
 
 bool fail_fsync = false;
+bool fail_parent_fsync = false;
 bool fail_write_after_partial = false;
 
 extern "C" int __real_fsync(int);
@@ -19,6 +20,12 @@ extern "C" int __wrap_fsync(int descriptor) {
         errno = EIO;
         return -1;
     }
+    static unsigned call_count = 0;
+    if (fail_parent_fsync && call_count++ == 1) {
+        errno = EIO;
+        return -1;
+    }
+    if (!fail_parent_fsync) call_count = 0;
     return __real_fsync(descriptor);
 }
 
@@ -256,6 +263,21 @@ int main() {
     assert(partial_history.inspect().status == "incomplete");
     assert(partial_history.repair_incomplete_tail().status == "repaired");
     assert(partial_history.inspect().valid && partial_history.inspect().records == 1);
+
+    const auto parent_sync_path = base / "parent-sync.jsonl";
+    ErrorStateHistory parent_sync_history(parent_sync_path.string());
+    const auto parent_sync_opened = event("opened");
+    assert(parent_sync_history.append(parent_sync_opened).status == "appended");
+    auto parent_sync_diagnosed = parent_sync_opened;
+    parent_sync_diagnosed.event_id = generate_ulid();
+    parent_sync_diagnosed.status = "diagnosed";
+    fail_parent_fsync = true;
+    const auto parent_sync_append = parent_sync_history.append(parent_sync_diagnosed);
+    fail_parent_fsync = false;
+    assert(!parent_sync_append.valid && parent_sync_append.changed);
+    assert(parent_sync_append.status == "uncertain");
+    assert(parent_sync_append.records == 2);
+    assert(parent_sync_history.inspect().valid && parent_sync_history.inspect().records == 2);
 
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);

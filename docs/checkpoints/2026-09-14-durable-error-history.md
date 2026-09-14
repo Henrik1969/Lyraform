@@ -51,6 +51,9 @@ Partial writes are fault-injected as well: if a write changes the file but
 does not complete, append returns `uncertain` with `changed=true`, and the
 incomplete tail remains visible for explicit repair. This prevents a torn
 record from being reported as an ordinary no-change error.
+The parent-directory synchronization barrier is fault-injected independently;
+when file `fsync` succeeds but directory `fsync` fails, append also returns
+`uncertain` while the complete record remains inspectable.
 
 This is a durable error-state boundary, not a complete history subsystem.
 Retention and deeper crash fault injection remain open Gate 5 work. The history test
