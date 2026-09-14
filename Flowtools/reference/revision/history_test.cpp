@@ -72,6 +72,13 @@ int main() {
         .rollback_reference = std::string{"rollback"}, .derived_entities = {},
         .before = {"old"}, .after = {"new"}};
     assert(history.append(mutation).status == "appended");
+    auto stale_mutation = mutation;
+    stale_mutation.event_id = generate_ulid();
+    stale_mutation.old_revision = 1;
+    stale_mutation.new_revision = 3;
+    stale_mutation.before_state_reference = "wrong-before";
+    stale_mutation.after_state_reference = "wrong-after";
+    assert(history.append(stale_mutation).status == "rejected");
     MutationRejection rejection{
         .attempt = mutation.attempt, .event_id = generate_ulid(),
         .rejection_domain = "policy", .rejection_reason = "denied",

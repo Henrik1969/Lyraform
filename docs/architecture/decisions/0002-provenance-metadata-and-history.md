@@ -107,8 +107,9 @@ identical event IDs, rejects conflicting IDs, flushes successful appends, and
 requires explicit quarantine/repair for an incomplete final line. The current
 implementation performs full JSON syntax validation and known-record
 type/status validation, plus bounded inspection, ordered reads, and exact
-identity lookup. Semantic event replay, retention, crash fault injection, and
-cross-branch reconciliation remain future work.
+identity lookup, error-state lifecycle replay, and linear mutation
+revision/state replay. Retention, crash fault injection, and cross-branch
+reconciliation remain future work.
 
 ## Revisit triggers
 

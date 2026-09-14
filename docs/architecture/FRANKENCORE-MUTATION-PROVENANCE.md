@@ -95,7 +95,8 @@ mutation. Every error state has a mandatory `error_state_id` ULID; lifecycle
 events also carry event, attempt, and correlation ULIDs.
 
 The core validates JSON syntax, event shape, field types, and status
-vocabulary. The history resolver owns legal transitions and ordering. Policy authorizes exceptional
+vocabulary. The history boundary also validates legal error-state transitions
+and linear mutation revision/state continuity. Policy authorizes exceptional
 transitions, which must record their authorization and reason; history records
 the resulting fact immutably.
 

@@ -21,6 +21,11 @@ struct HistoryScan {
     HistoryResult result;
     std::unordered_map<std::string, std::string> events;
     std::unordered_map<std::string, std::string> error_states;
+    struct MutationState {
+        flowcontracts::json::Integer revision;
+        std::string state_reference;
+    };
+    std::unordered_map<std::string, MutationState> mutations;
     std::vector<std::string> records;
     std::size_t valid_prefix = 0;
     bool incomplete_tail = false;
@@ -113,20 +118,43 @@ bool valid_json_record(const std::string& line, std::string& error) {
 }
 
 bool valid_replay_record(const std::string& line,
-                         const std::unordered_map<std::string, std::string>& states,
+                         std::unordered_map<std::string, std::string>& states,
+                         std::unordered_map<std::string, HistoryScan::MutationState>& mutations,
                          std::string& error) {
     try {
         using namespace flowcontracts::json;
         const auto root = object(parse(line));
-        if (string(required(root, "format"), "$.format") != "frankencore.error_state_event") return true;
-        const auto state_id = string(required(root, "error_state_id"), "$.error_state_id");
-        const auto status = string(required(root, "status"), "$.status");
-        const auto previous = states.find(state_id);
-        if (previous == states.end()) {
-            if (status != "opened") throw Error("$.status", "error-state replay must begin with opened");
-        } else if (!valid_error_state_transition(previous->second, status)) {
-            throw Error("$.status", "illegal error-state lifecycle transition");
+        const auto format = string(required(root, "format"), "$.format");
+        if (format == "frankencore.error_state_event") {
+            const auto state_id = string(required(root, "error_state_id"), "$.error_state_id");
+            const auto status = string(required(root, "status"), "$.status");
+            const auto previous = states.find(state_id);
+            if (previous == states.end()) {
+                if (status != "opened") throw Error("$.status", "error-state replay must begin with opened");
+            } else if (!valid_error_state_transition(previous->second, status)) {
+                throw Error("$.status", "illegal error-state lifecycle transition");
+            }
+            states[state_id] = status;
+            return true;
         }
+        if (format == "frankencore.mutation_record") {
+            const auto entity = string(required(root, "entity_identity"), "$.entity_identity");
+            const auto old_revision = integer(required(root, "old_revision"), "$.old_revision");
+            const auto new_revision = integer(required(root, "new_revision"), "$.new_revision");
+            const auto before = string(required(root, "before_state_reference"), "$.before_state_reference");
+            const auto after = string(required(root, "after_state_reference"), "$.after_state_reference");
+            const auto previous = mutations.find(entity);
+            if (previous != mutations.end()) {
+                if (old_revision != previous->second.revision)
+                    throw Error("$.old_revision", "does not continue the recorded entity revision");
+                if (before != previous->second.state_reference)
+                    throw Error("$.before_state_reference", "does not match the recorded prior state");
+            }
+            mutations[entity] = {new_revision, after};
+            return true;
+        }
+        if (format == "frankencore.mutation_event") return true;
+        throw Error("$.format", "unsupported replay record format");
     } catch (const std::exception& exception) {
         error = exception.what();
         return false;
@@ -226,15 +254,10 @@ HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
             scan.result = {false, false, scan.events.size(), "invalid", "history contains an invalid record: " + json_error, {}};
             return scan;
         }
-        if (!valid_replay_record(line, scan.error_states, json_error)) {
+        if (!valid_replay_record(line, scan.error_states, scan.mutations, json_error)) {
             scan.result = {false, false, scan.events.size(), "invalid", "history replay validation failed: " + json_error, {}};
             return scan;
         }
-        using namespace flowcontracts::json;
-        const auto root = object(parse(line));
-        if (string(required(root, "format"), "$.format") == "frankencore.error_state_event")
-            scan.error_states[string(required(root, "error_state_id"), "$.error_state_id")] =
-                string(required(root, "status"), "$.status");
         constexpr std::string_view marker = "\"event_id\":\"";
         const auto event_begin = line.find(marker);
         if (event_begin == std::string::npos) {
@@ -550,7 +573,9 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             if (existing->second == json) return {true, false, scan.result.records, "duplicate", {}, {}};
             return {false, false, scan.result.records, "conflict", "event_id already exists with different content", {}};
         }
-        if (!valid_replay_record(json, scan.error_states, json_error)) {
+        auto replay_states = scan.error_states;
+        auto replay_mutations = scan.mutations;
+        if (!valid_replay_record(json, replay_states, replay_mutations, json_error)) {
             ::flock(lock, LOCK_UN);
             ::close(lock);
             return {false, false, scan.result.records, "rejected", "serialized event violates replay rules: " + json_error, {}};
