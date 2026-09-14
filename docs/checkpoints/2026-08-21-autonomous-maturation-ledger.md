@@ -3422,8 +3422,19 @@ non-recoverable in-place; asynchronous and effectful scheduling remain refused.
 - This closes the joinable-thread termination hazard without admitting
   cancellation or asynchronous scheduling.
 
-State remains CONTINUE. Allocation-failure injection for the launch path and
-broader provider fault coverage remain open.
+State remains CONTINUE. Broader native allocation/provider fault coverage
+remains open.
+
+## 2026-09-14 graph worker-launch allocation fault
+
+- Added a test-only `std::bad_alloc` injection after the first graph worker is
+  launched.
+- The injected case catches the allocation failure and proves the first worker
+  completed before unwinding, demonstrating that joining ownership works under
+  partial initialization.
+
+State remains CONTINUE. Broader native allocation/provider fault coverage
+remains open.
 
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 

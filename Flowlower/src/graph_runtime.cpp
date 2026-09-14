@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <exception>
+#include <new>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -137,6 +138,9 @@ extern "C" void flow_graph_parallel_run(
                 flow_graph_fail(operation, "graph parallel worker failed with a non-standard exception");
             }
         });
+#if defined(FLOWCORE_GRAPH_RUNTIME_TEST_FAULT)
+        if (index == 0) throw std::bad_alloc();
+#endif
     }
     for (auto& thread : threads) thread.join();
 }

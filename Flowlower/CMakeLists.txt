@@ -76,3 +76,8 @@ add_executable(flowgraph_runtime_bounds_test tests/graph_runtime_bounds.cpp src/
 target_compile_options(flowgraph_runtime_bounds_test PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowgraph_runtime_bounds_test PRIVATE Threads::Threads)
 add_test(NAME flowgraph_runtime_bounds COMMAND flowgraph_runtime_bounds_test)
+add_executable(flowgraph_runtime_launch_fault_test tests/graph_runtime_launch_fault.cpp src/graph_runtime.cpp)
+target_compile_definitions(flowgraph_runtime_launch_fault_test PRIVATE FLOWCORE_GRAPH_RUNTIME_TEST_FAULT)
+target_compile_options(flowgraph_runtime_launch_fault_test PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowgraph_runtime_launch_fault_test PRIVATE Threads::Threads)
+add_test(NAME flowgraph_runtime_launch_fault COMMAND flowgraph_runtime_launch_fault_test)
