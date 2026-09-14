@@ -2611,6 +2611,17 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Retention, deeper crash fault injection, and broader
 native/provider fault injection remain unfinished Gate 5/8 work.
 
+## 2026-09-14 Igor and partial-write verification
+
+- Re-ran the partial-write history fault injection under Valgrind 3.22.0
+  Memcheck: zero errors and zero leaks.
+- Ran `./igor doctor`, `./igor build`, and `./igor test`; all passed, with the
+  canonical suite at 115/115.
+
+State remains CONTINUE. The safety mission is not certification and still has
+open retention, deeper crash, isolation/trust, cancellation/async, and broader
+native/provider fault-injection work.
+
 ## 2026-09-14 durable-history uncertain fsync result
 
 - Distinguished a failed write from bytes-written-but-unsynchronized history

@@ -79,4 +79,14 @@ The history and provenance API executables pass independently under Valgrind
 3.22.0 Memcheck with full leak checking and zero errors.
 After the per-record bound change, the history executable and the injected Text
 allocation-failure executable were rerun independently under the same gate;
-both completed with zero errors and zero leaks.
+both completed with zero errors and zero leaks. The partial-write injection was
+also included in the history executable's current Memcheck run and completed
+with zero errors and zero leaks.
+
+The current project-facing smoke gates also pass:
+
+```text
+./igor doctor: PASS
+./igor build: PASS
+./igor test: PASS (115/115)
+```
