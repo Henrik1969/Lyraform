@@ -377,6 +377,23 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel runtime-planner allocation-fault boundary — 2026-09-15
+
+The runtime provider-planning boundary now has a test-only fault-injected
+executable that raises `std::bad_alloc` after CLI parsing and before reading
+plan or capability evidence. Its public structured boundary returns
+`FLOWPARALLEL_RUNTIME_PLANNER_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowparallel_runtime_planner_allocation_fault` test is part of the canonical
+CTest suite.
+
+This covers exhaustion at the planner process boundary only. It does not claim
+that cancellation, backpressure, or effectful parallelism is admitted, nor
+complete allocation-fault coverage for every provider and scheduler path;
+those remain open Gate 4 and Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel allocation-fault boundary — 2026-09-15
 
 The parallel execution-planning boundary now has a test-only fault-injected

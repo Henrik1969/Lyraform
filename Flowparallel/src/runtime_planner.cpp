@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <new>
 #include <cstdlib>
 #include <sstream>
 #include <stdexcept>
@@ -102,6 +103,10 @@ Options parse(int argc, char** argv) {
 }
 
 int run(const Options& options) {
+#ifdef FLOWPARALLEL_RUNTIME_PLANNER_TEST_ALLOCATION_FAILURE
+    (void)options;
+    throw std::bad_alloc();
+#endif
     const auto plan = read_file(options.plan_path, "execution plan");
     const auto capabilities = read_file(options.capabilities_path, "runtime capabilities");
     const auto calibration = options.calibration_path.empty() ? std::string{} : read_file(options.calibration_path, "calibration report");
@@ -176,6 +181,11 @@ int main(int argc, char** argv) {
     try {
         const auto options = parse(argc, argv);
         return run(options);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_RUNTIME_PLANNER_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_runtime_planner error: allocation failed\n";
+        return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics)
             std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_RUNTIME_PLANNER_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";

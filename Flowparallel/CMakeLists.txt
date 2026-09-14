@@ -45,6 +45,11 @@ add_executable(flowparallel_runtime_planner src/runtime_planner.cpp)
 target_include_directories(flowparallel_runtime_planner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel_runtime_planner PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_runtime_planner PRIVATE flowcontracts)
+add_executable(flowparallel_runtime_planner_allocation_fault src/runtime_planner.cpp)
+target_compile_definitions(flowparallel_runtime_planner_allocation_fault PRIVATE FLOWPARALLEL_RUNTIME_PLANNER_TEST_ALLOCATION_FAILURE)
+target_include_directories(flowparallel_runtime_planner_allocation_fault PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(flowparallel_runtime_planner_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_runtime_planner_allocation_fault PRIVATE flowcontracts)
 
 add_executable(flowparallel_graph_reference src/graph_reference.cpp)
 target_include_directories(flowparallel_graph_reference PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -138,6 +143,10 @@ add_test(NAME flowparallel_runtime_planner
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_RUNTIME_PLANNER_BIN=$<TARGET_FILE:flowparallel_runtime_planner>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-runtime-planner-tests.sh)
+add_test(NAME flowparallel_runtime_planner_allocation_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPARALLEL_RUNTIME_PLANNER_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowparallel_runtime_planner_allocation_fault>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-runtime-planner-allocation-fault.sh)
 add_test(NAME flowparallel_graph_reference
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_GRAPH_REFERENCE_BIN=$<TARGET_FILE:flowparallel_graph_reference>
