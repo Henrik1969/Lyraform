@@ -51,6 +51,11 @@ if(TARGET flowcontracts)
     target_compile_features(flowtinylower PRIVATE cxx_std_20)
     target_compile_options(flowtinylower PRIVATE -Wall -Wextra -Wpedantic)
     target_link_libraries(flowtinylower PRIVATE tinyvm_recovered flowcontracts)
+    add_executable(flowtinylower_allocation_fault tools/lower.cpp)
+    target_compile_definitions(flowtinylower_allocation_fault PRIVATE FLOWTINYLLOWER_TEST_ALLOCATION_FAILURE)
+    target_compile_features(flowtinylower_allocation_fault PRIVATE cxx_std_20)
+    target_compile_options(flowtinylower_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+    target_link_libraries(flowtinylower_allocation_fault PRIVATE tinyvm_recovered flowcontracts)
 endif()
 
 if(BUILD_TESTING)
@@ -105,5 +110,8 @@ if(BUILD_TESTING)
                     $<TARGET_FILE:flowtinyrun>
                     ${CMAKE_SOURCE_DIR}/Flowlower/tests/captured-empty-lowering.json
                     ${CMAKE_CURRENT_BINARY_DIR})
+        add_test(NAME tinyvm_backend_lowering_allocation_fault
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/backend-lowering-allocation-fault.sh
+                    $<TARGET_FILE:flowtinylower_allocation_fault>)
     endif()
 endif()

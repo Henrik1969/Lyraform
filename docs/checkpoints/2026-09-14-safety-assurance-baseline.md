@@ -377,6 +377,19 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## TinyVM lowerer allocation-fault boundary — 2026-09-15
+
+The portable TinyVM backend lowerer now has a test-only fault-injected target
+that raises `std::bad_alloc` before consuming the backend artifact. Its public
+boundary returns a nonzero failure, leaves stdout empty, and creates no output
+artifact. The focused `tinyvm_backend_lowering_allocation_fault` test is part
+of the TinyVM CTest suite.
+
+This covers pre-lowering exhaustion only; TinyVM artifact reader/writer
+allocation paths remain bounded C APIs and require separate injected evidence.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel CPU-execution launch-allocation fault — 2026-09-15
 
 The CPU independent-task executor now has a test-only runtime variant that

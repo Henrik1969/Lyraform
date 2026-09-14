@@ -12,6 +12,7 @@ extern "C" {
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <map>
 #include <set>
 #include <sstream>
@@ -717,6 +718,11 @@ private:
 };
 
 int lower(const char* input_path, const char* output_path) {
+#ifdef FLOWTINYLLOWER_TEST_ALLOCATION_FAILURE
+    (void)input_path;
+    (void)output_path;
+    throw std::bad_alloc();
+#endif
     const auto input = parse(read(input_path));
     validate_backend_lowering_artifact(input);
     const auto& root = object(input);
@@ -797,6 +803,8 @@ int main(int argc, char** argv) {
         return lower(argv[1], argv[2]);
     } catch (const flowcontracts::json::Error& error) {
         std::cerr << "flowtinylower contract error: " << error.what() << '\n'; return 1;
+    } catch (const std::bad_alloc&) {
+        std::cerr << "flowtinylower error: allocation failed\n"; return 1;
     } catch (const std::exception& error) {
         std::cerr << "flowtinylower error: " << error.what() << '\n'; return 1;
     }
