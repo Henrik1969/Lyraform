@@ -344,3 +344,18 @@ gates at this checkpoint.
 
 The safety state remains `CONTINUE`: allocation-fault injection across every
 public boundary and the broader crash/retention campaign remain open.
+
+## Flowbind allocation-fault boundary — 2026-09-14
+
+Flowbind now has a test-only fault-injected executable that raises
+`std::bad_alloc` at the public verification boundary. Its process wrapper
+translates that exhaustion into `FLOWBIND_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact`; stdout remains empty. The focused test passed in
+both the normal GCC tree and the Clang 18.1.3 ASan/UBSan tree.
+
+The new CTest case is `flowbind_allocation_fault`. This closes allocation
+exhaustion evidence for the Flowbind process boundary only; it does not claim
+that all provider, parser, or Frankencore allocation paths have been injected.
+Those broader fault-injection cases remain an open Gate 8 item.
+
+The safety state remains `CONTINUE`.

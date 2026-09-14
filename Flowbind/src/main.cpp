@@ -11,6 +11,7 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <new>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -465,6 +466,9 @@ JsonArray verified_aggregate_layouts(const std::string& report, const std::strin
 }
 
 int verify(const std::string& report, const std::string& policy_path, const std::string& abi_manifest_path) {
+#ifdef FLOWBIND_TEST_ALLOCATION_FAILURE
+    throw std::bad_alloc();
+#endif
     const auto public_header = flowcontracts::require_header(flowcontracts::json::parse(report), "flowanalyst.semantic_report", 1);
     if (public_header.status != "ok") {
         std::cout << "{\n  \"format\": \"flowbind.binding_report\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"semantic report is not ready\"\n}\n";
@@ -614,6 +618,10 @@ int main(int argc, char** argv) {
             if (option == "-v" || option == "--version") { std::cout << VERSION << '\n'; return 0; }
         }
         return verify(read_input(options), options.policy_path, options.abi_manifest_path);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) write_structured_failure("FLOWBIND_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
+        else std::cerr << "flowbind error: allocation failed\n";
+        return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics) write_structured_failure("FLOWBIND_FAILURE", "cli", error.what());
         else std::cerr << "flowbind error: " << error.what() << '\n';
