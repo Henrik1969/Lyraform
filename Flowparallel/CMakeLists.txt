@@ -55,6 +55,11 @@ add_executable(flowparallel_matrix_benchmark src/matrix_benchmark.cpp)
 target_include_directories(flowparallel_matrix_benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel_matrix_benchmark PRIVATE -Wall -Wextra -Wpedantic -O3)
 target_link_libraries(flowparallel_matrix_benchmark PRIVATE ${CMAKE_DL_LIBS})
+add_executable(flowparallel_matrix_benchmark_allocation_fault src/matrix_benchmark.cpp)
+target_compile_definitions(flowparallel_matrix_benchmark_allocation_fault PRIVATE FLOWPARALLEL_MATRIX_BENCHMARK_TEST_ALLOCATION_FAILURE)
+target_include_directories(flowparallel_matrix_benchmark_allocation_fault PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(flowparallel_matrix_benchmark_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_matrix_benchmark_allocation_fault PRIVATE ${CMAKE_DL_LIBS})
 
 add_executable(flowparallel_runtime_planner src/runtime_planner.cpp)
 target_include_directories(flowparallel_runtime_planner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -102,6 +107,10 @@ add_test(NAME flowparallel_matrix_benchmark_diagnostics
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_MATRIX_BENCHMARK_BIN=$<TARGET_FILE:flowparallel_matrix_benchmark>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-matrix-benchmark-tests.sh)
+add_test(NAME flowparallel_matrix_benchmark_allocation_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPARALLEL_MATRIX_BENCHMARK_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowparallel_matrix_benchmark_allocation_fault>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-matrix-benchmark-allocation-fault.sh)
 add_test(NAME flowparallel_exception_containment
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>

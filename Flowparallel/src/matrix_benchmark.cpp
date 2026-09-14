@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -60,6 +61,10 @@ Options parse(int argc, char** argv) {
 double checksum(const std::vector<float>& values) { double result = 0.0; for (float value : values) result += value; return result; }
 
 int run(const Options& options) {
+#ifdef FLOWPARALLEL_MATRIX_BENCHMARK_TEST_ALLOCATION_FAILURE
+    (void)options;
+    throw std::bad_alloc();
+#endif
     const int n = options.size;
     const std::size_t elements = static_cast<std::size_t>(n) * n;
     const std::size_t bytes = elements * sizeof(float);
@@ -125,7 +130,11 @@ int main(int argc, char** argv) {
     for (int i = 1; i + 1 < argc; ++i)
         if (std::string(argv[i]) == "--diagnostics" && std::string(argv[i + 1]) == "json") structured_diagnostics = true;
     try { return run(parse(argc, argv)); }
-    catch (const std::exception& error) {
+    catch (const std::bad_alloc&) {
+        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_matrix_benchmark error: allocation failed\n";
+        return 1;
+    } catch (const std::exception& error) {
         if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
         else std::cerr << "flowparallel_matrix_benchmark error: " << error.what() << '\n';
         return 1;

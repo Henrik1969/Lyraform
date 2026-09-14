@@ -377,6 +377,21 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel matrix-benchmark allocation-fault boundary — 2026-09-15
+
+The CPU/CUDA matrix-benchmark boundary now has a test-only fault-injected
+executable that raises `std::bad_alloc` before workload allocation or CUDA
+library access. Its public structured boundary returns
+`FLOWPARALLEL_MATRIX_BENCHMARK_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowparallel_matrix_benchmark_allocation_fault` test is part of the canonical
+CTest suite and is independent of CUDA hardware.
+
+This covers pre-workload exhaustion only; benchmark provider execution and
+resource cleanup remain governed by their existing explicit contracts.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel CUDA-execution allocation-fault boundary — 2026-09-15
 
 The CUDA matrix-execution boundary now has a test-only fault-injected
