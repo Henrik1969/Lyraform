@@ -55,6 +55,8 @@ and repair. It also compares two independently copied histories without
 rewriting either input: common events are counted and branch-only events are
 reported explicitly. Typed mutation final-state replay now exposes only
 continuity-validated state; negative revisions are rejected before projection.
+The storage-boundary test also writes a hostile negative-revision record and
+confirms that inspection rejects it as invalid before replay.
 Error-state lifecycle replay
 now rejects records that do not begin with `opened` or that violate the
 documented transition graph. Linear mutation replay also requires each

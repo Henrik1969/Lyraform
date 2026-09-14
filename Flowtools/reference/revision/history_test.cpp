@@ -147,6 +147,19 @@ int main() {
     const auto invalid_inspection = invalid.inspect();
     assert(!invalid_inspection.valid);
     assert(invalid_inspection.status == "invalid");
+    const auto negative_path = base / "negative-revision.jsonl";
+    auto negative_json = to_json(mutation);
+    const auto old_revision_marker = negative_json.find("\"old_revision\":1");
+    assert(old_revision_marker != std::string::npos);
+    negative_json.replace(old_revision_marker, std::string("\"old_revision\":1").size(), "\"old_revision\":-1");
+    {
+        std::ofstream output(negative_path, std::ios::binary);
+        output << negative_json << '\n';
+    }
+    ErrorStateHistory negative(negative_path.string());
+    const auto negative_inspection = negative.inspect();
+    assert(!negative_inspection.valid);
+    assert(negative_inspection.status == "invalid");
 
     const auto crash_pid = ::fork();
     assert(crash_pid >= 0);

@@ -2610,6 +2610,17 @@ State remains CONTINUE. Crash interruption, retention policy, native fault
 injection breadth, isolation/trust, and remaining Gate 5/6/8 evidence remain
 unfinished.
 
+## 2026-09-14 hostile negative-revision history evidence
+
+- Added a durable JSONL fixture with a negative mutation revision and verified
+  that history inspection rejects it before replay or publication.
+- This strengthens the mutation revision invariant at the storage boundary;
+  no safety classification is promoted.
+
+State remains CONTINUE. Crash interruption depth, retention policy, native
+fault-injection breadth, isolation/trust, and remaining Gate 5/6/8 evidence
+remain unfinished.
+
 ## 2026-09-14 safety-case inventory reconciliation
 
 - Updated the authoritative safety-case matrix to name the bounded Text
