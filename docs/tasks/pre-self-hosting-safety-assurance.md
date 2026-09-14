@@ -81,6 +81,10 @@ coverage of hazards.
 ### Gate 2 — explicit outcome and error-state model
 
 - Inventory all current error, trap, status, outcome, and process-exit paths.
+- Audit every Stage 0 C++ `throw`, `catch`, and rethrow. Internal bootstrap
+  implementation exceptions must not cross a public language, artifact, ABI,
+  or runtime-provider boundary; convert them to the admitted structured
+  result/diagnostic model at that boundary.
 - Define the smallest shared semantic vocabulary for success, failure,
   unresolved, denied, cancelled, exhausted, unavailable, and unsupported.
 - Preserve the distinction between a rejected attempt, an operational error
