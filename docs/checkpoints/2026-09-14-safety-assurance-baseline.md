@@ -360,6 +360,24 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## TinyVM runtime-provider allocation-fault boundary — 2026-09-15
+
+The TinyVM runtime provider now classifies failure to retain a provider-owned
+Text outcome as `runtime provider allocation exhausted`. It leaves the result
+uninitialized and retains no partial outcome table. The focused
+`tinyvm_runtime_provider_allocation_fault` test injects `realloc` failure and
+passed in the normal GCC tree, Clang 18.1.3 ASan/UBSan, and Valgrind 3.22.0
+Memcheck configurations; Valgrind reported zero errors and zero leaks.
+
+This closes the tested provider-owned outcome retention path. Other native
+provider allocation sites remain separately scoped and are not implied safe by
+this boundary.
+
+The safety state remains `CONTINUE`.
+
+The subsequent complete canonical runs passed 147/147 under normal GCC and
+147/147 under Clang 18.1.3 ASan/UBSan with leak detection disabled.
+
 ## Igor gate refresh at safety checkpoint — 2026-09-15
 
 At published revision `95d487b`, the user-facing gates were rerun from the

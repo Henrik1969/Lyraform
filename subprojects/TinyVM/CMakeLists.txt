@@ -96,6 +96,9 @@ target_compile_options(tinyvm_recovered_artifact_v2_allocation_fault PRIVATE -Wa
 set_source_files_properties(src/vm.c src/isa_v1.c PROPERTIES COMPILE_OPTIONS -Wno-pedantic)
 add_executable(flowtinyv2_allocation_fault tests/artifact-v2-allocation-fault.c)
 target_link_libraries(flowtinyv2_allocation_fault PRIVATE tinyvm_recovered_artifact_v2_allocation_fault)
+add_executable(tinyvm_runtime_provider_allocation_fault tests/runtime-provider-allocation-fault.c tests/runtime-provider-realloc-wrap.c)
+target_link_libraries(tinyvm_runtime_provider_allocation_fault PRIVATE tinyvm_recovered)
+target_link_options(tinyvm_runtime_provider_allocation_fault PRIVATE "-Wl,--wrap=realloc")
 endif()
 
 if(BUILD_TESTING)
@@ -141,6 +144,9 @@ if(BUILD_TESTING)
     add_test(NAME tinyvm_artifact_v1_allocation_fault
         COMMAND $<TARGET_FILE:flowtinyv1_allocation_fault>
                 ${CMAKE_CURRENT_BINARY_DIR}/tinyvm-v1-allocation-fault.tvm)
+    add_test(NAME tinyvm_runtime_provider_allocation_fault
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/runtime-provider-allocation-fault.sh
+                $<TARGET_FILE:tinyvm_runtime_provider_allocation_fault>)
     add_test(NAME tinyvm_isa_v1_conformance COMMAND tinyvm_isa_v1_conformance)
     set_tests_properties(tinyvm_isa_v1_conformance PROPERTIES
         PASS_REGULAR_EXPRESSION "TinyVM typed ISA conformance passed")
