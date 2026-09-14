@@ -251,6 +251,12 @@ int main() {
         std::ofstream output(conflict_right_path, std::ios::binary | std::ios::trunc);
         output << first_line << '\n' << remainder;
     }
+    const auto read_bytes = [](const auto& file_path) {
+        std::ifstream input(file_path, std::ios::binary);
+        return std::string((std::istreambuf_iterator<char>(input)), {});
+    };
+    const auto conflict_left_before = read_bytes(conflict_left_path);
+    const auto conflict_right_before = read_bytes(conflict_right_path);
     const auto conflict_reconciliation = reconcile_histories(conflict_left_path.string(), conflict_right_path.string());
     assert(conflict_reconciliation.valid);
     assert(conflict_reconciliation.status == "conflict");
@@ -260,6 +266,8 @@ int main() {
     assert(conflict_reconciliation.left_only_events == 0);
     assert(conflict_reconciliation.right_only_events == 0);
     assert(conflict_reconciliation.conflicting_events == 1);
+    assert(read_bytes(conflict_left_path) == conflict_left_before);
+    assert(read_bytes(conflict_right_path) == conflict_right_before);
 
     const auto durability_path = base / "durability.jsonl";
     ErrorStateHistory durability(durability_path.string());

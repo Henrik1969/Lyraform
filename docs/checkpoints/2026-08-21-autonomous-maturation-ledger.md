@@ -2639,7 +2639,8 @@ cancellation/async, and broader native/provider fault injection remain open.
 - Added a valid same-identity/different-content branch fixture to the durable
   history test.
 - Verified reconciliation reports `conflict`, counts the conflicting event,
-  and does not choose a winner or rewrite either history.
+  and does not choose a winner or rewrite either history; the test now checks
+  both input files byte-for-byte after reconciliation.
 - Focused `frankencore_error_state_history` passes; the full canonical suite is
   required before publication.
 
