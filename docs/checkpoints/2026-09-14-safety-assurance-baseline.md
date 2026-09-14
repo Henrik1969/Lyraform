@@ -157,6 +157,17 @@ rules remain unchanged. The recovery fault suite remains green.
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open.
 
+## Append close-error disposition — 2026-09-14
+
+Durable history append now treats a failed `close()` after writing and syncing
+as non-durable, returning the existing `uncertain` disposition rather than
+claiming a committed append. The fault-injection probe verifies this on an
+isolated history file, preserving the documented possibility that bytes may
+have changed while durability remains unknown.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and retention
+semantics remain open.
+
 ## Read-path lock ownership — 2026-09-14
 
 History inspection, record reads, and event lookup now use scoped shared-lock

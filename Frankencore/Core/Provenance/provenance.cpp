@@ -630,10 +630,11 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
         }
         const auto write_result = write_all(descriptor, line.data(), line.size());
         const bool bytes_written = write_result.changed;
-        const bool durable = write_result.complete && ::fsync(descriptor) == 0;
+        const int sync_status = write_result.complete ? ::fsync(descriptor) : -1;
+        const int close_status = ::close(descriptor);
+        const bool durable = write_result.complete && sync_status == 0 && close_status == 0;
         bool written = durable;
-        int saved = written ? 0 : errno;
-        ::close(descriptor);
+        int saved = written ? 0 : (sync_status != 0 ? errno : (close_status != 0 ? errno : EIO));
         if (written && sync_parent_directory(path) != 0) {
             written = false;
             saved = errno;

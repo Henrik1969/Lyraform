@@ -15,6 +15,17 @@ bool fail_fsync = false;
 bool fail_parent_fsync = false;
 bool fail_write_after_partial = false;
 bool fail_zero_write_after_partial = false;
+bool fail_close = false;
+
+extern "C" int __real_close(int);
+extern "C" int __wrap_close(int descriptor) {
+    const int result = __real_close(descriptor);
+    if (fail_close) {
+        errno = EIO;
+        return -1;
+    }
+    return result;
+}
 
 extern "C" int __real_fsync(int);
 extern "C" int __wrap_fsync(int descriptor) {
@@ -79,6 +90,13 @@ int main() {
     third.error_state_id = first.error_state_id;
     assert(history.append(first).status == "appended");
     assert(history.append(first).status == "duplicate");
+
+    const auto close_failure_path = base / "close-failure.jsonl";
+    ErrorStateHistory close_failure_history(close_failure_path.string());
+    fail_close = true;
+    const auto close_failure = close_failure_history.append(event("opened"));
+    fail_close = false;
+    assert(!close_failure.valid && close_failure.status == "uncertain");
 
     auto conflict = first;
     conflict.diagnosis = "different content";
