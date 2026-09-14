@@ -58,6 +58,14 @@ artifacts.
 
 ## Revisit triggers
 
+The current contracts validator enforces the non-authoritative default at the
+evidence boundary: an `allowed` outcome requires trusted key state, matched
+integrity, and supplier authentication or owner attestation. An
+`allowed_with_isolation` outcome still requires matched integrity. This is a
+claim-consistency guard, not a signature verifier or trust-store
+implementation; signed profiles, expiry, revocation, rotation, and downgrade
+handling remain future work.
+
 Revisit when selecting the signature encoding, cryptographic implementation,
 trust-store format, SSH interoperability profile, or multi-administrator
 delegation model.

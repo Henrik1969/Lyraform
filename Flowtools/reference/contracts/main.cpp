@@ -11,8 +11,17 @@ int main() {
         "matched", "supplier_authenticated", false, {}, {},
         PolicyOutcome::allowed};
     assert(validate(evidence).valid);
+    evidence.key_state = "unknown";
+    assert(!validate(evidence).valid);
+    evidence.key_state = "trusted";
     evidence.operator_override = true;
     evidence.authenticity = "owner_attested";
+    assert(!validate(evidence).valid);
+    evidence.operator_override = false;
+    evidence.authenticity = "unverified";
+    evidence.policy_outcome = PolicyOutcome::allowed_with_isolation;
+    assert(validate(evidence).valid);
+    evidence.integrity = "mismatched";
     assert(!validate(evidence).valid);
 
     IsolationClaim isolation{

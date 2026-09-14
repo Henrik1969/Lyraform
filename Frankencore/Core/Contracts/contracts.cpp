@@ -22,6 +22,19 @@ bool valid_authenticity(const std::string& value) {
            value == "unverified" || value == "unknown";
 }
 
+bool valid_policy_outcome(const PolicyOutcome value) {
+    switch (value) {
+    case PolicyOutcome::allowed:
+    case PolicyOutcome::allowed_with_isolation:
+    case PolicyOutcome::requires_confirmation:
+    case PolicyOutcome::quarantined:
+    case PolicyOutcome::rejected:
+    case PolicyOutcome::unresolved:
+        return true;
+    }
+    return false;
+}
+
 bool valid_assurance(const std::string& value) {
     return value == "none" || value == "constrained" || value == "isolated" || value == "hardened";
 }
@@ -56,6 +69,15 @@ ValidationResult validate(const VerificationEvidence& evidence) {
     if (!valid_key_state(evidence.key_state)) return invalid("invalid key state");
     if (!valid_integrity(evidence.integrity)) return invalid("invalid integrity state");
     if (!valid_authenticity(evidence.authenticity)) return invalid("invalid authenticity state");
+    if (!valid_policy_outcome(evidence.policy_outcome)) return invalid("invalid policy outcome");
+    if (evidence.policy_outcome == PolicyOutcome::allowed &&
+        (evidence.key_state != "trusted" || evidence.integrity != "matched" ||
+         (evidence.authenticity != "supplier_authenticated" &&
+          evidence.authenticity != "owner_attested")))
+        return invalid("allowed outcome requires trusted, integrity-matched, authenticated evidence");
+    if (evidence.policy_outcome == PolicyOutcome::allowed_with_isolation &&
+        evidence.integrity != "matched")
+        return invalid("isolated allowance requires integrity-matched evidence");
     if (evidence.operator_override && evidence.authenticity == "owner_attested") {
         return invalid("operator override cannot become owner attestation");
     }

@@ -53,7 +53,7 @@ not-claimed       no safety claim is made
 
 | Hazard | Control/enforcement point | Evidence | Status | Residual risk |
 |---|---|---|---|---|
-| Unknown provider is treated as trusted | Explicit verified/unverified/invalid/expired/revoked states | verification ADRs; conformance tests | implemented for narrow providers | General signed profile and trust-store implementation is future |
+| Unknown provider is treated as trusted | Verification evidence rejects `allowed` without trusted key, matched integrity, and authenticated/attested identity; weaker outcomes remain explicit | Contracts validation test; verification ADRs | implemented for narrow providers | General signed profile and trust-store implementation is future |
 | Local override masquerades as authentication | Override remains policy evidence with diagnostic and provenance | verification contract and policy tests | implemented in contract | Broader admission policy integration remains incomplete |
 | Isolation label exceeds actual enforcement | `IsolationClaim` validates assurance/enforcement compatibility and requires explicit resource, identity, filesystem, network, privilege, teardown, provider, and verification fields | Contracts validation test; isolation ADRs | provisional | Provider execution and independent verifier remain incomplete; no production isolation claim |
 | Build-host hardware is mistaken for deployment capability | Runtime snapshot separated from compile-time policy | runtime capability and provider-planner tests | implemented | Runtime refresh and broader platform matrix remain open |

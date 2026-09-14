@@ -2478,3 +2478,20 @@ project sanitizer finding.
 
 The history and provenance API executables pass independently under Valgrind
 3.22.0 Memcheck with full leak checking and zero errors.
+
+## 2026-09-14 isolation and trust claim checkpoint
+
+- Added executable `IsolationClaim` validation for explicit provider,
+  resource, identity, filesystem, network, privilege, teardown, enforcement,
+  and verification fields. Assurance levels cannot exceed their verification
+  evidence: constrained requires local/independent verification, while
+  isolated and hardened require independent verification.
+- Tightened `VerificationEvidence`: `allowed` requires trusted key state,
+  matched integrity, and supplier authentication or owner attestation;
+  `allowed_with_isolation` requires matched integrity.
+- Focused contracts conformance and the complete normal CTest graph pass
+  **111/111**.
+
+State remains CONTINUE. This closes claim-consistency checks only; provider
+isolation enforcement, signed profiles, trust-store lifecycle, and platform
+assurance remain provisional Gate 6 work.
