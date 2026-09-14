@@ -2644,6 +2644,20 @@ provider boundaries still require dedicated evidence.
 State remains CONTINUE. Native provider fault injection and remaining Stage 0
 API boundaries still require dedicated coverage.
 
+## 2026-09-14 Flowparallel exception-containment conformance
+
+- Added the hardware-independent `flowparallel_exception_containment` test.
+- It exercises nine current plan, provider, graph, execution, and benchmark
+  boundaries and verifies stable failure code, useful message, empty artifact
+  stdout, `no_artifact` disposition, and nonzero exit status for each.
+- This closes the missing single-conformance-test evidence gap for the current
+  Flowparallel process boundaries; native hardware fault injection remains
+  open.
+
+State remains CONTINUE. Gate 2 is improved for the tested process boundaries,
+but broader Frankencore/API and injected allocation/provider fault coverage
+remain unfinished.
+
 ## 2026-09-14 matrix benchmark ownership boundary
 
 - Replaced raw benchmark CUDA handles and manual success-only cleanup with the

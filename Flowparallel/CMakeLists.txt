@@ -56,6 +56,18 @@ add_test(NAME flowparallel_matrix_benchmark_diagnostics
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_MATRIX_BENCHMARK_BIN=$<TARGET_FILE:flowparallel_matrix_benchmark>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-matrix-benchmark-tests.sh)
+add_test(NAME flowparallel_exception_containment
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWPARALLEL_CPU_BIN=$<TARGET_FILE:flowparallel_cpu>
+        FLOWPARALLEL_CUDA_BIN=$<TARGET_FILE:flowparallel_cuda>
+        FLOWPARALLEL_RUNTIME_PLANNER_BIN=$<TARGET_FILE:flowparallel_runtime_planner>
+        FLOWPARALLEL_GRAPH_REFERENCE_BIN=$<TARGET_FILE:flowparallel_graph_reference>
+        FLOWPARALLEL_GRAPH_PLANNER_BIN=$<TARGET_FILE:flowparallel_graph_planner>
+        FLOWPARALLEL_GRAPH_CUDA_BIN=$<TARGET_FILE:flowparallel_graph_cuda>
+        FLOWPARALLEL_CUDA_EXECUTE_BIN=$<TARGET_FILE:flowparallel_cuda_execute>
+        FLOWPARALLEL_MATRIX_BENCHMARK_BIN=$<TARGET_FILE:flowparallel_matrix_benchmark>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-exception-containment-tests.sh)
 
 add_library(flowparallel_cpu_runtime STATIC src/cpu_execution.cpp)
 target_include_directories(flowparallel_cpu_runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

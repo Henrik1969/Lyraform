@@ -93,9 +93,11 @@ exit distinction.
 - The CPU execution API translates task and worker failures into explicit
   result metadata with stable codes and `no_artifact` disposition, publishing
   only after all already-launched workers have joined.
-- These paths are covered as implementation behavior, but the repository does
-  not yet have one conformance test proving exception containment at every
-  public boundary.
+- These paths are covered by the hardware-independent
+  `flowparallel_exception_containment` conformance test, which checks empty
+  artifact stdout, stable failure codes, `no_artifact` disposition, and
+  nonzero exit status across nine current Flowparallel boundaries. This does
+  not replace native hardware fault injection.
 
 The compiler CLI now accepts `--diagnostics json`. For a caught
 `DiagnosticError`, allocation failure, or unexpected standard exception, it
