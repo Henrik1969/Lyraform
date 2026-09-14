@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <new>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -551,7 +552,7 @@ namespace {
     void printUsage(std::ostream& out) {
         out
             << "Usage:\n"
-            << "  flowmini [--trace true|false] [--emit-flowir <file|->] [--dump-token-tree <file|->] [--dump-token-tree-bridge [json|simple]] [--dump-ast] [--dump-frontend-bundle] [--dump-ast-symbols <file|->] [--dump-symbols <file|->] <program.flow|module.flowir> < input\n\n"
+            << "  flowmini [--trace true|false] [--diagnostics json] [--emit-flowir <file|->] [--dump-token-tree <file|->] [--dump-token-tree-bridge [json|simple]] [--dump-ast] [--dump-frontend-bundle] [--dump-ast-symbols <file|->] [--dump-symbols <file|->] <program.flow|module.flowir> < input\n\n"
             << "Human .flow sugar examples:\n"
             << "  program demo\n"
             << "  stdin : stdin.text()\n"
@@ -580,6 +581,45 @@ namespace {
         flowmini::writeFlowIr(module, out);
     }
 
+    std::string jsonEscape(const std::string& value) {
+        std::string escaped;
+        escaped.reserve(value.size());
+        for (const unsigned char c : value) {
+            switch (c) {
+                case '\\': escaped += "\\\\"; break;
+                case '"': escaped += "\\\""; break;
+                case '\n': escaped += "\\n"; break;
+                case '\r': escaped += "\\r"; break;
+                case '\t': escaped += "\\t"; break;
+                default:
+                    if (c < 0x20) {
+                        escaped += "\\u00";
+                        const char* digits = "0123456789abcdef";
+                        escaped += digits[c >> 4];
+                        escaped += digits[c & 0x0f];
+                    } else {
+                        escaped.push_back(static_cast<char>(c));
+                    }
+            }
+        }
+        return escaped;
+    }
+
+    void writeStructuredFailure(
+        std::ostream& out,
+        const std::string& code,
+        const std::string& stage,
+        const std::string& message
+    ) {
+        out << "{\"status\":\"failed\",\"code\":\""
+            << jsonEscape(code)
+            << "\",\"stage\":\""
+            << jsonEscape(stage)
+            << "\",\"message\":\""
+            << jsonEscape(message)
+            << "\",\"disposition\":\"no_artifact\"}\n";
+    }
+
 } // namespace
 
 /**
@@ -595,6 +635,7 @@ int main(int argc, char** argv) {
     ctx.policies.set("runtime.trace", false);
 
     const flow::LogSink log{std::cerr};
+    bool structuredDiagnostics = false;
 
     try {
         std::string sourcePath;
@@ -614,6 +655,15 @@ int main(int argc, char** argv) {
             if (arg == "--help" || arg == "-h") {
                 printUsage(std::cout);
                 return 0;
+            }
+
+            if (arg == "--diagnostics") {
+                const auto format = flow::requireArgValue(argc, argv, i, arg);
+                if (format != "json") {
+                    throw flow::DiagnosticError{"cli", "unsupported diagnostics format: " + format};
+                }
+                structuredDiagnostics = true;
+                continue;
             }
 
             if (arg == "--trace") {
@@ -766,12 +816,28 @@ int main(int argc, char** argv) {
         return 0;
 
     } catch (const flow::DiagnosticError& err) {
-        log.writeFatal(err);
-        log.write(ctx);
+        if (structuredDiagnostics) {
+            writeStructuredFailure(std::cerr, err.code(), err.stage(), err.what());
+        } else {
+            log.writeFatal(err);
+            log.write(ctx);
+        }
+        return 1;
+    } catch (const std::bad_alloc&) {
+        if (structuredDiagnostics) {
+            writeStructuredFailure(std::cerr, "FLOW_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
+        } else {
+            std::cerr << "fatal in runtime: allocation failed\n";
+            log.write(ctx);
+        }
         return 1;
     } catch (const std::exception& err) {
-        std::cerr << "fatal in unknown: " << err.what() << '\n';
-        log.write(ctx);
+        if (structuredDiagnostics) {
+            writeStructuredFailure(std::cerr, "FLOW_UNEXPECTED_EXCEPTION", "runtime", err.what());
+        } else {
+            std::cerr << "fatal in unknown: " << err.what() << '\n';
+            log.write(ctx);
+        }
         return 1;
     }
 }

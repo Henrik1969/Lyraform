@@ -30,6 +30,7 @@ public:
 
     [[nodiscard]] const char* what() const noexcept override;
     [[nodiscard]] const std::string& stage() const noexcept;
+    [[nodiscard]] const char* code() const noexcept;
 
 private:
     std::string stage_;

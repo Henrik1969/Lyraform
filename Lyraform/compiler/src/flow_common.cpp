@@ -20,6 +20,10 @@ const std::string& DiagnosticError::stage() const noexcept {
     return stage_;
 }
 
+const char* DiagnosticError::code() const noexcept {
+    return "FLOW_DIAGNOSTIC_ERROR";
+}
+
 void PolicyBag::set(std::string key, PolicyValue value) {
     values_[std::move(key)] = std::move(value);
 }

@@ -882,3 +882,9 @@ add_test(NAME flowmini_support_boundary
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-support-boundary.sh)
+
+add_test(NAME structured_cli_diagnostics
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-structured-cli-diagnostics.sh)

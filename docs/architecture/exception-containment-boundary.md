@@ -1,6 +1,6 @@
 # Stage 0 exception-containment boundary
 
-**Status:** safety mission requirement; implementation not complete
+**Status:** safety mission requirement; CLI slice implemented, wider boundary incomplete
 **Date:** 2026-09-14
 
 ## Decision boundary
@@ -58,6 +58,15 @@ exit distinction.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.
+
+The compiler CLI now accepts `--diagnostics json`. For a caught
+`DiagnosticError`, allocation failure, or unexpected standard exception, it
+emits a structured failure record on stderr, keeps artifact stdout empty, and
+returns a nonzero status. The current CLI codes are intentionally conservative:
+`FLOW_DIAGNOSTIC_ERROR`, `FLOW_RESOURCE_EXHAUSTED`, and
+`FLOW_UNEXPECTED_EXCEPTION`. This closes only the CLI projection slice; it does
+not make the internal exception mechanisms themselves part of the language
+contract or close provider/runtime/API containment.
 
 ## Required implementation slice
 

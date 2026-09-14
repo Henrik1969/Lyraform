@@ -12,7 +12,7 @@ tested boundaries listed here.
 
 ```text
 branch: main
-HEAD: c3efe2c5aae3e2095083c29f7ecf0ecb65ef1a31
+HEAD at baseline: c3efe2c5aae3e2095083c29f7ecf0ecb65ef1a31
 upstream: origin/main
 working tree: clean before this checkpoint
 FlowLFS branch: remotes/origin/flowlfs-v0.1-alive, separate
@@ -29,7 +29,7 @@ local branch was already synchronized with `origin/main` before the audit.
 ```text
 ./igor doctor  PASS
 ./igor check   PASS — 107 registered tests
-./igor test    PASS — 107/107 tests
+./igor test    PASS — 107/107 tests at baseline
 git diff --check PASS
 ```
 
@@ -59,6 +59,8 @@ Flowbind fuzz gate: passing in canonical suite
 - Text construction has an explicit outcome path for exhaustion;
 - target selection has no silent fallback;
 - LLVM and TinyVM switch/computed execution have differential coverage.
+- the later CLI slice adds structured JSON failure output without contaminating
+  artifact stdout; its canonical result is recorded in the next checkpoint.
 
 ## Known open safety boundaries
 
