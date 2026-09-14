@@ -2658,6 +2658,18 @@ State remains CONTINUE. Gate 2 is improved for the tested process boundaries,
 but broader Frankencore/API and injected allocation/provider fault coverage
 remain unfinished.
 
+## 2026-09-14 CPU provider numeric-policy boundary
+
+- Replaced prefix-accepting `stoul`/`stod` conversion with complete-token
+  parsing for worker counts and finite speedup policy values.
+- Added hostile `2junk` coverage, including the early-option-order case where
+  structured diagnostics must be recognized before validation fails.
+- Focused CPU-provider test passes; the canonical suite remains the next
+  publication gate.
+
+State remains CONTINUE. Native provider fault injection and remaining Stage 0
+API boundaries still require dedicated coverage.
+
 ## 2026-09-14 matrix benchmark ownership boundary
 
 - Replaced raw benchmark CUDA handles and manual success-only cleanup with the

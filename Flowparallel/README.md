@@ -58,7 +58,8 @@ making that decision. Duplicate keys, wrong field types, unsupported versions,
 and nested lookalike fields cannot alter the top-level scheduling policy.
 `flowparallel_cpu --diagnostics json` exposes malformed-input and provider
 failures as structured `no_artifact` diagnostics; the default remains a
-human-readable error.
+human-readable error. Numeric worker and speedup policy arguments must be
+complete finite tokens; malformed suffixes are rejected before selection.
 
 The optional `flowparallel_cuda` provider currently probes the CUDA driver and
 emits a linear-algebra workload contract for matrix multiplication. It includes

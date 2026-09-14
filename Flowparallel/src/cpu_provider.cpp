@@ -1,9 +1,11 @@
 #include <algorithm>
+#include <charconv>
 #include <cstdlib>
 #include <cstdint>
 #include <flowcontracts/json.hpp>
 #include <fstream>
 #include <iostream>
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -24,6 +26,22 @@ std::string read_input(const Options& options) {
 }
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
+
+double parse_number(std::string_view text, const char* option) {
+    std::size_t consumed = 0;
+    double value = 0.0;
+    try { value = std::stod(std::string(text), &consumed); }
+    catch (...) { throw std::runtime_error(std::string(option) + " requires a complete number"); }
+    if (consumed != text.size() || !std::isfinite(value)) throw std::runtime_error(std::string(option) + " requires a complete finite number");
+    return value;
+}
+
+unsigned parse_unsigned(std::string_view text, const char* option) {
+    unsigned value = 0;
+    const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size()) throw std::runtime_error(std::string(option) + " requires a complete non-negative integer");
+    return value;
+}
 
 std::string json_escape(std::string_view value) {
     std::string escaped;
@@ -52,9 +70,9 @@ Options parse(int argc, char** argv) {
         const std::string argument = argv[index];
         auto next = [&](const char* name) { if (++index >= argc) throw std::runtime_error(std::string(name) + " requires a value"); return std::string(argv[index]); };
         if (argument == "--plan") options.plan_path = next("--plan");
-        else if (argument == "--observed-speedup") options.observed_speedup = std::stod(next("--observed-speedup"));
-        else if (argument == "--minimum-speedup") options.minimum_speedup = std::stod(next("--minimum-speedup"));
-        else if (argument == "--workers") options.requested_workers = static_cast<unsigned>(std::stoul(next("--workers")));
+        else if (argument == "--observed-speedup") options.observed_speedup = parse_number(next("--observed-speedup"), "--observed-speedup");
+        else if (argument == "--minimum-speedup") options.minimum_speedup = parse_number(next("--minimum-speedup"), "--minimum-speedup");
+        else if (argument == "--workers") options.requested_workers = parse_unsigned(next("--workers"), "--workers");
         else if (argument == "--diagnostics") { if (next("--diagnostics") != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
         else if (argument == "-h" || argument == "--help" || argument == "-?") { std::cout << "flowparallel_cpu - policy-resolved CPU provider selection\n\nUsage: flowparallel_cpu [--plan plan.json] [--observed-speedup N]\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0); }
         else if (argument == "-a" || argument == "--about") { std::cout << "Flowparallel CPU provider selects serial or thread-pool execution from a plan, runtime capacity, and policy.\n"; std::exit(0); }
@@ -114,9 +132,10 @@ int resolve(const std::string& plan, const Options& options) {
 
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
+    for (int index = 1; index + 1 < argc; ++index)
+        if (std::string(argv[index]) == "--diagnostics" && std::string(argv[index + 1]) == "json") structured_diagnostics = true;
     try {
         const auto options = parse(argc, argv);
-        structured_diagnostics = options.structured_diagnostics;
         return resolve(read_input(options), options);
     } catch (const std::exception& error) {
         if (structured_diagnostics)
