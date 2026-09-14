@@ -13,13 +13,14 @@ namespace {
 
 constexpr std::string_view VERSION = "0.1.0";
 
-struct Options { std::string optimization_path, binding_path, llvm_path, target_name; };
+struct Options { std::string optimization_path, binding_path, llvm_path, target_name; bool structured_diagnostics = false; };
 
 Options parse_options(int argc, char** argv) {
     Options options;
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
-        if (argument == "--emit-llvm") { if (++i >= argc) throw std::runtime_error("--emit-llvm requires a path"); options.llvm_path = argv[i]; }
+        if (argument == "--diagnostics") { if (++i >= argc || std::string(argv[i]) != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
+        else if (argument == "--emit-llvm") { if (++i >= argc) throw std::runtime_error("--emit-llvm requires a path"); options.llvm_path = argv[i]; }
         else if (argument == "--binding-report") { if (++i >= argc) throw std::runtime_error("--binding-report requires a path"); options.binding_path = argv[i]; }
         else if (argument == "--target") { if (++i >= argc) throw std::runtime_error("--target requires a name"); options.target_name = argv[i]; }
         else if (!argument.empty() && argument.front() == '-') throw std::runtime_error("unknown option '" + argument + "'");
@@ -38,6 +39,13 @@ std::string read_file_or_stdin(const std::string& path) {
 
 std::string quote(std::string_view value) {
     return flowcontracts::json::serialize(std::string(value));
+}
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) {
+    std::cerr << "{\"status\":\"failed\",\"code\":" << quote(code)
+              << ",\"stage\":" << quote(stage)
+              << ",\"message\":" << quote(message)
+              << ",\"disposition\":\"no_artifact\"}\n";
 }
 
 int lower(std::string_view report, const Options& options, std::string_view binding_report) {
@@ -138,6 +146,7 @@ int lower(std::string_view report, const Options& options, std::string_view bind
 } // namespace
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         if (argc == 2) {
             const std::string option = argv[1];
@@ -155,15 +164,18 @@ int main(int argc, char** argv) {
             if (option == "-v" || option == "--version") { std::cout << VERSION << '\n'; return 0; }
         }
         const auto options = parse_options(argc, argv);
+        structured_diagnostics = options.structured_diagnostics;
         const auto optimization_report = read_file_or_stdin(options.optimization_path);
         const auto binding_report = options.binding_path.empty() ? std::string{} : read_file_or_stdin(options.binding_path);
         return lower(optimization_report, options, binding_report);
     } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_CONTRACT_FAILURE", "contract", error.what()); return 1; }
         std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"blocked\","
                      "\"backend\":\"llvm\",\"diagnostic\":{\"code\":\"FLOWLOWER_CONTRACT\",\"path\":"
                   << quote(error.path()) << ",\"reason\":" << quote(error.reason()) << "}}\n";
         std::cerr << "flowlower error: " << error.what() << '\n'; return 1;
     } catch (const std::exception& error) {
+        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_FAILURE", "cli", error.what()); return 1; }
         std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"unsupported\","
                      "\"backend\":\"llvm\",\"diagnostic\":{\"code\":\"FLOWLOWER_REFUSAL\",\"reason\":"
                   << quote(error.what()) << "}}\n";

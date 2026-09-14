@@ -2631,6 +2631,19 @@ API containment work are unfinished.
 State remains CONTINUE. Exact ABI evidence, native fault injection, isolation,
 and the remaining Gate 5/6/8 work are unfinished.
 
+## 2026-09-14 Flowlower structured failure containment
+
+- Added `flowlower --diagnostics json` for backend contract and lowering
+  refusal failures. The structured mode suppresses the legacy compatibility
+  status artifact, emits a stable `FLOWLOWER_FAILURE` or
+  `FLOWLOWER_CONTRACT_FAILURE` record on stderr, marks the attempt
+  `no_artifact`, and returns nonzero.
+- Added hostile malformed-artifact coverage to the Flowlower pipeline test;
+  the focused test passes.
+
+State remains CONTINUE. Native fault injection, deeper durable-history work,
+isolation/trust, and remaining Gate 6/8 evidence are unfinished.
+
 ## 2026-09-14 CUDA cleanup callback containment
 
 - Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are

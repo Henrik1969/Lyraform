@@ -518,4 +518,12 @@ clang "$tmpdir/cli.ll" -o "$tmpdir/cli"
 clang "$tmpdir/daemon.ll" -o "$tmpdir/daemon"
 "$tmpdir/cli"
 "$tmpdir/daemon"
+
+set +e
+printf '%s' '{"format":"wrong","version":1}' | "$lowerer" --diagnostics json >"$tmpdir/hostile-stdout" 2>"$tmpdir/hostile-stderr"
+hostile_rc=$?
+set -e
+test "$hostile_rc" -eq 1
+test ! -s "$tmpdir/hostile-stdout"
+jq -e '.status == "failed" and .code == "FLOWLOWER_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
 echo 'Flowlower tests: PASS'
