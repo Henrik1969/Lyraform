@@ -127,6 +127,16 @@ invalid bounds.
 The safety state remains `CONTINUE`: crash-depth fault injection and retention
 semantics remain open.
 
+## Public contract collection bounds — 2026-09-14
+
+Language maps, chain policies, and facade invocations now reject oversized
+collections before their contents are admitted to downstream policy or
+execution consumers. The conformance probe covers hostile chain-policy target
+and facade-argument cardinality.
+
+The safety state remains `CONTINUE`; serialized consumers still retain their
+own schema-specific limits and the broader isolation provider is future work.
+
 ## Trust and isolation evidence bounds — 2026-09-14
 
 Verification evidence and isolation claims now reject text fields larger than

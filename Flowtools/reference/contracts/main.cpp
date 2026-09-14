@@ -68,10 +68,16 @@ int main() {
     policy.failure_policy = "diagnose_and_stop";
     policy.targets.push_back({"native", "linux", ">=1", "safe-default", "native"});
     assert(validate(policy).valid);
+    auto oversized_policy = policy;
+    oversized_policy.targets.resize(100001);
+    assert(!validate(oversized_policy).valid);
 
     FacadeInvocation invocation;
     invocation.facade = "ls";
     invocation.backend = "/usr/bin/ls";
     assert(validate(invocation).valid);
+    auto oversized_invocation = invocation;
+    oversized_invocation.arguments.resize(100001);
+    assert(!validate(oversized_invocation).valid);
     return 0;
 }

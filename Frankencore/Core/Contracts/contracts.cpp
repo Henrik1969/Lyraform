@@ -136,11 +136,15 @@ ValidationResult validate(const LanguageMap& map) {
     if (map.version != 1) return invalid("unsupported language-map version");
     if (!nonempty(map.id) || !nonempty(map.revision) || !nonempty(map.parser) ||
         !nonempty(map.parent)) return invalid("language-map identity fields are required");
+    if (map.monikers.size() > max_contract_items) return invalid("language-map exceeds the 100000-entry limit");
     if (map.monikers.empty()) return invalid("language-map monikers are required");
     for (const auto& [canonical, aliases] : map.monikers) {
         if (canonical.empty() || aliases.empty()) return invalid("language-map contains an empty mapping");
+        if (!bounded(canonical) || aliases.size() > max_contract_items)
+            return invalid("language-map entry exceeds its contract bound");
         for (const auto& alias : aliases) {
             if (alias.empty()) return invalid("language-map contains an empty moniker");
+            if (!bounded(alias)) return invalid("language-map moniker exceeds the 4096-byte limit");
         }
     }
     return valid();
@@ -151,6 +155,8 @@ ValidationResult validate(const ChainPolicy& policy) {
     if (policy.version != 1) return invalid("unsupported chain-policy version");
     if (!nonempty(policy.name) || !nonempty(policy.language_map)) return invalid("chain-policy identity is required");
     if (policy.targets.empty()) return invalid("chain-policy requires a target");
+    if (policy.prerequisites.size() > max_contract_items || policy.targets.size() > max_contract_items)
+        return invalid("chain-policy collection exceeds the 100000-entry limit");
     if (!valid_failure_policy(policy.failure_policy)) return invalid("invalid chain failure policy");
     for (const auto& requirement : policy.prerequisites) {
         if (!nonempty(requirement.capability) || !nonempty(requirement.version)) return invalid("invalid prerequisite");
@@ -165,6 +171,9 @@ ValidationResult validate(const ChainPolicy& policy) {
 ValidationResult validate(const FacadeInvocation& invocation) {
     if (invocation.format != "frankencore.facade_invocation") return invalid("invalid facade format");
     if (invocation.version != 1) return invalid("unsupported facade version");
+    if (invocation.arguments.size() > max_contract_items || invocation.diagnostics.size() > max_contract_items ||
+        invocation.provenance.size() > max_contract_items)
+        return invalid("facade collection exceeds the 100000-entry limit");
     if (!nonempty(invocation.facade) || !nonempty(invocation.backend)) return invalid("facade and backend are required");
     return valid();
 }
