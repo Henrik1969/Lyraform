@@ -2597,6 +2597,17 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 Flowanalyst structured failure containment
+
+- Added `flowanalyst --diagnostics json` for malformed CLI/input/provider-map
+  failures. The boundary emits a stable `FLOWANALYST_FAILURE` record on stderr,
+  keeps stdout empty, marks the attempt `no_artifact`, and returns nonzero.
+- Extended the Flowanalyst pipeline test with malformed-envelope evidence for
+  this projection. The focused test passes.
+
+State remains CONTINUE. Broader Stage 0 API containment, allocation/provider
+fault injection, and the remaining Gate 5/6/8 work are unfinished.
+
 ## 2026-09-14 CUDA cleanup callback containment
 
 - Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are
