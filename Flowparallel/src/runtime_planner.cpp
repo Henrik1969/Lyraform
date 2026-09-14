@@ -16,6 +16,7 @@ struct Options {
     std::string capabilities_path;
     std::string calibration_path;
     double minimum_speedup = 1.25;
+    bool structured_diagnostics = false;
 };
 
 std::string read_file(const std::string& path, const char* label) {
@@ -34,6 +35,18 @@ std::string quote(std::string_view value) {
     }
     result.push_back('"');
     return result;
+}
+
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const char character : value) {
+        if (character == '\\' || character == '"') escaped.push_back('\\');
+        if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(character);
+    }
+    return escaped;
 }
 
 int reject_unsupported(std::string_view request, std::string_view reason) {
@@ -57,10 +70,11 @@ Options parse(int argc, char** argv) {
         else if (argument == "--capabilities") options.capabilities_path = value("--capabilities");
         else if (argument == "--calibration") options.calibration_path = value("--calibration");
         else if (argument == "--min-speedup") options.minimum_speedup = std::stod(value("--min-speedup"));
+        else if (argument == "--diagnostics") { if (value("--diagnostics") != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
         else if (argument == "-h" || argument == "-?" || argument == "--help") {
             std::cout << "flowparallel_runtime_planner - explainable CPU/CUDA provider decision\n\n"
                          "Options: --plan plan.json --capabilities capabilities.json\n"
-                         "         [--calibration benchmark.json] [--min-speedup N]\n"
+                         "         [--calibration benchmark.json] [--min-speedup N] [--diagnostics json]\n"
                          "         -h, -?, --help  show help\n"
                          "         -a, --about    show about information\n"
                          "         -v, --version  print the raw version number\n";
@@ -147,6 +161,20 @@ int run(const Options& options) {
 }
 
 int main(int argc, char** argv) {
-    try { return run(parse(argc, argv)); }
-    catch (const std::exception& error) { std::cerr << "flowparallel_runtime_planner error: " << error.what() << '\n'; return 1; }
+    bool structured_diagnostics = false;
+    try {
+        const auto options = parse(argc, argv);
+        structured_diagnostics = options.structured_diagnostics;
+        return run(options);
+    } catch (const std::exception& error) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_RUNTIME_PLANNER_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_runtime_planner error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_RUNTIME_PLANNER_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_runtime_planner error: unknown non-standard failure\n";
+        return 1;
+    }
 }

@@ -70,6 +70,9 @@ exit distinction.
 - The CPU Flowparallel provider provides the same tested projection through
   `--diagnostics json`, with a provider-specific stable failure code and no
   artifact on stdout.
+- The Flowparallel runtime planner provides the same tested projection for
+  malformed plans, capability snapshots, calibration reports, and argument
+  failures.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.

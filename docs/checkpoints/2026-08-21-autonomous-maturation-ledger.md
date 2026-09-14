@@ -2582,3 +2582,17 @@ Stage 0 boundaries still require the same audit before Gate 2 can close.
 
 State remains CONTINUE. Other Stage 0 public boundaries still require the same
 containment audit before Gate 2 can close.
+
+## 2026-09-14 runtime-planner structured diagnostic boundary
+
+- Added `flowparallel_runtime_planner --diagnostics json` for stable failure
+  translation when plan, capability, calibration, or argument validation
+  fails.
+- Added hostile malformed-plan coverage proving empty selection stdout,
+  provider-specific structured failure stderr, `no_artifact` disposition, and
+  nonzero exit status.
+- CPU provider, CUDA provider, and runtime planner now share the tested
+  machine-readable failure shape at their independent public boundaries.
+
+State remains CONTINUE. The broader Stage 0 provider/API containment audit and
+fault-injection coverage remain unfinished.

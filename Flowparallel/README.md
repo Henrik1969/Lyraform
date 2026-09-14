@@ -145,6 +145,11 @@ This planner deliberately consumes snapshots rather than discovering hardware
 inside the optimizer. Compile-time legality, runtime facts, policy, and
 provider execution remain separate.
 
+Malformed plans, capability snapshots, calibration reports, and argument
+failures do not produce a provider selection. `flowparallel_runtime_planner
+--diagnostics json` exposes those failures as stable machine-readable
+`no_artifact` diagnostics; human-readable errors remain the default.
+
 Before provider selection it also refuses execution plans that request
 cancellation, asynchronous execution, backpressure, or effectful parallel
 scheduling. These requests produce an explicit unsupported decision with no
