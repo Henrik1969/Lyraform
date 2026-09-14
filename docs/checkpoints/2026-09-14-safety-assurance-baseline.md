@@ -377,6 +377,21 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowmini compiler allocation-fault boundary — 2026-09-15
+
+The current Flowmini compiler CLI now has a test-only fault-injected target
+that raises `std::bad_alloc` after source selection and before source expansion
+or compilation. Its existing public structured boundary returns
+`FLOW_RESOURCE_EXHAUSTED` with `disposition: no_artifact` and leaves stdout
+empty. The focused `flowmini_allocation_fault` test is part of the compiler’s
+CTest suite.
+
+This covers the compiler CLI boundary before frontend work begins. It does not
+claim allocation-fault coverage for every lexer, parser, AST, runtime, or
+projection allocation site; those remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel matrix-benchmark allocation-fault boundary — 2026-09-15
 
 The CPU/CUDA matrix-benchmark boundary now has a test-only fault-injected

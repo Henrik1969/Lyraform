@@ -729,6 +729,10 @@ int main(int argc, char** argv) {
             return 2;
         }
 
+#ifdef FLOWMINI_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
+
         const bool structuralInspection =
             dumpAst ||
             dumpFrontendBundle ||
