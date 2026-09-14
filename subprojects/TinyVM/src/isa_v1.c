@@ -51,16 +51,39 @@ bool tinyvm_isa_v1_context_init(TinyvmIsaV1Context *ctx,size_t slots,uint64_t st
     if(!ctx||!step_limit)return false;
     memset(ctx,0,sizeof(*ctx));if(slots){ctx->slots=calloc(slots,sizeof(*ctx->slots));if(!ctx->slots)return false;}ctx->slot_count=slots;ctx->step_limit=step_limit;ctx->graph_record_limit=SIZE_MAX;ctx->running=true;return true;
 }
-void tinyvm_isa_v1_context_destroy(TinyvmIsaV1Context *ctx){if(!ctx)return;free(ctx->slots);free(ctx->graph_records);memset(ctx,0,sizeof(*ctx));}
+void tinyvm_isa_v1_context_destroy(TinyvmIsaV1Context *ctx){if(!ctx)return;free(ctx->slots);free(ctx->graph_records);free(ctx->graph_queue);memset(ctx,0,sizeof(*ctx));}
 bool tinyvm_isa_v1_context_set_graph_record_limit(TinyvmIsaV1Context *ctx,size_t limit){
     if(!ctx||limit<ctx->graph_record_count)return false;
     ctx->graph_record_limit=limit;return true;
+}
+size_t tinyvm_isa_v1_context_pending_graph_activations(const TinyvmIsaV1Context *ctx){return ctx&&ctx->graph_queue_count>=ctx->graph_queue_head?ctx->graph_queue_count-ctx->graph_queue_head:0;}
+bool tinyvm_isa_v1_context_pop_graph_activation(TinyvmIsaV1Context *ctx,TinyvmGraphActivationRecord *record){
+    if(!ctx||!record||ctx->graph_queue_head>=ctx->graph_queue_count)return false;
+    *record=ctx->graph_queue[ctx->graph_queue_head++];
+    if(ctx->graph_queue_head==ctx->graph_queue_count)ctx->graph_queue_head=ctx->graph_queue_count=0;
+    return true;
 }
 static bool trap(TinyvmIsaV1Context *ctx,uint32_t code,const char *fault,uint64_t instruction){ctx->trap=code;ctx->fault=fault;ctx->trap_instruction=instruction;ctx->running=false;return false;}
 static TinyvmValue *read_slot(TinyvmIsaV1Context *ctx,uint64_t index,uint64_t instruction){TinyvmValue *v=&ctx->slots[index];if(!v->initialized){trap(ctx,TV1_TRAP_UNINITIALIZED_SLOT,"uninitialized virtual slot",instruction);return NULL;}return v;}
 static uint64_t canonical_i32(int32_t value){return (uint64_t)(int64_t)value;}
 static int64_t signed_bits(uint64_t bits){int64_t value;memcpy(&value,&bits,8);return value;}
 static bool integer_carrier(uint32_t carrier){return carrier==TINYVM_CARRIER_I32||carrier==TINYVM_CARRIER_I64;}
+static bool queue_graph_record(TinyvmIsaV1Context *ctx,const TinyvmGraphActivationRecord *record,uint64_t instruction){
+    if(ctx->graph_queue_head&&ctx->graph_queue_count==ctx->graph_queue_capacity){
+        const size_t pending=ctx->graph_queue_count-ctx->graph_queue_head;
+        memmove(ctx->graph_queue,ctx->graph_queue+ctx->graph_queue_head,pending*sizeof(*ctx->graph_queue));
+        ctx->graph_queue_head=0;ctx->graph_queue_count=pending;
+    }
+    if(ctx->graph_queue_count==ctx->graph_queue_capacity){
+        size_t capacity=ctx->graph_queue_capacity?ctx->graph_queue_capacity*2:16;
+        if(capacity>ctx->graph_record_limit)capacity=ctx->graph_record_limit;
+        if(capacity<ctx->graph_queue_capacity||capacity>SIZE_MAX/sizeof(*ctx->graph_queue))return trap(ctx,TV1_TRAP_EXPLICIT,"graph activation queue capacity overflow",instruction);
+        TinyvmGraphActivationRecord *queue=realloc(ctx->graph_queue,capacity*sizeof(*queue));
+        if(!queue)return trap(ctx,TV1_TRAP_EXPLICIT,"graph activation queue allocation failed",instruction);
+        ctx->graph_queue=queue;ctx->graph_queue_capacity=capacity;
+    }
+    ctx->graph_queue[ctx->graph_queue_count++]=*record;return true;
+}
 static bool binary_arithmetic(TinyvmIsaV1Context *ctx,int64_t opcode,uint64_t dst,uint64_t left,uint64_t right,uint64_t instruction){
     TinyvmValue *x=read_slot(ctx,left,instruction),*y=read_slot(ctx,right,instruction);if(!x||!y)return false;if(x->carrier!=y->carrier||!integer_carrier(x->carrier))return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"arithmetic carrier mismatch",instruction);
     TinyvmValue result={x->carrier,0,true};
@@ -90,6 +113,7 @@ static bool graph_activate(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx,con
     record->identity=*activation;record->sequence=ctx->graph_record_count;record->stream_index=stream_index;
     ++ctx->graph_record_count;
     if(ctx->graph_schedule_hook){const char *fault=NULL;if(!ctx->graph_schedule_hook(ctx->graph_schedule_user,a,record,&fault))return trap(ctx,TV1_TRAP_EXPLICIT,fault?fault:"graph activation rejected by scheduler",instruction);}
+    if(!queue_graph_record(ctx,record,instruction))return false;
     if(ctx->graph_observer)ctx->graph_observer(ctx->graph_observer_user,a,record);
     return true;
 }

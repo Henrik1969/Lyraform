@@ -103,6 +103,10 @@ typedef struct {
     size_t graph_record_count;
     size_t graph_record_capacity;
     size_t graph_record_limit;
+    TinyvmGraphActivationRecord *graph_queue;
+    size_t graph_queue_count;
+    size_t graph_queue_head;
+    size_t graph_queue_capacity;
 } TinyvmIsaV1Context;
 
 bool tinyvm_isa_v1_validate(const TinyvmArtifactV2 *artifact,
@@ -112,6 +116,9 @@ bool tinyvm_isa_v1_context_init(TinyvmIsaV1Context *context,
 void tinyvm_isa_v1_context_destroy(TinyvmIsaV1Context *context);
 bool tinyvm_isa_v1_context_set_graph_record_limit(TinyvmIsaV1Context *context,
                                                   size_t limit);
+size_t tinyvm_isa_v1_context_pending_graph_activations(const TinyvmIsaV1Context *context);
+bool tinyvm_isa_v1_context_pop_graph_activation(TinyvmIsaV1Context *context,
+                                                TinyvmGraphActivationRecord *record);
 bool tinyvm_isa_v1_run_switch(const TinyvmArtifactV2 *artifact,
                               TinyvmIsaV1Context *context);
 bool tinyvm_isa_v1_run_computed(const TinyvmArtifactV2 *artifact,

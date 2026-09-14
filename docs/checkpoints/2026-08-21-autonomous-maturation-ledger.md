@@ -2432,3 +2432,22 @@ State remains CONTINUE. The budget closes a deterministic resource-refusal
 boundary for activation records; runtime-owned scheduling queues, reentrancy,
 cancellation, effectful or nested parallel delivery, and branching/merging
 stream execution remain ordinary implementation work.
+
+## 2026-09-14 TinyVM activation FIFO checkpoint
+
+- Accepted graph activation records now enter a runtime-owned FIFO after the
+  scheduling hook accepts them. Embeddings can query pending count and pop the
+  next copied record; hook-rejected records remain in execution history but do
+  not enter the queue. Queue storage compacts consumed prefixes and remains
+  bounded by the configured activation-record budget.
+- Added switch/computed conformance for FIFO order, sequence and drain parity,
+  alongside the existing refusal and budget checks. The focused TinyVM set
+  passes **2/2** under GCC and **2/2** under Clang 18.1.3 ASan/UBSan with the
+  documented leak settings.
+- The complete canonical graph passes **107/107** under GCC in **57.61s** and
+  **107/107** under Clang 18.1.3 ASan/UBSan in **111.59s**.
+
+State remains CONTINUE. This establishes a bounded metadata FIFO for accepted
+activations; it does not yet dispatch effects, resume reentrant activations,
+cancel queued work, or execute nested parallel and branching/merging stream
+semantics.

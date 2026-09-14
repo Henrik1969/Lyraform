@@ -88,6 +88,9 @@ standard error; a host embedding the ISA may also install a scheduling hook to
 refuse an activation before it is observed. The host can also set a
 deterministic activation-record limit on the execution context; the default is
 `SIZE_MAX`. The observer is diagnostic and does not change program output.
+Accepted activation records are available through the context's FIFO pending
+count and pop APIs; this is a metadata scheduling boundary, not effectful
+graph dispatch.
 
 When built in the Flowcore superbuild, `flowtinylower` consumes the public
 backend-neutral lowering artifact and deterministically emits ISA v1 for

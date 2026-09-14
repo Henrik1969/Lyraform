@@ -34,7 +34,11 @@ the observer is called. Hosts may set an activation-record limit on the
 execution context; exceeding it traps deterministically with
 `TV1_TRAP_EXPLICIT` before allocating another record. The default limit is
 `SIZE_MAX`. The artifact still carries the same metadata for independent
-inspection.
+inspection. Accepted records are also placed in a runtime-owned FIFO; hosts
+can inspect its size with
+`tinyvm_isa_v1_context_pending_graph_activations` and remove the next record
+with `tinyvm_isa_v1_context_pop_graph_activation`. Hook-rejected activations
+are retained in history but are not queued.
 
 Portable-switch and computed-goto execution initialize identical values and
 their complete post-execution states remain differentially tested.
