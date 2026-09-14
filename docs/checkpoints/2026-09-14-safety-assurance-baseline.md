@@ -391,6 +391,19 @@ Memcheck with zero errors and zero leaks.
 The complete canonical suite passed 147/147 under normal GCC and 147/147
 under Clang 18.1.3 ASan/UBSan. The safety state remains `CONTINUE`.
 
+## TinyVM runtime-provider descriptor ownership exhaustion — 2026-09-15
+
+The TinyVM runtime provider now classifies failure to grow its owned-file-
+descriptor table as `runtime provider allocation exhausted`. A descriptor
+opened before that failure is closed immediately; no descriptor ownership or
+initialized result is retained. The focused
+`tinyvm_runtime_provider_allocation_fault` test covers this path alongside
+string and storage exhaustion, and passed under normal GCC, Clang 18.1.3
+ASan/UBSan, and Valgrind 3.22.0 Memcheck with zero errors and zero leaks.
+
+The complete canonical suite passed 147/147 under normal GCC and 147/147
+under Clang 18.1.3 ASan/UBSan. The safety state remains `CONTINUE`.
+
 ## TinyVM runtime-provider allocation-fault boundary — 2026-09-15
 
 The TinyVM runtime provider now classifies failure to retain a provider-owned
