@@ -36,6 +36,15 @@ bool has_field(std::string_view input, std::string_view field, std::string_view 
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
 
+int reject_unsupported_request(std::string_view request, std::string_view reason) {
+    std::cout << "{\n  \"format\": \"flowparallel.cpu_selection\",\n"
+                 "  \"version\": 1,\n  \"status\": \"unsupported\",\n"
+                 "  \"request\": " << quote(request) << ",\n"
+                 "  \"reason\": " << quote(reason) << ",\n"
+                 "  \"fallback\": {\"emitted\": false}\n}\n";
+    return 2;
+}
+
 std::uint64_t number_after(std::string_view input, std::string_view field) {
     const auto position = input.find("\"" + std::string(field) + "\":");
     if (position == std::string_view::npos) return 0;
@@ -65,6 +74,14 @@ Options parse(int argc, char** argv) {
 
 int resolve(const std::string& plan, const Options& options) {
     if (!has_top_level_format(plan, "flowparallel.execution_plan")) throw std::runtime_error("input is not a Flowparallel execution plan");
+    if (has_field(plan, "schedule_policy", "parallel_effectful_v1"))
+        return reject_unsupported_request("parallel_effectful_v1", "effectful parallel scheduling is not admitted");
+    if (has_field(plan, "cancellation", "requested"))
+        return reject_unsupported_request("cancellation", "cancellation is not admitted by this provider");
+    if (has_field(plan, "async", "requested"))
+        return reject_unsupported_request("async", "asynchronous execution is not admitted by this provider");
+    if (has_field(plan, "backpressure", "requested"))
+        return reject_unsupported_request("backpressure", "backpressure is not admitted by this provider");
     if (!has_field(plan, "status", "ready")) { std::cout << "{\n  \"format\": \"flowparallel.cpu_selection\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n"; return 2; }
     const auto candidates = number_after(plan, "parallel_candidates");
     const long local_processors = sysconf(_SC_NPROCESSORS_ONLN);

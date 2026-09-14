@@ -38,6 +38,12 @@ tasks. The execution smoke test obtains its task count from the proven
 failure propagation. User regions are not executed unless they cross this
 approved-task boundary.
 
+The CPU provider refuses stronger scheduling requests rather than silently
+falling back to serial execution. `parallel_effectful_v1`, cancellation,
+asynchronous execution, and backpressure requests produce an explicit
+`unsupported` selection with no fallback artifact. Those capabilities remain
+outside the admitted pre-self-hosting contract.
+
 The optional `flowparallel_cuda` provider currently probes the CUDA driver and
 emits a linear-algebra workload contract for matrix multiplication. It includes
 host/device transfer costs and always requires a CPU fallback. On a host without

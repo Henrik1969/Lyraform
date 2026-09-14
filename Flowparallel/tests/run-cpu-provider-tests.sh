@@ -19,6 +19,27 @@ printf '%s\n' "$parallel" | jq -e '.status == "ready" and .decision == "parallel
 serial=$(printf '%s\n' "$plan" | "$cpu" --observed-speedup 0.5 --minimum-speedup 1.25 --workers 4)
 printf '%s\n' "$serial" | jq -e '.status == "ready" and .decision == "serial" and .provider == "cpu.serial" and .workers == 1' >/dev/null
 
+reject_unsupported() {
+    request=$1
+    payload=$2
+    set +e
+    output=$(printf '%s' "$payload" | "$cpu")
+    status=$?
+    set -e
+    test "$status" -eq 2
+    printf '%s\n' "$output" | jq -e --arg request "$request" \
+        '.status == "unsupported" and .request == $request and .fallback.emitted == false' >/dev/null
+}
+
+reject_unsupported parallel_effectful_v1 \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","schedule_policy":"parallel_effectful_v1"}'
+reject_unsupported cancellation \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","cancellation":"requested"}'
+reject_unsupported async \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","async":"requested"}'
+reject_unsupported backpressure \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","backpressure":"requested"}'
+
 set +e
 blocked=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"status":"blocked"}' | "$cpu")
 blocked_rc=$?
