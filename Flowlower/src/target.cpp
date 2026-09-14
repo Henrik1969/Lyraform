@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -36,6 +37,9 @@ int main(int argc, char** argv) {
                 structured_diagnostics = true;
             } else arguments.emplace_back(argv[index]);
         }
+#ifdef FLOWTARGET_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
         if (arguments.size() == 1 && arguments[0] == "--version") { std::cout << "0.1.0\n"; return 0; }
         if (arguments.size() != 3 || arguments[0] != "--policy-root")
             throw std::runtime_error("usage: flowtarget --policy-root DIRECTORY TARGET-NAME");
@@ -48,6 +52,9 @@ int main(int argc, char** argv) {
             throw json::Error("$.name", "resolved policy identity does not match requested target name");
         std::cout << json::serialize(value) << '\n';
         return 0;
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWTARGET_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        std::cerr << "flowtarget error: allocation failed\n"; return 1;
     } catch (const flowcontracts::json::Error& error) {
         if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWTARGET_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":" << json::serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
         std::cerr << "flowtarget contract error: " << error.what() << '\n'; return 1;

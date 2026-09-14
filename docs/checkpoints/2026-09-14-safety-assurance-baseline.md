@@ -377,6 +377,20 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowtarget allocation-fault boundary — 2026-09-15
+
+The target-policy resolver now has a test-only fault-injected executable that
+raises `std::bad_alloc` after CLI parsing and before policy access. Its public
+structured boundary returns `FLOWTARGET_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowtarget_allocation_fault` test is part of the canonical CTest suite.
+
+This covers exhaustion at the target-policy process boundary only. It does not
+claim complete allocation-fault coverage for every policy parser, validator,
+or backend provider path; those remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowlower allocation-fault boundary — 2026-09-15
 
 The backend lowering boundary now has a test-only fault-injected executable
