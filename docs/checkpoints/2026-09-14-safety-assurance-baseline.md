@@ -177,6 +177,16 @@ history locks before returning their structured error result.
 The safety state remains `CONTINUE`: deeper crash fault injection and
 retention semantics remain open.
 
+## Recovery and append descriptor ownership — 2026-09-14
+
+Append, quarantine, and valid-prefix truncation descriptors now use the scoped
+descriptor guard. Exceptions during write, sync, or validation cannot bypass
+descriptor cleanup, while the existing uncertain, quarantine, and repair
+results remain unchanged.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and
+retention semantics remain open.
+
 ## Append close-error disposition — 2026-09-14
 
 Durable history append now treats a failed `close()` after writing and syncing

@@ -225,6 +225,12 @@ struct ScopedFd {
     ~ScopedFd() { if (value >= 0) ::close(value); }
     ScopedFd(const ScopedFd&) = delete;
     ScopedFd& operator=(const ScopedFd&) = delete;
+    int release() {
+        if (value < 0) return 0;
+        const int result = ::close(value);
+        value = -1;
+        return result;
+    }
 };
 
 struct ScopedLock {
@@ -627,7 +633,8 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             lock_guard.release();
             return {false, false, scan.result.records, "exhausted", "history append exceeds configured byte bound", {}};
         }
-        const int descriptor = ::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0644);
+        ScopedFd descriptor_guard{::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0644)};
+        const int descriptor = descriptor_guard.value;
         if (descriptor < 0) {
             const int saved = errno;
             lock_guard.release();
@@ -636,7 +643,7 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
         const auto write_result = write_all(descriptor, line.data(), line.size());
         const bool bytes_written = write_result.changed;
         const int sync_status = write_result.complete ? ::fsync(descriptor) : -1;
-        const int close_status = ::close(descriptor);
+        const int close_status = descriptor_guard.release();
         const bool durable = write_result.complete && sync_status == 0 && close_status == 0;
         bool written = durable;
         int saved = written ? 0 : (sync_status != 0 ? errno : (close_status != 0 ? errno : EIO));
@@ -823,7 +830,8 @@ HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
             return scan.result;
         }
         const auto quarantine = path_ + ".quarantine";
-        const int quarantine_descriptor = ::open(quarantine.c_str(), O_CREAT | O_WRONLY | O_EXCL, 0644);
+        ScopedFd quarantine_guard{::open(quarantine.c_str(), O_CREAT | O_WRONLY | O_EXCL, 0644)};
+        const int quarantine_descriptor = quarantine_guard.value;
         if (quarantine_descriptor < 0) {
             const int saved = errno;
             lock_guard.release();
@@ -831,14 +839,15 @@ HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
         }
         const auto quarantine_write = write_all(quarantine_descriptor, scan.tail.data(), scan.tail.size());
         const bool quarantined = quarantine_write.complete && ::fsync(quarantine_descriptor) == 0;
-        ::close(quarantine_descriptor);
+        quarantine_guard.release();
         if (!quarantined) {
             lock_guard.release();
             return {false, false, scan.result.records, "error", "cannot persist incomplete tail quarantine", quarantine};
         }
-        const int descriptor = ::open(path_.c_str(), O_WRONLY);
+        ScopedFd descriptor_guard{::open(path_.c_str(), O_WRONLY)};
+        const int descriptor = descriptor_guard.value;
         const bool truncated = descriptor >= 0 && ::ftruncate(descriptor, static_cast<off_t>(scan.valid_prefix)) == 0 && ::fsync(descriptor) == 0;
-        if (descriptor >= 0) ::close(descriptor);
+        descriptor_guard.release();
         lock_guard.release();
         if (!truncated || sync_parent_directory(path_) != 0)
             return {false, false, scan.result.records, "error", "cannot durably truncate history to valid prefix", quarantine};
