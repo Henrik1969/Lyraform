@@ -7,6 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef TINYVM_ARTIFACT_V1_TEST_ALLOCATION_FAILURE
+static void *tinyvm_artifact_v1_fault_malloc(size_t size){(void)size;return NULL;}
+#define malloc tinyvm_artifact_v1_fault_malloc
+#endif
+
 enum { HEADER_BYTES = 512, WORD_BYTES = 32 };
 static const uint8_t magic[8] = {'F','L','O','W','T','V','M',0};
 

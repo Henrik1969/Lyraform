@@ -360,6 +360,23 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## TinyVM artifact v1 allocation-fault boundary — 2026-09-15
+
+The retained TinyVM v1 artifact writer now has a test-only fault-injected
+variant that exhausts its serialization buffer allocation. The public write
+boundary returns the deterministic `allocation failed` diagnostic and does
+not publish an output artifact. The focused
+`tinyvm_artifact_v1_allocation_fault` test passed in the normal GCC tree and
+the Clang 18.1.3 ASan/UBSan tree with leak detection disabled. The focused
+fault-injected writer also passed under Valgrind 3.22.0 Memcheck with
+`--error-exitcode=99`, zero errors, and zero bytes still allocated at exit.
+
+This covers the retained v1 compatibility writer only; it does not claim
+complete allocation-fault coverage for every legacy reader or runtime/provider
+allocation site.
+
+The safety state remains `CONTINUE`.
+
 ## TinyVM artifact v2 allocation-fault boundary — 2026-09-15
 
 The TinyVM v2 artifact loader now has a test-only fault-injected variant that
