@@ -42,6 +42,11 @@ tasks. The execution smoke test obtains its task count from the proven
 failure propagation. User regions are not executed unless they cross this
 approved-task boundary.
 
+The execution API publishes explicit result metadata: invalid worker counts,
+task failures, non-standard task failures, and worker-launch failures carry a
+stable code and `no_artifact` disposition. All launched workers are joined
+before the result is published; no partial success is silently promoted.
+
 The CPU provider refuses stronger scheduling requests rather than silently
 falling back to serial execution. `parallel_effectful_v1`, cancellation,
 asynchronous execution, and backpressure requests produce an explicit

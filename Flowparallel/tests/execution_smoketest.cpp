@@ -68,14 +68,16 @@ int main(int argc, char** argv) {
         const auto parallel = flowparallel::cpu::execute_independent(make_tasks(parallel_values, false), workers);
         std::vector<std::uint64_t> failed_values(options.tasks);
         const auto failed = flowparallel::cpu::execute_independent(make_tasks(failed_values, true), workers);
+        const auto invalid_workers = flowparallel::cpu::execute_independent({}, 0);
         const bool matching = serial.status == "ok" && parallel.status == "ok" && total(serial_values) == total(parallel_values);
-        const bool failure_propagated = failed.status == "error" && failed.failed_task != static_cast<std::size_t>(-1);
+        const bool failure_propagated = failed.status == "error" && failed.code == "TASK_FAILURE" && failed.disposition == "no_artifact" && failed.failed_task != static_cast<std::size_t>(-1);
+        const bool invalid_worker_rejected = invalid_workers.status == "error" && invalid_workers.code == "INVALID_WORKER_COUNT" && invalid_workers.disposition == "no_artifact";
         std::cout << "{\n  \"format\": \"flowparallel.cpu_execution_smoketest\",\n"
                      "  \"version\": 1,\n  \"status\": \"" << (matching && failure_propagated ? "ok" : "error") << "\",\n"
                      "  \"serial_result\": " << total(serial_values) << ",\n"
                      "  \"parallel_result\": " << total(parallel_values) << ",\n"
                      "  \"workers\": " << workers << ",\n"
-                     "  \"correctness\": {\"matching_result\": " << (matching ? "true" : "false") << ", \"failure_propagated\": " << (failure_propagated ? "true" : "false") << "}\n}\n";
-        return matching && failure_propagated ? 0 : 1;
+                     "  \"correctness\": {\"matching_result\": " << (matching ? "true" : "false") << ", \"failure_propagated\": " << (failure_propagated ? "true" : "false") << ", \"invalid_worker_rejected\": " << (invalid_worker_rejected ? "true" : "false") << "}\n}\n";
+        return matching && failure_propagated && invalid_worker_rejected ? 0 : 1;
     } catch (const std::exception& error) { std::cerr << "flowparallel_execution_smoketest error: " << error.what() << '\n'; return 2; }
 }

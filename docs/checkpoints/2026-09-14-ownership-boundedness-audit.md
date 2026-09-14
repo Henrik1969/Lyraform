@@ -32,6 +32,9 @@
 - CPU worker ownership uses `std::jthread` in a scope that joins all launched
   workers before publishing `ExecutionResult`. Launch failure is translated to
   an explicit error, including when only a partial worker set was started.
+- `ExecutionResult` now carries a stable code and disposition for invalid
+  worker count and task failure classes; the smoke test asserts that metadata
+  and confirms no partial result is promoted.
 
 ## Gaps requiring Gate 3 work
 

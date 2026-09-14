@@ -2601,6 +2601,19 @@ The canonical normal CTest graph after this checkpoint is **112/112 PASS**;
 the benchmark diagnostic test is hardware-independent, while CUDA
 execution/calibration remain explicitly host-gated.
 
+## 2026-09-14 CPU execution result boundary
+
+- Added stable `ExecutionResult` codes and `no_artifact` disposition for
+  invalid worker counts, task failures, unknown task failures, and worker
+  launch failures.
+- Kept failure metadata in the mutex-protected worker record and publish it
+  only after all `std::jthread`s join, avoiding a result-data race.
+- Extended the execution smoke test to assert explicit invalid-worker and task
+  failure outcomes.
+
+State remains CONTINUE. Thread-launch fault injection and broader native API
+containment remain open.
+
 The native CUDA execution and benchmark argument parsers now require complete
 integer tokens; hostile prefix-plus-suffix values are refused before provider
 setup.

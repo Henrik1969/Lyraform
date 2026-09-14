@@ -11,7 +11,7 @@ namespace flowparallel::cpu {
 
 ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned workers) {
     ExecutionResult result;
-    if (workers == 0) { result.status = "error"; result.error = "workers must be greater than zero"; return result; }
+    if (workers == 0) { result.status = "error"; result.code = "INVALID_WORKER_COUNT"; result.error = "workers must be greater than zero"; return result; }
     if (tasks.empty()) return result;
     const auto actual_workers = std::min<unsigned>(workers, static_cast<unsigned>(tasks.size()));
     std::atomic<std::size_t> next{0};
@@ -19,6 +19,7 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
     std::atomic<bool> failed{false};
     std::mutex failure_mutex;
     std::size_t failed_task = static_cast<std::size_t>(-1);
+    std::string failure_code;
     std::string failure;
 
     auto worker = [&] {
@@ -33,6 +34,7 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
                 if (!failed.exchange(true, std::memory_order_acq_rel)) {
                     std::lock_guard lock(failure_mutex);
                     failed_task = index;
+                    failure_code = "TASK_FAILURE";
                     failure = error.what();
                 }
                 return;
@@ -40,6 +42,7 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
                 if (!failed.exchange(true, std::memory_order_acq_rel)) {
                     std::lock_guard lock(failure_mutex);
                     failed_task = index;
+                    failure_code = "TASK_UNKNOWN_FAILURE";
                     failure = "task failed with a non-standard exception";
                 }
                 return;
@@ -57,11 +60,13 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
             for (unsigned index = 0; index < actual_workers; ++index) threads.emplace_back(worker);
         } catch (const std::exception& error) {
             result.status = "error";
+            result.code = "WORKER_LAUNCH_FAILURE";
             result.completed = completed.load(std::memory_order_relaxed);
             result.error = std::string("worker launch failed: ") + error.what();
             return result;
         } catch (...) {
             result.status = "error";
+            result.code = "WORKER_LAUNCH_UNKNOWN_FAILURE";
             result.completed = completed.load(std::memory_order_relaxed);
             result.error = "worker launch failed with a non-standard exception";
             return result;
@@ -70,6 +75,7 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
     result.completed = completed.load(std::memory_order_relaxed);
     if (failed.load(std::memory_order_acquire)) {
         result.status = "error";
+        result.code = failure_code;
         result.failed_task = failed_task;
         result.error = failure;
     }

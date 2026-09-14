@@ -13,6 +13,8 @@ struct Task {
 
 struct ExecutionResult {
     std::string status = "ok";
+    std::string code;
+    std::string disposition = "no_artifact";
     std::size_t completed = 0;
     std::size_t failed_task = static_cast<std::size_t>(-1);
     std::string error;

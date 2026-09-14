@@ -90,6 +90,9 @@ exit distinction.
   explicit, and a cleanup failure cannot become a verified execution result.
 - The CUDA matrix benchmark provides the same structured failure projection;
   calibration failure cannot be serialized as verified calibration evidence.
+- The CPU execution API translates task and worker failures into explicit
+  result metadata with stable codes and `no_artifact` disposition, publishing
+  only after all already-launched workers have joined.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.
