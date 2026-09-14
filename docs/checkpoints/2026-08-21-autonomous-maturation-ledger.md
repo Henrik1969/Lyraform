@@ -3414,6 +3414,17 @@ parallelism remain outside the admitted contract.
 State remains CONTINUE. Provider execution remains process-boundary and
 non-recoverable in-place; asynchronous and effectful scheduling remain refused.
 
+## 2026-09-14 graph worker-launch cleanup boundary
+
+- Replaced graph runtime `std::thread` ownership with `std::jthread`, so a
+  vector-growth or later worker-launch failure joins workers already started
+  during partial initialization.
+- This closes the joinable-thread termination hazard without admitting
+  cancellation or asynchronous scheduling.
+
+State remains CONTINUE. Allocation-failure injection for the launch path and
+broader provider fault coverage remain open.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure

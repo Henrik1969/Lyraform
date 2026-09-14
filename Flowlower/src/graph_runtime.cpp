@@ -120,7 +120,10 @@ extern "C" void flow_graph_parallel_run(
     std::int64_t* outputs, std::int64_t count) {
     if (!workers || !inputs || !outputs || count < 0) flow_graph_fail(active_operation, "invalid graph parallel invocation");
     if (count > max_parallel_workers) flow_graph_fail(active_operation, "graph parallel worker count exceeds the 256-worker limit");
-    std::vector<std::thread> threads;
+    // jthread joins already-started workers if vector growth or a later
+    // worker launch fails, preventing partial initialization from reaching
+    // std::terminate with joinable threads.
+    std::vector<std::jthread> threads;
     threads.reserve(static_cast<std::size_t>(count));
     for (std::int64_t index = 0; index < count; ++index) {
         if (!workers[index]) flow_graph_fail(active_operation, "graph parallel invocation contains a null worker");
