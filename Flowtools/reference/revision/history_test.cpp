@@ -67,6 +67,11 @@ int main() {
     assert(found.valid && found.found && found.status == "found");
     assert(history.find_event(generate_ulid()).status == "not_found");
     assert(!history.find_event("not-a-ulid").valid);
+    const auto bounded_path = base / "bounded.jsonl";
+    ErrorStateHistory bounded(bounded_path.string(), 1024 * 1024, 1);
+    assert(bounded.append(first).status == "exhausted");
+    const auto bounded_inspection = bounded.inspect();
+    assert(bounded_inspection.valid && bounded_inspection.records == 0);
 
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);

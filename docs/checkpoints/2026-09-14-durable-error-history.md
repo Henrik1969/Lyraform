@@ -15,7 +15,9 @@ identity lookup with explicit `found`, `not_found`, and rejected-ID outcomes.
 
 Successful append and repair operations now flush both the history file and
 its parent directory, so file creation/truncation durability is part of the
-reported success condition.
+reported success condition. Inspection and append are also bounded by a
+64 MiB total-history default and a 1 MiB per-record default; exceeding either
+bound yields an explicit `exhausted` result without publishing a record.
 
 An incomplete final line makes the history non-publishable. Appends refuse to
 continue until the operator explicitly calls `repair_incomplete_tail()`. That
@@ -35,6 +37,7 @@ explicit quarantine and repair: PASS
 post-repair append: PASS
 ordered validated read/replay projection: PASS
 exact identity lookup and invalid-ID refusal: PASS
+total-history bound and no-publication exhaustion: PASS
 ```
 
 This is a durable error-state boundary, not a complete history subsystem.

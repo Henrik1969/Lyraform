@@ -118,7 +118,8 @@ struct HistoryLookupResult {
 // final line before appending again.
 class ErrorStateHistory {
 public:
-    explicit ErrorStateHistory(std::string path, std::size_t max_line_bytes = 1024 * 1024);
+    explicit ErrorStateHistory(std::string path, std::size_t max_line_bytes = 1024 * 1024,
+                               std::size_t max_history_bytes = 64 * 1024 * 1024);
 
     HistoryResult inspect() const noexcept;
     HistoryReadResult read_records() const noexcept;
@@ -131,6 +132,7 @@ public:
 private:
     std::string path_;
     std::size_t max_line_bytes_;
+    std::size_t max_history_bytes_;
 };
 
 ValidationResult validate(const MutationRecord& record);

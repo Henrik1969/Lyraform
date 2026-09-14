@@ -61,7 +61,8 @@ bool write_all(int descriptor, const char* bytes, std::size_t length) {
     return true;
 }
 
-HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes) {
+HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
+                         std::size_t max_history_bytes) {
     HistoryScan scan;
     const int descriptor = ::open(path.c_str(), O_RDONLY);
     if (descriptor < 0) {
@@ -84,7 +85,13 @@ HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes) {
             return scan;
         }
         if (count == 0) break;
-        contents.append(buffer, static_cast<std::size_t>(count));
+        const auto bytes = static_cast<std::size_t>(count);
+        if (contents.size() > max_history_bytes || bytes > max_history_bytes - contents.size()) {
+            ::close(descriptor);
+            scan.result = {false, false, scan.events.size(), "exhausted", "history exceeds configured byte bound", {}};
+            return scan;
+        }
+        contents.append(buffer, bytes);
     }
     ::close(descriptor);
 
@@ -387,12 +394,13 @@ JsonResult to_json_checked(const ErrorStateEvent& event) {
 namespace {
 
 HistoryResult append_serialized(const std::string& path, std::size_t max_line_bytes,
+                                std::size_t max_history_bytes,
                                 const std::string& json) noexcept {
     try {
         const int lock = lock_history(path, LOCK_EX);
         if (lock < 0)
             return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
-        const auto scan = scan_history(path, max_line_bytes);
+        const auto scan = scan_history(path, max_line_bytes, max_history_bytes);
         if (!scan.result.valid || scan.incomplete_tail) {
             ::flock(lock, LOCK_UN);
             ::close(lock);
@@ -428,6 +436,12 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             return {false, false, scan.result.records, "error", std::string("cannot open history for append: ") + std::strerror(saved), {}};
         }
         const std::string line = json + '\n';
+        if (scan.valid_prefix > max_history_bytes || line.size() > max_history_bytes - scan.valid_prefix) {
+            ::close(descriptor);
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, "exhausted", "history append exceeds configured byte bound", {}};
+        }
         bool written = write_all(descriptor, line.data(), line.size()) && ::fsync(descriptor) == 0;
         int saved = written ? 0 : errno;
         ::close(descriptor);
@@ -448,15 +462,17 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
 
 } // namespace
 
-ErrorStateHistory::ErrorStateHistory(std::string path, std::size_t max_line_bytes)
-    : path_(std::move(path)), max_line_bytes_(max_line_bytes) {}
+ErrorStateHistory::ErrorStateHistory(std::string path, std::size_t max_line_bytes,
+                                     std::size_t max_history_bytes)
+    : path_(std::move(path)), max_line_bytes_(max_line_bytes),
+      max_history_bytes_(max_history_bytes) {}
 
 HistoryResult ErrorStateHistory::inspect() const noexcept {
     try {
         const int lock = lock_history(path_, LOCK_SH);
         if (lock < 0)
             return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
-        const auto scan = scan_history(path_, max_line_bytes_);
+        const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
         ::flock(lock, LOCK_UN);
         ::close(lock);
         return scan.result;
@@ -472,7 +488,7 @@ HistoryReadResult ErrorStateHistory::read_records() const noexcept {
         const int lock = lock_history(path_, LOCK_SH);
         if (lock < 0)
             return {false, 0, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
-        const auto scan = scan_history(path_, max_line_bytes_);
+        const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
         ::flock(lock, LOCK_UN);
         ::close(lock);
         if (!scan.result.valid)
@@ -492,7 +508,7 @@ HistoryLookupResult ErrorStateHistory::find_event(const std::string& event_id) c
         const int lock = lock_history(path_, LOCK_SH);
         if (lock < 0)
             return {false, false, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
-        const auto scan = scan_history(path_, max_line_bytes_);
+        const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
         ::flock(lock, LOCK_UN);
         ::close(lock);
         if (!scan.result.valid)
@@ -509,19 +525,19 @@ HistoryLookupResult ErrorStateHistory::find_event(const std::string& event_id) c
 
 HistoryResult ErrorStateHistory::append(const MutationRecord& record) const noexcept {
     const auto serialized = to_json_checked(record);
-    return serialized.valid ? append_serialized(path_, max_line_bytes_, serialized.json)
+    return serialized.valid ? append_serialized(path_, max_line_bytes_, max_history_bytes_, serialized.json)
                             : HistoryResult{false, false, 0, "rejected", serialized.error, {}};
 }
 
 HistoryResult ErrorStateHistory::append(const MutationRejection& rejection) const noexcept {
     const auto serialized = to_json_checked(rejection);
-    return serialized.valid ? append_serialized(path_, max_line_bytes_, serialized.json)
+    return serialized.valid ? append_serialized(path_, max_line_bytes_, max_history_bytes_, serialized.json)
                             : HistoryResult{false, false, 0, "rejected", serialized.error, {}};
 }
 
 HistoryResult ErrorStateHistory::append(const ErrorStateEvent& event) const noexcept {
     const auto serialized = to_json_checked(event);
-    return serialized.valid ? append_serialized(path_, max_line_bytes_, serialized.json)
+    return serialized.valid ? append_serialized(path_, max_line_bytes_, max_history_bytes_, serialized.json)
                             : HistoryResult{false, false, 0, "rejected", serialized.error, {}};
 }
 
@@ -530,7 +546,7 @@ HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
         const int lock = lock_history(path_, LOCK_EX);
         if (lock < 0)
             return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
-        const auto scan = scan_history(path_, max_line_bytes_);
+        const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
         if (!scan.incomplete_tail) {
             ::flock(lock, LOCK_UN);
             ::close(lock);
