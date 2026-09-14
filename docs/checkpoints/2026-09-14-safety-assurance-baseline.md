@@ -157,6 +157,17 @@ rules remain unchanged. The recovery fault suite remains green.
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open.
 
+## Valid-prefix truncation fault — 2026-09-14
+
+The recovery probe now injects a valid-prefix `ftruncate()` failure. Repair
+returns an explicit error while retaining the incomplete history and its
+quarantine; after the quarantine is handled, a second repair succeeds. This
+proves that a failed recovery barrier does not silently promote partial history
+or prevent deterministic operator retry.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and retention
+semantics remain open.
+
 ## Parent-directory close-error disposition — 2026-09-14
 
 The parent-directory durability barrier now treats a failed directory

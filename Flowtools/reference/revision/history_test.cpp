@@ -18,6 +18,16 @@ bool fail_write_after_partial = false;
 bool fail_zero_write_after_partial = false;
 bool fail_close = false;
 bool fail_directory_close = false;
+bool fail_truncate = false;
+
+extern "C" int __real_ftruncate(int, off_t);
+extern "C" int __wrap_ftruncate(int descriptor, off_t length) {
+    if (fail_truncate) {
+        errno = EIO;
+        return -1;
+    }
+    return __real_ftruncate(descriptor, length);
+}
 
 extern "C" int __real_close(int);
 extern "C" int __wrap_close(int descriptor) {
@@ -240,6 +250,23 @@ int main() {
     assert(incomplete.status == "incomplete");
     assert(incomplete.records == 4);
     assert(history.append(third).status == "incomplete");
+
+    const auto truncate_failure_path = base / "truncate-failure.jsonl";
+    ErrorStateHistory truncate_failure_history(truncate_failure_path.string());
+    assert(truncate_failure_history.append(event("opened")).status == "appended");
+    const int truncate_descriptor = ::open(truncate_failure_path.c_str(), O_WRONLY | O_APPEND);
+    assert(truncate_descriptor >= 0);
+    const std::string truncate_torn = "{\"format\":\"frankencore.error_state_event\",\"event_id\":\"" + generate_ulid();
+    assert(::write(truncate_descriptor, truncate_torn.data(), truncate_torn.size()) == static_cast<ssize_t>(truncate_torn.size()));
+    assert(::close(truncate_descriptor) == 0);
+    fail_truncate = true;
+    const auto truncate_failure = truncate_failure_history.repair_incomplete_tail();
+    fail_truncate = false;
+    assert(!truncate_failure.valid && truncate_failure.status == "error");
+    assert(std::filesystem::exists(truncate_failure.quarantine_path));
+    std::filesystem::remove(truncate_failure.quarantine_path);
+    const auto truncate_repair = truncate_failure_history.repair_incomplete_tail();
+    assert(truncate_repair.valid && truncate_repair.status == "repaired");
 
     const auto repaired = history.repair_incomplete_tail();
     assert(repaired.valid);
