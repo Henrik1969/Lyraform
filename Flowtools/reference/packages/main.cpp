@@ -74,6 +74,21 @@ int main() {
     assert(oversized_apt.diagnostics[0].code == "metadata-too-large");
     std::filesystem::remove_all(oversized_apt_fixture);
 
+    const auto oversized_list_fixture = std::filesystem::temp_directory_path() /
+                                        "frankencore-apt-oversized-list-test";
+    std::filesystem::create_directories(oversized_list_fixture);
+    {
+        std::ofstream output(oversized_list_fixture / "oversized.list");
+        output << "deb https://example.invalid/repo stable main "
+               << std::string(4U * 1024U * 1024U, 'x') << "\n";
+    }
+    const auto oversized_list = frankencore::packages::read_apt_sources(
+        oversized_list_fixture.string());
+    assert(oversized_list.apt_sources.empty());
+    assert(oversized_list.diagnostics.size() == 1);
+    assert(oversized_list.diagnostics[0].code == "metadata-too-large");
+    std::filesystem::remove_all(oversized_list_fixture);
+
     const auto source_fixture = std::filesystem::temp_directory_path() /
                                 "frankencore-apt-sources-test";
     std::filesystem::create_directories(source_fixture);

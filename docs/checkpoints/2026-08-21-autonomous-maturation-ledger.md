@@ -2623,6 +2623,17 @@ sized limits for future provider schemas remain unfinished.
 State remains CONTINUE. Field-level capability diagnostics and broader provider
 fault injection remain unfinished.
 
+## 2026-09-14 legacy APT source-file bound
+
+- Routed legacy `.list` files through the same bounded 4 MiB reader used for
+  `.sources` files. Long legacy lines can no longer bypass the file bound via
+  `std::getline`.
+- Added an oversized `.list` hostile fixture; the package-provider boundary
+  reports `metadata-too-large` and publishes no parsed source from that file.
+
+State remains CONTINUE. Broader native provider fault injection and future
+provider schemas still require independent evidence.
+
 ## 2026-09-14 package-provider failure evidence
 
 - Added a deterministic fake APT executable that emits one malformed row, one

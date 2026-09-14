@@ -390,13 +390,7 @@ Inventory read_apt_sources(const std::string& directory) {
     std::sort(entries.begin(), entries.end());
     for (const auto& path : entries) {
         const auto extension = path.extension().string();
-        std::ifstream input(path);
-        if (!input) {
-            add_diagnostic(inventory, "source-unavailable",
-                           "unable to read APT source file", 0);
-            continue;
-        }
-        if (extension == ".sources") {
+        if (extension == ".sources" || extension == ".list") {
             bool too_large = false;
             const auto contents = read_bounded_text(path, too_large);
             if (!contents) {
@@ -405,13 +399,16 @@ Inventory read_apt_sources(const std::string& directory) {
                                          : "unable to read APT source metadata", 0);
                 continue;
             }
-            parse_deb822_source(inventory, *contents, path.string());
-        } else if (extension == ".list") {
-            std::string line;
-            while (std::getline(input, line)) {
-                const auto first = line.find_first_not_of(" \t");
-                if (first == std::string::npos || line[first] == '#') continue;
-                parse_legacy_source(inventory, line.substr(first), path.string());
+            if (extension == ".sources") {
+                parse_deb822_source(inventory, *contents, path.string());
+            } else {
+                std::istringstream input(*contents);
+                std::string line;
+                while (std::getline(input, line)) {
+                    const auto first = line.find_first_not_of(" \t");
+                    if (first == std::string::npos || line[first] == '#') continue;
+                    parse_legacy_source(inventory, line.substr(first), path.string());
+                }
             }
         }
     }
