@@ -4,6 +4,7 @@
 #include <atomic>
 #include <exception>
 #include <mutex>
+#include <new>
 #include <stdexcept>
 #include <thread>
 
@@ -62,6 +63,12 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
 #endif
             threads.reserve(actual_workers);
             for (unsigned index = 0; index < actual_workers; ++index) threads.emplace_back(worker);
+        } catch (const std::bad_alloc& error) {
+            result.status = "error";
+            result.code = "WORKER_LAUNCH_RESOURCE_EXHAUSTED";
+            result.completed = completed.load(std::memory_order_relaxed);
+            result.error = std::string("worker launch exhausted resources: ") + error.what();
+            return result;
         } catch (const std::exception& error) {
             result.status = "error";
             result.code = "WORKER_LAUNCH_FAILURE";

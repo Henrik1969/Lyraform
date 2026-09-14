@@ -394,7 +394,7 @@ The safety state remains `CONTINUE`.
 
 The CPU independent-task executor now has a test-only runtime variant that
 injects allocation failure at worker-vector launch. The executor converts it
-to `WORKER_LAUNCH_FAILURE`, reports zero completed tasks and no artifact, and
+to `WORKER_LAUNCH_RESOURCE_EXHAUSTED`, reports zero completed tasks and no artifact, and
 its `std::jthread` ownership scope guarantees already-started workers are
 joined during unwinding. The focused
 `flowparallel_cpu_execution_allocation_fault` test is part of the canonical
