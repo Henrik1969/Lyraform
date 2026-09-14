@@ -277,3 +277,40 @@ and confirms fail-closed validation before policy or provider selection.
 
 This bounds the contract surface only; it does not claim that an isolation
 provider, signed profile, or independent verifier exists.
+
+## Current Tier 3 assurance rerun — 2026-09-14
+
+The published head `e7f28c7a777200dc9b954b9f3432164a0a8cdae4` was rebuilt in
+the independent Clang 18.1.3 sanitizer tree
+`/tmp/lyraform-asan-20260914` with AddressSanitizer and UndefinedBehaviorSanitizer:
+
+```text
+cmake -S . -B /tmp/lyraform-asan-20260914 -G Ninja \
+  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+  -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
+cmake --build /tmp/lyraform-asan-20260914
+ASAN_OPTIONS=detect_leaks=0:verify_asan_link_order=0 \
+UBSAN_OPTIONS=halt_on_error=1 \
+ctest --test-dir /tmp/lyraform-asan-20260914 --output-on-failure
+```
+
+The build completed all 169 targets and CTest passed 122/122 in 54.04
+seconds. LeakSanitizer remains unavailable under the managed traced host;
+leak detection was disabled as documented, while address and undefined
+behavior checks remained enabled.
+
+Independent Valgrind 3.22.0 runs with
+`--error-exitcode=99 --leak-check=full
+--errors-for-leak-kinds=definite,indirect` passed for the current history,
+contract, language, requirements, and graph-runtime safety probes. The graph
+fault fixture can report intentional `possibly lost` child-thread allocations;
+these are excluded from the failure threshold and are not definite or
+indirect leaks.
+
+The same revision passed `./igor doctor`, `./igor build`, and `./igor test`
+(122/122, 55.53 seconds), plus `git diff --check`. The worktree remains clean.
+
+The safety state remains `CONTINUE`: this evidence strengthens implementation
+and memory-tooling assurance but does not close the explicitly future
+cancellation/async/backpressure, isolation/trust, platform-assurance, or
+deeper crash/retention boundaries.
