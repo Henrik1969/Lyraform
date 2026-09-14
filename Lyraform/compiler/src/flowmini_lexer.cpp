@@ -99,9 +99,47 @@ namespace {
     return TokenKind::Identifier;
 }
 
+void validateUtf8(const std::string& source) {
+    const auto continuation = [&](std::size_t index) {
+        return index < source.size() &&
+               (static_cast<unsigned char>(source[index]) & 0xc0U) == 0x80U;
+    };
+    for (std::size_t index = 0; index < source.size();) {
+        const auto byte = static_cast<unsigned char>(source[index]);
+        std::size_t length = 0;
+        if (byte <= 0x7fU) {
+            length = 1;
+        } else if (byte >= 0xc2U && byte <= 0xdfU) {
+            length = 2;
+        } else if (byte >= 0xe0U && byte <= 0xefU) {
+            length = 3;
+            if (byte == 0xe0U) {
+                if (index + 1 >= source.size() || static_cast<unsigned char>(source[index + 1]) < 0xa0U) length = 0;
+            } else if (byte == 0xedU) {
+                if (index + 1 >= source.size() || static_cast<unsigned char>(source[index + 1]) > 0x9fU) length = 0;
+            }
+        } else if (byte >= 0xf0U && byte <= 0xf4U) {
+            length = 4;
+            if (byte == 0xf0U) {
+                if (index + 1 >= source.size() || static_cast<unsigned char>(source[index + 1]) < 0x90U) length = 0;
+            } else if (byte == 0xf4U) {
+                if (index + 1 >= source.size() || static_cast<unsigned char>(source[index + 1]) > 0x8fU) length = 0;
+            }
+        }
+        if (length == 0 || index + length > source.size() ||
+            (length >= 2 && !continuation(index + 1)) ||
+            (length >= 3 && !continuation(index + 2)) ||
+            (length == 4 && !continuation(index + 3))) {
+            throw flow::DiagnosticError{"source", "invalid UTF-8 at byte " + std::to_string(index)};
+        }
+        index += length;
+    }
+}
+
 } // namespace
 
 std::vector<Token> lexSource(const std::string& source) {
+    validateUtf8(source);
     std::vector<Token> tokens;
 
     std::size_t i = 0;

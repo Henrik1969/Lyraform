@@ -221,3 +221,8 @@ add_custom_target(flowmini_ast_golden_tests
     COMMENT "Running Flowmini AST golden regression tests"
     VERBATIM
 )
+
+add_test(NAME flowmini_utf8_source_boundary
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/run-flowmini-utf8-tests.sh)

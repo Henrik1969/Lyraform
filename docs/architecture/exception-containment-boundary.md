@@ -76,6 +76,9 @@ exit distinction.
 - The plan-producing Flowparallel CLI provides a structured contract-failure
   projection through `--diagnostics json`; malformed semantic reports leave
   artifact stdout empty.
+- The Flowmini source boundary validates UTF-8 before lexing, accepts valid
+  non-ASCII source, and rejects truncated, overlong, surrogate, out-of-range,
+  and malformed byte sequences with a source diagnostic and no artifact.
 - The graph-reference Flowparallel consumer also provides a structured
   `no_artifact` failure projection for malformed or unsupported semantic graph
   input, preserving the independent artifact boundary.

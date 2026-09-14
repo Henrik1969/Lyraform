@@ -81,6 +81,10 @@ the dependency chain. The next safety-relevant closure evidence must include:
 5. equivalent LLVM and TinyVM execution from captured public artifacts; and
 6. a Flow-written producer/consumer proof that does not use a private C++ hook.
 
+The Stage 0 lexer now has independent UTF-8 ingress evidence through
+`flowmini_utf8_source_boundary`; this does not satisfy the requirement for a
+Flow-written source reader and therefore does not change the Stage 1 decision.
+
 Until those checks pass, Stage 1 remains `not-started` and the safety mission
 state remains `CONTINUE`.
 

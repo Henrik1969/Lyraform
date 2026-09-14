@@ -2638,6 +2638,19 @@ decision until the public callable artifact and Flow-written proof exist.
 State remains CONTINUE. The next closure target is `utf8-source-reader`, not a
 duplicate callable-catalog implementation.
 
+## 2026-09-14 Stage 0 UTF-8 source ingress boundary
+
+- Added strict UTF-8 validation before Flowmini lexing, including rejection of
+  overlong, surrogate, out-of-range, truncated, and malformed sequences with
+  a byte-offset source diagnostic.
+- Added positive non-ASCII source coverage and hostile invalid-byte coverage;
+  invalid input emits no frontend artifact.
+- Focused `flowmini_utf8_source_boundary` test passes. This hardens Stage 0
+  ingress but does not close the Flow-written `utf8-source-reader` gap.
+
+State remains CONTINUE. The Flow-level source reader and later compiler closure
+remain required before Stage 1.
+
 ## 2026-09-14 CPU execution workload ingress boundary
 
 - Replaced prefix-accepting `stoul` conversion in the execution smoke boundary
