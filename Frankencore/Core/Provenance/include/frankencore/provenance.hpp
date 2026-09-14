@@ -88,6 +88,31 @@ struct JsonResult {
     std::string error;
 };
 
+struct HistoryResult {
+    bool valid = false;
+    bool changed = false;
+    std::size_t records = 0;
+    std::string status;
+    std::string error;
+    std::string quarantine_path;
+};
+
+// Project-local append-only error-state history. The file is JSONL with one
+// complete ErrorStateEvent per line; callers must explicitly repair a torn
+// final line before appending again.
+class ErrorStateHistory {
+public:
+    explicit ErrorStateHistory(std::string path, std::size_t max_line_bytes = 1024 * 1024);
+
+    HistoryResult inspect() const noexcept;
+    HistoryResult append(const ErrorStateEvent& event) const noexcept;
+    HistoryResult repair_incomplete_tail() const noexcept;
+
+private:
+    std::string path_;
+    std::size_t max_line_bytes_;
+};
+
 ValidationResult validate(const MutationRecord& record);
 
 // JSON is an inspectable projection of the canonical C++ record.

@@ -15,6 +15,12 @@ add_test(NAME frankencore_revision_rejects_non_monotonic
 set_tests_properties(frankencore_revision_rejects_non_monotonic PROPERTIES WILL_FAIL TRUE)
 add_test(NAME frankencore_provenance_api
     COMMAND frankencore_provenance_api_test)
+add_executable(frankencore_error_state_history_test history_test.cpp)
+target_link_libraries(frankencore_error_state_history_test PRIVATE Frankencore::Provenance)
+target_compile_features(frankencore_error_state_history_test PRIVATE cxx_std_20)
+target_compile_options(frankencore_error_state_history_test PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME frankencore_error_state_history
+    COMMAND frankencore_error_state_history_test)
 add_test(NAME frankencore_reference_structured_diagnostics
     COMMAND ${CMAKE_COMMAND} -E env
         CLOCK_BIN=$<TARGET_FILE:frankencore_clock>

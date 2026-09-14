@@ -3,10 +3,123 @@
 #include <sstream>
 #include <new>
 #include <stdexcept>
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <unordered_map>
 #include <utility>
 
 namespace frankencore::provenance {
 namespace {
+
+struct HistoryScan {
+    HistoryResult result;
+    std::unordered_map<std::string, std::string> events;
+    std::size_t valid_prefix = 0;
+    bool incomplete_tail = false;
+    std::string tail;
+};
+
+int lock_history(const std::string& path, int operation) {
+    const auto lock_path = path + ".lock";
+    const int descriptor = ::open(lock_path.c_str(), O_CREAT | O_RDWR, 0644);
+    if (descriptor < 0) return -1;
+    if (::flock(descriptor, operation) != 0) {
+        const int saved = errno;
+        ::close(descriptor);
+        errno = saved;
+        return -1;
+    }
+    return descriptor;
+}
+
+bool write_all(int descriptor, const char* bytes, std::size_t length) {
+    while (length != 0) {
+        const auto written = ::write(descriptor, bytes, length);
+        if (written < 0 && errno == EINTR) continue;
+        if (written <= 0) return false;
+        bytes += written;
+        length -= static_cast<std::size_t>(written);
+    }
+    return true;
+}
+
+HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes) {
+    HistoryScan scan;
+    const int descriptor = ::open(path.c_str(), O_RDONLY);
+    if (descriptor < 0) {
+        if (errno == ENOENT) {
+            scan.result = {true, false, 0, "empty", {}, {}};
+            return scan;
+        }
+        scan.result = {false, false, 0, "error", std::string("cannot open history: ") + std::strerror(errno), {}};
+        return scan;
+    }
+    std::string contents;
+    char buffer[8192];
+    while (true) {
+        const auto count = ::read(descriptor, buffer, sizeof(buffer));
+        if (count < 0 && errno == EINTR) continue;
+        if (count < 0) {
+            const int saved = errno;
+            ::close(descriptor);
+            scan.result = {false, false, 0, "error", std::string("cannot read history: ") + std::strerror(saved), {}};
+            return scan;
+        }
+        if (count == 0) break;
+        contents.append(buffer, static_cast<std::size_t>(count));
+    }
+    ::close(descriptor);
+
+    std::size_t offset = 0;
+    while (offset < contents.size()) {
+        const auto newline = contents.find('\n', offset);
+        if (newline == std::string::npos) {
+            scan.incomplete_tail = true;
+            scan.tail = contents.substr(offset);
+            break;
+        }
+        const auto line_length = newline - offset;
+        if (line_length == 0 || line_length > max_line_bytes) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history contains an empty or oversized record", {}};
+            return scan;
+        }
+        const auto line = contents.substr(offset, line_length);
+        if (line.front() != '{' || line.back() != '}' ||
+            line.find("\"format\":\"frankencore.error_state_event\"") == std::string::npos) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history contains a malformed error-state record", {}};
+            return scan;
+        }
+        constexpr std::string_view marker = "\"event_id\":\"";
+        const auto event_begin = line.find(marker);
+        if (event_begin == std::string::npos) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history record has no event_id", {}};
+            return scan;
+        }
+        const auto id_begin = event_begin + marker.size();
+        const auto id_end = line.find('"', id_begin);
+        if (id_end == std::string::npos) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history record has an unterminated event_id", {}};
+            return scan;
+        }
+        const auto event_id = line.substr(id_begin, id_end - id_begin);
+        if (!is_valid_ulid(event_id)) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history record has an invalid event_id", {}};
+            return scan;
+        }
+        if (!scan.events.emplace(event_id, line).second) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history contains a duplicate event_id", {}};
+            return scan;
+        }
+        offset = newline + 1;
+        scan.valid_prefix = offset;
+    }
+    scan.result = {!scan.incomplete_tail, false, scan.events.size(), scan.incomplete_tail ? "incomplete" : "valid", {}, {}};
+    return scan;
+}
 
 ValidationResult required(const MutationRecord& record) {
     const std::pair<const char*, const std::string*> fields[] = {
@@ -252,6 +365,113 @@ JsonResult to_json_checked(const MutationRejection& rejection) {
 
 JsonResult to_json_checked(const ErrorStateEvent& event) {
     return checked_json(event);
+}
+
+ErrorStateHistory::ErrorStateHistory(std::string path, std::size_t max_line_bytes)
+    : path_(std::move(path)), max_line_bytes_(max_line_bytes) {}
+
+HistoryResult ErrorStateHistory::inspect() const noexcept {
+    try {
+        const int lock = lock_history(path_, LOCK_SH);
+        if (lock < 0)
+            return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
+        const auto scan = scan_history(path_, max_line_bytes_);
+        ::flock(lock, LOCK_UN);
+        ::close(lock);
+        return scan.result;
+    } catch (const std::exception& error) {
+        return {false, false, 0, "error", error.what(), {}};
+    } catch (...) {
+        return {false, false, 0, "error", "history inspection failed with an unknown non-standard failure", {}};
+    }
+}
+
+HistoryResult ErrorStateHistory::append(const ErrorStateEvent& event) const noexcept {
+    const auto serialized = to_json_checked(event);
+    if (!serialized.valid)
+        return {false, false, 0, "rejected", serialized.error, {}};
+    try {
+        const int lock = lock_history(path_, LOCK_EX);
+        if (lock < 0)
+            return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
+        const auto scan = scan_history(path_, max_line_bytes_);
+        if (!scan.result.valid || scan.incomplete_tail) {
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, scan.incomplete_tail ? "incomplete" : scan.result.status,
+                    scan.incomplete_tail ? "history has an incomplete final record; explicit repair is required" : scan.result.error, {}};
+        }
+        const auto event_id_marker = std::string{"\"event_id\":\""};
+        const auto event_id_begin = serialized.json.find(event_id_marker);
+        const auto event_id_end = serialized.json.find('"', event_id_begin + event_id_marker.size());
+        const auto event_id = serialized.json.substr(event_id_begin + event_id_marker.size(), event_id_end - event_id_begin - event_id_marker.size());
+        if (const auto existing = scan.events.find(event_id); existing != scan.events.end()) {
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            if (existing->second == serialized.json) return {true, false, scan.result.records, "duplicate", {}, {}};
+            return {false, false, scan.result.records, "conflict", "event_id already exists with different content", {}};
+        }
+        const int descriptor = ::open(path_.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0644);
+        if (descriptor < 0) {
+            const int saved = errno;
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, "error", std::string("cannot open history for append: ") + std::strerror(saved), {}};
+        }
+        const std::string line = serialized.json + '\n';
+        const bool written = write_all(descriptor, line.data(), line.size()) && ::fsync(descriptor) == 0;
+        const int saved = errno;
+        ::close(descriptor);
+        ::flock(lock, LOCK_UN);
+        ::close(lock);
+        if (!written) return {false, false, scan.result.records, "error", std::string("history append failed: ") + std::strerror(saved), {}};
+        return {true, true, scan.result.records + 1, "appended", {}, {}};
+    } catch (const std::exception& error) {
+        return {false, false, 0, "error", error.what(), {}};
+    } catch (...) {
+        return {false, false, 0, "error", "history append failed with an unknown non-standard failure", {}};
+    }
+}
+
+HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
+    try {
+        const int lock = lock_history(path_, LOCK_EX);
+        if (lock < 0)
+            return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
+        const auto scan = scan_history(path_, max_line_bytes_);
+        if (!scan.incomplete_tail) {
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            if (scan.result.valid) return {true, false, scan.result.records, "no_repair", {}, {}};
+            return scan.result;
+        }
+        const auto quarantine = path_ + ".quarantine";
+        const int quarantine_descriptor = ::open(quarantine.c_str(), O_CREAT | O_WRONLY | O_EXCL, 0644);
+        if (quarantine_descriptor < 0) {
+            const int saved = errno;
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, "error", std::string("cannot create quarantine: ") + std::strerror(saved), quarantine};
+        }
+        const bool quarantined = write_all(quarantine_descriptor, scan.tail.data(), scan.tail.size()) && ::fsync(quarantine_descriptor) == 0;
+        ::close(quarantine_descriptor);
+        if (!quarantined) {
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, "error", "cannot persist incomplete tail quarantine", quarantine};
+        }
+        const int descriptor = ::open(path_.c_str(), O_WRONLY);
+        const bool truncated = descriptor >= 0 && ::ftruncate(descriptor, static_cast<off_t>(scan.valid_prefix)) == 0 && ::fsync(descriptor) == 0;
+        if (descriptor >= 0) ::close(descriptor);
+        ::flock(lock, LOCK_UN);
+        ::close(lock);
+        if (!truncated) return {false, false, scan.result.records, "error", "cannot truncate history to valid prefix", quarantine};
+        return {true, true, scan.result.records, "repaired", "incomplete final record quarantined", quarantine};
+    } catch (const std::exception& error) {
+        return {false, false, 0, "error", error.what(), {}};
+    } catch (...) {
+        return {false, false, 0, "error", "history repair failed with an unknown non-standard failure", {}};
+    }
 }
 
 } // namespace frankencore::provenance

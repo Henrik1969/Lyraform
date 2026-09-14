@@ -100,9 +100,13 @@ temporary repair material itself.
 
 ## Current implementation boundary
 
-The C++ core currently provides ULID generation and mutation-event structures.
-The project metadata schema, project-local append-only storage, retention, and
-lookup capability remain future work.
+The C++ core provides ULID generation, mutation-event structures, and a
+project-local `ErrorStateHistory` boundary. The boundary uses an exclusive
+writer lock, validates the complete JSONL prefix before append, deduplicates
+identical event IDs, rejects conflicting IDs, flushes successful appends, and
+requires explicit quarantine/repair for an incomplete final line. Full JSON
+schema parsing, retention, lookup/replay, and cross-branch reconciliation
+remain future work.
 
 ## Revisit triggers
 
