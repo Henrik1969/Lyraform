@@ -13,6 +13,7 @@ namespace {
 bool fail_fsync = false;
 bool fail_parent_fsync = false;
 bool fail_write_after_partial = false;
+bool fail_zero_write_after_partial = false;
 
 extern "C" int __real_fsync(int);
 extern "C" int __wrap_fsync(int descriptor) {
@@ -32,16 +33,17 @@ extern "C" int __wrap_fsync(int descriptor) {
 extern "C" ssize_t __real_write(int, const void*, size_t);
 extern "C" ssize_t __wrap_write(int descriptor, const void* bytes, size_t length) {
     static bool partial_write_emitted = false;
-    if (fail_write_after_partial && !partial_write_emitted) {
+    if ((fail_write_after_partial || fail_zero_write_after_partial) && !partial_write_emitted) {
         partial_write_emitted = true;
         const auto partial = length > 3 ? 3 : length;
         return __real_write(descriptor, bytes, partial);
     }
+    if (fail_zero_write_after_partial) return 0;
     if (fail_write_after_partial) {
         errno = EIO;
         return -1;
     }
-    partial_write_emitted = false;
+    if (!fail_write_after_partial && !fail_zero_write_after_partial) partial_write_emitted = false;
     return __real_write(descriptor, bytes, length);
 }
 
@@ -263,6 +265,20 @@ int main() {
     assert(partial_history.inspect().status == "incomplete");
     assert(partial_history.repair_incomplete_tail().status == "repaired");
     assert(partial_history.inspect().valid && partial_history.inspect().records == 1);
+
+    const auto zero_write_path = base / "zero-write.jsonl";
+    ErrorStateHistory zero_write_history(zero_write_path.string());
+    const auto zero_write_opened = event("opened");
+    assert(zero_write_history.append(zero_write_opened).status == "appended");
+    auto zero_write_diagnosed = zero_write_opened;
+    zero_write_diagnosed.event_id = generate_ulid();
+    zero_write_diagnosed.status = "diagnosed";
+    fail_zero_write_after_partial = true;
+    const auto zero_write_append = zero_write_history.append(zero_write_diagnosed);
+    fail_zero_write_after_partial = false;
+    assert(!zero_write_append.valid && zero_write_append.changed);
+    assert(zero_write_append.status == "uncertain");
+    assert(zero_write_history.inspect().status == "incomplete");
 
     const auto parent_sync_path = base / "parent-sync.jsonl";
     ErrorStateHistory parent_sync_history(parent_sync_path.string());

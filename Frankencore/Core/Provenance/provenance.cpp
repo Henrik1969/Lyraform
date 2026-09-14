@@ -202,7 +202,11 @@ WriteResult write_all(int descriptor, const char* bytes, std::size_t length) {
     while (length != 0) {
         const auto written = ::write(descriptor, bytes, length);
         if (written < 0 && errno == EINTR) continue;
-        if (written <= 0) return {false, changed};
+        if (written == 0) {
+            errno = EIO;
+            return {false, changed};
+        }
+        if (written < 0) return {false, changed};
         changed = true;
         bytes += written;
         length -= static_cast<std::size_t>(written);

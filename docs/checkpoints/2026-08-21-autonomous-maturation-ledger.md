@@ -2634,6 +2634,17 @@ native/provider fault-injection work.
 State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
 cancellation/async, and broader native/provider fault injection remain open.
 
+## 2026-09-14 durable-history zero-progress write boundary
+
+- Treat a zero-progress `write()` after an earlier partial write as a torn
+  append, preserving `uncertain`/`changed=true` and assigning `EIO` rather than
+  reusing stale `errno`.
+- Added fault-injected zero-progress coverage; the incomplete tail remains
+  visible for explicit repair.
+
+State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
+cancellation/async, and broader native/provider fault injection remain open.
+
 ## 2026-09-14 durable-history uncertain fsync result
 
 - Distinguished a failed write from bytes-written-but-unsynchronized history
