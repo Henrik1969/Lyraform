@@ -108,6 +108,12 @@ int main() {
     assert(bounded.append(first).status == "exhausted");
     const auto bounded_inspection = bounded.inspect();
     assert(bounded_inspection.valid && bounded_inspection.records == 0);
+    const auto line_bounded_path = base / "line-bounded.jsonl";
+    ErrorStateHistory line_bounded(line_bounded_path.string(), 32, 1024 * 1024);
+    const auto line_bounded_result = line_bounded.append(first);
+    assert(!line_bounded_result.valid && line_bounded_result.status == "exhausted");
+    assert(line_bounded_result.error == "history record exceeds configured line bound");
+    assert(line_bounded.inspect().valid && line_bounded.inspect().records == 0);
 
     const auto malformed_path = base / "malformed.jsonl";
     {

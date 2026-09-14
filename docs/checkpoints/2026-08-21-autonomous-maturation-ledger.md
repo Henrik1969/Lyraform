@@ -2597,6 +2597,17 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 durable-history per-record bound
+
+- Enforced `max_line_bytes` on the candidate append before opening the history
+  file; oversized records now return deterministic `exhausted` without creating
+  or changing the file.
+- Added focused evidence alongside the existing total-history bound test. The
+  history API test passes.
+
+State remains CONTINUE. Crash fault injection, retention policy, native fault
+injection, isolation/trust, and remaining Gate 5/6/8 evidence are unfinished.
+
 ## 2026-09-14 Flowanalyst structured failure containment
 
 - Added `flowanalyst --diagnostics json` for malformed CLI/input/provider-map

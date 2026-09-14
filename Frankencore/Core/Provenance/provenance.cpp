@@ -582,19 +582,23 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             ::close(lock);
             return {false, false, scan.result.records, "rejected", "serialized event violates replay rules: " + json_error, {}};
         }
+        const std::string line = json + '\n';
+        if (line.size() > max_line_bytes) {
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, "exhausted", "history record exceeds configured line bound", {}};
+        }
+        if (scan.valid_prefix > max_history_bytes || line.size() > max_history_bytes - scan.valid_prefix) {
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, "exhausted", "history append exceeds configured byte bound", {}};
+        }
         const int descriptor = ::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0644);
         if (descriptor < 0) {
             const int saved = errno;
             ::flock(lock, LOCK_UN);
             ::close(lock);
             return {false, false, scan.result.records, "error", std::string("cannot open history for append: ") + std::strerror(saved), {}};
-        }
-        const std::string line = json + '\n';
-        if (scan.valid_prefix > max_history_bytes || line.size() > max_history_bytes - scan.valid_prefix) {
-            ::close(descriptor);
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
-            return {false, false, scan.result.records, "exhausted", "history append exceeds configured byte bound", {}};
         }
         bool written = write_all(descriptor, line.data(), line.size()) && ::fsync(descriptor) == 0;
         int saved = written ? 0 : errno;

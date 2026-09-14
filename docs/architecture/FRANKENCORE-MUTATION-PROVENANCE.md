@@ -100,6 +100,9 @@ and linear mutation revision/state continuity, and exposes a typed read-only
 final mutation-state replay projection. Policy authorizes exceptional
 transitions, which must record their authorization and reason; history records
 the resulting fact immutably.
+Each append is checked against both the configured total-history bound and the
+per-record line bound before the file is opened, so an oversized record cannot
+create or alter a history file.
 
 The status vocabulary is additive rather than a closed enum. Extensions are
 permitted when they preserve the constitutional laws and applicable policies;
