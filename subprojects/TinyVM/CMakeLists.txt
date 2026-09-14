@@ -98,7 +98,7 @@ add_executable(flowtinyv2_allocation_fault tests/artifact-v2-allocation-fault.c)
 target_link_libraries(flowtinyv2_allocation_fault PRIVATE tinyvm_recovered_artifact_v2_allocation_fault)
 add_executable(tinyvm_runtime_provider_allocation_fault tests/runtime-provider-allocation-fault.c tests/runtime-provider-realloc-wrap.c)
 target_link_libraries(tinyvm_runtime_provider_allocation_fault PRIVATE tinyvm_recovered)
-target_link_options(tinyvm_runtime_provider_allocation_fault PRIVATE "-Wl,--wrap=malloc" "-Wl,--wrap=realloc")
+target_link_options(tinyvm_runtime_provider_allocation_fault PRIVATE "-Wl,--wrap=malloc" "-Wl,--wrap=calloc" "-Wl,--wrap=realloc")
 endif()
 
 if(BUILD_TESTING)

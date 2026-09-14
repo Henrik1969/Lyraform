@@ -57,6 +57,32 @@ int main(int argc,char **argv){
         tinyvm_runtime_provider_destroy(&provider);
         return 1;
     }
+    uint8_t storage_bytes[8]={0};
+    TinyvmStorage storage[]={{1,sizeof storage_bytes,8,2}};
+    artifact.storage=storage;
+    artifact.storage_count=1;
+    memset(&import,0,sizeof import);
+    import.id=1;
+    snprintf(import.contract,64,"memory");
+    snprintf(import.library,64,"libc.so.6");
+    snprintf(import.convention,64,"c");
+    snprintf(import.symbol,64,"memset");
+    snprintf(import.effect,64,"io");
+    snprintf(import.parameters,64,"c_pointer,c_int,c_size_t");
+    snprintf(import.result,64,"c_pointer");
+    snprintf(import.evidence,64,"runtime-provider-allocation-fault");
+    TinyvmValue memory_args[]={
+        {TINYVM_CARRIER_OPAQUE_HANDLE,(UINT64_C(2)<<56)|1,true},
+        {TINYVM_CARRIER_I32,0x41,true},
+        {TINYVM_CARRIER_I64,sizeof storage_bytes,true}
+    };
+    result=(TinyvmValue){0};
+    fault=NULL;
+    if(tinyvm_runtime_provider_resolve(&provider,&artifact,&import,memory_args,3,&result,&fault)||!fault||strcmp(fault,"runtime provider allocation exhausted")||result.initialized||provider.storage||provider.storage_count){
+        fprintf(stderr,"unexpected storage allocation result: fault=%s initialized=%d storage=%p count=%zu\n",fault?fault:"<null>",result.initialized,(void *)provider.storage,provider.storage_count);
+        tinyvm_runtime_provider_destroy(&provider);
+        return 1;
+    }
     tinyvm_runtime_provider_destroy(&provider);
     puts("TinyVM runtime provider allocation faults refused with no outcome");
     return 0;

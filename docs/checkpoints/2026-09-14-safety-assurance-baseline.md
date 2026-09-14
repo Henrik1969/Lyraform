@@ -377,6 +377,20 @@ The subsequent provider-string consumer expansion preserved the complete
 canonical result: 147/147 normal GCC tests and 147/147 Clang 18.1.3
 ASan/UBSan tests passed.
 
+## TinyVM runtime-provider storage allocation classification — 2026-09-15
+
+The runtime provider now distinguishes activation-local storage allocation
+exhaustion from a storage bounds violation. The public resolver returns
+`runtime provider allocation exhausted`, leaves the result uninitialized, and
+retains no partial storage state. The focused
+`tinyvm_runtime_provider_allocation_fault` test covers artifact-string copy,
+provider-owned outcome retention, and storage allocation exhaustion. It
+passed under normal GCC, Clang 18.1.3 ASan/UBSan, and Valgrind 3.22.0
+Memcheck with zero errors and zero leaks.
+
+The complete canonical suite passed 147/147 under normal GCC and 147/147
+under Clang 18.1.3 ASan/UBSan. The safety state remains `CONTINUE`.
+
 ## TinyVM runtime-provider allocation-fault boundary — 2026-09-15
 
 The TinyVM runtime provider now classifies failure to retain a provider-owned
