@@ -235,6 +235,8 @@ JsonResult checked_json(const Value& value) {
         return {false, {}, "serialization allocation failed"};
     } catch (const std::exception& error) {
         return {false, {}, std::string{"serialization failed: "} + error.what()};
+    } catch (...) {
+        return {false, {}, "serialization failed with unknown non-standard failure"};
     }
 }
 
