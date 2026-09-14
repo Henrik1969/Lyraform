@@ -3403,6 +3403,17 @@ parallelism remains refused.
 State remains CONTINUE. External log retention and general asynchronous
 parallelism remain outside the admitted contract.
 
+## 2026-09-14 graph-worker exception boundary
+
+- Wrapped graph worker callbacks at the thread boundary so standard and
+  non-standard exceptions cannot reach `std::terminate` as an unclassified
+  failure.
+- Both cases now use the existing structured graph-failure process disposition;
+  the hostile worker test confirms deterministic exit status.
+
+State remains CONTINUE. Provider execution remains process-boundary and
+non-recoverable in-place; asynchronous and effectful scheduling remain refused.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure

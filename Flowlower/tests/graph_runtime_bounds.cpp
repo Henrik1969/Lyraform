@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <string>
+#include <stdexcept>
 #include <unistd.h>
 
 extern "C" void flow_graph_parallel_run(
@@ -15,6 +16,7 @@ extern "C" void flow_graph_drop(const char* value);
 
 namespace {
 void worker(std::int64_t input, std::int64_t* output) { *output = input + 1; }
+void throwing_worker(std::int64_t, std::int64_t*) { throw std::runtime_error("hostile worker"); }
 }
 
 int main() {
@@ -32,6 +34,16 @@ int main() {
     }
     int status = 0;
     assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 70);
+
+    void (*throwing_workers[1]) (std::int64_t, std::int64_t*) = {throwing_worker};
+    const pid_t throwing_child = fork();
+    assert(throwing_child >= 0);
+    if (throwing_child == 0) {
+        flow_graph_parallel_run(throwing_workers, input, output, 1);
+        _exit(0);
+    }
+    assert(waitpid(throwing_child, &status, 0) == throwing_child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 70);
 
     char path[] = "/tmp/flowgraph-diagnostic-bound-XXXXXX";

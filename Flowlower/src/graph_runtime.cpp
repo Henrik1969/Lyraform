@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <algorithm>
+#include <exception>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -123,7 +124,16 @@ extern "C" void flow_graph_parallel_run(
     threads.reserve(static_cast<std::size_t>(count));
     for (std::int64_t index = 0; index < count; ++index) {
         if (!workers[index]) flow_graph_fail(active_operation, "graph parallel invocation contains a null worker");
-        threads.emplace_back(workers[index], inputs[index], &outputs[index]);
+        const auto operation = active_operation;
+        threads.emplace_back([worker = workers[index], input = inputs[index], output = &outputs[index], operation] {
+            try {
+                worker(input, output);
+            } catch (const std::exception&) {
+                flow_graph_fail(operation, "graph parallel worker failed");
+            } catch (...) {
+                flow_graph_fail(operation, "graph parallel worker failed with a non-standard exception");
+            }
+        });
     }
     for (auto& thread : threads) thread.join();
 }
