@@ -17,6 +17,10 @@ target_link_libraries(flowlower_allocation_fault PRIVATE flowcontracts)
 add_executable(flowprepare src/prepare.cpp)
 target_compile_options(flowprepare PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowprepare PRIVATE flowcontracts)
+add_executable(flowprepare_allocation_fault src/prepare.cpp)
+target_compile_definitions(flowprepare_allocation_fault PRIVATE FLOWPREPARE_TEST_ALLOCATION_FAILURE)
+target_compile_options(flowprepare_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowprepare_allocation_fault PRIVATE flowcontracts)
 add_executable(flowtarget src/target.cpp)
 target_compile_options(flowtarget PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowtarget PRIVATE flowcontracts)
@@ -32,6 +36,10 @@ add_test(NAME flowlower_backend_artifact
         FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-backend-artifact-tests.sh)
+add_test(NAME flowprepare_allocation_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPREPARE_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowprepare_allocation_fault>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-flowprepare-allocation-fault.sh)
 add_test(NAME flowtarget_policy_boundary
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWTARGET_BIN=$<TARGET_FILE:flowtarget>

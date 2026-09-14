@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -57,6 +58,10 @@ Value select_target(const Object& root, const std::string& requested) {
 }
 
 int prepare(const Options& option) {
+#ifdef FLOWPREPARE_TEST_ALLOCATION_FAILURE
+    (void)option;
+    throw std::bad_alloc();
+#endif
     const auto optimization = parse(read(option.optimization_path));
     validate_optimization_report(optimization);
     const auto& root = object(optimization);
@@ -126,6 +131,9 @@ int main(int argc, char** argv) {
         const auto parsed = options(argc, argv);
         structured_diagnostics = parsed.structured_diagnostics;
         return prepare(parsed);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        std::cerr << "flowprepare error: allocation failed\n"; return 1;
     } catch (const flowcontracts::json::Error& error) {
         if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":" << serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
         std::cerr << "flowprepare contract error: " << error.what() << '\n'; return 1;

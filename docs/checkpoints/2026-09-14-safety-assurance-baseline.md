@@ -377,6 +377,20 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowprepare allocation-fault boundary — 2026-09-15
+
+The backend-artifact preparation boundary now has a test-only fault-injected
+executable that raises `std::bad_alloc` before consuming its input artifact.
+Its public structured boundary returns `FLOWPREPARE_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowprepare_allocation_fault` test is part of the canonical CTest suite.
+
+This covers exhaustion at the preparation process boundary only. It does not
+claim complete allocation-fault coverage for every artifact parser, policy,
+or backend provider path; those remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowtarget allocation-fault boundary — 2026-09-15
 
 The target-policy resolver now has a test-only fault-injected executable that
