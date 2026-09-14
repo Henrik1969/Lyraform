@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstdint>
+#include <flowcontracts/json.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -22,18 +23,6 @@ std::string read_input(const Options& options) {
     return input.str();
 }
 
-bool has_top_level_format(std::string_view input, std::string_view value) {
-    const auto first = input.find("\"format\"");
-    if (first == std::string_view::npos) return false;
-    return input.find("\"format\": \"" + std::string(value) + "\"", first) == first ||
-           input.find("\"format\":\"" + std::string(value) + "\"", first) == first;
-}
-
-bool has_field(std::string_view input, std::string_view field, std::string_view value) {
-    return input.find("\"" + std::string(field) + "\": \"" + std::string(value) + "\"") != std::string_view::npos ||
-           input.find("\"" + std::string(field) + "\":\"" + std::string(value) + "\"") != std::string_view::npos;
-}
-
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
 
 int reject_unsupported_request(std::string_view request, std::string_view reason) {
@@ -43,16 +32,6 @@ int reject_unsupported_request(std::string_view request, std::string_view reason
                  "  \"reason\": " << quote(reason) << ",\n"
                  "  \"fallback\": {\"emitted\": false}\n}\n";
     return 2;
-}
-
-std::uint64_t number_after(std::string_view input, std::string_view field) {
-    const auto position = input.find("\"" + std::string(field) + "\":");
-    if (position == std::string_view::npos) return 0;
-    auto begin = position + field.size() + 3;
-    while (begin < input.size() && (input[begin] == ' ' || input[begin] == '\t')) ++begin;
-    std::uint64_t value = 0;
-    while (begin < input.size() && input[begin] >= '0' && input[begin] <= '9') value = value * 10 + static_cast<unsigned>(input[begin++] - '0');
-    return value;
 }
 
 Options parse(int argc, char** argv) {
@@ -73,17 +52,32 @@ Options parse(int argc, char** argv) {
 }
 
 int resolve(const std::string& plan, const Options& options) {
-    if (!has_top_level_format(plan, "flowparallel.execution_plan")) throw std::runtime_error("input is not a Flowparallel execution plan");
-    if (has_field(plan, "schedule_policy", "parallel_effectful_v1"))
+    using namespace flowcontracts::json;
+    const auto root = object(flowcontracts::json::parse(plan));
+    if (string(required(root, "format"), "$.format") != "flowparallel.execution_plan")
+        throw std::runtime_error("input is not a Flowparallel execution plan");
+    if (integer(required(root, "version"), "$.version") != 1)
+        throw std::runtime_error("unsupported Flowparallel execution plan version");
+    const auto has_field = [&](std::string_view field, std::string_view value) {
+        const auto* item = optional(root, field);
+        return item != nullptr && string(*item, std::string("$.") + std::string(field)) == value;
+    };
+    if (has_field("schedule_policy", "parallel_effectful_v1"))
         return reject_unsupported_request("parallel_effectful_v1", "effectful parallel scheduling is not admitted");
-    if (has_field(plan, "cancellation", "requested"))
+    if (has_field("cancellation", "requested"))
         return reject_unsupported_request("cancellation", "cancellation is not admitted by this provider");
-    if (has_field(plan, "async", "requested"))
+    if (has_field("async", "requested"))
         return reject_unsupported_request("async", "asynchronous execution is not admitted by this provider");
-    if (has_field(plan, "backpressure", "requested"))
+    if (has_field("backpressure", "requested"))
         return reject_unsupported_request("backpressure", "backpressure is not admitted by this provider");
-    if (!has_field(plan, "status", "ready")) { std::cout << "{\n  \"format\": \"flowparallel.cpu_selection\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n"; return 2; }
-    const auto candidates = number_after(plan, "parallel_candidates");
+    if (!has_field("status", "ready")) { std::cout << "{\n  \"format\": \"flowparallel.cpu_selection\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n"; return 2; }
+    const auto& dependency = object(required(root, "dependency_analysis"), "$.dependency_analysis");
+    std::uint64_t candidates = 0;
+    if (const auto* item = optional(dependency, "parallel_candidates"); item != nullptr) {
+        const auto value = integer(*item, "$.dependency_analysis.parallel_candidates");
+        if (value < 0) throw std::runtime_error("parallel_candidates must not be negative");
+        candidates = static_cast<std::uint64_t>(value);
+    }
     const long local_processors = sysconf(_SC_NPROCESSORS_ONLN);
     const unsigned available = local_processors > 0 ? static_cast<unsigned>(local_processors) : 1;
     const unsigned requested = options.requested_workers == 0 ? available : options.requested_workers;

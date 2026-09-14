@@ -17,6 +17,7 @@ target_compile_options(flowparallel_cuda_resource_cleanup_test PRIVATE -Wall -We
 
 add_executable(flowparallel_cpu src/cpu_provider.cpp)
 target_compile_options(flowparallel_cpu PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_cpu PRIVATE flowcontracts)
 
 add_executable(flowparallel_cuda src/cuda_provider.cpp)
 target_compile_options(flowparallel_cuda PRIVATE -Wall -Wextra -Wpedantic)

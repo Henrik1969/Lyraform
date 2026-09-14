@@ -2507,3 +2507,16 @@ assurance remain provisional Gate 6 work.
 
 State remains CONTINUE. Platform evidence is host-specific and does not close
 provider isolation or cross-platform assurance.
+
+## 2026-09-14 typed Flowparallel plan boundary
+
+- Replaced CPU-provider substring inspection with shared JSON parsing and
+  declared-path validation for version, status, dependency candidates, and
+  top-level scheduling requests.
+- Added duplicate-key, malformed-input, wrong-shape, and nested-lookalike
+  refusal coverage. Effectful parallelism, cancellation, async execution, and
+  backpressure remain explicit unsupported results with no fallback artifact.
+- The complete normal CTest graph passes **111/111**.
+
+State remains CONTINUE. This hardens input admission but does not implement
+the refused scheduling semantics.

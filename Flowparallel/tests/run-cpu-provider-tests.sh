@@ -41,6 +41,20 @@ reject_unsupported backpressure \
     '{"format":"flowparallel.execution_plan","version":1,"status":"ready","backpressure":"requested"}'
 
 set +e
+malformed=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"format":"forged","status":"ready"}' | "$cpu" 2>/dev/null)
+malformed_rc=$?
+set -e
+test "$malformed_rc" -ne 0
+test -z "$malformed"
+
+set +e
+nested=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"status":"ready","dependency_analysis":{"parallel_candidates":0},"metadata":{"cancellation":"requested"}}' | "$cpu")
+nested_rc=$?
+set -e
+test "$nested_rc" -eq 0
+printf '%s\n' "$nested" | jq -e '.status == "ready" and .execution == "not-performed"' >/dev/null
+
+set +e
 blocked=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"status":"blocked"}' | "$cpu")
 blocked_rc=$?
 set -e

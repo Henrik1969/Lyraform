@@ -44,6 +44,10 @@ asynchronous execution, and backpressure requests produce an explicit
 `unsupported` selection with no fallback artifact. Those capabilities remain
 outside the admitted pre-self-hosting contract.
 
+The provider parses and validates the complete execution-plan JSON before
+making that decision. Duplicate keys, wrong field types, unsupported versions,
+and nested lookalike fields cannot alter the top-level scheduling policy.
+
 The optional `flowparallel_cuda` provider currently probes the CUDA driver and
 emits a linear-algebra workload contract for matrix multiplication. It includes
 host/device transfer costs and always requires a CPU fallback. On a host without
