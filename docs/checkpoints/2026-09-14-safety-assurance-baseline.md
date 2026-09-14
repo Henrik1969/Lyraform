@@ -401,6 +401,12 @@ Memcheck with zero errors and zero leaks.
 The complete canonical suite passed 147/147 under normal GCC and 147/147
 under Clang 18.1.3 ASan/UBSan. The safety state remains `CONTINUE`.
 
+The subsequent expansion applies the same storage-exhaustion precedence to
+file read/write and memory copy, move, and comparison thunks. The complete
+canonical result remains 147/147 under normal GCC and 147/147 under Clang
+18.1.3 ASan/UBSan; the focused Valgrind run reports zero errors and zero
+leaks.
+
 ## TinyVM runtime-provider descriptor ownership exhaustion — 2026-09-15
 
 The TinyVM runtime provider now classifies failure to grow its owned-file-
