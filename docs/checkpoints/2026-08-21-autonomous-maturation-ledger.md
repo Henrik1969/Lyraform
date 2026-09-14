@@ -3357,6 +3357,17 @@ boundaries still require the same containment audit.
 State remains CONTINUE. CUDA graph execution and remaining native provider
 boundaries still require the same containment audit.
 
+## 2026-09-14 Flowkernel probe-set evidence contract
+
+- Added a machine-readable contract test requiring the `all` probe report to
+  contain exactly six unique result names for the six currently admitted
+  probes.
+- This protects platform-assurance evidence from duplicate or omitted probe
+  records while preserving explicit skipped statuses.
+
+State remains CONTINUE. Platform permission skips and cross-platform assurance
+remain explicitly provisional.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure

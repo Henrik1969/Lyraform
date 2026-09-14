@@ -23,6 +23,9 @@ add_test(NAME flowkernel_namespaces
     COMMAND $<TARGET_FILE:flowkernel> --probe namespaces)
 add_test(NAME flowkernel_all
     COMMAND $<TARGET_FILE:flowkernel> --probe all)
+add_test(NAME flowkernel_all_contract
+    COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-all-contract.sh
+        $<TARGET_FILE:flowkernel>)
 add_test(NAME flowkernel_require_complete
     COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-require-complete.sh
         $<TARGET_FILE:flowkernel>)
