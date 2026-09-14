@@ -377,6 +377,21 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel allocation-fault boundary — 2026-09-15
+
+The parallel execution-planning boundary now has a test-only fault-injected
+executable that raises `std::bad_alloc` before consuming the semantic report.
+Its public structured boundary returns `FLOWPARALLEL_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowparallel_allocation_fault` test is part of the canonical CTest suite.
+
+This covers exhaustion at the planning process boundary only. It does not
+claim that effectful parallelism is admitted, nor complete allocation-fault
+coverage for every provider, scheduler, or runtime path; those remain open
+Gate 4 and Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowprepare allocation-fault boundary — 2026-09-15
 
 The backend-artifact preparation boundary now has a test-only fault-injected

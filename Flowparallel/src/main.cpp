@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -33,6 +34,10 @@ std::string json_escape(std::string_view value) {
 flowcontracts::json::Value text(std::string value) { return flowcontracts::json::Value{std::move(value)}; }
 
 int analyze(std::string_view input) {
+#ifdef FLOWPARALLEL_TEST_ALLOCATION_FAILURE
+    (void)input;
+    throw std::bad_alloc();
+#endif
     using namespace flowcontracts;
     using namespace flowcontracts::json;
     const auto report = semantic_report(parse(input));
@@ -82,6 +87,11 @@ int main(int argc, char** argv) {
             if (option == "-v" || option == "--version") { std::cout << VERSION << '\n'; return 0; }
         }
         return analyze(read_input(argc, argv));
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel error: allocation failed\n";
+        return 1;
     } catch (const flowcontracts::json::Error& error) {
         if (structured_diagnostics)
             std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CONTRACT_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";

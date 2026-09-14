@@ -7,6 +7,11 @@ add_executable(flowparallel src/main.cpp)
 target_include_directories(flowparallel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel PRIVATE flowcontracts)
+add_executable(flowparallel_allocation_fault src/main.cpp)
+target_compile_definitions(flowparallel_allocation_fault PRIVATE FLOWPARALLEL_TEST_ALLOCATION_FAILURE)
+target_include_directories(flowparallel_allocation_fault PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(flowparallel_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_allocation_fault PRIVATE flowcontracts)
 
 add_executable(flowparallel_smoketest tests/parallel_smoketest.cpp)
 target_compile_options(flowparallel_smoketest PRIVATE -Wall -Wextra -Wpedantic)
@@ -74,6 +79,10 @@ add_test(NAME flowparallel_exception_containment
         FLOWPARALLEL_CUDA_EXECUTE_BIN=$<TARGET_FILE:flowparallel_cuda_execute>
         FLOWPARALLEL_MATRIX_BENCHMARK_BIN=$<TARGET_FILE:flowparallel_matrix_benchmark>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-exception-containment-tests.sh)
+add_test(NAME flowparallel_allocation_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPARALLEL_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowparallel_allocation_fault>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-flowparallel-allocation-fault.sh)
 
 add_library(flowparallel_cpu_runtime STATIC src/cpu_execution.cpp)
 target_include_directories(flowparallel_cpu_runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
