@@ -48,6 +48,20 @@ test "$malformed_rc" -ne 0
 test -z "$malformed"
 
 set +e
+wrong_type=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"status":true,"dependency_analysis":{"parallel_candidates":0}}' | "$cpu" 2>/dev/null)
+wrong_type_rc=$?
+set -e
+test "$wrong_type_rc" -ne 0
+test -z "$wrong_type"
+
+set +e
+wrong_version=$(printf '%s' '{"format":"flowparallel.execution_plan","version":2,"status":"ready","dependency_analysis":{"parallel_candidates":0}}' | "$cpu" 2>/dev/null)
+wrong_version_rc=$?
+set -e
+test "$wrong_version_rc" -ne 0
+test -z "$wrong_version"
+
+set +e
 nested=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"status":"ready","dependency_analysis":{"parallel_candidates":0},"metadata":{"cancellation":"requested"}}' | "$cpu")
 nested_rc=$?
 set -e

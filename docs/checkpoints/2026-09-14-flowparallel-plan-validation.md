@@ -19,7 +19,7 @@ explicit `blocked` result.
 Evidence:
 
 ```text
-CPU-provider positive/refusal/malformed/nested-field tests: PASS
+CPU-provider positive/refusal/malformed/wrong-type/wrong-version/nested-field tests: PASS
 normal CTest: 111/111 PASS
 worktree: clean after publication
 ```
