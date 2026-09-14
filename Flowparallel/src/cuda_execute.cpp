@@ -2,6 +2,7 @@
 #include <flowparallel/cuda_resources.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -62,13 +63,21 @@ std::string json_escape(std::string_view value) {
     return escaped;
 }
 
+int parse_integer(std::string_view text, const char* option) {
+    int value = 0;
+    const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size())
+        throw std::runtime_error(std::string(option) + " requires a complete integer");
+    return value;
+}
+
 Options parse(int argc, char** argv) {
     Options options;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--size") {
             if (++i >= argc) throw std::runtime_error("--size requires a value");
-            options.size = std::stoi(argv[i]);
+            options.size = parse_integer(argv[i], "--size");
             if (options.size < 2 || options.size > 4096) throw std::runtime_error("--size must be between 2 and 4096");
         } else if (arg == "--diagnostics") {
             if (++i >= argc || std::string(argv[i]) != "json") throw std::runtime_error("--diagnostics requires json");

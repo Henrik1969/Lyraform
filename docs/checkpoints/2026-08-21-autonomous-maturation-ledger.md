@@ -2601,6 +2601,10 @@ The canonical normal CTest graph after this checkpoint is **112/112 PASS**;
 the benchmark diagnostic test is hardware-independent, while CUDA
 execution/calibration remain explicitly host-gated.
 
+The native CUDA execution and benchmark argument parsers now require complete
+integer tokens; hostile prefix-plus-suffix values are refused before provider
+setup.
+
 ## 2026-09-14 native graph-CUDA diagnostic boundary
 
 - Added `flowparallel_graph_cuda --diagnostics json` for structured failure

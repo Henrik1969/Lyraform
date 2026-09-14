@@ -2,6 +2,7 @@
 #include <flowparallel/cuda_resources.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -35,13 +36,15 @@ struct Options { int size = 512; int iterations = 5; bool structured_diagnostics
 
 std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
+int parse_integer(std::string_view text, const char* option) { int value = 0; const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value); if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size()) throw std::runtime_error(std::string(option) + " requires a complete integer"); return value; }
+
 Options parse(int argc, char** argv) {
     Options options;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--size" || arg == "--iterations") {
             if (++i >= argc) throw std::runtime_error(arg + " requires a value");
-            int value = std::stoi(argv[i]);
+            int value = parse_integer(argv[i], arg.c_str());
             if (arg == "--size") options.size = value; else options.iterations = value;
         } else if (arg == "-h" || arg == "-?" || arg == "--help") {
             std::cout << "flowparallel_matrix_benchmark - CPU/CUDA matrix benchmark\n\nOptions: --size N --iterations N --diagnostics json\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0);

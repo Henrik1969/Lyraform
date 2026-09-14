@@ -65,5 +65,8 @@ The matrix benchmark now uses the shared explicit cleanup owner and checks its
 warm-up GEMM result. Its hostile argument path also has structured diagnostic
 coverage; hardware-dependent calibration remains a separate evidence gate.
 
+Native CUDA size arguments are parsed as complete integers; numeric prefixes
+with trailing data such as `64junk` are rejected before provider setup.
+
 The complete normal CTest graph now passes **112/112**, including the new
 hardware-independent matrix-benchmark diagnostic boundary.

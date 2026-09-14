@@ -42,6 +42,7 @@ for bad_args in \
     '--size 1' \
     '--size 4097' \
     '--size -2' \
+    '--size 64junk' \
     '--not-an-option'; do
     if timeout 10s "$cuda_execute" $bad_args >/dev/null 2>&1; then
         printf 'hostile argument unexpectedly accepted: %s\n' "$bad_args" >&2
