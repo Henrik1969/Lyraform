@@ -2645,6 +2645,17 @@ State remains CONTINUE. Full sanitizer coverage, retention, deeper crash
 interruption, isolation/trust, cancellation/async, and broader native/provider
 fault injection remain open.
 
+## 2026-09-14 current-source sanitizer and Memcheck revalidation
+
+- Rebuilt the Clang ASan/UBSan history target from the current checkout before
+  rerunning it; it passed with no sanitizer diagnostics.
+- Rebuilt the current GCC history target and reran Valgrind 3.22.0 Memcheck;
+  it reported zero errors and zero leaks.
+
+State remains CONTINUE. Full sanitizer coverage, retention, deeper crash
+interruption, isolation/trust, cancellation/async, and broader native/provider
+fault injection remain open.
+
 ## 2026-09-14 durable-history complete-record accounting
 
 - Corrected uncertain append reporting so partial or zero-progress writes do

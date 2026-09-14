@@ -97,11 +97,14 @@ The current project-facing smoke gates also pass:
 ./igor test: PASS (115/115)
 ```
 
-The updated history test also passes under the existing Clang 18.1.3
-ASan/UBSan build:
+The updated history test was rebuilt from the current source and passes under
+the existing Clang 18.1.3 ASan/UBSan build:
 
 ```text
 ASAN_OPTIONS=detect_leaks=0:verify_asan_link_order=0 \\
 UBSAN_OPTIONS=halt_on_error=1 \\
 /tmp/lyraform-asan-20260914/flowtools/reference/revision/frankencore_error_state_history_test: PASS
 ```
+
+The rebuilt current GCC history test also passes under Valgrind 3.22.0
+Memcheck with full leak checking: zero errors and zero leaks.
