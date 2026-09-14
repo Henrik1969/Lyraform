@@ -129,6 +129,36 @@ int main() {
     assert(missing_apt.apt_index_targets.empty());
     assert(!missing_apt.diagnostics.empty());
 
+    const auto provider_failure = std::filesystem::temp_directory_path() /
+                                  "frankencore-apt-provider-failure-test";
+    {
+        std::ofstream output(provider_failure);
+        output << "#!/bin/sh\n"
+                  "printf '%s\\n' 'malformed provider row'\n"
+                  "printf 'id\\tmeta\\tdescription\\tfile\\turi\\n'\n"
+                  "exit 7\n";
+    }
+    std::filesystem::permissions(
+        provider_failure,
+        std::filesystem::perms::owner_read |
+            std::filesystem::perms::owner_write |
+            std::filesystem::perms::owner_exec,
+        std::filesystem::perm_options::replace);
+    const auto failed_provider = frankencore::packages::read_apt_index_targets(
+        provider_failure.string());
+    assert(failed_provider.apt_index_targets.size() == 1);
+    bool saw_malformed_provider = false;
+    bool saw_failed_provider = false;
+    for (const auto& diagnostic : failed_provider.diagnostics) {
+        saw_malformed_provider = saw_malformed_provider ||
+                                 diagnostic.code == "malformed-provider-output";
+        saw_failed_provider = saw_failed_provider ||
+                              diagnostic.code == "native-provider-failed";
+    }
+    assert(saw_malformed_provider);
+    assert(saw_failed_provider);
+    std::filesystem::remove(provider_failure);
+
     const auto oversized = std::filesystem::temp_directory_path() /
                            "frankencore-package-oversized-record-test";
     {
