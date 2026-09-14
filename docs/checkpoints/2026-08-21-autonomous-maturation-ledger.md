@@ -2644,6 +2644,18 @@ and the remaining Gate 5/6/8 work are unfinished.
 State remains CONTINUE. Native fault injection, deeper durable-history work,
 isolation/trust, and remaining Gate 6/8 evidence are unfinished.
 
+## 2026-09-14 Flowprepare structured failure containment
+
+- Added `flowprepare --diagnostics json` for backend-artifact contract and
+  preparation failures. Structured mode suppresses the compatibility artifact,
+  emits a stable `FLOWPREPARE_CONTRACT_FAILURE` or `FLOWPREPARE_FAILURE` record
+  on stderr, marks the attempt `no_artifact`, and returns nonzero.
+- Added malformed-artifact coverage to the backend-artifact test; the focused
+  test passes.
+
+State remains CONTINUE. Flowtarget, native fault injection, isolation/trust,
+and the remaining Gate 5/6/8 evidence are unfinished.
+
 ## 2026-09-14 CUDA cleanup callback containment
 
 - Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are

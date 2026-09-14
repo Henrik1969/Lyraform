@@ -10,13 +10,16 @@ namespace {
 using namespace flowcontracts;
 using namespace flowcontracts::json;
 
-struct Options { std::string optimization_path, binding_path, target_name, target_policy_path; };
+struct Options { std::string optimization_path, binding_path, target_name, target_policy_path; bool structured_diagnostics = false; };
 
 Options options(int argc, char** argv) {
     Options result;
     for (int index = 1; index < argc; ++index) {
         const std::string argument = argv[index];
-        if (argument == "--binding-report") {
+        if (argument == "--diagnostics") {
+            if (++index >= argc || std::string(argv[index]) != "json") throw std::runtime_error("--diagnostics requires json");
+            result.structured_diagnostics = true;
+        } else if (argument == "--binding-report") {
             if (++index >= argc) throw std::runtime_error("--binding-report requires a path");
             result.binding_path = argv[index];
         } else if (argument == "--target") {
@@ -117,12 +120,17 @@ int prepare(const Options& option) {
 } // namespace
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         if (argc == 2 && std::string(argv[1]) == "--version") { std::cout << "0.1.0\n"; return 0; }
-        return prepare(options(argc, argv));
+        const auto parsed = options(argc, argv);
+        structured_diagnostics = parsed.structured_diagnostics;
+        return prepare(parsed);
     } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":" << serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
         std::cerr << "flowprepare contract error: " << error.what() << '\n'; return 1;
     } catch (const std::exception& error) {
+        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_FAILURE\",\"stage\":\"cli\",\"message\":" << serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
         std::cerr << "flowprepare error: " << error.what() << '\n'; return 1;
     }
 }

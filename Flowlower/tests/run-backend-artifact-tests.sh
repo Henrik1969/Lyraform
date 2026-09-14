@@ -8,6 +8,14 @@ fixture_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
+set +e
+printf '%s' '{"format":"wrong","version":1}' | "$prepare" --diagnostics json >"$tmpdir/hostile-stdout" 2>"$tmpdir/hostile-stderr"
+hostile_rc=$?
+set -e
+test "$hostile_rc" -eq 1
+test ! -s "$tmpdir/hostile-stdout"
+jq -e '.status == "failed" and .code == "FLOWPREPARE_CONTRACT_FAILURE" and .stage == "contract" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
+
 "$prepare" "$fixture_dir/captured-empty-optimization.json" > "$tmpdir/prepared.json"
 cmp -s "$fixture_dir/captured-empty-lowering.json" "$tmpdir/prepared.json"
 "$validate" --canonical "$tmpdir/prepared.json" > "$tmpdir/canonical.json"
