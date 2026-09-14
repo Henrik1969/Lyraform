@@ -2634,6 +2634,17 @@ native/provider fault-injection work.
 State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
 cancellation/async, and broader native/provider fault injection remain open.
 
+## 2026-09-14 durable-history sanitizer confirmation
+
+- Ran the updated complete-record accounting and reconciliation history test in
+  the existing Clang 18.1.3 ASan/UBSan build with the documented environment
+  exclusions.
+- Result: PASS with no sanitizer diagnostics.
+
+State remains CONTINUE. Full sanitizer coverage, retention, deeper crash
+interruption, isolation/trust, cancellation/async, and broader native/provider
+fault injection remain open.
+
 ## 2026-09-14 durable-history complete-record accounting
 
 - Corrected uncertain append reporting so partial or zero-progress writes do
