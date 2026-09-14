@@ -142,6 +142,17 @@ int main() {
     assert(history.append(third).status == "appended");
     assert(history.inspect().records == 5);
 
+    {
+        std::ofstream output(path, std::ios::binary | std::ios::app);
+        output << "{\"format\":\"frankencore.error_state_event\",\"event_id\":\""
+               << generate_ulid() << "\"";
+    }
+    const auto uncertain = history.repair_incomplete_tail();
+    assert(!uncertain.valid);
+    assert(uncertain.status == "error");
+    assert(history.inspect().status == "incomplete");
+    assert(history.inspect().records == 5);
+
     std::filesystem::remove_all(base);
     return 0;
 }

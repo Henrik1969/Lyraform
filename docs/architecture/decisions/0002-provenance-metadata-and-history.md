@@ -109,7 +109,9 @@ implementation performs full JSON syntax validation and known-record
 type/status validation, plus bounded inspection, ordered reads, and exact
 identity lookup, error-state lifecycle replay, and linear mutation
 revision/state replay. Retention, crash fault injection, and cross-branch
-reconciliation remain future work.
+reconciliation remain future work. No deletion or compaction operation is
+currently admitted; the bounded store therefore refuses further publication
+at exhaustion rather than silently applying retention.
 
 ## Revisit triggers
 

@@ -34,6 +34,7 @@ exact duplicate replay: PASS
 conflicting duplicate event: PASS
 torn-tail refusal: PASS
 explicit quarantine and repair: PASS
+quarantine collision / uncertain-recovery refusal: PASS
 post-repair append: PASS
 ordered validated read/replay projection: PASS
 exact identity lookup and invalid-ID refusal: PASS
