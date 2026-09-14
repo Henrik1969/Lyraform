@@ -2610,6 +2610,18 @@ State remains CONTINUE. Crash interruption, retention policy, native fault
 injection breadth, isolation/trust, and remaining Gate 5/6/8 evidence remain
 unfinished.
 
+## 2026-09-14 safety-case inventory reconciliation
+
+- Updated the authoritative safety-case matrix to name the bounded Text
+  allocation-injection evidence, uncertain-`fsync` history evidence, and all
+  structured public-tool failure boundaries added during this campaign.
+- No safety classification was promoted beyond its tested scope; provisional
+  residuals remain explicit.
+
+State remains CONTINUE. Crash interruption depth, retention policy, native
+fault-injection breadth, isolation/trust, and remaining Gate 5/6/8 evidence
+remain unfinished.
+
 ## 2026-09-14 durable-history per-record bound
 
 - Enforced `max_line_bytes` on the candidate append before opening the history
