@@ -811,7 +811,16 @@ int main(int argc, char** argv) {
         }
 
         auto registry = flowmini::makeCoreAtomRegistry();
-        flowmini::runModule(module, ctx, registry);
+        const auto runtime = flowmini::runModuleChecked(module, ctx, registry);
+        if (!runtime.completed) {
+            if (structuredDiagnostics) {
+                writeStructuredFailure(std::cerr, runtime.code, runtime.stage, runtime.message);
+            } else {
+                std::cerr << "fatal in " << runtime.stage << ": " << runtime.message << '\n';
+                log.write(ctx);
+            }
+            return 1;
+        }
         log.write(ctx);
         return 0;
 

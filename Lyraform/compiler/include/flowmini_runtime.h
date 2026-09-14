@@ -79,9 +79,21 @@ struct BuildResult {
     std::vector<std::string> producerIds;
 };
 
+struct RuntimeResult {
+    bool completed = false;
+    std::string code;
+    std::string stage;
+    std::string message;
+};
+
 [[nodiscard]] BuildResult buildCheckedGraph(const ModuleSpec& module, const AtomRegistry& registry);
 
 void runModule(const ModuleSpec& module, flow::PipelineContext& ctx, const AtomRegistry& registry);
+[[nodiscard]] RuntimeResult runModuleChecked(
+    const ModuleSpec& module,
+    flow::PipelineContext& ctx,
+    const AtomRegistry& registry
+);
 
 } // namespace flowmini
 

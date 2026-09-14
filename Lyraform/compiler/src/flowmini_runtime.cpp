@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <new>
 #include <sstream>
 #include <utility>
 #include <memory>
@@ -1496,6 +1497,23 @@ void runModule(const ModuleSpec& module, flow::PipelineContext& ctx, const AtomR
 
     for (const auto& producerId : build.producerIds) {
         build.graph.startAt(producerId, MiniEnvelope{UnitPayload{}, &ctx, {}, {}, {}});
+    }
+}
+
+RuntimeResult runModuleChecked(
+    const ModuleSpec& module,
+    flow::PipelineContext& ctx,
+    const AtomRegistry& registry
+) {
+    try {
+        runModule(module, ctx, registry);
+        return {true, {}, {}, {}};
+    } catch (const flow::DiagnosticError& error) {
+        return {false, error.code(), error.stage(), error.what()};
+    } catch (const std::bad_alloc&) {
+        return {false, "FLOW_RESOURCE_EXHAUSTED", "runtime", "allocation failed"};
+    } catch (const std::exception& error) {
+        return {false, "FLOW_UNEXPECTED_EXCEPTION", "runtime", error.what()};
     }
 }
 
