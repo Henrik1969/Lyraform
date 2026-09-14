@@ -15,7 +15,11 @@ typedef struct FlowTextOutcome {
     char *value;
 } FlowTextOutcome;
 
-/* The result pointer is provider-owned until flow_text_outcome_dispose. */
+/*
+ * The caller must initialize an outcome as
+ * {FLOW_TEXT_PROVIDER_UNAVAILABLE, NULL} and dispose any owned value before
+ * reusing it. The result pointer is provider-owned until dispose.
+ */
 FlowTextOutcomeCode flow_text_concat_outcome(const char *left, const char *right, FlowTextOutcome *outcome);
 /* Atomic value carrier used by the backend-neutral TextOutcome boundary. */
 FlowTextOutcome flow_text_concat_value(const char *left, const char *right);

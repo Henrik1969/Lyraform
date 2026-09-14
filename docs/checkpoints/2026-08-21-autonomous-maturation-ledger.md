@@ -2634,6 +2634,18 @@ State remains CONTINUE. Native fault-injection breadth, retention/crash depth,
 isolation/trust, cancellation/async, and remaining Gate 5/6/8 evidence remain
 unfinished.
 
+## 2026-09-14 Text compatibility ownership precondition
+
+- Made the bounded C Text outcome precondition explicit: callers initialize the
+  carrier and dispose owned values before reuse; replacement calls do not
+  implicitly reclaim prior storage.
+- Updated the tagged API boundary test to use the required initialization,
+  preventing accidental reliance on unsupported uninitialized-C behavior.
+
+State remains CONTINUE. Broader native fault injection, retention/crash depth,
+isolation/trust, cancellation/async, and remaining Gate 5/6/8 evidence remain
+unfinished.
+
 ## 2026-09-14 safety-case inventory reconciliation
 
 - Updated the authoritative safety-case matrix to name the bounded Text

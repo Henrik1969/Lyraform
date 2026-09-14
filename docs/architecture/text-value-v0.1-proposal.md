@@ -111,6 +111,9 @@ and invalid UTF-8 are explicitly rejected with source-linked diagnostics.
 Allocation failure in the bounded native Text provider is reported as the
 explicit `FLOW_TEXT_EXHAUSTED` outcome; it does not masquerade as provider
 absence and does not publish a partial value.
+The C compatibility carrier must be initialized before use and disposed before
+reuse; owned result pointers are never implicitly reclaimed by a replacement
+call.
 
 This slice deliberately does not claim general runtime allocation policy or
 TinyVM ownership beyond the bounded provider shape. Portable failure outcomes,

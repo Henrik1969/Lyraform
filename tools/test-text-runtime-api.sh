@@ -13,7 +13,7 @@ cat > "$tmpdir/probe.c" <<'EOF'
 #include <string.h>
 
 int main(void) {
-    FlowTextOutcome outcome;
+    FlowTextOutcome outcome = {FLOW_TEXT_PROVIDER_UNAVAILABLE, NULL};
     if (flow_text_concat_outcome("Lyra", "form", &outcome) != FLOW_TEXT_SUCCESS) return 1;
     if (outcome.code != FLOW_TEXT_SUCCESS || strcmp(outcome.value, "Lyraform") != 0) return 2;
     flow_text_outcome_dispose(&outcome);
