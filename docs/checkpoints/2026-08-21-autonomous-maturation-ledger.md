@@ -2623,6 +2623,21 @@ API containment remain unfinished.
 State remains CONTINUE. The readiness review is intentionally a not-ready
 decision until the public callable artifact and Flow-written proof exist.
 
+## 2026-09-14 callable artifact readiness audit correction
+
+- Re-ran the dedicated `callable_lowering_boundary` gate and confirmed it
+  passes from the current build.
+- Confirmed the version-2 lowering artifact already carries a function catalog,
+  stable function identities, parameter records, entry flags, body blocks,
+  call targets, and return-result validation.
+- Corrected the readiness review so this bounded callable slice is marked
+  evidenced; Stage 1 remains closed for the unfinished UTF-8, tokenizer,
+  recursive-data, artifact-I/O, ownership, target-client, and complete
+  compiler closure chain.
+
+State remains CONTINUE. The next closure target is `utf8-source-reader`, not a
+duplicate callable-catalog implementation.
+
 ## 2026-09-14 CPU execution workload ingress boundary
 
 - Replaced prefix-accepting `stoul` conversion in the execution smoke boundary

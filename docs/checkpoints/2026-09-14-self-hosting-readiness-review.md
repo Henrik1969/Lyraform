@@ -10,11 +10,14 @@ Stage 0 host-feature inventory
 
 Do not begin Stage 1 self-hosting yet. The first proposed slice is the pure
 callable classifier shared by the compiler laboratory and headless document
-model. Its semantic contract is small enough to admit, but the current
-backend-neutral lowering boundary does not yet carry a complete function
-catalog, parameter bindings, entry root, or call-return structure. Starting
-Stage 1 before that boundary is closed would make the C++ implementation an
-unacknowledged semantic authority.
+model. Its callable artifact boundary is now evidenced by the version-2
+catalog and the passing `callable_lowering_boundary` test. Stage 1 remains
+closed because the surrounding Flow closure is incomplete: the authoritative
+bootstrap inventory still lists the UTF-8 source reader, lossless tokenizer,
+recursive data, canonical artifact I/O, ownership cleanup, target client, and
+later compiler stages as unfinished. Starting Stage 1 before those contracts
+are closed would still make the C++ implementation an unacknowledged semantic
+authority.
 
 This is a readiness decision, not a certification claim. Lyraform remains
 experimental, unstable, and not safety-certified.
@@ -26,8 +29,8 @@ The first Stage 1 slice may be admitted only when all of these are true:
 | Requirement | Required evidence | Current state |
 |---|---|---|
 | Pure scalar classifier has an explicit input/output contract | Flow source, typed lowering artifact, and positive/negative tests | planned slice exists; public Flow implementation not yet complete |
-| Callable functions are represented completely | Function catalog, stable identities, parameters, entry root, calls, and returns survive lowering and validation | **blocking gap** in `bootstrap_gap_inventory` |
-| Artifact consumers agree | LLVM and TinyVM execute the same captured artifact and produce equivalent result | scalar callable evidence exists, complete call structure does not |
+| Callable functions are represented completely | Function catalog, stable identities, parameters, entry root, calls, and returns survive lowering and validation | **PASS**; version-2 catalog and `callable_lowering_boundary` |
+| Artifact consumers agree | LLVM and TinyVM execute the same captured artifact and produce equivalent result | **PASS** for the bounded scalar callable slice |
 | Failure is explicit | malformed artifact, unsupported call shape, and runtime failure produce deterministic no-artifact/outcome diagnostics | partial Stage 0/provider evidence exists; Stage 1 Flow boundary is not closed |
 | Bounds are explicit | source/input/output sizes, recursion/activation limits, and artifact limits are checked | bounds exist in several Stage 0 consumers; first Flow slice needs its own contract |
 | No hidden resource effects | slice uses no filesystem, process, network, native ABI, mutation, async, or parallel effect | can be designed as pure; not yet proven by a Stage 1 artifact |
@@ -60,20 +63,22 @@ bounded activation and output paths, explicit unsupported scheduling, governed
 ABI admission, structured no-artifact diagnostics, deterministic TinyVM/LLVM
 parity tests, and durable error-state append/recovery behavior.
 
-These controls do not close the callable-function gap. A green Stage 0 test
-cannot be promoted to a Stage 1 guarantee until a Flow-written producer and
-the independent consumers exercise the same public artifact.
+These controls close the bounded callable-artifact slice only. A green Stage 0
+test cannot be promoted to a general Stage 1 guarantee until the remaining
+Flow closure inventory is implemented and a Flow-written producer and the
+independent consumers exercise the same public artifacts.
 
 ## Required next gate
 
-Close `callable-scalar-slice` in
-`docs/bootstrap/remaining-bootstrap-inventory-v1.json` by adding:
+Continue with `utf8-source-reader` in
+`docs/bootstrap/remaining-bootstrap-inventory-v1.json`, then advance through
+the dependency chain. The next safety-relevant closure evidence must include:
 
-1. a versioned function catalog and stable function identities;
-2. explicit parameter binding and return-carrier records;
-3. a validated entry root and call graph with bounded depth/activation rules;
-4. canonical serialization and hostile mutation tests;
-5. equivalent LLVM and TinyVM execution from the captured artifact; and
+1. validated UTF-8/scalar input and exact spans;
+2. lossless token and recursive-data contracts without private C++ hooks;
+3. canonical artifact I/O with hostile mutation tests;
+4. explicit ownership, cleanup, and boundedness outcomes for the slice;
+5. equivalent LLVM and TinyVM execution from captured public artifacts; and
 6. a Flow-written producer/consumer proof that does not use a private C++ hook.
 
 Until those checks pass, Stage 1 remains `not-started` and the safety mission
@@ -81,6 +86,6 @@ state remains `CONTINUE`.
 
 ## Evidence boundary
 
-This review deliberately records a blocker rather than treating the current
-Stage 0 C++ handling as inherited safety. It does not add a new language
-feature, alter FlowLFS or `master`, or authorize self-hosting.
+This review deliberately records a not-ready decision rather than treating the
+current Stage 0 C++ handling as inherited safety. It does not add a new
+language feature, alter FlowLFS or `master`, or authorize self-hosting.
