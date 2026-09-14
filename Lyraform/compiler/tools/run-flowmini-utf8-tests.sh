@@ -12,7 +12,7 @@ prefix='program invalid_utf8
 main {
     return 0
 }
-' 
+'
 
 check_invalid() {
     name=$1
