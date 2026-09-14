@@ -2475,3 +2475,6 @@ the documented leak exclusions. The complete sanitizer matrix remains an
 environment-limited evidence gap: 24 subprocess tests were rejected by the
 supervision layer's incompatible-ASan-runtime check, rather than reporting a
 project sanitizer finding.
+
+The history and provenance API executables pass independently under Valgrind
+3.22.0 Memcheck with full leak checking and zero errors.

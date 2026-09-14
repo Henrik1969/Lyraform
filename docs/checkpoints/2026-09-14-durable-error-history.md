@@ -57,3 +57,6 @@ passes under Clang 18.1.3 ASan/UBSan with the documented leak exclusions.
 The complete sanitizer CTest matrix is not credited here: 24 subprocess tests
 were rejected by the environment's incompatible-ASan-runtime supervision
 boundary, while the remaining tests passed.
+
+The history and provenance API executables pass independently under Valgrind
+3.22.0 Memcheck with full leak checking and zero errors.
