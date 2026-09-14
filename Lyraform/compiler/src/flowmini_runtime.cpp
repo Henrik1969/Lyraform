@@ -1514,6 +1514,8 @@ RuntimeResult runModuleChecked(
         return {false, "FLOW_RESOURCE_EXHAUSTED", "runtime", "allocation failed"};
     } catch (const std::exception& error) {
         return {false, "FLOW_UNEXPECTED_EXCEPTION", "runtime", error.what()};
+    } catch (...) {
+        return {false, "FLOW_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure"};
     }
 }
 

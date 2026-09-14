@@ -64,7 +64,7 @@ The compiler CLI now accepts `--diagnostics json`. For a caught
 emits a structured failure record on stderr, keeps artifact stdout empty, and
 returns a nonzero status. The current CLI codes are intentionally conservative:
 `FLOW_DIAGNOSTIC_ERROR`, `FLOW_RESOURCE_EXHAUSTED`, and
-`FLOW_UNEXPECTED_EXCEPTION`. This closes only the CLI projection slice; it does
+`FLOW_UNEXPECTED_EXCEPTION`, and `FLOW_UNKNOWN_FAILURE`. This closes only the CLI projection slice; it does
 not make the internal exception mechanisms themselves part of the language
 contract or close provider/runtime/API containment.
 

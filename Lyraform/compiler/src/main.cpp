@@ -848,5 +848,13 @@ int main(int argc, char** argv) {
             log.write(ctx);
         }
         return 1;
+    } catch (...) {
+        if (structuredDiagnostics) {
+            writeStructuredFailure(std::cerr, "FLOW_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
+        } else {
+            std::cerr << "fatal in unknown: unknown non-standard failure\n";
+            log.write(ctx);
+        }
+        return 1;
     }
 }
