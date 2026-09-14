@@ -38,8 +38,9 @@ post-repair append: PASS
 ordered validated read/replay projection: PASS
 exact identity lookup and invalid-ID refusal: PASS
 total-history bound and no-publication exhaustion: PASS
+full JSON syntax and known-record type validation: PASS
 ```
 
 This is a durable error-state boundary, not a complete history subsystem.
-Full JSON parsing, semantic event replay, retention, and cross-branch history
-reconciliation remain open Gate 5 work.
+Semantic event replay, retention, crash fault injection, and cross-branch
+history reconciliation remain open Gate 5 work.

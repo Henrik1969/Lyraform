@@ -1,4 +1,5 @@
 #include "frankencore/provenance.hpp"
+#include <flowcontracts/json.hpp>
 
 #include <sstream>
 #include <new>
@@ -24,6 +25,80 @@ struct HistoryScan {
     bool incomplete_tail = false;
     std::string tail;
 };
+
+bool valid_json_record(const std::string& line, std::string& error) {
+    try {
+        using namespace flowcontracts::json;
+        const auto root = object(parse(line));
+        const auto& format = string(required(root, "format"), "$.format");
+        if (integer(required(root, "version"), "$.version") != 1)
+            throw Error("$.version", "unsupported history record version");
+        const auto& status = string(required(root, "status"), "$.status");
+        const auto& event_id = string(required(root, "event_id"), "$.event_id");
+        if (!is_valid_ulid(event_id)) throw Error("$.event_id", "must be a valid ULID");
+        if (format == "frankencore.error_state_event") {
+            if (status != "opened" && status != "diagnosed" && status != "recovered" && status != "resolved")
+                throw Error("$.status", "invalid error-state status");
+            for (const auto field : {"error_state_id", "attempt_id", "correlation_id"}) {
+                const auto& value = string(required(root, field), std::string("$.") + field);
+                if (!is_valid_ulid(value)) throw Error(std::string("$.") + field, "must be a valid ULID");
+            }
+            string(required(root, "diagnosis"), "$.diagnosis");
+            string(required(root, "recovery"), "$.recovery");
+            boolean(required(root, "operator_action_required"), "$.operator_action_required");
+            return true;
+        }
+        if (format == "frankencore.mutation_record") {
+            if (status != "committed") throw Error("$.status", "mutation record must be committed");
+            integer(required(root, "old_revision"), "$.old_revision");
+            integer(required(root, "new_revision"), "$.new_revision");
+            if (integer(required(root, "new_revision"), "$.new_revision") <=
+                integer(required(root, "old_revision"), "$.old_revision"))
+                throw Error("$.new_revision", "must be greater than old_revision");
+            for (const auto field : {"attempt_id", "correlation_id"}) {
+                const auto& value = string(required(root, field), std::string("$.") + field);
+                if (!is_valid_ulid(value)) throw Error(std::string("$.") + field, "must be a valid ULID");
+            }
+            for (const auto field : {"entity_identity", "actor_identity", "provider_identity",
+                                     "authorizing_policy", "before_state_reference", "after_state_reference",
+                                     "operation", "atomicity", "recoverability"})
+                if (string(required(root, field), std::string("$.") + field).empty())
+                    throw Error(std::string("$.") + field, "must not be empty");
+            if (string(required(root, "before_state_reference"), "$.before_state_reference") ==
+                string(required(root, "after_state_reference"), "$.after_state_reference"))
+                throw Error("$.after_state_reference", "must differ from before_state_reference");
+            const auto& causes = array(required(root, "causes"), "$.causes");
+            if (causes.empty()) throw Error("$.causes", "must not be empty");
+            for (std::size_t index = 0; index < causes.size(); ++index)
+                string(causes[index], "$.causes[" + std::to_string(index) + "]");
+            return true;
+        }
+        if (format == "frankencore.mutation_event") {
+            if (status != "rejected") throw Error("$.status", "mutation event must be rejected");
+            for (const auto field : {"attempt_id", "correlation_id"}) {
+                const auto& value = string(required(root, field), std::string("$.") + field);
+                if (!is_valid_ulid(value)) throw Error(std::string("$.") + field, "must be a valid ULID");
+            }
+            for (const auto field : {"entity_identity", "actor_identity", "provider_identity",
+                                     "authorizing_policy", "operation", "rejection_domain", "rejection_reason"})
+                if (string(required(root, field), std::string("$.") + field).empty())
+                    throw Error(std::string("$.") + field, "must not be empty");
+            boolean(required(root, "retryable"), "$.retryable");
+            if (const auto* observed = optional(root, "observed_revision"); observed != nullptr &&
+                !std::holds_alternative<std::nullptr_t>(*observed))
+                integer(*observed, "$.observed_revision");
+            return true;
+        }
+        throw Error("$.format", "unsupported history record format");
+    } catch (const flowcontracts::json::Error& exception) {
+        error = exception.what();
+    } catch (const std::exception& exception) {
+        error = exception.what();
+    } catch (...) {
+        error = "unknown JSON validation failure";
+    }
+    return false;
+}
 
 int lock_history(const std::string& path, int operation) {
     const auto lock_path = path + ".lock";
@@ -109,11 +184,9 @@ HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
             return scan;
         }
         const auto line = contents.substr(offset, line_length);
-        if (line.front() != '{' || line.back() != '}' ||
-            (line.find("\"format\":\"frankencore.error_state_event\"") == std::string::npos &&
-             line.find("\"format\":\"frankencore.mutation_record\"") == std::string::npos &&
-             line.find("\"format\":\"frankencore.mutation_event\"") == std::string::npos)) {
-            scan.result = {false, false, scan.events.size(), "invalid", "history contains a malformed error-state record", {}};
+        std::string json_error;
+        if (!valid_json_record(line, json_error)) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history contains an invalid record: " + json_error, {}};
             return scan;
         }
         constexpr std::string_view marker = "\"event_id\":\"";

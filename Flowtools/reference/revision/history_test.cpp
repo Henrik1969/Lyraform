@@ -73,6 +73,27 @@ int main() {
     const auto bounded_inspection = bounded.inspect();
     assert(bounded_inspection.valid && bounded_inspection.records == 0);
 
+    const auto malformed_path = base / "malformed.jsonl";
+    {
+        std::ofstream output(malformed_path, std::ios::binary);
+        output << "{\"format\":\"frankencore.error_state_event\",\"version\":1,\"event_id\":\""
+               << generate_ulid() << "\",\"status\":\"opened\",\"diagnosis\":\"unterminated\n";
+    }
+    ErrorStateHistory malformed(malformed_path.string());
+    const auto malformed_inspection = malformed.inspect();
+    assert(!malformed_inspection.valid);
+    assert(malformed_inspection.status == "invalid");
+    const auto invalid_path = base / "invalid.jsonl";
+    {
+        std::ofstream output(invalid_path, std::ios::binary);
+        output << "{\"format\":\"frankencore.error_state_event\",\"version\":1,\"event_id\":\""
+               << generate_ulid() << "\",\"status\":\"opened\",\"error_state_id\":\"bad\"}\n";
+    }
+    ErrorStateHistory invalid(invalid_path.string());
+    const auto invalid_inspection = invalid.inspect();
+    assert(!invalid_inspection.valid);
+    assert(invalid_inspection.status == "invalid");
+
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);
         output << "{\"format\":\"frankencore.error_state_event\",\"event_id\":\"";
