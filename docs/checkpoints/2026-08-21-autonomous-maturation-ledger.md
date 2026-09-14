@@ -2634,6 +2634,18 @@ native/provider fault-injection work.
 State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
 cancellation/async, and broader native/provider fault injection remain open.
 
+## 2026-09-14 conflicting branch-history reconciliation
+
+- Added a valid same-identity/different-content branch fixture to the durable
+  history test.
+- Verified reconciliation reports `conflict`, counts the conflicting event,
+  and does not choose a winner or rewrite either history.
+- Focused `frankencore_error_state_history` passes; the full canonical suite is
+  required before publication.
+
+State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
+cancellation/async, and broader native/provider fault injection remain open.
+
 ## 2026-09-14 durable-history zero-progress write boundary
 
 - Treat a zero-progress `write()` after an earlier partial write as a torn

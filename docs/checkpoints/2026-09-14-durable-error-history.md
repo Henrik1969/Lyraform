@@ -38,6 +38,7 @@ explicit quarantine and repair: PASS
 quarantine collision / uncertain-recovery refusal: PASS
 post-repair append: PASS
 read-only branch divergence reconciliation: PASS
+same-identity conflicting branch reconciliation: PASS
 typed mutation final-state replay projection: PASS
 ordered validated read/replay projection: PASS
 exact identity lookup and invalid-ID refusal: PASS

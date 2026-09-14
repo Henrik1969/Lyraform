@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <fcntl.h>
+#include <iterator>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -234,6 +235,31 @@ int main() {
     assert(reconciliation.left_only_events == 0);
     assert(reconciliation.right_only_events == 1);
     assert(reconciliation.conflicting_events == 0);
+
+    const auto conflict_left_path = base / "conflict-left.jsonl";
+    const auto conflict_right_path = base / "conflict-right.jsonl";
+    std::filesystem::copy_file(path, conflict_left_path);
+    std::filesystem::copy_file(path, conflict_right_path);
+    {
+        std::ifstream input(conflict_right_path);
+        std::string first_line;
+        std::getline(input, first_line);
+        const std::string remainder((std::istreambuf_iterator<char>(input)), {});
+        const auto marker = first_line.find("controlled history test");
+        assert(marker != std::string::npos);
+        first_line.replace(marker, std::string("controlled history test").size(), "different branch fact");
+        std::ofstream output(conflict_right_path, std::ios::binary | std::ios::trunc);
+        output << first_line << '\n' << remainder;
+    }
+    const auto conflict_reconciliation = reconcile_histories(conflict_left_path.string(), conflict_right_path.string());
+    assert(conflict_reconciliation.valid);
+    assert(conflict_reconciliation.status == "conflict");
+    assert(conflict_reconciliation.left_records == 5);
+    assert(conflict_reconciliation.right_records == 5);
+    assert(conflict_reconciliation.common_events == 4);
+    assert(conflict_reconciliation.left_only_events == 0);
+    assert(conflict_reconciliation.right_only_events == 0);
+    assert(conflict_reconciliation.conflicting_events == 1);
 
     const auto durability_path = base / "durability.jsonl";
     ErrorStateHistory durability(durability_path.string());
