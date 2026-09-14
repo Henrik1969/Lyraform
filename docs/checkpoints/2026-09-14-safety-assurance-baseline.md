@@ -377,6 +377,22 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel CUDA-execution allocation-fault boundary — 2026-09-15
+
+The CUDA matrix-execution boundary now has a test-only fault-injected
+executable that raises `std::bad_alloc` before dynamic CUDA library access or
+resource acquisition. Its public structured boundary returns
+`FLOWPARALLEL_CUDA_EXECUTE_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowparallel_cuda_execute_allocation_fault` test is part of the canonical
+CTest suite and is independent of CUDA hardware.
+
+This covers pre-acquisition exhaustion only. CUDA operation failure and
+cleanup paths remain governed by the existing explicit resource-cleanup
+contract and tests.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel graph-CUDA allocation-fault boundary — 2026-09-15
 
 The optional CUDA graph-reachability boundary now has a test-only
