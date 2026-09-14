@@ -122,6 +122,8 @@ ValidationResult validate(const IsolationClaim& claim) {
         if (value->empty()) return invalid((std::string(name) + " is required").c_str());
     if (!valid_assurance(claim.assurance_level)) return invalid("invalid isolation assurance level");
     if (!valid_enforcement(claim.enforcement)) return invalid("invalid isolation enforcement state");
+    if (claim.assurance_level == "none" && claim.enforcement != "self_report")
+        return invalid("none isolation assurance requires self-report enforcement");
     if (claim.assurance_level == "constrained" &&
         claim.enforcement != "locally_verified" && claim.enforcement != "independently_verified")
         return invalid("constrained isolation requires local or independent verification");

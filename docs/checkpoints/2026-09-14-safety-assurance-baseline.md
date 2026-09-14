@@ -147,6 +147,16 @@ identity in addition to the collection cases.
 The safety state remains `CONTINUE`; the bounds do not create an isolation
 provider or signed trust profile.
 
+## Isolation assurance consistency — 2026-09-14
+
+Isolation validation now rejects a `none` assurance claim paired with unknown
+or stronger enforcement. This keeps the lowest assurance label consistent with
+the documented self-report-only model; stronger claims retain their existing
+local or independent-verification requirements.
+
+The safety state remains `CONTINUE`: no isolation provider or independent
+verifier is claimed.
+
 ## Recovery-lock ownership — 2026-09-14
 
 Incomplete-tail repair now owns its history lock through a scoped guard. Normal

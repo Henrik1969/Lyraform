@@ -48,6 +48,9 @@ int main() {
     isolation.assurance_level = "none";
     isolation.enforcement = "self_report";
     assert(validate(isolation).valid);
+    isolation.enforcement = "unknown";
+    assert(!validate(isolation).valid);
+    isolation.enforcement = "self_report";
     isolation.requested_boundary = std::string(4097, 'x');
     assert(!validate(isolation).valid);
     isolation.requested_boundary = "project execution";
