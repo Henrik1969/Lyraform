@@ -2662,6 +2662,19 @@ remain required before Stage 1.
 State remains CONTINUE. This closes only the tested Stage 0 lexer ingress
 matrix; the Flow-written source-reader gap remains open.
 
+## 2026-09-14 UTF-8 ingress sanitizer and Memcheck evidence
+
+- Rebuilt the compiler subproject with Clang 18.1.3 ASan/UBSan and passed the
+  focused `flowmini_utf8_source_boundary` test with leak detection disabled.
+- Ran valid and invalid UTF-8 source cases against the normal GCC binary under
+  Valgrind 3.22.0 Memcheck; both returned their expected semantic status with
+  no memory errors.
+- The ASan and Memcheck runs are boundary-focused and do not upgrade the
+  complete sanitizer matrix claim.
+
+State remains CONTINUE. The Flow-written source-reader gap and broader
+compiler-closure evidence remain open.
+
 ## 2026-09-14 CPU execution workload ingress boundary
 
 - Replaced prefix-accepting `stoul` conversion in the execution smoke boundary

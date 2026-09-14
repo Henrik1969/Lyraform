@@ -85,6 +85,11 @@ The Stage 0 lexer now has independent UTF-8 ingress evidence through
 `flowmini_utf8_source_boundary`; this does not satisfy the requirement for a
 Flow-written source reader and therefore does not change the Stage 1 decision.
 
+The focused boundary passes under Clang 18.1.3 ASan/UBSan with leak detection
+disabled. The valid and invalid source cases also pass under Valgrind 3.22.0
+Memcheck with `--error-exitcode=99` and no reported errors. These are focused
+memory checks, not a claim that the complete sanitizer matrix is clean.
+
 Until those checks pass, Stage 1 remains `not-started` and the safety mission
 state remains `CONTINUE`.
 
