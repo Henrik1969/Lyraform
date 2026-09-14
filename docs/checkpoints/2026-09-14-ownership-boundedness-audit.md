@@ -29,6 +29,9 @@
   first cleanup failure on both exceptional and normal paths.
 - The shared owner is exercised without CUDA hardware using injected provider
   callbacks for complete, partial, failing, and repeated cleanup sequences.
+- CPU worker ownership uses `std::jthread` in a scope that joins all launched
+  workers before publishing `ExecutionResult`. Launch failure is translated to
+  an explicit error, including when only a partial worker set was started.
 
 ## Gaps requiring Gate 3 work
 
@@ -41,6 +44,8 @@
 - Generic ownership categories (owned, borrowed, provider-owned,
   runtime-owned, and observed) are not yet represented in one cross-provider
   contract matrix.
+- Thread-launch fault injection is not yet available; the join-safe behavior
+  is covered by the normal and task-failure execution gates.
 - Cancellation cleanup, asynchronous queue admission, and backpressure are
   intentionally not admitted; Gate 4 must define those contracts before they
   can be counted as covered.

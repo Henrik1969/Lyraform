@@ -47,10 +47,26 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
         }
     };
 
-    std::vector<std::thread> threads;
-    threads.reserve(actual_workers);
-    for (unsigned index = 0; index < actual_workers; ++index) threads.emplace_back(worker);
-    for (auto& thread : threads) thread.join();
+    // jthread joins already-started workers if vector growth or a later
+    // worker launch fails. This keeps partial initialization from leaking a
+    // joinable thread or terminating the process during vector unwinding.
+    {
+        std::vector<std::jthread> threads;
+        try {
+            threads.reserve(actual_workers);
+            for (unsigned index = 0; index < actual_workers; ++index) threads.emplace_back(worker);
+        } catch (const std::exception& error) {
+            result.status = "error";
+            result.completed = completed.load(std::memory_order_relaxed);
+            result.error = std::string("worker launch failed: ") + error.what();
+            return result;
+        } catch (...) {
+            result.status = "error";
+            result.completed = completed.load(std::memory_order_relaxed);
+            result.error = "worker launch failed with a non-standard exception";
+            return result;
+        }
+    }
     result.completed = completed.load(std::memory_order_relaxed);
     if (failed.load(std::memory_order_acquire)) {
         result.status = "error";
