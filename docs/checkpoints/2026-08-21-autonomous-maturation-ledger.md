@@ -2637,6 +2637,16 @@ State remains CONTINUE. Historical implementation snapshots remain unchanged;
 provider/library fault injection and the Flow-written bootstrap source reader
 are still separate gates.
 
+## 2026-09-14 binding requirement cardinality boundary
+
+- Capped Flowbind binding requirements at 100,000 entries before expansion,
+  policy resolution, or dynamic-library inspection.
+- Added hostile over-cardinality evidence proving structured failure with empty
+  stdout and `no_artifact` disposition.
+
+State remains CONTINUE. Native provider/library fault injection and deeper
+allocation-failure coverage remain open.
+
 ## 2026-09-14 package-provider cardinality bounds
 
 - Added 100,000-entry caps for dpkg package observations, APT directory

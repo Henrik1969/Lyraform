@@ -170,8 +170,13 @@ std::string provider_digest(const std::string& path) {
 
 std::vector<Requirement> requirements(const std::string& report) {
     const Json root = JsonParser{report}.parse();
+    constexpr std::size_t max_binding_requirements = 100000;
+    const auto& entries = json_array(json_field(root, "binding_requirements"), "binding_requirements");
+    if (entries.size() > max_binding_requirements)
+        throw std::runtime_error("binding requirement count exceeds the 100000-entry limit");
     std::vector<Requirement> result;
-    for (const auto& item : json_array(json_field(root, "binding_requirements"), "binding_requirements")) {
+    result.reserve(entries.size());
+    for (const auto& item : entries) {
         result.push_back({
             json_text(json_field(item, "contract")),
             json_text(json_field(item, "library")),
