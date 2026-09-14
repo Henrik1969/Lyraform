@@ -359,3 +359,17 @@ that all provider, parser, or Frankencore allocation paths have been injected.
 Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
+
+## Flowanalyst allocation-fault boundary — 2026-09-15
+
+Flowanalyst now has a test-only fault-injected executable that raises
+`std::bad_alloc` before semantic projection. The public process boundary
+returns `FLOWANALYST_RESOURCE_EXHAUSTED` with `disposition: no_artifact` and
+does not publish stdout. The focused `flowanalyst_allocation_fault` test
+passed in both the normal GCC tree and the Clang 18.1.3 ASan/UBSan tree.
+
+This extends allocation-exhaustion evidence to the semantic-analysis
+boundary. It does not claim complete allocation-fault coverage for every
+parser, provider, or Frankencore API; those remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.

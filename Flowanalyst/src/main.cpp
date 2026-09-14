@@ -8,6 +8,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <new>
 #include <optional>
 #include <sstream>
 #include <set>
@@ -125,6 +126,13 @@ bool numeric_extents(const std::string& value) {
 }
 
 int run(const Json& bundle, int lowering_plan_version, const Json& provider_map, int graph_plan_version) {
+#ifdef FLOWANALYST_TEST_ALLOCATION_FAILURE
+    (void)bundle;
+    (void)lowering_plan_version;
+    (void)provider_map;
+    (void)graph_plan_version;
+    throw std::bad_alloc();
+#endif
     const auto graph_provider_selections = flowcontracts::graph_provider_map(provider_map);
     std::string graph_schedule_policy = "serial";
     bool graph_schedule_policy_set = false;
@@ -1504,6 +1512,11 @@ int main(int argc, char** argv) {
             provider_map = Parser(flowcontracts::read_bounded(file, "graph provider map")).parse();
         }
         return run(Parser(input_text).parse(), lowering_plan_version, provider_map, graph_plan_version);
+    }
+    catch (const std::bad_alloc&) {
+        if (structured_diagnostics) write_structured_failure("FLOWANALYST_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
+        else std::cerr << "flowanalyst error: allocation failed\n";
+        return 1;
     }
     catch (const std::exception& error) {
         if (structured_diagnostics) write_structured_failure("FLOWANALYST_FAILURE", "cli", error.what());
