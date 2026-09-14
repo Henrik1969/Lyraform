@@ -96,6 +96,10 @@ exit distinction.
 - The shared CUDA resource owner fails closed with `EINVAL` when a cleanup
   callback is absent, preventing an internal null-call from crossing a public
   provider boundary.
+- The shared CUDA resource owner converts an exception escaping a provider
+  cleanup callback into `EFAULT`, clears every owned handle, and returns the
+  first failure instead of allowing `noexcept` cleanup to terminate the
+  process.
 - These paths are covered by the hardware-independent
   `flowparallel_exception_containment` conformance test, which checks empty
   artifact stdout, stable failure codes, `no_artifact` disposition, and

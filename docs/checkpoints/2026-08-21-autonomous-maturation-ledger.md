@@ -2597,6 +2597,19 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 CUDA cleanup callback containment
+
+- Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are
+  invoked behind a `noexcept` containment adapter.
+- A callback exception becomes deterministic `EFAULT`; cleanup continues,
+  clears all owned handles, and returns the first failure rather than
+  terminating the process.
+- Added a throwing-callback test covering partial initialization and complete
+  handle clearing. Focused cleanup test passes.
+
+State remains CONTINUE. Allocation/library fault injection and broader public
+API containment remain unfinished.
+
 ## 2026-09-14 graph planner numeric-policy boundary
 
 - Replaced prefix-accepting graph policy conversion with complete finite-token

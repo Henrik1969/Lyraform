@@ -18,25 +18,35 @@ struct CudaDeviceResources {
     void* device_c = nullptr;
     void* handle = nullptr;
 
+    template <typename Callback>
+    static int invoke(Callback callback, void* resource) noexcept {
+        if (!callback) return EINVAL;
+        try {
+            return callback(resource);
+        } catch (...) {
+            return EFAULT;
+        }
+    }
+
     int cleanup() noexcept {
         int first_failure = 0;
         if (handle) {
-            const int status = cublas_destroy ? cublas_destroy(handle) : EINVAL;
+            const int status = invoke(cublas_destroy, handle);
             if (first_failure == 0 && status != 0) first_failure = status;
             handle = nullptr;
         }
         if (device_c) {
-            const int status = cuda_free ? cuda_free(device_c) : EINVAL;
+            const int status = invoke(cuda_free, device_c);
             if (first_failure == 0 && status != 0) first_failure = status;
             device_c = nullptr;
         }
         if (device_b) {
-            const int status = cuda_free ? cuda_free(device_b) : EINVAL;
+            const int status = invoke(cuda_free, device_b);
             if (first_failure == 0 && status != 0) first_failure = status;
             device_b = nullptr;
         }
         if (device_a) {
-            const int status = cuda_free ? cuda_free(device_a) : EINVAL;
+            const int status = invoke(cuda_free, device_a);
             if (first_failure == 0 && status != 0) first_failure = status;
             device_a = nullptr;
         }

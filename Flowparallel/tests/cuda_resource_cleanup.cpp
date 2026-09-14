@@ -1,6 +1,7 @@
 #include <flowparallel/cuda_resources.hpp>
 
 #include <cassert>
+#include <stdexcept>
 
 namespace {
 
@@ -8,6 +9,9 @@ int free_calls = 0;
 int destroy_calls = 0;
 int free_status = 0;
 int destroy_status = 0;
+
+int throwing_free(void*) { throw std::runtime_error("provider cleanup failure"); }
+int throwing_destroy(void*) { throw std::runtime_error("provider destroy failure"); }
 
 int fake_free(void*) {
     ++free_calls;
@@ -68,5 +72,14 @@ int main() {
     assert(missing_callbacks.cleanup() == EINVAL);
     assert(missing_callbacks.device_a == nullptr);
     assert(missing_callbacks.handle == nullptr);
+
+    flowparallel::CudaDeviceResources throwing{throwing_free, throwing_destroy};
+    throwing.device_a = reinterpret_cast<void*>(1);
+    throwing.device_b = reinterpret_cast<void*>(2);
+    throwing.handle = reinterpret_cast<void*>(3);
+    assert(throwing.cleanup() == EFAULT);
+    assert(throwing.device_a == nullptr);
+    assert(throwing.device_b == nullptr);
+    assert(throwing.handle == nullptr);
     return 0;
 }
