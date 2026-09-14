@@ -2608,6 +2608,16 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Crash fault injection, retention policy, native fault
 injection, isolation/trust, and remaining Gate 5/6/8 evidence are unfinished.
 
+## 2026-09-14 post-bound sanitizer evidence
+
+- Reran `frankencore_error_state_history_test` and the injected Text allocation
+  failure test under Valgrind 3.22.0 Memcheck with full leak checking.
+- Both completed with exit code 0, zero errors, and zero leaked bytes.
+
+State remains CONTINUE. Crash fault injection, retention policy, native fault
+injection breadth, isolation/trust, and remaining Gate 5/6/8 evidence remain
+unfinished.
+
 ## 2026-09-14 Flowanalyst structured failure containment
 
 - Added `flowanalyst --diagnostics json` for malformed CLI/input/provider-map

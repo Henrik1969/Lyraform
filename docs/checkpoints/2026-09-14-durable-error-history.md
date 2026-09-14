@@ -70,3 +70,6 @@ boundary, while the remaining tests passed.
 
 The history and provenance API executables pass independently under Valgrind
 3.22.0 Memcheck with full leak checking and zero errors.
+After the per-record bound change, the history executable and the injected Text
+allocation-failure executable were rerun independently under the same gate;
+both completed with zero errors and zero leaks.
