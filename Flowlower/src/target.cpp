@@ -1,4 +1,5 @@
 #include <flowcontracts/validate.hpp>
+#include <flowcontracts/bounded_input.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -14,7 +15,7 @@ using namespace flowcontracts;
 std::string read(const std::filesystem::path& path) {
     std::ifstream file(path);
     if (!file) throw std::runtime_error("target policy is unavailable: " + path.string());
-    std::ostringstream input; input << file.rdbuf(); return input.str();
+    return flowcontracts::read_bounded(file, "target policy");
 }
 
 bool valid_name(const std::string& name) {

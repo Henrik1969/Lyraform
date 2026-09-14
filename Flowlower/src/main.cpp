@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include <flowcontracts/validate.hpp>
+#include <flowcontracts/bounded_input.hpp>
 
 #include "structured_plan.hpp"
 
@@ -31,10 +32,8 @@ Options parse_options(int argc, char** argv) {
 }
 
 std::string read_file_or_stdin(const std::string& path) {
-    std::ostringstream input;
-    if (!path.empty()) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open report"); input << file.rdbuf(); }
-    else input << std::cin.rdbuf();
-    return input.str();
+    if (!path.empty()) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open report"); return flowcontracts::read_bounded(file, "report"); }
+    return flowcontracts::read_bounded(std::cin, "report");
 }
 
 std::string quote(std::string_view value) {

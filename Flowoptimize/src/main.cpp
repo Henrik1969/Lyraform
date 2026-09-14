@@ -1,4 +1,5 @@
 #include <flowcontracts/artifacts.hpp>
+#include <flowcontracts/bounded_input.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -45,10 +46,8 @@ void write_structured_failure(std::string_view code, std::string_view stage, std
               << "\",\"disposition\":\"no_artifact\"}\n";
 }
 std::string read_path_or_stdin(const std::string& path) {
-    std::ostringstream input;
-    if (!path.empty()) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open artifact: " + path); input << file.rdbuf(); }
-    else input << std::cin.rdbuf();
-    return input.str();
+    if (!path.empty()) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open artifact: " + path); return flowcontracts::read_bounded(file, "artifact"); }
+    return flowcontracts::read_bounded(std::cin, "artifact");
 }
 flowcontracts::json::Value text(std::string value) { return flowcontracts::json::Value{std::move(value)}; }
 

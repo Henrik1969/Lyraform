@@ -2611,6 +2611,18 @@ State remains CONTINUE. Runtime-planner and graph-planner file inputs, broader
 Frankencore API containment, and injected allocation/library failures remain
 open for separate bounded slices.
 
+## 2026-09-14 active artifact ingress boundary
+
+- Reused the shared 16 MiB reader for Flowcontracts validation, Flowbind
+  reports and policy inputs, Flowoptimize artifacts, Flowlower report/artifact
+  and target-policy inputs, and TinyVM backend-lowering artifacts.
+- Existing artifact boundary suites remain the regression evidence; oversized
+  input is rejected before parsing and cannot produce a normal artifact.
+
+State remains CONTINUE. Flowanalyst graph/provider-map ingress and compiler
+source ingress still need dedicated bounded-reader tests; archived readers are
+historical and remain unchanged.
+
 ## 2026-09-14 package-provider cardinality bounds
 
 - Added 100,000-entry caps for dpkg package observations, APT directory

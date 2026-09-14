@@ -1,4 +1,5 @@
 #include <flowcontracts/validate.hpp>
+#include <flowcontracts/bounded_input.hpp>
 extern "C" {
 #include <tinyvm/isa_v1.h>
 }
@@ -23,10 +24,9 @@ using namespace flowcontracts;
 using namespace flowcontracts::json;
 
 std::string read(const char* path) {
-    std::ostringstream input;
-    if (std::strcmp(path, "-") == 0) input << std::cin.rdbuf();
-    else { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open backend lowering artifact"); input << file.rdbuf(); }
-    return input.str();
+    if (std::strcmp(path, "-") == 0) return flowcontracts::read_bounded(std::cin, "backend lowering artifact");
+    std::ifstream file(path); if (!file) throw std::runtime_error("cannot open backend lowering artifact");
+    return flowcontracts::read_bounded(file, "backend lowering artifact");
 }
 
 std::string identity(std::string_view prefix, std::string_view meaning) {

@@ -1,4 +1,5 @@
 #include <flowcontracts/validate.hpp>
+#include <flowcontracts/bounded_input.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -36,10 +37,9 @@ Options options(int argc, char** argv) {
 }
 
 std::string read(const std::string& path) {
-    std::ostringstream input;
-    if (path.empty()) input << std::cin.rdbuf();
-    else { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open artifact: " + path); input << file.rdbuf(); }
-    return input.str();
+    if (path.empty()) return flowcontracts::read_bounded(std::cin, "artifact");
+    std::ifstream file(path); if (!file) throw std::runtime_error("cannot open artifact: " + path);
+    return flowcontracts::read_bounded(file, "artifact");
 }
 
 Value select_target(const Object& root, const std::string& requested) {

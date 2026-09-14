@@ -1,4 +1,5 @@
 #include <flowcontracts/validate.hpp>
+#include <flowcontracts/bounded_input.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -7,10 +8,9 @@
 
 namespace {
 std::string read(std::string_view path) {
-    std::ostringstream input;
-    if (path.empty() || path == "-") input << std::cin.rdbuf();
-    else { std::ifstream file{std::string(path)}; if (!file) throw std::runtime_error("cannot open input"); input << file.rdbuf(); }
-    return input.str();
+    if (path.empty() || path == "-") return flowcontracts::read_bounded(std::cin, "input");
+    std::ifstream file{std::string(path)}; if (!file) throw std::runtime_error("cannot open input");
+    return flowcontracts::read_bounded(file, "input");
 }
 int exit_code(flowcontracts::ValidationClass value) {
     switch (value) {

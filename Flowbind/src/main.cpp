@@ -4,6 +4,7 @@
 #include <array>
 #include <memory>
 #include <flowcontracts/artifacts.hpp>
+#include <flowcontracts/bounded_input.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
@@ -89,18 +90,14 @@ Options parse_options(int argc, char** argv) {
 }
 
 std::string read_input(const Options& options) {
-    std::ostringstream input;
-    if (!options.report_path.empty()) { std::ifstream file(options.report_path); if (!file) throw std::runtime_error("cannot open semantic report"); input << file.rdbuf(); }
-    else input << std::cin.rdbuf();
-    return input.str();
+    if (!options.report_path.empty()) { std::ifstream file(options.report_path); if (!file) throw std::runtime_error("cannot open semantic report"); return flowcontracts::read_bounded(file, "semantic report"); }
+    return flowcontracts::read_bounded(std::cin, "semantic report");
 }
 
 std::string read_path(const std::string& path, const char* description) {
     std::ifstream file(path);
     if (!file) throw std::runtime_error(std::string("cannot open ") + description);
-    std::ostringstream input;
-    input << file.rdbuf();
-    return input.str();
+    return flowcontracts::read_bounded(file, description);
 }
 
 std::vector<Grant> read_policy(const std::string& path) {
