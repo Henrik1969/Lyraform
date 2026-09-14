@@ -1,6 +1,7 @@
 #include <frankencore/contracts.hpp>
 
 #include <cassert>
+#include <string>
 
 int main() {
     using namespace frankencore::contracts;
@@ -47,6 +48,11 @@ int main() {
     isolation.assurance_level = "none";
     isolation.enforcement = "self_report";
     assert(validate(isolation).valid);
+    isolation.requested_boundary = std::string(4097, 'x');
+    assert(!validate(isolation).valid);
+    isolation.requested_boundary = "project execution";
+    evidence.artifact_identity = std::string(4097, 'x');
+    assert(!validate(evidence).valid);
 
     LanguageMap language;
     language.id = "Danish";

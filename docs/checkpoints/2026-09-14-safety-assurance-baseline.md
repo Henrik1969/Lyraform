@@ -115,3 +115,13 @@ suite remains green.
 
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open before broader mutation expansion.
+
+## Trust and isolation evidence bounds — 2026-09-14
+
+Verification evidence and isolation claims now reject text fields larger than
+4096 bytes, and verification provenance/diagnostic collections larger than
+100000 entries. The contract conformance probe covers hostile oversized fields
+and confirms fail-closed validation before policy or provider selection.
+
+This bounds the contract surface only; it does not claim that an isolation
+provider, signed profile, or independent verifier exists.

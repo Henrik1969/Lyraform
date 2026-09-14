@@ -3,9 +3,13 @@
 namespace frankencore::contracts {
 namespace {
 
+constexpr std::size_t max_contract_text = 4096;
+constexpr std::size_t max_contract_items = 100000;
+
 ValidationResult valid() { return {true, {}}; }
 ValidationResult invalid(const char* message) { return {false, message}; }
 bool nonempty(const std::string& value) { return !value.empty(); }
+bool bounded(const std::string& value) { return value.size() <= max_contract_text; }
 
 bool valid_key_state(const std::string& value) {
     return value == "trusted" || value == "unknown" || value == "expired" ||
@@ -63,6 +67,19 @@ const char* to_string(const PolicyOutcome outcome) {
 }
 
 ValidationResult validate(const VerificationEvidence& evidence) {
+    const std::string* text_fields[] = {
+        &evidence.artifact_identity, &evidence.artifact_version, &evidence.artifact_kind,
+        &evidence.artifact_platform, &evidence.artifact_digest, &evidence.substrate_provider,
+        &evidence.substrate_version, &evidence.substrate_method, &evidence.source, &evidence.signer,
+        &evidence.key_state, &evidence.integrity, &evidence.authenticity,
+    };
+    for (const auto* field : text_fields)
+        if (!bounded(*field)) return invalid("verification evidence field exceeds the 4096-byte limit");
+    if (evidence.provenance.size() > max_contract_items || evidence.diagnostics.size() > max_contract_items)
+        return invalid("verification evidence collection exceeds the 100000-entry limit");
+    for (const auto* collection : {&evidence.provenance, &evidence.diagnostics})
+        for (const auto& value : *collection)
+            if (!bounded(value)) return invalid("verification evidence entry exceeds the 4096-byte limit");
     if (!nonempty(evidence.artifact_identity)) return invalid("artifact identity is required");
     if (!nonempty(evidence.substrate_provider)) return invalid("substrate provider is required");
     if (!nonempty(evidence.substrate_method)) return invalid("substrate method is required");
@@ -99,6 +116,8 @@ ValidationResult validate(const IsolationClaim& claim) {
         {"teardown", &claim.teardown},
         {"verification method", &claim.verification_method},
     };
+    for (const auto& [name, value] : fields)
+        if (!bounded(*value)) return invalid("isolation claim field exceeds the 4096-byte limit");
     for (const auto& [name, value] : fields)
         if (value->empty()) return invalid((std::string(name) + " is required").c_str());
     if (!valid_assurance(claim.assurance_level)) return invalid("invalid isolation assurance level");
