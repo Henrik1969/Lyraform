@@ -2623,6 +2623,16 @@ sized limits for future provider schemas remain unfinished.
 State remains CONTINUE. Field-level capability diagnostics and broader provider
 fault injection remain unfinished.
 
+## 2026-09-14 CUDA provider workload bound
+
+- Added an explicit 1..4096 matrix-size bound before CUDA plan processing or
+  driver probing, preventing `uint64_t` byte-count wrap from hostile input.
+- Added structured no-artifact coverage for `4294967295` and documented that
+  device-specific memory admission remains a separate runtime concern.
+
+State remains CONTINUE. Native provider fault injection and device-specific
+resource admission remain unfinished.
+
 ## 2026-09-14 legacy APT source-file bound
 
 - Routed legacy `.list` files through the same bounded 4 MiB reader used for

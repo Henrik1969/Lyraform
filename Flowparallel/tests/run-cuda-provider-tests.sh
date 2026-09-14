@@ -35,6 +35,13 @@ set -e
 test "$diagnostic_rc" -eq 1
 test -z "$diagnostic_report"
 jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_FAILURE" and (.message | contains("complete non-negative integer")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
+set +e
+overflow_report=$(printf '%s\n' "$plan" | "$cuda" --matrix-size 4294967295 --diagnostics json 2>"$diagnostic_err")
+overflow_rc=$?
+set -e
+test "$overflow_rc" -eq 1
+test -z "$overflow_report"
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_FAILURE" and (.message | contains("between 1 and 4096")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 printf '%s\n' "$plan" | jq '.cancellation = "requested"' >"$unsupported_plan"
 if unsupported=$("$cuda" --plan "$unsupported_plan" 2>/dev/null); then
   echo 'CUDA provider accepted an unsupported cancellation request' >&2

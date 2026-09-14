@@ -15,6 +15,7 @@
 namespace {
 
 struct Options { std::string plan_path; unsigned matrix_size = 512; bool structured_diagnostics = false; };
+constexpr unsigned MAX_MATRIX_SIZE = 4096;
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
 
@@ -87,10 +88,14 @@ Options parse(int argc, char** argv) {
         else if (argument == "-v" || argument == "--version") { std::cout << "0.1.0\n"; std::exit(0); }
         else throw std::runtime_error("unknown option '" + argument + "'");
     }
+    if (options.matrix_size == 0 || options.matrix_size > MAX_MATRIX_SIZE)
+        throw std::runtime_error("--matrix-size must be between 1 and 4096");
     return options;
 }
 
 int run(const std::string& plan, const Options& options) {
+    if (options.matrix_size == 0 || options.matrix_size > MAX_MATRIX_SIZE)
+        throw std::runtime_error("--matrix-size must be between 1 and 4096");
     const auto plan_value = flowcontracts::json::parse(plan);
     const auto& root = flowcontracts::json::object(plan_value);
     const auto requested = [&](std::string_view field, std::string_view value) {
@@ -108,7 +113,8 @@ int run(const std::string& plan, const Options& options) {
     const auto artifact = flowcontracts::execution_plan(plan_value);
     if (artifact.artifact.status != "ready") { std::cout << "{\n  \"format\": \"flowparallel.cuda_selection\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n"; return 2; }
     const auto cuda = probe();
-    const std::uint64_t matrix_bytes = static_cast<std::uint64_t>(options.matrix_size) * options.matrix_size * sizeof(float);
+    const std::uint64_t matrix_elements = static_cast<std::uint64_t>(options.matrix_size) * options.matrix_size;
+    const std::uint64_t matrix_bytes = matrix_elements * sizeof(float);
     std::cout << "{\n  \"format\": \"flowparallel.cuda_selection\",\n"
                  "  \"version\": 1,\n  \"status\": \"ready\",\n"
                  "  \"provider\": \"cuda\",\n"
