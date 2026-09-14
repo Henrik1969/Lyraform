@@ -2647,6 +2647,16 @@ are still separate gates.
 State remains CONTINUE. Native provider/library fault injection and deeper
 allocation-failure coverage remain open.
 
+## 2026-09-14 canonical JSON structural bounds
+
+- Added canonical parser limits of 256 nesting levels, 100,000 entries per
+  object/array, and 1,000,000 parsed values.
+- Added deep-nesting, wide-array, and high-node-count hostile parser cases;
+  all fail as typed JSON errors before consumers can allocate semantic state.
+
+State remains CONTINUE. Schema-specific collection limits and injected native
+allocation/provider failures remain open.
+
 ## 2026-09-14 package-provider cardinality bounds
 
 - Added 100,000-entry caps for dpkg package observations, APT directory

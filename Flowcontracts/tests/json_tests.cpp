@@ -14,6 +14,10 @@ template <class Callable> void rejects(Callable callable, std::string_view path)
     }
     require(false, "hostile JSON was accepted");
 }
+template <class Callable> void rejects_any(Callable callable) {
+    try { callable(); } catch (const flowcontracts::json::Error&) { return; }
+    require(false, "bounded JSON hostile input was accepted");
+}
 }
 
 int main() {
@@ -27,6 +31,19 @@ int main() {
     rejects([] { (void)parse("9223372036854775808"); }, "$");
     rejects([] { (void)parse("01"); }, "$");
     rejects([] { (void)parse("\"\\ud800\""); }, "$");
+    std::string deep;
+    for (int index = 0; index < 257; ++index) deep += '[';
+    deep += '0';
+    for (int index = 0; index < 257; ++index) deep += ']';
+    rejects_any([&] { (void)parse(deep); });
+    std::string wide_array = "[";
+    for (int index = 0; index < 100001; ++index) { if (index != 0) wide_array += ','; wide_array += '0'; }
+    wide_array += ']';
+    rejects_any([&] { (void)parse(wide_array); });
+    std::string many_nodes = "[";
+    for (int index = 0; index < 500001; ++index) { if (index != 0) many_nodes += ','; many_nodes += "[0]"; }
+    many_nodes += ']';
+    rejects_any([&] { (void)parse(many_nodes); });
     const auto& root = object(parsed);
     rejects([&] { (void)required(root, "missing"); }, "$.missing");
     rejects([&] { (void)integer(required(root, "a"), "$.a"); }, "$.a");

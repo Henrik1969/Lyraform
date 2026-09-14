@@ -54,8 +54,23 @@ public:
     }
 
 private:
+    static constexpr std::size_t max_nodes_ = 1000000;
+    static constexpr std::size_t max_depth_ = 256;
+    static constexpr std::size_t max_collection_entries_ = 100000;
+
+    struct DepthScope {
+        Parser& parser;
+        explicit DepthScope(Parser& owner, const std::string& path) : parser(owner) {
+            if (parser.depth_ >= max_depth_) parser.fail(path, "JSON nesting exceeds the 256-level limit");
+            ++parser.depth_;
+        }
+        ~DepthScope() { --parser.depth_; }
+    };
+
     std::string_view input_;
     std::size_t position_ = 0;
+    std::size_t nodes_ = 0;
+    std::size_t depth_ = 0;
 
     bool done() const { return position_ == input_.size(); }
     char current() const { return done() ? '\0' : input_[position_]; }
@@ -76,6 +91,7 @@ private:
         return path + "." + std::string(key);
     }
     Value value(const std::string& path) {
+        if (++nodes_ > max_nodes_) fail(path, "JSON node count exceeds the 1000000-node limit");
         skip_space();
         switch (current()) {
             case '{': return object(path);
@@ -89,11 +105,13 @@ private:
         fail(path, "invalid JSON value at byte " + std::to_string(position_));
     }
     Object object(const std::string& path) {
+        DepthScope depth(*this, path);
         Object result;
         expect('{', path); skip_space();
         if (current() == '}') { ++position_; return result; }
         for (;;) {
             if (current() != '"') fail(path, "object key must be a string at byte " + std::to_string(position_));
+            if (result.size() >= max_collection_entries_) fail(path, "JSON object exceeds the 100000-entry limit");
             auto key = string(path);
             skip_space(); expect(':', child_path(path, key));
             if (result.contains(key)) fail(child_path(path, key), "duplicate object key");
@@ -104,10 +122,12 @@ private:
         }
     }
     Array array(const std::string& path) {
+        DepthScope depth(*this, path);
         Array result;
         expect('[', path); skip_space();
         if (current() == ']') { ++position_; return result; }
         for (;;) {
+            if (result.size() >= max_collection_entries_) fail(path, "JSON array exceeds the 100000-entry limit");
             result.push_back(value(path + "[" + std::to_string(result.size()) + "]"));
             skip_space();
             if (current() == ']') { ++position_; return result; }
