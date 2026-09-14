@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -52,6 +53,11 @@ std::string read_path_or_stdin(const std::string& path) {
 flowcontracts::json::Value text(std::string value) { return flowcontracts::json::Value{std::move(value)}; }
 
 int analyze(std::string_view input, const std::optional<flowcontracts::ProviderDecision>& decision) {
+#ifdef FLOWOPTIMIZE_TEST_ALLOCATION_FAILURE
+    (void)input;
+    (void)decision;
+    throw std::bad_alloc();
+#endif
     using namespace flowcontracts;
     using namespace flowcontracts::json;
     const auto root = parse(input);
@@ -131,6 +137,10 @@ int main(int argc, char** argv) {
         std::optional<flowcontracts::ProviderDecision> decision;
         if (!options.provider_decision_path.empty()) decision = flowcontracts::provider_decision(flowcontracts::json::parse(read_path_or_stdin(options.provider_decision_path)));
         return analyze(read_path_or_stdin(options.input_path), decision);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
+        else std::cerr << "flowoptimize error: allocation failed\n";
+        return 1;
     } catch (const flowcontracts::json::Error& error) {
         if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_CONTRACT_FAILURE", "contract", error.what());
         else std::cerr << "flowoptimize contract error: " << error.what() << '\n';

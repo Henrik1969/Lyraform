@@ -360,6 +360,21 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowoptimize allocation-fault boundary — 2026-09-15
+
+Flowoptimize now has a test-only fault-injected executable that raises
+`std::bad_alloc` before typed optimization consumes the input artifact. The
+public process boundary returns `FLOWOPTIMIZE_RESOURCE_EXHAUSTED` with
+`disposition: no_artifact` and leaves stdout empty. The focused
+`flowoptimize_allocation_fault` test passed in both the normal GCC tree and
+the Clang 18.1.3 ASan/UBSan tree.
+
+This extends allocation-exhaustion evidence to the optimization boundary. It
+does not claim complete allocation-fault coverage for all parser, provider,
+or Frankencore paths; those remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowanalyst allocation-fault boundary — 2026-09-15
 
 Flowanalyst now has a test-only fault-injected executable that raises
