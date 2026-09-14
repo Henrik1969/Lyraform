@@ -25,6 +25,13 @@ if "$target" --policy-root "$root" missing >/dev/null 2>"$tmpdir/missing.err"; t
     echo 'flowtarget resolved a missing policy' >&2; exit 1
 fi
 grep -q 'target policy is unavailable' "$tmpdir/missing.err"
+set +e
+"$target" --policy-root "$root" missing --diagnostics json >"$tmpdir/missing.stdout" 2>"$tmpdir/missing.json"
+missing_rc=$?
+set -e
+test "$missing_rc" -eq 1
+test ! -s "$tmpdir/missing.stdout"
+jq -e '.status == "failed" and .code == "FLOWTARGET_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/missing.json" >/dev/null
 if "$target" --policy-root "$root" ../llvm-host >/dev/null 2>"$tmpdir/name.err"; then
     echo 'flowtarget accepted a path-like target name' >&2; exit 1
 fi

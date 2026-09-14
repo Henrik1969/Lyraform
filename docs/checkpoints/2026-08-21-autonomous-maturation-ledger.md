@@ -2656,6 +2656,18 @@ isolation/trust, and remaining Gate 6/8 evidence are unfinished.
 State remains CONTINUE. Flowtarget, native fault injection, isolation/trust,
 and the remaining Gate 5/6/8 evidence are unfinished.
 
+## 2026-09-14 Flowtarget structured policy failure containment
+
+- Added `flowtarget --diagnostics json` for target-policy lookup, identity, and
+  contract failures. The policy ingress emits a stable
+  `FLOWTARGET_FAILURE` or `FLOWTARGET_CONTRACT_FAILURE` record on stderr,
+  keeps stdout empty, marks the attempt `no_artifact`, and returns nonzero.
+- Added missing-policy hostile coverage to the target-policy boundary test; the
+  focused test passes.
+
+State remains CONTINUE. Native fault injection, signed trust declarations,
+and the remaining Gate 5/6/8 evidence are unfinished.
+
 ## 2026-09-14 CUDA cleanup callback containment
 
 - Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are
