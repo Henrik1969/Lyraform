@@ -3,6 +3,12 @@
 #include <iostream>
 
 int main() {
-    std::cout << frankencore::runtime::to_json(frankencore::runtime::discover());
+    const auto result = frankencore::runtime::to_json_checked(
+        frankencore::runtime::discover());
+    if (!result.valid) {
+        std::cerr << "frankencore_runtime_probe: " << result.error << '\n';
+        return 1;
+    }
+    std::cout << result.json;
     return 0;
 }

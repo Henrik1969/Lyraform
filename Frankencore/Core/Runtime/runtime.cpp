@@ -1,7 +1,9 @@
 #include "frankencore/runtime.hpp"
 
 #include <dlfcn.h>
+#include <exception>
 #include <fstream>
+#include <new>
 #include <sstream>
 #include <string_view>
 #include <unistd.h>
@@ -102,6 +104,18 @@ std::string to_json(const Capabilities& capabilities) {
            ", \"device_count\": " + std::to_string(capabilities.cuda.device_count) +
            ", \"diagnostic\": " + quote(capabilities.cuda.diagnostic) + "}\n"
            "}\n";
+}
+
+JsonResult to_json_checked(const Capabilities& capabilities) noexcept {
+    try {
+        return {true, to_json(capabilities), {}};
+    } catch (const std::bad_alloc&) {
+        return {false, {}, "runtime capability serialization exhausted memory"};
+    } catch (const std::exception& error) {
+        return {false, {}, error.what()};
+    } catch (...) {
+        return {false, {}, "unknown non-standard runtime capability serialization failure"};
+    }
 }
 
 } // namespace frankencore::runtime

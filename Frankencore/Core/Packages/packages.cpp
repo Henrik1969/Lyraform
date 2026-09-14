@@ -1,10 +1,12 @@
 #include "frankencore/packages.hpp"
 
 #include <fstream>
+#include <exception>
 #include <filesystem>
 #include <algorithm>
 #include <cstdio>
 #include <sstream>
+#include <new>
 #include <sys/wait.h>
 #include <utility>
 
@@ -404,6 +406,18 @@ std::string to_json(const Inventory& inventory) {
     }
     output << "]}";
     return output.str();
+}
+
+JsonResult to_json_checked(const Inventory& inventory) noexcept {
+    try {
+        return {true, to_json(inventory), {}};
+    } catch (const std::bad_alloc&) {
+        return {false, {}, "package inventory serialization exhausted memory"};
+    } catch (const std::exception& error) {
+        return {false, {}, error.what()};
+    } catch (...) {
+        return {false, {}, "unknown non-standard package inventory serialization failure"};
+    }
 }
 
 } // namespace frankencore::packages

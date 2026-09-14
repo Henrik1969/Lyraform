@@ -29,6 +29,9 @@ int main() {
     assert(inventory.diagnostics.empty());
     const auto json = frankencore::packages::to_json(inventory);
     assert(json.find("\"example\"") != std::string::npos);
+    const auto checked_json = frankencore::packages::to_json_checked(inventory);
+    assert(checked_json.valid);
+    assert(checked_json.json == json);
 
     const auto missing = frankencore::packages::read_dpkg_status(
         "/path/that/does/not/exist");

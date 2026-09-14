@@ -64,6 +64,12 @@ struct Inventory {
     std::vector<Diagnostic> diagnostics;
 };
 
+struct JsonResult {
+    bool valid = false;
+    std::string json;
+    std::string error;
+};
+
 // Read-only projection of the native dpkg status database.
 Inventory read_dpkg_status(const std::string& path);
 
@@ -80,5 +86,9 @@ Inventory read_apt_index_targets(const std::string& apt_get_path = "/usr/bin/apt
 
 // JSON is an inspectable projection, not the canonical C++ representation.
 std::string to_json(const Inventory& inventory);
+
+// Checked public projection boundary. On failure, json is empty and no
+// serialized artifact is admitted.
+JsonResult to_json_checked(const Inventory& inventory) noexcept;
 
 } // namespace frankencore::packages
