@@ -2451,3 +2451,20 @@ State remains CONTINUE. This establishes a bounded metadata FIFO for accepted
 activations; it does not yet dispatch effects, resume reentrant activations,
 cancel queued work, or execute nested parallel and branching/merging stream
 semantics.
+
+## 2026-09-14 durable history validation checkpoint
+
+- Extended the project-local durable provenance history with a 64 MiB total
+  byte bound and a 1 MiB per-record bound. Exceeding either limit returns
+  `exhausted` without publishing a record.
+- Replaced structural-only history screening with the shared JSON parser and
+  known-record validation for syntax, duplicate keys, field types, ULIDs,
+  status vocabulary, and revision ordering. Malformed records remain
+  non-publishable.
+- Added focused malformed-record and exhaustion coverage. The complete
+  canonical CTest graph passes **111/111** under GCC, including the history
+  boundary test.
+
+State remains CONTINUE. Durable history now has bounded storage and typed JSON
+validation; semantic lifecycle replay, retention, crash fault injection, and
+cross-branch reconciliation remain open Gate 5 work.
