@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -135,7 +136,15 @@ int main(int argc, char** argv) {
     try {
         const auto options = parse(argc, argv);
         structured_diagnostics = options.structured_diagnostics;
+#ifdef FLOWPARALLEL_CUDA_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
         return run(input(options), options);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cuda error: allocation failed\n";
+        return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics)
             std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";

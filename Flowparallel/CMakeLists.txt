@@ -35,6 +35,11 @@ add_executable(flowparallel_cuda src/cuda_provider.cpp)
 target_include_directories(flowparallel_cuda PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel_cuda PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_cuda PRIVATE flowcontracts ${CMAKE_DL_LIBS})
+add_executable(flowparallel_cuda_allocation_fault src/cuda_provider.cpp)
+target_compile_definitions(flowparallel_cuda_allocation_fault PRIVATE FLOWPARALLEL_CUDA_TEST_ALLOCATION_FAILURE)
+target_include_directories(flowparallel_cuda_allocation_fault PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(flowparallel_cuda_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_cuda_allocation_fault PRIVATE flowcontracts ${CMAKE_DL_LIBS})
 
 add_executable(flowparallel_cuda_execute src/cuda_execute.cpp)
 target_include_directories(flowparallel_cuda_execute PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -148,6 +153,10 @@ add_test(NAME flowparallel_cuda_provider
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>
         FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-cuda-provider-tests.sh)
+add_test(NAME flowparallel_cuda_allocation_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPARALLEL_CUDA_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowparallel_cuda_allocation_fault>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-cuda-allocation-fault.sh)
 add_test(NAME flowparallel_runtime_planner
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_RUNTIME_PLANNER_BIN=$<TARGET_FILE:flowparallel_runtime_planner>
