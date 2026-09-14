@@ -547,6 +547,10 @@ std::string to_json(const Inventory& inventory) {
 
 JsonResult to_json_checked(const Inventory& inventory) noexcept {
     try {
+#ifdef FRANKENCORE_PACKAGES_TEST_ALLOCATION_FAILURE
+        (void)inventory;
+        throw std::bad_alloc();
+#endif
         return {true, to_json(inventory), {}};
     } catch (const std::bad_alloc&) {
         return {false, {}, "package inventory serialization exhausted memory"};

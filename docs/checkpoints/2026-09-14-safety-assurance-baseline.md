@@ -360,6 +360,21 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore package projection allocation fault — 2026-09-15
+
+The read-only package inventory now has a test-only library variant that
+injects `std::bad_alloc` inside `frankencore::packages::to_json_checked()`.
+The public `noexcept` projection returns `valid: false`, an empty JSON string,
+and the explicit `package inventory serialization exhausted memory` error.
+`frankencore_packages_allocation_fault` passed in both the normal GCC tree
+and the Clang 18.1.3 ASan/UBSan tree.
+
+This closes allocation-exhaustion evidence for the package inventory’s
+serialization boundary only. Provider discovery, parser allocation, and
+other Frankencore APIs still require independent fault-injection evidence.
+
+The safety state remains `CONTINUE`.
+
 ## Flowoptimize allocation-fault boundary — 2026-09-15
 
 Flowoptimize now has a test-only fault-injected executable that raises

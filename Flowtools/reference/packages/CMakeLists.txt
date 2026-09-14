@@ -5,3 +5,10 @@ target_compile_options(frankencore_packages_probe PRIVATE -Wall -Wextra -Wpedant
 
 add_test(NAME frankencore_packages_probe
     COMMAND frankencore_packages_probe)
+
+add_executable(frankencore_packages_allocation_fault allocation_fault.cpp)
+target_link_libraries(frankencore_packages_allocation_fault PRIVATE Frankencore::PackagesFault)
+target_compile_features(frankencore_packages_allocation_fault PRIVATE cxx_std_20)
+target_compile_options(frankencore_packages_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME frankencore_packages_allocation_fault
+    COMMAND frankencore_packages_allocation_fault)
