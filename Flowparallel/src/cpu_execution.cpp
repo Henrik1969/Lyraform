@@ -57,6 +57,9 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
     {
         std::vector<std::jthread> threads;
         try {
+#ifdef FLOWPARALLEL_CPU_EXECUTION_TEST_LAUNCH_FAILURE
+            throw std::bad_alloc();
+#endif
             threads.reserve(actual_workers);
             for (unsigned index = 0; index < actual_workers; ++index) threads.emplace_back(worker);
         } catch (const std::exception& error) {

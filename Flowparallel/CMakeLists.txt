@@ -133,10 +133,19 @@ target_include_directories(flowparallel_cpu_runtime PUBLIC ${CMAKE_CURRENT_SOURC
 target_compile_features(flowparallel_cpu_runtime PUBLIC cxx_std_20)
 target_compile_options(flowparallel_cpu_runtime PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_cpu_runtime PUBLIC Threads::Threads)
+add_library(flowparallel_cpu_runtime_allocation_fault STATIC src/cpu_execution.cpp)
+target_compile_definitions(flowparallel_cpu_runtime_allocation_fault PRIVATE FLOWPARALLEL_CPU_EXECUTION_TEST_LAUNCH_FAILURE)
+target_include_directories(flowparallel_cpu_runtime_allocation_fault PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(flowparallel_cpu_runtime_allocation_fault PUBLIC cxx_std_20)
+target_compile_options(flowparallel_cpu_runtime_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_cpu_runtime_allocation_fault PUBLIC Threads::Threads)
 
 add_executable(flowparallel_execution_smoketest tests/execution_smoketest.cpp)
 target_compile_options(flowparallel_execution_smoketest PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_execution_smoketest PRIVATE flowparallel_cpu_runtime)
+add_executable(flowparallel_cpu_execution_allocation_fault_test tests/cpu_execution_allocation_fault.cpp)
+target_compile_options(flowparallel_cpu_execution_allocation_fault_test PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_cpu_execution_allocation_fault_test PRIVATE flowparallel_cpu_runtime_allocation_fault)
 
 add_test(NAME flowparallel_pipeline
     COMMAND ${CMAKE_COMMAND} -E env
@@ -179,6 +188,8 @@ add_test(NAME flowparallel_cpu_execution
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>
         FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-cpu-execution-tests.sh)
+add_test(NAME flowparallel_cpu_execution_allocation_fault
+    COMMAND flowparallel_cpu_execution_allocation_fault_test)
 add_test(NAME flowparallel_cuda_provider
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_CUDA_BIN=$<TARGET_FILE:flowparallel_cuda>

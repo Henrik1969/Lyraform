@@ -377,6 +377,21 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel CPU-execution launch-allocation fault — 2026-09-15
+
+The CPU independent-task executor now has a test-only runtime variant that
+injects allocation failure at worker-vector launch. The executor converts it
+to `WORKER_LAUNCH_FAILURE`, reports zero completed tasks and no artifact, and
+its `std::jthread` ownership scope guarantees already-started workers are
+joined during unwinding. The focused
+`flowparallel_cpu_execution_allocation_fault` test is part of the canonical
+CTest suite.
+
+This strengthens partial-initialization cleanup evidence; cancellation,
+backpressure, and effectful scheduling remain refused by policy.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel planner unsupported-scheduling refusal — 2026-09-15
 
 The top-level Flowparallel planner now checks scheduling requests before
