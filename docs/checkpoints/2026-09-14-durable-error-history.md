@@ -52,7 +52,8 @@ Partial writes are fault-injected as well: if a write changes the file but
 does not complete, append returns `uncertain` with `changed=true`, and the
 incomplete tail remains visible for explicit repair. This prevents a torn
 record from being reported as an ordinary no-change error. Zero-progress
-after a partial write follows the same path with a deterministic I/O error.
+after a partial write follows the same path with a deterministic I/O error;
+the returned record count includes only complete records, never torn bytes.
 The parent-directory synchronization barrier is fault-injected independently;
 when file `fsync` succeeds but directory `fsync` fails, append also returns
 `uncertain` while the complete record remains inspectable.

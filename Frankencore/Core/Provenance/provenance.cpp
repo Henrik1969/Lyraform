@@ -623,7 +623,7 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
         }
         ::flock(lock, LOCK_UN);
         ::close(lock);
-        if (!written) return {false, bytes_written, scan.result.records + (bytes_written ? 1 : 0),
+        if (!written) return {false, bytes_written, scan.result.records + (write_result.complete ? 1 : 0),
                               bytes_written ? "uncertain" : "error",
                               std::string("history append durability failed: ") + std::strerror(saved == 0 ? EIO : saved), {}};
         return {true, true, scan.result.records + 1, "appended", {}, {}};

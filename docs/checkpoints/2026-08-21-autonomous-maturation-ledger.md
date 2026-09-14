@@ -2634,6 +2634,16 @@ native/provider fault-injection work.
 State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
 cancellation/async, and broader native/provider fault injection remain open.
 
+## 2026-09-14 durable-history complete-record accounting
+
+- Corrected uncertain append reporting so partial or zero-progress writes do
+  not count torn bytes as a committed history record.
+- Added assertions that the returned count matches the validated complete
+  prefix for both injected torn-write cases.
+
+State remains CONTINUE. Retention, deeper crash interruption, isolation/trust,
+cancellation/async, and broader native/provider fault injection remain open.
+
 ## 2026-09-14 conflicting branch-history reconciliation
 
 - Added a valid same-identity/different-content branch fixture to the durable

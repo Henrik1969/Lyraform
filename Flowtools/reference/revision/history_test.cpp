@@ -296,6 +296,7 @@ int main() {
     fail_write_after_partial = false;
     assert(!partial_append.valid && partial_append.changed);
     assert(partial_append.status == "uncertain");
+    assert(partial_append.records == 1);
     assert(partial_history.inspect().status == "incomplete");
     assert(partial_history.repair_incomplete_tail().status == "repaired");
     assert(partial_history.inspect().valid && partial_history.inspect().records == 1);
@@ -312,6 +313,7 @@ int main() {
     fail_zero_write_after_partial = false;
     assert(!zero_write_append.valid && zero_write_append.changed);
     assert(zero_write_append.status == "uncertain");
+    assert(zero_write_append.records == 1);
     assert(zero_write_history.inspect().status == "incomplete");
 
     const auto parent_sync_path = base / "parent-sync.jsonl";
