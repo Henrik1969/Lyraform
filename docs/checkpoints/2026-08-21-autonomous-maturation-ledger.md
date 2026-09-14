@@ -2651,6 +2651,17 @@ duplicate callable-catalog implementation.
 State remains CONTINUE. The Flow-level source reader and later compiler closure
 remain required before Stage 1.
 
+## 2026-09-14 UTF-8 hostile-case matrix completion
+
+- Expanded `flowmini_utf8_source_boundary` from one malformed sequence to
+  truncated, bad-continuation, overlong, surrogate, out-of-range, and
+  truncated-four-byte cases.
+- Added valid two-, three-, and four-byte scalar coverage.
+- Focused test passes; the canonical suite remains the publication gate.
+
+State remains CONTINUE. This closes only the tested Stage 0 lexer ingress
+matrix; the Flow-written source-reader gap remains open.
+
 ## 2026-09-14 CPU execution workload ingress boundary
 
 - Replaced prefix-accepting `stoul` conversion in the execution smoke boundary
