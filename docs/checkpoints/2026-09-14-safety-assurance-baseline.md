@@ -157,6 +157,16 @@ rules remain unchanged. The recovery fault suite remains green.
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open.
 
+## Read-path lock ownership — 2026-09-14
+
+History inspection, record reads, and event lookup now use scoped shared-lock
+ownership. Exceptional parsing and allocation paths therefore release the
+history lock just like normal returns; the public read results and append-only
+semantics are unchanged.
+
+The safety state remains `CONTINUE`: append-path fault injection and retention
+semantics remain open.
+
 ## Trust and isolation evidence bounds — 2026-09-14
 
 Verification evidence and isolation claims now reject text fields larger than

@@ -741,12 +741,12 @@ ErrorStateHistory::ErrorStateHistory(std::string path, std::size_t max_line_byte
 
 HistoryResult ErrorStateHistory::inspect() const noexcept {
     try {
-        const int lock = lock_history(path_, LOCK_SH);
+        ScopedLock lock_guard{lock_history(path_, LOCK_SH)};
+        const int lock = lock_guard.value;
         if (lock < 0)
             return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
         const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
-        ::flock(lock, LOCK_UN);
-        ::close(lock);
+        lock_guard.release();
         return scan.result;
     } catch (const std::exception& error) {
         return {false, false, 0, "error", error.what(), {}};
@@ -757,12 +757,12 @@ HistoryResult ErrorStateHistory::inspect() const noexcept {
 
 HistoryReadResult ErrorStateHistory::read_records() const noexcept {
     try {
-        const int lock = lock_history(path_, LOCK_SH);
+        ScopedLock lock_guard{lock_history(path_, LOCK_SH)};
+        const int lock = lock_guard.value;
         if (lock < 0)
             return {false, 0, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
         const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
-        ::flock(lock, LOCK_UN);
-        ::close(lock);
+        lock_guard.release();
         if (!scan.result.valid)
             return {false, scan.result.records, scan.records, scan.result.status, scan.result.error};
         return {true, scan.result.records, scan.records, scan.result.status, {}};
@@ -777,12 +777,12 @@ HistoryLookupResult ErrorStateHistory::find_event(const std::string& event_id) c
     if (!is_valid_ulid(event_id))
         return {false, false, {}, "rejected", "event_id must be a valid ULID"};
     try {
-        const int lock = lock_history(path_, LOCK_SH);
+        ScopedLock lock_guard{lock_history(path_, LOCK_SH)};
+        const int lock = lock_guard.value;
         if (lock < 0)
             return {false, false, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
         const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
-        ::flock(lock, LOCK_UN);
-        ::close(lock);
+        lock_guard.release();
         if (!scan.result.valid)
             return {false, false, {}, scan.result.status, scan.result.error};
         const auto found = scan.events.find(event_id);
