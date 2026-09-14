@@ -59,6 +59,12 @@ int main() {
     const auto rejected = to_json(rejection);
     assert(rejected.find("\"status\":\"rejected\"") != std::string::npos);
     assert(rejected.find("mutation not authorized") != std::string::npos);
+    auto invalid_rejection = rejection;
+    invalid_rejection.attempt.causes.clear();
+    const auto invalid_rejection_json = to_json_checked(invalid_rejection);
+    assert(!invalid_rejection_json.valid);
+    assert(invalid_rejection_json.json.empty());
+    assert(invalid_rejection_json.error.find("causes") != std::string::npos);
 
     const ErrorStateEvent error_state{
         .error_state_id = generate_ulid(),
@@ -73,5 +79,11 @@ int main() {
     const auto error_json = to_json(error_state);
     assert(error_json.find("frankencore.error_state_event") != std::string::npos);
     assert(error_json.find("valid prefix restored") != std::string::npos);
+    auto invalid_error_state = error_state;
+    invalid_error_state.status.clear();
+    const auto invalid_error_json = to_json_checked(invalid_error_state);
+    assert(!invalid_error_json.valid);
+    assert(invalid_error_json.json.empty());
+    assert(invalid_error_json.error.find("status") != std::string::npos);
     return 0;
 }
