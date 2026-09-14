@@ -2597,6 +2597,19 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 durable-history uncertain fsync result
+
+- Distinguished a failed write from bytes-written-but-unsynchronized history
+  appends. The latter now returns `uncertain` with `changed=true` and the
+  record count including the physically written record.
+- Added linker-injected `fsync` failure evidence proving the uncertain result
+  and subsequent valid inspection; callers are directed to inspect/reconcile
+  before retrying.
+
+State remains CONTINUE. Crash interruption, retention policy, native fault
+injection breadth, isolation/trust, and remaining Gate 5/6/8 evidence remain
+unfinished.
+
 ## 2026-09-14 durable-history per-record bound
 
 - Enforced `max_line_bytes` on the candidate append before opening the history

@@ -600,7 +600,9 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             ::close(lock);
             return {false, false, scan.result.records, "error", std::string("cannot open history for append: ") + std::strerror(saved), {}};
         }
-        bool written = write_all(descriptor, line.data(), line.size()) && ::fsync(descriptor) == 0;
+        const bool bytes_written = write_all(descriptor, line.data(), line.size());
+        const bool durable = bytes_written && ::fsync(descriptor) == 0;
+        bool written = durable;
         int saved = written ? 0 : errno;
         ::close(descriptor);
         if (written && sync_parent_directory(path) != 0) {
@@ -609,7 +611,9 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
         }
         ::flock(lock, LOCK_UN);
         ::close(lock);
-        if (!written) return {false, false, scan.result.records, "error", std::string("history append durability failed: ") + std::strerror(saved == 0 ? EIO : saved), {}};
+        if (!written) return {false, bytes_written, scan.result.records + (bytes_written ? 1 : 0),
+                              bytes_written ? "uncertain" : "error",
+                              std::string("history append durability failed: ") + std::strerror(saved == 0 ? EIO : saved), {}};
         return {true, true, scan.result.records + 1, "appended", {}, {}};
     } catch (const std::exception& error) {
         return {false, false, 0, "error", error.what(), {}};

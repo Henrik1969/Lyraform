@@ -1,6 +1,7 @@
 #include <frankencore/provenance.hpp>
 
 #include <cassert>
+#include <cerrno>
 #include <filesystem>
 #include <fstream>
 #include <fcntl.h>
@@ -8,6 +9,17 @@
 #include <unistd.h>
 
 namespace {
+
+bool fail_fsync = false;
+
+extern "C" int __real_fsync(int);
+extern "C" int __wrap_fsync(int descriptor) {
+    if (fail_fsync) {
+        errno = EIO;
+        return -1;
+    }
+    return __real_fsync(descriptor);
+}
 
 frankencore::provenance::ErrorStateEvent event(const char* status) {
     using namespace frankencore::provenance;
@@ -183,6 +195,21 @@ int main() {
     assert(reconciliation.left_only_events == 0);
     assert(reconciliation.right_only_events == 1);
     assert(reconciliation.conflicting_events == 0);
+
+    const auto durability_path = base / "durability.jsonl";
+    ErrorStateHistory durability(durability_path.string());
+    const auto durability_opened = event("opened");
+    assert(durability.append(durability_opened).status == "appended");
+    auto durability_diagnosed = durability_opened;
+    durability_diagnosed.event_id = generate_ulid();
+    durability_diagnosed.status = "diagnosed";
+    fail_fsync = true;
+    const auto uncertain_append = durability.append(durability_diagnosed);
+    fail_fsync = false;
+    assert(!uncertain_append.valid && uncertain_append.changed);
+    assert(uncertain_append.status == "uncertain");
+    assert(uncertain_append.records == 2);
+    assert(durability.inspect().valid && durability.inspect().records == 2);
 
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);

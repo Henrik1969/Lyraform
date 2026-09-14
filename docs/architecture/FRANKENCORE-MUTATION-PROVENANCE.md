@@ -103,6 +103,9 @@ the resulting fact immutably.
 Each append is checked against both the configured total-history bound and the
 per-record line bound before the file is opened, so an oversized record cannot
 create or alter a history file.
+If bytes are written but durability synchronization fails, append returns
+`uncertain` with `changed=true`; callers must inspect or reconcile before any
+retry rather than treating the operation as cleanly rejected.
 
 The status vocabulary is additive rather than a closed enum. Extensions are
 permitted when they preserve the constitutional laws and applicable policies;
