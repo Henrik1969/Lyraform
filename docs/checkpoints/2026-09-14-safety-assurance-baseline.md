@@ -377,6 +377,20 @@ contract; retention and broader crash points remain open.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel planner unsupported-scheduling refusal — 2026-09-15
+
+The top-level Flowparallel planner now checks scheduling requests before
+semantic projection and explicitly refuses `parallel_effectful_v1`,
+`cancellation`, `async`, and `backpressure` with an unsupported plan and no
+fallback artifact. The pipeline regression covers all four requests and
+requires exit status 2 plus `fallback.emitted: false`.
+
+This closes a planner-level fail-closed gap; it does not implement any of
+those features. Complete cancellation, queue, ordering, commit, and effect
+contracts remain open Gate 4 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowmini compiler allocation-fault boundary — 2026-09-15
 
 The current Flowmini compiler CLI now has a test-only fault-injected target

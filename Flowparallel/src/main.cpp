@@ -33,6 +33,15 @@ std::string json_escape(std::string_view value) {
 
 flowcontracts::json::Value text(std::string value) { return flowcontracts::json::Value{std::move(value)}; }
 
+int reject_unsupported(std::string_view request, std::string_view reason) {
+    std::cout << "{\n  \"format\": \"flowparallel.execution_plan\",\n"
+                 "  \"version\": 1,\n  \"status\": \"unsupported\",\n"
+                 "  \"request\": \"" << json_escape(request) << "\",\n"
+                 "  \"reason\": \"" << json_escape(reason) << "\",\n"
+                 "  \"fallback\": {\"emitted\": false}\n}\n";
+    return 2;
+}
+
 int analyze(std::string_view input) {
 #ifdef FLOWPARALLEL_TEST_ALLOCATION_FAILURE
     (void)input;
@@ -40,7 +49,21 @@ int analyze(std::string_view input) {
 #endif
     using namespace flowcontracts;
     using namespace flowcontracts::json;
-    const auto report = semantic_report(parse(input));
+    const auto parsed = parse(input);
+    const auto& parsed_root = object(parsed);
+    const auto requested = [&](std::string_view field, std::string_view value) {
+        const auto* item = optional(parsed_root, field);
+        return item != nullptr && string(*item, "$." + std::string(field)) == value;
+    };
+    if (requested("schedule_policy", "parallel_effectful_v1"))
+        return reject_unsupported("parallel_effectful_v1", "effectful parallel scheduling is not admitted");
+    if (requested("cancellation", "requested"))
+        return reject_unsupported("cancellation", "cancellation is not admitted by this planner");
+    if (requested("async", "requested"))
+        return reject_unsupported("async", "asynchronous execution is not admitted by this planner");
+    if (requested("backpressure", "requested"))
+        return reject_unsupported("backpressure", "backpressure is not admitted by this planner");
+    const auto report = semantic_report(parsed);
     if (report.artifact.status != "ok") {
         std::cout << serialize(Object{{"format", text("flowparallel.execution_plan")},
                                      {"reason", text("semantic report is not accepted")},

@@ -72,4 +72,27 @@ set -e
 test "$diagnostic_rc" -ne 0
 test ! -s "$tmpdir/diagnostic.out"
 jq -e '.status == "failed" and .code == "FLOWPARALLEL_CONTRACT_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$tmpdir/diagnostic.err" >/dev/null
+
+reject_unsupported() {
+    request=$1
+    payload=$2
+    set +e
+    output=$(printf '%s' "$payload" | "$bin")
+    status=$?
+    set -e
+    test "$status" -eq 2
+    printf '%s\n' "$output" | jq -e --arg request "$request" \
+        '.status == "unsupported" and .request == $request and .fallback.emitted == false' >/dev/null
+}
+
+reject_unsupported parallel_effectful_v1 \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","schedule_policy":"parallel_effectful_v1"}'
+reject_unsupported cancellation \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","cancellation":"requested"}'
+reject_unsupported async \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","async":"requested"}'
+reject_unsupported backpressure \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","backpressure":"requested"}'
+
+echo 'Flowparallel unsupported-scheduling refusal: PASS'
 echo 'Flowparallel tests: PASS'
