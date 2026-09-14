@@ -1,5 +1,6 @@
 #include <dlfcn.h>
 #include <flowcontracts/artifacts.hpp>
+#include <flowcontracts/json.hpp>
 
 #include <cstdint>
 #include <cstdlib>
@@ -15,6 +16,15 @@ namespace {
 struct Options { std::string plan_path; unsigned matrix_size = 512; };
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
+
+int reject_unsupported(std::string_view request, std::string_view reason) {
+    std::cout << "{\n  \"format\": \"flowparallel.cuda_selection\",\n"
+                 "  \"version\": 1,\n  \"status\": \"unsupported\",\n"
+                 "  \"request\": " << quote(request) << ",\n"
+                 "  \"reason\": " << quote(reason) << ",\n"
+                 "  \"fallback\": {\"emitted\": false}\n}\n";
+    return 2;
+}
 
 std::string input(const Options& options) {
     std::ostringstream stream;
@@ -59,7 +69,21 @@ Options parse(int argc, char** argv) {
 }
 
 int run(const std::string& plan, const Options& options) {
-    const auto artifact = flowcontracts::execution_plan(flowcontracts::json::parse(plan));
+    const auto plan_value = flowcontracts::json::parse(plan);
+    const auto& root = flowcontracts::json::object(plan_value);
+    const auto requested = [&](std::string_view field, std::string_view value) {
+        const auto* item = flowcontracts::json::optional(root, field);
+        return item != nullptr && flowcontracts::json::string(*item, "$." + std::string(field)) == value;
+    };
+    if (requested("schedule_policy", "parallel_effectful_v1"))
+        return reject_unsupported("parallel_effectful_v1", "effectful parallel scheduling is not admitted by this provider");
+    if (requested("cancellation", "requested"))
+        return reject_unsupported("cancellation", "cancellation is not admitted by this provider");
+    if (requested("async", "requested"))
+        return reject_unsupported("async", "asynchronous execution is not admitted by this provider");
+    if (requested("backpressure", "requested"))
+        return reject_unsupported("backpressure", "backpressure is not admitted by this provider");
+    const auto artifact = flowcontracts::execution_plan(plan_value);
     if (artifact.artifact.status != "ready") { std::cout << "{\n  \"format\": \"flowparallel.cuda_selection\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n"; return 2; }
     const auto cuda = probe();
     const std::uint64_t matrix_bytes = static_cast<std::uint64_t>(options.matrix_size) * options.matrix_size * sizeof(float);

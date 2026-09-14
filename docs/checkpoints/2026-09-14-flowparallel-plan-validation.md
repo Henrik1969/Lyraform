@@ -1,7 +1,7 @@
 # Flowparallel execution-plan validation checkpoint
 
 **Date:** 2026-09-14  
-**Status:** implemented for the CPU provider boundary
+**Status:** implemented for CPU, CUDA, and runtime-planner provider boundaries
 
 `flowparallel_cpu` now parses the complete execution plan with the shared
 JSON parser before policy selection. It requires the versioned top-level
@@ -28,6 +28,16 @@ This closes typed input validation at the CPU selection boundary; it does not
 admit cancellation, async execution, backpressure, effectful parallelism, or
 general scheduling semantics.
 
-The runtime planner now applies the same refusal at the provider-selection
-boundary, so an unsupported scheduling request cannot bypass the CPU-provider
-guard by entering through CUDA/runtime planning.
+The runtime planner and CUDA provider now apply the same refusal at their
+provider-selection boundaries, so an unsupported scheduling request cannot
+bypass the CPU-provider guard by entering through CUDA or runtime planning.
+
+The CUDA provider performs this check before loading or probing the CUDA
+driver. Its focused test mutates a valid plan with a cancellation request and
+verifies a structured `unsupported` result with no fallback artifact.
+
+Evidence:
+
+```text
+CUDA-provider positive/refusal/duplicate-authority tests: PASS
+```

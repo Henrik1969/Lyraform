@@ -2543,3 +2543,17 @@ unsupported scheduling and effect semantics remain explicitly refused.
 
 State remains CONTINUE. Scheduling semantics remain refused until their
 complete cancellation, effect, ordering, and commit contracts exist.
+
+## 2026-09-14 CUDA provider refusal consistency
+
+- Audited the CUDA provider as a separate scheduling ingress, rather than
+  assuming the runtime planner or CPU provider guarded it transitively.
+- Added typed top-level checks for effectful parallelism, cancellation, async
+  execution, and backpressure before CUDA driver probing. Unsupported requests
+  return the versioned CUDA-selection refusal with no fallback artifact.
+- Added hostile cancellation-plan coverage; the focused CUDA provider test
+  passes, and the existing ready-path and duplicate-authority checks remain
+  green.
+
+State remains CONTINUE. The scheduling features are still intentionally
+refused; this checkpoint closes only the CUDA provider admission bypass.
