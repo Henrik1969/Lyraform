@@ -2629,6 +2629,17 @@ provider schemas still require independent evidence.
 - The package inventory now documents per-record and per-file bounds while
   keeping total inventory cardinality as a separate open contract.
 
+## 2026-09-14 package-provider disappearance classification
+
+- Distinguished an unavailable APT metadata/source file from an oversized
+  file. A file-read failure now produces `source-unavailable`; only an actual
+  bounded-reader overflow produces `metadata-too-large`.
+- Added an unreadable `.sources` fixture proving that missing provider input is
+  diagnosed and does not become a parsed source observation.
+
+State remains CONTINUE. Broader native provider fault injection and future
+provider schemas still require independent evidence.
+
 State remains CONTINUE. Provider/library fault injection, aggregate inventory
 cardinality, and broader Frankencore API containment remain unfinished.
 

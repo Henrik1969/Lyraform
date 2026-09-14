@@ -159,22 +159,28 @@ void parse_legacy_source(Inventory& inventory, const std::string& line,
     append_source(inventory, std::move(source));
 }
 
-std::optional<std::string> read_bounded_text(const std::filesystem::path& path) {
+std::optional<std::string> read_bounded_text(const std::filesystem::path& path,
+                                             bool& too_large) {
+    too_large = false;
     std::ifstream input(path);
     if (!input) return std::nullopt;
     std::string text;
     text.reserve(4096);
     char character = '\0';
     while (input.get(character)) {
-        if (text.size() == MAX_APT_METADATA_BYTES) return std::nullopt;
+        if (text.size() == MAX_APT_METADATA_BYTES) {
+            too_large = true;
+            return std::nullopt;
+        }
         text.push_back(character);
     }
     return text;
 }
 
 std::optional<RepositoryFact> repository_from_metadata(
-    const std::filesystem::path& path, const std::string& authentication) {
-    const auto text = read_bounded_text(path);
+    const std::filesystem::path& path, const std::string& authentication,
+    bool& too_large) {
+    const auto text = read_bounded_text(path, too_large);
     if (!text) return std::nullopt;
     RepositoryFact repository{
         path.filename().string(),
@@ -333,16 +339,20 @@ Inventory read_apt_lists(const std::string& directory) {
         const auto filename = path.filename().string();
         if (filename.size() >= 10 &&
             filename.compare(filename.size() - 10, 10, "_InRelease") == 0) {
-            const auto repository = repository_from_metadata(path, "inrelease-present");
+            bool too_large = false;
+            const auto repository = repository_from_metadata(path, "inrelease-present", too_large);
             if (repository) inventory.repositories.push_back(*repository);
-            else add_diagnostic(inventory, "metadata-too-large",
-                                "APT release metadata exceeds the 4 MiB safety bound", 0);
+            else add_diagnostic(inventory, too_large ? "metadata-too-large" : "source-unavailable",
+                                too_large ? "APT release metadata exceeds the 4 MiB safety bound"
+                                          : "unable to read APT release metadata", 0);
         } else if (filename.size() >= 7 &&
                    filename.compare(filename.size() - 7, 7, "_Release") == 0) {
-            const auto repository = repository_from_metadata(path, "release-present");
+            bool too_large = false;
+            const auto repository = repository_from_metadata(path, "release-present", too_large);
             if (repository) inventory.repositories.push_back(*repository);
-            else add_diagnostic(inventory, "metadata-too-large",
-                                "APT release metadata exceeds the 4 MiB safety bound", 0);
+            else add_diagnostic(inventory, too_large ? "metadata-too-large" : "source-unavailable",
+                                too_large ? "APT release metadata exceeds the 4 MiB safety bound"
+                                          : "unable to read APT release metadata", 0);
         }
     }
     if (error) {
@@ -387,10 +397,12 @@ Inventory read_apt_sources(const std::string& directory) {
             continue;
         }
         if (extension == ".sources") {
-            const auto contents = read_bounded_text(path);
+            bool too_large = false;
+            const auto contents = read_bounded_text(path, too_large);
             if (!contents) {
-                add_diagnostic(inventory, "metadata-too-large",
-                               "APT source metadata exceeds the 4 MiB safety bound", 0);
+                add_diagnostic(inventory, too_large ? "metadata-too-large" : "source-unavailable",
+                               too_large ? "APT source metadata exceeds the 4 MiB safety bound"
+                                         : "unable to read APT source metadata", 0);
                 continue;
             }
             parse_deb822_source(inventory, *contents, path.string());

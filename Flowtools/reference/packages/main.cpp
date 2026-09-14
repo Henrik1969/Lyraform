@@ -102,6 +102,24 @@ int main() {
     assert(saw_trusted_override);
     std::filesystem::remove_all(source_fixture);
 
+    const auto unavailable_source_fixture = std::filesystem::temp_directory_path() /
+                                            "frankencore-apt-unavailable-source-test";
+    std::filesystem::create_directories(unavailable_source_fixture);
+    const auto unavailable_source = unavailable_source_fixture / "missing.sources";
+    {
+        std::ofstream output(unavailable_source);
+        output << "Types: deb\nURIs: https://example.invalid/repo\n";
+    }
+    std::filesystem::permissions(unavailable_source,
+                                 std::filesystem::perms::owner_write,
+                                 std::filesystem::perm_options::replace);
+    const auto unavailable_sources = frankencore::packages::read_apt_sources(
+        unavailable_source_fixture.string());
+    assert(unavailable_sources.apt_sources.empty());
+    assert(unavailable_sources.diagnostics.size() == 1);
+    assert(unavailable_sources.diagnostics[0].code == "source-unavailable");
+    std::filesystem::remove_all(unavailable_source_fixture);
+
     const auto cardinality_fixture = std::filesystem::temp_directory_path() /
                                      "frankencore-apt-cardinality-test";
     std::filesystem::create_directories(cardinality_fixture);
