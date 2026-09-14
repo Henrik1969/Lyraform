@@ -2645,6 +2645,17 @@ State remains CONTINUE. Full sanitizer coverage, retention, deeper crash
 interruption, isolation/trust, cancellation/async, and broader native/provider
 fault injection remain open.
 
+## 2026-09-14 isolation-claim hostile matrix
+
+- Expanded the Frankencore contract probe with missing-field, locally verified
+  isolated, and unknown-enforcement hardened-claim cases.
+- Confirmed the deliberately weak `none`/`self_report` claim remains valid as
+  a non-isolation claim, while stronger claims fail closed without independent
+  verification.
+
+State remains CONTINUE. Provider execution isolation, signed profiles, trust
+anchors, cross-platform assurance, and broader fault injection remain open.
+
 ## 2026-09-14 current-source sanitizer and Memcheck revalidation
 
 - Rebuilt the Clang ASan/UBSan history target from the current checkout before

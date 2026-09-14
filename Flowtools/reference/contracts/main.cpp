@@ -34,6 +34,19 @@ int main() {
     isolation.assurance_level = "constrained";
     isolation.enforcement = "unknown";
     assert(!validate(isolation).valid);
+    isolation.enforcement = "locally_verified";
+    isolation.requested_boundary.clear();
+    assert(!validate(isolation).valid);
+    isolation.requested_boundary = "project execution";
+    isolation.assurance_level = "isolated";
+    isolation.enforcement = "locally_verified";
+    assert(!validate(isolation).valid);
+    isolation.assurance_level = "hardened";
+    isolation.enforcement = "unknown";
+    assert(!validate(isolation).valid);
+    isolation.assurance_level = "none";
+    isolation.enforcement = "self_report";
+    assert(validate(isolation).valid);
 
     LanguageMap language;
     language.id = "Danish";
