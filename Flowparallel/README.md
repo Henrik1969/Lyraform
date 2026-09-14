@@ -47,6 +47,9 @@ outside the admitted pre-self-hosting contract.
 The provider parses and validates the complete execution-plan JSON before
 making that decision. Duplicate keys, wrong field types, unsupported versions,
 and nested lookalike fields cannot alter the top-level scheduling policy.
+`flowparallel_cpu --diagnostics json` exposes malformed-input and provider
+failures as structured `no_artifact` diagnostics; the default remains a
+human-readable error.
 
 The optional `flowparallel_cuda` provider currently probes the CUDA driver and
 emits a linear-algebra workload contract for matrix multiplication. It includes

@@ -12,6 +12,9 @@ test -x "$planner"
 test -x "$flowmini"
 test -x "$analyst"
 
+diagnostic_err=$(mktemp)
+trap 'rm -f "$diagnostic_err"' EXIT
+
 plan=$("$flowmini" --dump-frontend-bundle "$fixture" | "$analyst" | "$planner")
 parallel=$(printf '%s\n' "$plan" | "$cpu" --observed-speedup 2.0 --minimum-speedup 1.25 --workers 4)
 printf '%s\n' "$parallel" | jq -e '.status == "ready" and .decision == "parallel" and .provider == "cpu.threadpool" and .workers >= 2 and .execution == "not-performed"' >/dev/null
@@ -60,6 +63,14 @@ wrong_version_rc=$?
 set -e
 test "$wrong_version_rc" -ne 0
 test -z "$wrong_version"
+
+set +e
+diagnostic_out=$(printf '%s' '{"format":"wrong"}' | "$cpu" --diagnostics json 2>"$diagnostic_err")
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -ne 0
+test -z "$diagnostic_out"
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CPU_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
 
 set +e
 nested=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"status":"ready","dependency_analysis":{"parallel_candidates":0},"metadata":{"cancellation":"requested"}}' | "$cpu")

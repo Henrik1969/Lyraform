@@ -2569,3 +2569,16 @@ refused; this checkpoint closes only the CUDA provider admission bypass.
 
 State remains CONTINUE. The CPU provider, runtime planner, and other public
 Stage 0 boundaries still require the same audit before Gate 2 can close.
+
+## 2026-09-14 CPU structured diagnostic boundary
+
+- Added `flowparallel_cpu --diagnostics json` for stable machine-readable
+  translation of argument, input, and provider failures.
+- Added hostile malformed-input coverage proving empty artifact stdout,
+  structured `FLOWPARALLEL_CPU_FAILURE` stderr, `no_artifact` disposition, and
+  nonzero exit status.
+- The CPU and CUDA provider boundaries now expose the same failure-shape
+  guarantee while retaining human diagnostics by default.
+
+State remains CONTINUE. Other Stage 0 public boundaries still require the same
+containment audit before Gate 2 can close.

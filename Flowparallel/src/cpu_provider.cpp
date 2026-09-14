@@ -14,7 +14,7 @@ namespace {
 
 constexpr std::string_view VERSION = "0.1.0";
 
-struct Options { std::string plan_path; double observed_speedup = 0.0; double minimum_speedup = 1.25; unsigned requested_workers = 0; };
+struct Options { std::string plan_path; double observed_speedup = 0.0; double minimum_speedup = 1.25; unsigned requested_workers = 0; bool structured_diagnostics = false; };
 
 std::string read_input(const Options& options) {
     std::ostringstream input;
@@ -24,6 +24,18 @@ std::string read_input(const Options& options) {
 }
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
+
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const char character : value) {
+        if (character == '\\' || character == '"') escaped.push_back('\\');
+        if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(character);
+    }
+    return escaped;
+}
 
 int reject_unsupported_request(std::string_view request, std::string_view reason) {
     std::cout << "{\n  \"format\": \"flowparallel.cpu_selection\",\n"
@@ -43,6 +55,7 @@ Options parse(int argc, char** argv) {
         else if (argument == "--observed-speedup") options.observed_speedup = std::stod(next("--observed-speedup"));
         else if (argument == "--minimum-speedup") options.minimum_speedup = std::stod(next("--minimum-speedup"));
         else if (argument == "--workers") options.requested_workers = static_cast<unsigned>(std::stoul(next("--workers")));
+        else if (argument == "--diagnostics") { if (next("--diagnostics") != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
         else if (argument == "-h" || argument == "--help" || argument == "-?") { std::cout << "flowparallel_cpu - policy-resolved CPU provider selection\n\nUsage: flowparallel_cpu [--plan plan.json] [--observed-speedup N]\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0); }
         else if (argument == "-a" || argument == "--about") { std::cout << "Flowparallel CPU provider selects serial or thread-pool execution from a plan, runtime capacity, and policy.\n"; std::exit(0); }
         else if (argument == "-v" || argument == "--version") { std::cout << VERSION << '\n'; std::exit(0); }
@@ -100,6 +113,20 @@ int resolve(const std::string& plan, const Options& options) {
 } // namespace
 
 int main(int argc, char** argv) {
-    try { const auto options = parse(argc, argv); return resolve(read_input(options), options); }
-    catch (const std::exception& error) { std::cerr << "flowparallel_cpu error: " << error.what() << '\n'; return 1; }
+    bool structured_diagnostics = false;
+    try {
+        const auto options = parse(argc, argv);
+        structured_diagnostics = options.structured_diagnostics;
+        return resolve(read_input(options), options);
+    } catch (const std::exception& error) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CPU_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cpu error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CPU_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cpu error: unknown non-standard failure\n";
+        return 1;
+    }
 }

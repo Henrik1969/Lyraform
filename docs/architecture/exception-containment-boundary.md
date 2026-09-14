@@ -67,6 +67,9 @@ exit distinction.
   argument, input, and provider failures to a stable failure code with a
   `no_artifact` disposition. Its normal human-readable diagnostics remain
   unchanged.
+- The CPU Flowparallel provider provides the same tested projection through
+  `--diagnostics json`, with a provider-specific stable failure code and no
+  artifact on stdout.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.
