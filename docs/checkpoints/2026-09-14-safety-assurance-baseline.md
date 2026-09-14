@@ -177,6 +177,15 @@ history locks before returning their structured error result.
 The safety state remains `CONTINUE`: deeper crash fault injection and
 retention semantics remain open.
 
+## Language resolver boundary — 2026-09-14
+
+The Frankencore language resolver now refuses moniker inputs above 4096 bytes
+and translates internal standard or non-standard failures into an unresolved
+diagnostic. The language probe covers the hostile oversized-input case.
+
+The safety state remains `CONTINUE`: broader Frankencore/provider exception
+containment and allocation-fault injection remain open.
+
 ## Recovery and append descriptor ownership — 2026-09-14
 
 Append, quarantine, and valid-prefix truncation descriptors now use the scoped
