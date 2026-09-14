@@ -2597,6 +2597,18 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 graph planner numeric-policy boundary
+
+- Replaced prefix-accepting graph policy conversion with complete finite-token
+  parsing for density and minimum-speedup thresholds.
+- Added hostile `0.2junk` coverage, including structured diagnostics and empty
+  decision-artifact output on rejection.
+- Focused graph-planner test passes; the canonical suite remains the
+  publication gate.
+
+State remains CONTINUE. Native provider fault injection and remaining Stage 0
+API boundaries still require dedicated coverage.
+
 ## 2026-09-14 runtime planner numeric-policy boundary
 
 - Replaced prefix-accepting `stod` conversion with complete finite-number

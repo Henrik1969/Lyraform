@@ -198,6 +198,10 @@ policy inputs. Sparse graphs remain on `cpu.reference`. Dense graphs may use
 calibration clears the threshold. Every decision records its representation,
 reason, and mandatory CPU fallback.
 
+Policy thresholds must be complete finite numeric tokens. Values such as
+`0.2junk` are rejected before a provider decision is emitted, including in
+structured diagnostic mode.
+
 The CUDA graph provider also emits `cpu_reference_ms`,
 `cuda_end_to_end_ms`, and `end_to_end_speedup`. That report is an accepted
 calibration input to the graph planner. Small graphs are expected to lose: the

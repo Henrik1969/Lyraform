@@ -22,6 +22,13 @@ fi
 printf '%s\n' '{"format":"flowcore.runtime_capabilities","version":1,"status":"unavailable","device_count":0}' > "$capabilities"
 result=$("$planner" --graph "$graph" --capabilities "$capabilities" --calibration "$calibration" --density-threshold 0.01)
 printf '%s\n' "$result" | jq -e '.provider == "cpu.reference" and (.reason | contains("CUDA is unavailable"))' >/dev/null
+set +e
+diagnostic_out=$("$planner" --graph "$graph" --capabilities "$capabilities" --density-threshold 0.2junk --diagnostics json 2>"$diagnostic_err")
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -ne 0
+test -z "$diagnostic_out"
+jq -e '.code == "FLOWPARALLEL_GRAPH_PLANNER_FAILURE" and (.message | contains("complete finite number"))' "$diagnostic_err" >/dev/null
 printf '%s\n' '{"format":"wrong"}' > "$graph"
 set +e
 diagnostic_out=$("$planner" --graph "$graph" --capabilities "$capabilities" --diagnostics json 2>"$diagnostic_err")
