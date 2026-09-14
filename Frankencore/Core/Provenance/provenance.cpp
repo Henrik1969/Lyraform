@@ -579,60 +579,53 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
         std::string json_error;
         if (!valid_json_record(json, json_error))
             return {false, false, 0, "rejected", "serialized event is invalid: " + json_error, {}};
-        const int lock = lock_history(path, LOCK_EX);
+        ScopedLock lock_guard{lock_history(path, LOCK_EX)};
+        const int lock = lock_guard.value;
         if (lock < 0)
             return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
         const auto scan = scan_history(path, max_line_bytes, max_history_bytes);
         if (!scan.result.valid || scan.incomplete_tail) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, scan.incomplete_tail ? "incomplete" : scan.result.status,
                     scan.incomplete_tail ? "history has an incomplete final record; explicit repair is required" : scan.result.error, {}};
         }
         constexpr std::string_view marker = "\"event_id\":\"";
         const auto event_id_begin = json.find(marker);
         if (event_id_begin == std::string::npos) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "rejected", "serialized event has no event_id", {}};
         }
         const auto id_begin = event_id_begin + marker.size();
         const auto id_end = json.find('"', id_begin);
         if (id_end == std::string::npos) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "rejected", "serialized event has an unterminated event_id", {}};
         }
         const auto event_id = json.substr(id_begin, id_end - id_begin);
         if (const auto existing = scan.events.find(event_id); existing != scan.events.end()) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             if (existing->second == json) return {true, false, scan.result.records, "duplicate", {}, {}};
             return {false, false, scan.result.records, "conflict", "event_id already exists with different content", {}};
         }
         auto replay_states = scan.error_states;
         auto replay_mutations = scan.mutations;
         if (!valid_replay_record(json, replay_states, replay_mutations, json_error)) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "rejected", "serialized event violates replay rules: " + json_error, {}};
         }
         const std::string line = json + '\n';
         if (line.size() > max_line_bytes) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "exhausted", "history record exceeds configured line bound", {}};
         }
         if (scan.valid_prefix > max_history_bytes || line.size() > max_history_bytes - scan.valid_prefix) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "exhausted", "history append exceeds configured byte bound", {}};
         }
         const int descriptor = ::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0644);
         if (descriptor < 0) {
             const int saved = errno;
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "error", std::string("cannot open history for append: ") + std::strerror(saved), {}};
         }
         const auto write_result = write_all(descriptor, line.data(), line.size());
@@ -645,8 +638,7 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             written = false;
             saved = errno;
         }
-        ::flock(lock, LOCK_UN);
-        ::close(lock);
+        lock_guard.release();
         if (!written) return {false, bytes_written, scan.result.records + (write_result.complete ? 1 : 0),
                               bytes_written ? "uncertain" : "error",
                               std::string("history append durability failed: ") + std::strerror(saved == 0 ? EIO : saved), {}};

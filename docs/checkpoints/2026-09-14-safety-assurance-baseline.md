@@ -167,6 +167,16 @@ semantics are unchanged.
 The safety state remains `CONTINUE`: append-path fault injection and retention
 semantics remain open.
 
+## Append-path lock ownership — 2026-09-14
+
+The append-only history path now owns its exclusive lock through a scoped guard.
+Duplicate, conflict, validation, bound-refusal, open failure, durability
+failure, normal append, and exceptional paths all release the lock without
+altering the existing `uncertain` and recovery dispositions.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and retention
+semantics remain open.
+
 ## Trust and isolation evidence bounds — 2026-09-14
 
 Verification evidence and isolation claims now reject text fields larger than
