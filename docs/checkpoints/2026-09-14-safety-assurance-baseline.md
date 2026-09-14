@@ -360,6 +360,15 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Igor gate refresh at safety checkpoint — 2026-09-15
+
+At published revision `95d487b`, the user-facing gates were rerun from the
+canonical checkout: `./igor doctor` passed, `./igor build` completed, and
+`./igor test` passed the complete CTest graph at 146/146. Direct normal GCC
+and Clang 18.1.3 ASan/UBSan CTest runs independently passed 146/146 as well.
+
+The safety state remains `CONTINUE`.
+
 ## TinyVM artifact v1 allocation-fault boundary — 2026-09-15
 
 The retained TinyVM v1 artifact writer now has a test-only fault-injected
