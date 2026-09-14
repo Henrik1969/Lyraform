@@ -81,6 +81,10 @@ exit distinction.
   input, preserving the independent artifact boundary.
 - The graph-planner Flowparallel consumer provides the same tested projection
   for malformed graph, capability, calibration, and policy input.
+- The native graph-CUDA consumer provides `--diagnostics json` for failures
+  before or during native provider setup, with no graph artifact and an
+  explicit `no_artifact` disposition. Hardware-dependent CUDA differential
+  firetests remain separate evidence.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.

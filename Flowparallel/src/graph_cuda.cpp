@@ -30,7 +30,8 @@ struct Library {
 void check(error_t value, const char* operation) { if (value != success) throw std::runtime_error(std::string(operation) + " failed: " + std::to_string(value)); }
 
 std::string read_input(int argc, char** argv) {
-    if (argc > 2) throw std::runtime_error("usage: flowparallel_graph_cuda [semantic-report.json]");
+    if (argc > 2 && !(argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json"))
+        throw std::runtime_error("usage: flowparallel_graph_cuda [semantic-report.json]");
     std::ostringstream input;
     if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); input << file.rdbuf(); }
     else input << std::cin.rdbuf();
@@ -38,6 +39,7 @@ std::string read_input(int argc, char** argv) {
 }
 
 std::string quote(std::string_view value) { std::string result = "\""; for (char character : value) { if (character == '\\' || character == '"') result.push_back('\\'); result.push_back(character); } result.push_back('"'); return result; }
+std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
 int run(std::string_view report) {
     const auto semantic = flowcontracts::semantic_report(flowcontracts::json::parse(report));
@@ -92,11 +94,19 @@ int run(std::string_view report) {
 }
 
 int main(int argc, char** argv) {
+    const bool structured_diagnostics = argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json";
     try {
-        if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_cuda - CUDA Boolean graph reachability\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; return 0; }
+        if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_cuda - CUDA Boolean graph reachability\n\nOptions: --diagnostics json\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel computes Boolean graph reachability through CUDA cuBLAS with CPU differential verification.\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << "0.1.0\n"; return 0; }
         return run(read_input(argc, argv));
-    } catch (const std::exception& error) { std::cerr << "flowparallel_graph_cuda error: " << error.what() << '\n'; return 1; }
-    catch (...) { std::cerr << "flowparallel_graph_cuda error: unknown non-standard failure\n"; return 1; }
+    } catch (const std::exception& error) {
+        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_graph_cuda error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_graph_cuda error: unknown non-standard failure\n";
+        return 1;
+    }
 }

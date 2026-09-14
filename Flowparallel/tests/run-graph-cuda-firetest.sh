@@ -22,4 +22,12 @@ run_case empty '{"format":"flowanalyst.semantic_report","version":1,"status":"ok
 run_case chain '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","matrix_views":[{"name":"region_dependency","rows":4,"columns":4,"entries":[{"row":0,"column":1},{"row":1,"column":2},{"row":2,"column":3}]}]}'
 run_case cycle '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","matrix_views":[{"name":"region_dependency","rows":4,"columns":4,"entries":[{"row":0,"column":1},{"row":1,"column":0}]}]}'
 run_case dense '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","matrix_views":[{"name":"region_dependency","rows":4,"columns":4,"entries":[{"row":0,"column":1},{"row":0,"column":2},{"row":0,"column":3},{"row":1,"column":0},{"row":1,"column":2},{"row":1,"column":3},{"row":2,"column":0},{"row":2,"column":1},{"row":2,"column":3},{"row":3,"column":0},{"row":3,"column":1},{"row":3,"column":2}]}]}'
+diagnostic_err=$(mktemp)
+trap 'rm -f "$fixture" "$diagnostic_err"' EXIT
+set +e
+printf '%s\n' '{"format":"wrong"}' | "$cuda" --diagnostics json > /dev/null 2>"$diagnostic_err"
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -ne 0
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_CUDA_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
 echo 'Flowparallel CUDA graph firetest: 4/4 shapes passed'

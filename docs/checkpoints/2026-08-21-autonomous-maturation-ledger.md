@@ -2597,6 +2597,19 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 native graph-CUDA diagnostic boundary
+
+- Added `flowparallel_graph_cuda --diagnostics json` for structured failure
+  translation at the native graph-provider boundary.
+- Direct malformed-input evidence passes before CUDA driver loading, proving
+  empty artifact output, stable provider-specific failure code, and
+  `no_artifact` disposition.
+- The hardware-dependent graph CUDA firetest remains separate; no unsupported
+  host is counted as a successful CUDA execution environment.
+
+State remains CONTINUE. CUDA resource fault injection and the remaining native
+provider boundaries still require dedicated evidence.
+
 ## 2026-09-14 graph-reference structured diagnostic boundary
 
 - Added `flowparallel_graph_reference --diagnostics json` for malformed and

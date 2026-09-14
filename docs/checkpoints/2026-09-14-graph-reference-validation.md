@@ -28,3 +28,8 @@ input produces no graph artifact on stdout and a stable
 The paired graph planner also now exposes `--diagnostics json` for malformed
 graph, capability, calibration, and policy input, with no provider decision on
 stdout and a stable `FLOWPARALLEL_GRAPH_PLANNER_FAILURE` record.
+
+The native CUDA graph consumer now supports the same diagnostic mode. A direct
+malformed-input check passes before CUDA driver loading; the hardware-dependent
+CUDA graph firetest remains a separate gate and is not represented as a CTest
+pass on hosts without the required device.
