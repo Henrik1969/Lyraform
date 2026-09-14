@@ -360,6 +360,23 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## TinyVM artifact v2 allocation-fault boundary — 2026-09-15
+
+The TinyVM v2 artifact loader now has a test-only fault-injected variant that
+exhausts its owned buffer allocation before parsing. The public read boundary
+returns the deterministic `allocation failed` diagnostic and retains no
+partially allocated artifact ownership. The focused
+`tinyvm_artifact_v2_allocation_fault` test passed in the normal GCC tree and
+the Clang 18.1.3 ASan/UBSan tree with leak detection disabled. The same
+injected boundary passed under Valgrind 3.22.0 Memcheck with
+`--error-exitcode=99`, zero errors, and zero bytes still allocated at exit.
+
+This closes the v2 artifact buffer-allocation refusal at the loader boundary.
+It does not claim complete allocation-fault coverage for every C artifact
+consumer or runtime/provider allocation site; those remain separately scoped.
+
+The safety state remains `CONTINUE`.
+
 ## Durable-history fsync crash-depth test — 2026-09-15
 
 The history fault matrix now includes a child process that continues a valid

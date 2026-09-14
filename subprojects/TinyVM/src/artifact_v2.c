@@ -7,6 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef TINYVM_ARTIFACT_V2_TEST_ALLOCATION_FAILURE
+static void *tinyvm_artifact_v2_fault_malloc(size_t size){(void)size;return NULL;}
+static void *tinyvm_artifact_v2_fault_calloc(size_t count,size_t size){(void)count;(void)size;return NULL;}
+#define malloc tinyvm_artifact_v2_fault_malloc
+#define calloc tinyvm_artifact_v2_fault_calloc
+#endif
+
 enum { V2_HEADER=512, V2_DIRECTORY_ENTRY=32, V2_WORD=32 };
 enum { SEC_CODE=1, SEC_CONSTANTS=2, SEC_STRINGS=3, SEC_STORAGE=4, SEC_IMPORTS=5, SEC_PROVENANCE=6, SEC_GRAPH_ACTIVATIONS=7 };
 typedef struct { uint32_t type; uint64_t offset,size,count; } Section;

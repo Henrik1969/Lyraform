@@ -59,6 +59,27 @@ if(TARGET flowcontracts)
 endif()
 
 if(BUILD_TESTING)
+add_library(tinyvm_recovered_artifact_v2_allocation_fault STATIC
+    src/artifact.c
+    src/artifact_v2.c
+    src/instructions.c
+    src/isa_v1.c
+    src/runtime_provider.c
+    src/vm.c
+    src/vm_function.c
+    src/vm_switch.c
+)
+target_compile_definitions(tinyvm_recovered_artifact_v2_allocation_fault PRIVATE
+    TINYVM_ARTIFACT_V2_TEST_ALLOCATION_FAILURE)
+target_include_directories(tinyvm_recovered_artifact_v2_allocation_fault PUBLIC include)
+target_link_libraries(tinyvm_recovered_artifact_v2_allocation_fault PUBLIC OpenSSL::Crypto ${CMAKE_DL_LIBS})
+target_compile_options(tinyvm_recovered_artifact_v2_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
+set_source_files_properties(src/vm.c src/isa_v1.c PROPERTIES COMPILE_OPTIONS -Wno-pedantic)
+add_executable(flowtinyv2_allocation_fault tests/artifact-v2-allocation-fault.c)
+target_link_libraries(flowtinyv2_allocation_fault PRIVATE tinyvm_recovered_artifact_v2_allocation_fault)
+endif()
+
+if(BUILD_TESTING)
     add_executable(tinyvm_isa_conformance tests/isa_conformance.c)
     target_link_libraries(tinyvm_isa_conformance PRIVATE tinyvm_recovered)
     target_compile_options(tinyvm_isa_conformance PRIVATE -Wall -Wextra -Wpedantic)
@@ -92,6 +113,11 @@ if(BUILD_TESTING)
                 $<TARGET_FILE:flowtinyv2-roundtrip>
                 $<TARGET_FILE:flowtinyv2-mutate>
                 $<TARGET_FILE:flowtinyvalidate>
+                ${CMAKE_CURRENT_BINARY_DIR})
+    add_test(NAME tinyvm_artifact_v2_allocation_fault
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/artifact-v2-allocation-fault.sh
+                $<TARGET_FILE:flowtinyv2-roundtrip>
+                $<TARGET_FILE:flowtinyv2_allocation_fault>
                 ${CMAKE_CURRENT_BINARY_DIR})
     add_test(NAME tinyvm_isa_v1_conformance COMMAND tinyvm_isa_v1_conformance)
     set_tests_properties(tinyvm_isa_v1_conformance PROPERTIES
