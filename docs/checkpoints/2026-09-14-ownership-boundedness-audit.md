@@ -25,6 +25,8 @@
   one explicit cleanup owner. Cleanup is idempotent, runs on both success and
   failure, and reports the first cleanup error instead of silently discarding
   it. The public process boundary also labels an unknown non-standard failure.
+- The CUDA matrix executor now uses the same explicit owner and reports the
+  first cleanup failure on both exceptional and normal paths.
 
 ## Gaps requiring Gate 3 work
 

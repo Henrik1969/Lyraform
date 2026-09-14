@@ -22,6 +22,43 @@ constexpr int cuda_memcpy_host_to_device = 1;
 constexpr int cuda_memcpy_device_to_host = 2;
 constexpr int cublas_op_n = 0;
 
+using free_fn = cuda_error_t (*)(void*);
+using destroy_fn = cublas_status_t (*)(cublas_handle_t);
+
+struct DeviceResources {
+    free_fn cuda_free = nullptr;
+    destroy_fn cublas_destroy = nullptr;
+    void* device_a = nullptr;
+    void* device_b = nullptr;
+    void* device_c = nullptr;
+    cublas_handle_t handle = nullptr;
+
+    int cleanup() noexcept {
+        int first_failure = 0;
+        if (handle) {
+            const int status = cublas_destroy(handle);
+            if (first_failure == 0 && status != 0) first_failure = status;
+            handle = nullptr;
+        }
+        if (device_c) {
+            const int status = cuda_free(device_c);
+            if (first_failure == 0 && status != 0) first_failure = status;
+            device_c = nullptr;
+        }
+        if (device_b) {
+            const int status = cuda_free(device_b);
+            if (first_failure == 0 && status != 0) first_failure = status;
+            device_b = nullptr;
+        }
+        if (device_a) {
+            const int status = cuda_free(device_a);
+            if (first_failure == 0 && status != 0) first_failure = status;
+            device_a = nullptr;
+        }
+        return first_failure;
+    }
+};
+
 struct Library {
     void* handle = nullptr;
     explicit Library(const char* name) : handle(dlopen(name, RTLD_NOW | RTLD_LOCAL)) {
@@ -83,11 +120,9 @@ int run(const Options& options) {
 
     using get_device_count_fn = cuda_error_t (*)(int*);
     using malloc_fn = cuda_error_t (*)(void**, std::size_t);
-    using free_fn = cuda_error_t (*)(void*);
     using memcpy_fn = cuda_error_t (*)(void*, const void*, std::size_t, int);
     using synchronize_fn = cuda_error_t (*)();
     using create_fn = cublas_status_t (*)(cublas_handle_t*);
-    using destroy_fn = cublas_status_t (*)(cublas_handle_t);
     using sgemm_fn = cublas_status_t (*)(cublas_handle_t, int, int, int, int, int,
                                          const float*, const float*, int,
                                          const float*, int, const float*, float*, int);
@@ -115,36 +150,29 @@ int run(const Options& options) {
         }
     }
 
-    void* device_a = nullptr;
-    void* device_b = nullptr;
-    void* device_c = nullptr;
-    cublas_handle_t handle = nullptr;
+    DeviceResources resources{cuda_free, cublas_destroy};
     try {
-        require_cuda(cuda_malloc(&device_a, bytes), "cudaMalloc(A)");
-        require_cuda(cuda_malloc(&device_b, bytes), "cudaMalloc(B)");
-        require_cuda(cuda_malloc(&device_c, bytes), "cudaMalloc(C)");
-        require_cuda(cuda_memcpy(device_a, host_a.data(), bytes, cuda_memcpy_host_to_device), "cudaMemcpy(A)");
-        require_cuda(cuda_memcpy(device_b, host_b.data(), bytes, cuda_memcpy_host_to_device), "cudaMemcpy(B)");
-        require_cublas(cublas_create(&handle), "cublasCreate");
+        require_cuda(cuda_malloc(&resources.device_a, bytes), "cudaMalloc(A)");
+        require_cuda(cuda_malloc(&resources.device_b, bytes), "cudaMalloc(B)");
+        require_cuda(cuda_malloc(&resources.device_c, bytes), "cudaMalloc(C)");
+        require_cuda(cuda_memcpy(resources.device_a, host_a.data(), bytes, cuda_memcpy_host_to_device), "cudaMemcpy(A)");
+        require_cuda(cuda_memcpy(resources.device_b, host_b.data(), bytes, cuda_memcpy_host_to_device), "cudaMemcpy(B)");
+        require_cublas(cublas_create(&resources.handle), "cublasCreate");
         const float alpha = 1.0F;
         const float beta = 0.0F;
-        require_cublas(cublas_sgemm(handle, cublas_op_n, cublas_op_n, options.size, options.size, options.size,
-                                    &alpha, static_cast<const float*>(device_a), options.size,
-                                    static_cast<const float*>(device_b), options.size,
-                                    &beta, static_cast<float*>(device_c), options.size), "cublasSgemm");
+        require_cublas(cublas_sgemm(resources.handle, cublas_op_n, cublas_op_n, options.size, options.size, options.size,
+                                    &alpha, static_cast<const float*>(resources.device_a), options.size,
+                                    static_cast<const float*>(resources.device_b), options.size,
+                                    &beta, static_cast<float*>(resources.device_c), options.size), "cublasSgemm");
         require_cuda(cuda_synchronize(), "cudaDeviceSynchronize");
-        require_cuda(cuda_memcpy(host_c.data(), device_c, bytes, cuda_memcpy_device_to_host), "cudaMemcpy(C)");
+        require_cuda(cuda_memcpy(host_c.data(), resources.device_c, bytes, cuda_memcpy_device_to_host), "cudaMemcpy(C)");
     } catch (...) {
-        if (handle) cublas_destroy(handle);
-        if (device_c) cuda_free(device_c);
-        if (device_b) cuda_free(device_b);
-        if (device_a) cuda_free(device_a);
+        const int cleanup_status = resources.cleanup();
+        if (cleanup_status != 0) throw std::runtime_error("CUDA operation failed and cleanup failed with status " + std::to_string(cleanup_status));
         throw;
     }
-    require_cublas(cublas_destroy(handle), "cublasDestroy");
-    require_cuda(cuda_free(device_c), "cudaFree(C)");
-    require_cuda(cuda_free(device_b), "cudaFree(B)");
-    require_cuda(cuda_free(device_a), "cudaFree(A)");
+    const int cleanup_status = resources.cleanup();
+    if (cleanup_status != 0) throw std::runtime_error("CUDA cleanup failed with status " + std::to_string(cleanup_status));
 
     float max_error = 0.0F;
     for (int column = 0; column < options.size; ++column) {
