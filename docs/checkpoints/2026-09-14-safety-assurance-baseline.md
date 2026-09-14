@@ -186,6 +186,16 @@ diagnostic. The language probe covers the hostile oversized-input case.
 The safety state remains `CONTINUE`: broader Frankencore/provider exception
 containment and allocation-fault injection remain open.
 
+## Requirement parser exception boundary — 2026-09-14
+
+The public version validator and range evaluator now translate internal
+standard or non-standard failures into invalid structured results. Their
+bounded grammar and hostile-input probe remain unchanged; no exception crosses
+the current Frankencore requirement API.
+
+The safety state remains `CONTINUE`: broader provider exception containment and
+allocation-fault injection remain open.
+
 ## Recovery and append descriptor ownership — 2026-09-14
 
 Append, quarantine, and valid-prefix truncation descriptors now use the scoped

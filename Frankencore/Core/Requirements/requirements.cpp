@@ -1,6 +1,7 @@
 #include "frankencore/requirements.hpp"
 
 #include <charconv>
+#include <exception>
 #include <sstream>
 #include <vector>
 
@@ -55,39 +56,49 @@ bool operator_matches(const int comparison, const std::string& operation) {
 } // namespace
 
 VersionResult validate_version(const std::string& version) {
-    ParsedVersion parsed;
-    if (!parse(version, parsed)) return {false, "version must be dotted non-negative integers"};
-    return {true, {}};
+    try {
+        ParsedVersion parsed;
+        if (!parse(version, parsed)) return {false, "version must be dotted non-negative integers"};
+        return {true, {}};
+    } catch (const std::exception& error) {
+        return {false, std::string{"version validation failed: "} + error.what()};
+    } catch (...) {
+        return {false, "version validation failed with an unknown internal error"};
+    }
 }
 
 MatchResult satisfies(const std::string& version, const std::string& expression) {
-    ParsedVersion actual;
-    if (!parse(version, actual)) return {false, false, "invalid actual version"};
-    if (expression.size() > max_version_bytes) return {false, false, "version range exceeds the 4096-byte limit"};
-    std::istringstream input(expression);
-    std::string token;
-    bool found = false;
-    while (input >> token) {
-        std::string operation;
-        std::string required_text;
-        if (token.rfind(">=", 0) == 0 || token.rfind("<=", 0) == 0) {
-            operation = token.substr(0, 2);
-            required_text = token.substr(2);
-        } else if (token.front() == '>' || token.front() == '<' || token.front() == '=') {
-            operation = token.substr(0, 1);
-            required_text = token.substr(1);
-        } else {
-            return {false, false, "version range requires comparison operators"};
+    try {
+        ParsedVersion actual;
+        if (!parse(version, actual)) return {false, false, "invalid actual version"};
+        if (expression.size() > max_version_bytes) return {false, false, "version range exceeds the 4096-byte limit"};
+        std::istringstream input(expression);
+        std::string token;
+        bool found = false;
+        while (input >> token) {
+            std::string operation;
+            std::string required_text;
+            if (token.rfind(">=", 0) == 0 || token.rfind("<=", 0) == 0) {
+                operation = token.substr(0, 2);
+                required_text = token.substr(2);
+            } else if (token.front() == '>' || token.front() == '<' || token.front() == '=') {
+                operation = token.substr(0, 1);
+                required_text = token.substr(1);
+            } else {
+                return {false, false, "version range requires comparison operators"};
+            }
+            ParsedVersion required;
+            if (!parse(required_text, required)) return {false, false, "invalid required version"};
+            found = true;
+            if (!operator_matches(compare(actual, required), operation)) return {true, false, {}};
         }
-        ParsedVersion required;
-        if (!parse(required_text, required)) return {false, false, "invalid required version"};
-        found = true;
-        if (!operator_matches(compare(actual, required), operation)) {
-            return {true, false, {}};
-        }
+        if (!found) return {false, false, "empty version range"};
+        return {true, true, {}};
+    } catch (const std::exception& error) {
+        return {false, false, std::string{"version range evaluation failed: "} + error.what()};
+    } catch (...) {
+        return {false, false, "version range evaluation failed with an unknown internal error"};
     }
-    if (!found) return {false, false, "empty version range"};
-    return {true, true, {}};
 }
 
 } // namespace frankencore::requirements
