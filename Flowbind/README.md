@@ -13,7 +13,9 @@ FlowMini → Flowanalyst → Flowbind
 It uses `dlopen` and `dlsym` to prove that a declared library and symbol are
 available. It also verifies the v0.1 supported C signature family
 (`c_int`, `c_long`, `c_ulong`, `c_size_t`, `c_string`, and `c_pointer`) and reports host
-layout facts.
+layout facts. `c_pointer` is an opaque, contract-bound carrier for admitted
+providers; it does not admit pointer arithmetic, guessed layouts, arbitrary
+native signatures, or general FFI.
 It never calls a foreign function. A ready report is the authorization input
 for downstream generic lowering. The profile-free `flowcat` example uses exact
 `libc.so.6` grants for `open`, `read`, `write`, and `close`.

@@ -2597,6 +2597,20 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 governed ABI unsupported-shape evidence
+
+- Added hostile Flowbind coverage for an unsupported native return carrier and
+  an unsupported calling convention. Both are rejected before a ready binding
+  report can be produced.
+- Clarified that the admitted `c_pointer` carrier is opaque and
+  contract-bound; it does not admit pointer arithmetic, guessed layouts,
+  arbitrary native signatures, or general FFI.
+- The exact provider/library/symbol/convention/carrier/effect boundary remains
+  enforced, while arbitrary native ABI/FFI remains explicitly refused.
+
+State remains CONTINUE. Broader provider fault injection, signed profiles,
+stronger trust anchors, and multi-platform assurance remain unfinished.
+
 ## 2026-09-14 Flowkernel structured failure boundary
 
 - Added `flowkernel --diagnostics json` for malformed command and probe input.
