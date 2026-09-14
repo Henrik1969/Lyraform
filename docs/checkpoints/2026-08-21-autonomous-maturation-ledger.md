@@ -2607,6 +2607,16 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Independent CUDA graph execution and graph-planner
 boundaries still require the same containment audit.
 
+## 2026-09-14 graph-planner structured diagnostic boundary
+
+- Added `flowparallel_graph_planner --diagnostics json` for malformed graph,
+  capability, calibration, and policy input.
+- Added hostile coverage proving empty provider-decision stdout, stable failure
+  stderr, `no_artifact` disposition, and nonzero exit status.
+
+State remains CONTINUE. CUDA graph execution and remaining native provider
+boundaries still require the same containment audit.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure

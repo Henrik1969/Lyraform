@@ -24,3 +24,7 @@ semantics.
 The consumer also supports `--diagnostics json`. Malformed semantic graph
 input produces no graph artifact on stdout and a stable
 `FLOWPARALLEL_GRAPH_REFERENCE_FAILURE` record with `no_artifact` disposition.
+
+The paired graph planner also now exposes `--diagnostics json` for malformed
+graph, capability, calibration, and policy input, with no provider decision on
+stdout and a stable `FLOWPARALLEL_GRAPH_PLANNER_FAILURE` record.

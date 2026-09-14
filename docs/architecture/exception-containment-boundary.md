@@ -79,6 +79,8 @@ exit distinction.
 - The graph-reference Flowparallel consumer also provides a structured
   `no_artifact` failure projection for malformed or unsupported semantic graph
   input, preserving the independent artifact boundary.
+- The graph-planner Flowparallel consumer provides the same tested projection
+  for malformed graph, capability, calibration, and policy input.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.
