@@ -31,8 +31,10 @@ int main() {
     ErrorStateHistory history(path.string());
 
     const auto first = event("opened");
-    const auto second = event("diagnosed");
-    const auto third = event("resolved");
+    auto second = event("diagnosed");
+    auto third = event("resolved");
+    second.error_state_id = first.error_state_id;
+    third.error_state_id = first.error_state_id;
     assert(history.append(first).status == "appended");
     assert(history.append(first).status == "duplicate");
 
@@ -40,6 +42,24 @@ int main() {
     conflict.diagnosis = "different content";
     assert(history.append(conflict).status == "conflict");
     assert(history.append(second).status == "appended");
+
+    const auto lifecycle_path = base / "lifecycle.jsonl";
+    ErrorStateHistory lifecycle(lifecycle_path.string());
+    const auto lifecycle_opened = event("opened");
+    auto lifecycle_diagnosed = lifecycle_opened;
+    lifecycle_diagnosed.event_id = generate_ulid();
+    lifecycle_diagnosed.status = "diagnosed";
+    auto lifecycle_resolved = lifecycle_diagnosed;
+    lifecycle_resolved.event_id = generate_ulid();
+    lifecycle_resolved.status = "resolved";
+    assert(lifecycle.append(lifecycle_opened).status == "appended");
+    assert(lifecycle.append(lifecycle_diagnosed).status == "appended");
+    assert(lifecycle.append(lifecycle_resolved).status == "appended");
+    assert(lifecycle.inspect().status == "valid");
+    auto lifecycle_illegal = lifecycle_resolved;
+    lifecycle_illegal.event_id = generate_ulid();
+    lifecycle_illegal.status = "diagnosed";
+    assert(lifecycle.append(lifecycle_illegal).status == "rejected");
 
     MutationRecord mutation{
         .attempt = {.attempt_id = generate_ulid(), .correlation_id = generate_ulid(),

@@ -20,11 +20,22 @@ namespace {
 struct HistoryScan {
     HistoryResult result;
     std::unordered_map<std::string, std::string> events;
+    std::unordered_map<std::string, std::string> error_states;
     std::vector<std::string> records;
     std::size_t valid_prefix = 0;
     bool incomplete_tail = false;
     std::string tail;
 };
+
+bool valid_error_state_transition(const std::string& previous, const std::string& next) {
+    if (previous == "opened") return next == "diagnosed" || next == "recovery_attempted" || next == "escalated";
+    if (previous == "diagnosed") return next == "recovery_attempted" || next == "resolved" || next == "escalated";
+    if (previous == "recovery_attempted") return next == "diagnosed" || next == "resolved" || next == "escalated";
+    if (previous == "escalated") return next == "resolved" || next == "reopened";
+    if (previous == "resolved") return next == "reopened";
+    if (previous == "reopened") return next == "diagnosed" || next == "escalated";
+    return false;
+}
 
 bool valid_json_record(const std::string& line, std::string& error) {
     try {
@@ -37,7 +48,8 @@ bool valid_json_record(const std::string& line, std::string& error) {
         const auto& event_id = string(required(root, "event_id"), "$.event_id");
         if (!is_valid_ulid(event_id)) throw Error("$.event_id", "must be a valid ULID");
         if (format == "frankencore.error_state_event") {
-            if (status != "opened" && status != "diagnosed" && status != "recovered" && status != "resolved")
+            if (status != "opened" && status != "diagnosed" && status != "recovery_attempted" &&
+                status != "resolved" && status != "escalated" && status != "reopened")
                 throw Error("$.status", "invalid error-state status");
             for (const auto field : {"error_state_id", "attempt_id", "correlation_id"}) {
                 const auto& value = string(required(root, field), std::string("$.") + field);
@@ -98,6 +110,31 @@ bool valid_json_record(const std::string& line, std::string& error) {
         error = "unknown JSON validation failure";
     }
     return false;
+}
+
+bool valid_replay_record(const std::string& line,
+                         const std::unordered_map<std::string, std::string>& states,
+                         std::string& error) {
+    try {
+        using namespace flowcontracts::json;
+        const auto root = object(parse(line));
+        if (string(required(root, "format"), "$.format") != "frankencore.error_state_event") return true;
+        const auto state_id = string(required(root, "error_state_id"), "$.error_state_id");
+        const auto status = string(required(root, "status"), "$.status");
+        const auto previous = states.find(state_id);
+        if (previous == states.end()) {
+            if (status != "opened") throw Error("$.status", "error-state replay must begin with opened");
+        } else if (!valid_error_state_transition(previous->second, status)) {
+            throw Error("$.status", "illegal error-state lifecycle transition");
+        }
+    } catch (const std::exception& exception) {
+        error = exception.what();
+        return false;
+    } catch (...) {
+        error = "unknown error-state replay validation failure";
+        return false;
+    }
+    return true;
 }
 
 int lock_history(const std::string& path, int operation) {
@@ -189,6 +226,15 @@ HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
             scan.result = {false, false, scan.events.size(), "invalid", "history contains an invalid record: " + json_error, {}};
             return scan;
         }
+        if (!valid_replay_record(line, scan.error_states, json_error)) {
+            scan.result = {false, false, scan.events.size(), "invalid", "history replay validation failed: " + json_error, {}};
+            return scan;
+        }
+        using namespace flowcontracts::json;
+        const auto root = object(parse(line));
+        if (string(required(root, "format"), "$.format") == "frankencore.error_state_event")
+            scan.error_states[string(required(root, "error_state_id"), "$.error_state_id")] =
+                string(required(root, "status"), "$.status");
         constexpr std::string_view marker = "\"event_id\":\"";
         const auto event_begin = line.find(marker);
         if (event_begin == std::string::npos) {
@@ -470,6 +516,9 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
                                 std::size_t max_history_bytes,
                                 const std::string& json) noexcept {
     try {
+        std::string json_error;
+        if (!valid_json_record(json, json_error))
+            return {false, false, 0, "rejected", "serialized event is invalid: " + json_error, {}};
         const int lock = lock_history(path, LOCK_EX);
         if (lock < 0)
             return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
@@ -500,6 +549,11 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             ::close(lock);
             if (existing->second == json) return {true, false, scan.result.records, "duplicate", {}, {}};
             return {false, false, scan.result.records, "conflict", "event_id already exists with different content", {}};
+        }
+        if (!valid_replay_record(json, scan.error_states, json_error)) {
+            ::flock(lock, LOCK_UN);
+            ::close(lock);
+            return {false, false, scan.result.records, "rejected", "serialized event violates replay rules: " + json_error, {}};
         }
         const int descriptor = ::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0644);
         if (descriptor < 0) {
