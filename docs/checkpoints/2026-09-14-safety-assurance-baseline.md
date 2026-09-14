@@ -104,3 +104,14 @@ an explicit contract.
 
 The safety state remains `CONTINUE`: this is a bounded parser boundary, not a
 general claim that every policy grammar or provider API is fully contained.
+
+## Durable-history descriptor ownership — 2026-09-14
+
+History scanning now uses scoped descriptor ownership. Read, bound-refusal,
+normal, and exceptional parser paths all release the opened history file
+descriptor, preventing an allocation or validation failure from bypassing
+cleanup. The existing `frankencore_error_state_history` fault and recovery
+suite remains green.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and retention
+semantics remain open before broader mutation expansion.

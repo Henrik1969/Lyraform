@@ -214,10 +214,19 @@ WriteResult write_all(int descriptor, const char* bytes, std::size_t length) {
     return {true, changed};
 }
 
+struct ScopedFd {
+    int value = -1;
+    explicit ScopedFd(const int descriptor) : value(descriptor) {}
+    ~ScopedFd() { if (value >= 0) ::close(value); }
+    ScopedFd(const ScopedFd&) = delete;
+    ScopedFd& operator=(const ScopedFd&) = delete;
+};
+
 HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
                          std::size_t max_history_bytes) {
     HistoryScan scan;
-    const int descriptor = ::open(path.c_str(), O_RDONLY);
+    ScopedFd descriptor_guard{::open(path.c_str(), O_RDONLY)};
+    const int descriptor = descriptor_guard.value;
     if (descriptor < 0) {
         if (errno == ENOENT) {
             scan.result = {true, false, 0, "empty", {}, {}};
@@ -233,20 +242,17 @@ HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
         if (count < 0 && errno == EINTR) continue;
         if (count < 0) {
             const int saved = errno;
-            ::close(descriptor);
             scan.result = {false, false, 0, "error", std::string("cannot read history: ") + std::strerror(saved), {}};
             return scan;
         }
         if (count == 0) break;
         const auto bytes = static_cast<std::size_t>(count);
         if (contents.size() > max_history_bytes || bytes > max_history_bytes - contents.size()) {
-            ::close(descriptor);
             scan.result = {false, false, scan.events.size(), "exhausted", "history exceeds configured byte bound", {}};
             return scan;
         }
         contents.append(buffer, bytes);
     }
-    ::close(descriptor);
 
     std::size_t offset = 0;
     while (offset < contents.size()) {
