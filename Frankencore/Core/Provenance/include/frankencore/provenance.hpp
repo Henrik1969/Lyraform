@@ -105,6 +105,8 @@ public:
     explicit ErrorStateHistory(std::string path, std::size_t max_line_bytes = 1024 * 1024);
 
     HistoryResult inspect() const noexcept;
+    HistoryResult append(const MutationRecord& record) const noexcept;
+    HistoryResult append(const MutationRejection& rejection) const noexcept;
     HistoryResult append(const ErrorStateEvent& event) const noexcept;
     HistoryResult repair_incomplete_tail() const noexcept;
 

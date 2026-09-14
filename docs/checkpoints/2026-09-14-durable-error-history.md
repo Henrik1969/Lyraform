@@ -4,7 +4,9 @@
 **Status:** implemented and verified on `main`
 
 Frankencore Provenance now provides `ErrorStateHistory` for the project-local
-JSONL boundary described by ADR-0002. It uses an exclusive lock file, validates
+JSONL boundary described by ADR-0002. Despite its compatibility name, the
+store accepts committed mutation records, rejected mutation attempts, and
+error-state lifecycle events. It uses an exclusive lock file, validates
 the complete valid prefix before publication, appends and flushes one complete
 event per line, deduplicates exact replay by `event_id`, and rejects conflicting
 duplicate content.
@@ -19,6 +21,7 @@ Verification covers:
 
 ```text
 append and valid-prefix inspection: PASS
+mutation and rejection event append: PASS
 exact duplicate replay: PASS
 conflicting duplicate event: PASS
 torn-tail refusal: PASS

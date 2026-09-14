@@ -41,6 +41,24 @@ int main() {
     assert(history.append(conflict).status == "conflict");
     assert(history.append(second).status == "appended");
 
+    MutationRecord mutation{
+        .attempt = {.attempt_id = generate_ulid(), .correlation_id = generate_ulid(),
+                    .entity_identity = "entity", .actor_identity = "actor",
+                    .provider_identity = "provider", .authorizing_policy = "policy",
+                    .operation = "update", .causes = {"controlled test"}},
+        .event_id = generate_ulid(), .old_revision = 1, .new_revision = 2,
+        .before_state_reference = "before", .after_state_reference = "after",
+        .atomicity = "single-publication", .recoverability = "rollback",
+        .rollback_reference = std::string{"rollback"}, .derived_entities = {},
+        .before = {"old"}, .after = {"new"}};
+    assert(history.append(mutation).status == "appended");
+    MutationRejection rejection{
+        .attempt = mutation.attempt, .event_id = generate_ulid(),
+        .rejection_domain = "policy", .rejection_reason = "denied",
+        .retryable = false, .observed_revision = 2};
+    rejection.attempt.attempt_id = generate_ulid();
+    assert(history.append(rejection).status == "appended");
+
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);
         output << "{\"format\":\"frankencore.error_state_event\",\"event_id\":\"";
@@ -49,7 +67,7 @@ int main() {
     const auto incomplete = history.inspect();
     assert(!incomplete.valid);
     assert(incomplete.status == "incomplete");
-    assert(incomplete.records == 2);
+    assert(incomplete.records == 4);
     assert(history.append(third).status == "incomplete");
 
     const auto repaired = history.repair_incomplete_tail();
@@ -59,7 +77,7 @@ int main() {
     assert(std::filesystem::exists(repaired.quarantine_path));
     assert(history.inspect().status == "valid");
     assert(history.append(third).status == "appended");
-    assert(history.inspect().records == 3);
+    assert(history.inspect().records == 5);
 
     std::filesystem::remove_all(base);
     return 0;
