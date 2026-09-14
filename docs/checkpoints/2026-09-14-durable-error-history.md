@@ -39,8 +39,11 @@ ordered validated read/replay projection: PASS
 exact identity lookup and invalid-ID refusal: PASS
 total-history bound and no-publication exhaustion: PASS
 full JSON syntax and known-record type validation: PASS
+error-state lifecycle replay refusal: PASS
 ```
 
 This is a durable error-state boundary, not a complete history subsystem.
-Semantic event replay, retention, crash fault injection, and cross-branch
-history reconciliation remain open Gate 5 work.
+Mutation replay projection, retention, crash fault injection, and cross-branch
+history reconciliation remain open Gate 5 work. Error-state lifecycle replay
+now rejects records that do not begin with `opened` or that violate the
+documented transition graph.

@@ -2465,6 +2465,7 @@ semantics.
   canonical CTest graph passes **111/111** under GCC, including the history
   boundary test.
 
-State remains CONTINUE. Durable history now has bounded storage and typed JSON
-validation; semantic lifecycle replay, retention, crash fault injection, and
-cross-branch reconciliation remain open Gate 5 work.
+State remains CONTINUE. Durable history now has bounded storage, typed JSON
+validation, and fail-closed error-state lifecycle replay; mutation replay,
+retention, crash fault injection, and cross-branch reconciliation remain open
+Gate 5 work.
