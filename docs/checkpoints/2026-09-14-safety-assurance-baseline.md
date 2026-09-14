@@ -360,6 +360,23 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Durable-history fsync crash-depth test — 2026-09-15
+
+The history fault matrix now includes a child process that continues a valid
+error-state lifecycle, writes a complete record, and exits at the append
+`fsync()` barrier. The parent then inspects the same history and requires a
+valid complete prefix containing exactly the previously committed and newly
+written records. A lifecycle-invalid child append is deliberately avoided so
+the test reaches the durability barrier.
+
+The crash-depth case passes under the normal GCC build, Clang 18.1.3
+ASan/UBSan with the documented leak exclusion, and Valgrind 3.22.0 with
+definite/indirect leak failures enabled. This strengthens crash evidence but
+does not claim physical-storage guarantees beyond the documented fsync
+contract; retention and broader crash points remain open.
+
+The safety state remains `CONTINUE`.
+
 ## Flowvalidate allocation-fault boundary — 2026-09-15
 
 The canonical artifact-validation command now has a test-only fault-injected

@@ -19,6 +19,7 @@ bool fail_zero_write_after_partial = false;
 bool fail_close = false;
 bool fail_directory_close = false;
 bool fail_truncate = false;
+bool crash_on_file_fsync = false;
 
 extern "C" int __real_ftruncate(int, off_t);
 extern "C" int __wrap_ftruncate(int descriptor, off_t length) {
@@ -43,6 +44,7 @@ extern "C" int __wrap_close(int descriptor) {
 
 extern "C" int __real_fsync(int);
 extern "C" int __wrap_fsync(int descriptor) {
+    if (crash_on_file_fsync) ::_exit(137);
     if (fail_fsync) {
         errno = EIO;
         return -1;
@@ -293,6 +295,28 @@ int main() {
     assert(history.read_records().json_records.size() == 4);
     assert(history.append(third).status == "appended");
     assert(history.inspect().records == 5);
+
+    const auto fsync_crash_path = base / "fsync-crash.jsonl";
+    ErrorStateHistory fsync_crash_history(fsync_crash_path.string());
+    const auto fsync_crash_opened = event("opened");
+    assert(fsync_crash_history.append(fsync_crash_opened).status == "appended");
+    const auto fsync_crash_pid = ::fork();
+    assert(fsync_crash_pid >= 0);
+    if (fsync_crash_pid == 0) {
+        crash_on_file_fsync = true;
+        auto fsync_crash_diagnosed = fsync_crash_opened;
+        fsync_crash_diagnosed.event_id = generate_ulid();
+        fsync_crash_diagnosed.status = "diagnosed";
+        (void)fsync_crash_history.append(fsync_crash_diagnosed);
+        ::_exit(126);
+    }
+    int fsync_crash_status = 0;
+    assert(::waitpid(fsync_crash_pid, &fsync_crash_status, 0) == fsync_crash_pid);
+    assert(WIFEXITED(fsync_crash_status) && WEXITSTATUS(fsync_crash_status) == 137);
+    crash_on_file_fsync = false;
+    const auto fsync_crash_inspection = fsync_crash_history.inspect();
+    assert(fsync_crash_inspection.valid);
+    assert(fsync_crash_inspection.records == 2);
 
     const auto left_path = base / "branch-left.jsonl";
     const auto right_path = base / "branch-right.jsonl";
