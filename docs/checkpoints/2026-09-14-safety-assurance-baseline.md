@@ -157,6 +157,16 @@ rules remain unchanged. The recovery fault suite remains green.
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open.
 
+## Quarantine close-error disposition — 2026-09-14
+
+Incomplete-tail repair now verifies close success for both the quarantine file
+and the truncated history file. An injected quarantine close failure leaves
+repair explicitly failed and the tail quarantined for operator handling; no
+durability success is reported.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and retention
+semantics remain open.
+
 ## Valid-prefix truncation fault — 2026-09-14
 
 The recovery probe now injects a valid-prefix `ftruncate()` failure. Repair

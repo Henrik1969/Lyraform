@@ -268,6 +268,22 @@ int main() {
     const auto truncate_repair = truncate_failure_history.repair_incomplete_tail();
     assert(truncate_repair.valid && truncate_repair.status == "repaired");
 
+    const auto quarantine_close_failure_path = base / "quarantine-close-failure.jsonl";
+    ErrorStateHistory quarantine_close_failure_history(quarantine_close_failure_path.string());
+    assert(quarantine_close_failure_history.append(event("opened")).status == "appended");
+    const int quarantine_close_descriptor = ::open(quarantine_close_failure_path.c_str(), O_WRONLY | O_APPEND);
+    assert(quarantine_close_descriptor >= 0);
+    const std::string quarantine_close_torn = "{\"format\":\"frankencore.error_state_event\",\"event_id\":\"" + generate_ulid();
+    assert(::write(quarantine_close_descriptor, quarantine_close_torn.data(), quarantine_close_torn.size()) == static_cast<ssize_t>(quarantine_close_torn.size()));
+    assert(::close(quarantine_close_descriptor) == 0);
+    fail_close = true;
+    const auto quarantine_close_failure = quarantine_close_failure_history.repair_incomplete_tail();
+    fail_close = false;
+    assert(!quarantine_close_failure.valid && quarantine_close_failure.status == "error");
+    assert(std::filesystem::exists(quarantine_close_failure.quarantine_path));
+    std::filesystem::remove(quarantine_close_failure.quarantine_path);
+    assert(quarantine_close_failure_history.repair_incomplete_tail().status == "repaired");
+
     const auto repaired = history.repair_incomplete_tail();
     assert(repaired.valid);
     assert(repaired.changed);

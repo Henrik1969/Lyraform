@@ -838,16 +838,19 @@ HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
             return {false, false, scan.result.records, "error", std::string("cannot create quarantine: ") + std::strerror(saved), quarantine};
         }
         const auto quarantine_write = write_all(quarantine_descriptor, scan.tail.data(), scan.tail.size());
-        const bool quarantined = quarantine_write.complete && ::fsync(quarantine_descriptor) == 0;
-        quarantine_guard.release();
+        const int quarantine_sync = quarantine_write.complete ? ::fsync(quarantine_descriptor) : -1;
+        const int quarantine_close = quarantine_guard.release();
+        const bool quarantined = quarantine_write.complete && quarantine_sync == 0 && quarantine_close == 0;
         if (!quarantined) {
             lock_guard.release();
             return {false, false, scan.result.records, "error", "cannot persist incomplete tail quarantine", quarantine};
         }
         ScopedFd descriptor_guard{::open(path_.c_str(), O_WRONLY)};
         const int descriptor = descriptor_guard.value;
-        const bool truncated = descriptor >= 0 && ::ftruncate(descriptor, static_cast<off_t>(scan.valid_prefix)) == 0 && ::fsync(descriptor) == 0;
-        descriptor_guard.release();
+        const int truncate_status = descriptor >= 0 ? ::ftruncate(descriptor, static_cast<off_t>(scan.valid_prefix)) : -1;
+        const int truncate_sync = truncate_status == 0 ? ::fsync(descriptor) : -1;
+        const int truncate_close = descriptor_guard.release();
+        const bool truncated = descriptor >= 0 && truncate_status == 0 && truncate_sync == 0 && truncate_close == 0;
         lock_guard.release();
         if (!truncated || sync_parent_directory(path_) != 0)
             return {false, false, scan.result.records, "error", "cannot durably truncate history to valid prefix", quarantine};
