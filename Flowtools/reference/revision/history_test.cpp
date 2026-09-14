@@ -3,6 +3,9 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace {
 
@@ -121,11 +124,20 @@ int main() {
     assert(!invalid_inspection.valid);
     assert(invalid_inspection.status == "invalid");
 
-    {
-        std::ofstream output(path, std::ios::binary | std::ios::app);
-        output << "{\"format\":\"frankencore.error_state_event\",\"event_id\":\"";
-        output << generate_ulid() << "\"";
+    const auto crash_pid = ::fork();
+    assert(crash_pid >= 0);
+    if (crash_pid == 0) {
+        const int descriptor = ::open(path.c_str(), O_WRONLY | O_APPEND);
+        if (descriptor < 0) ::_exit(126);
+        const std::string torn = "{\"format\":\"frankencore.error_state_event\",\"event_id\":\"" +
+                                 generate_ulid() + "\"";
+        const auto written = ::write(descriptor, torn.data(), torn.size());
+        ::close(descriptor);
+        ::_exit(written == static_cast<ssize_t>(torn.size()) ? 137 : 126);
     }
+    int crash_status = 0;
+    assert(::waitpid(crash_pid, &crash_status, 0) == crash_pid);
+    assert(WIFEXITED(crash_status) && WEXITSTATUS(crash_status) == 137);
     const auto incomplete = history.inspect();
     assert(!incomplete.valid);
     assert(incomplete.status == "incomplete");

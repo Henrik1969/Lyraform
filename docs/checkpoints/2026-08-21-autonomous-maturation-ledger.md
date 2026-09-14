@@ -2607,6 +2607,19 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Native provider fault injection and remaining Stage 0
 API boundaries still require dedicated coverage.
 
+## 2026-09-14 durable-history abrupt-exit recovery boundary
+
+- Changed `frankencore_error_state_history` to simulate an abrupt child-process
+  exit immediately after writing an incomplete final record.
+- The parent process verifies that the committed prefix remains readable, the
+  torn tail is non-publishable, append is refused, and explicit quarantine and
+  repair are required before publication resumes.
+- Focused durable-history test passes; this is partial crash evidence, not a
+  complete crash fault-injection campaign.
+
+State remains CONTINUE. Deeper storage fault injection, retention, and
+cross-branch reconciliation remain open Gate 5 work.
+
 The canonical normal CTest graph after this checkpoint is **112/112 PASS**;
 the benchmark diagnostic test is hardware-independent, while CUDA
 execution/calibration remain explicitly host-gated.
