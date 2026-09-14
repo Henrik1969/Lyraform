@@ -11,6 +11,10 @@ add_executable(flowparallel_smoketest tests/parallel_smoketest.cpp)
 target_compile_options(flowparallel_smoketest PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_smoketest PRIVATE Threads::Threads)
 
+add_executable(flowparallel_cuda_resource_cleanup_test tests/cuda_resource_cleanup.cpp)
+target_include_directories(flowparallel_cuda_resource_cleanup_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(flowparallel_cuda_resource_cleanup_test PRIVATE -Wall -Wextra -Wpedantic)
+
 add_executable(flowparallel_cpu src/cpu_provider.cpp)
 target_compile_options(flowparallel_cpu PRIVATE -Wall -Wextra -Wpedantic)
 
@@ -19,6 +23,7 @@ target_compile_options(flowparallel_cuda PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_cuda PRIVATE flowcontracts ${CMAKE_DL_LIBS})
 
 add_executable(flowparallel_cuda_execute src/cuda_execute.cpp)
+target_include_directories(flowparallel_cuda_execute PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel_cuda_execute PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_cuda_execute PRIVATE ${CMAKE_DL_LIBS})
 
@@ -34,6 +39,7 @@ add_executable(flowparallel_graph_reference src/graph_reference.cpp)
 target_compile_options(flowparallel_graph_reference PRIVATE -Wall -Wextra -Wpedantic)
 
 add_executable(flowparallel_graph_cuda src/graph_cuda.cpp)
+target_include_directories(flowparallel_graph_cuda PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel_graph_cuda PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowparallel_graph_cuda PRIVATE flowcontracts ${CMAKE_DL_LIBS})
 
@@ -70,6 +76,8 @@ add_test(NAME flowparallel_smoketest
         FLOWPARALLEL_SMOKETEST_BIN=$<TARGET_FILE:flowparallel_smoketest>
         FLOWPARALLEL_SMOKETEST_MEMORY_KB=${flowparallel_smoke_memory_kb}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-parallel-smoketest.sh)
+add_test(NAME flowparallel_cuda_resource_cleanup
+    COMMAND flowparallel_cuda_resource_cleanup_test)
 add_test(NAME flowparallel_cpu_provider
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWPARALLEL_CPU_BIN=$<TARGET_FILE:flowparallel_cpu>

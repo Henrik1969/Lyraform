@@ -1,4 +1,5 @@
 #include <dlfcn.h>
+#include <flowparallel/cuda_resources.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -21,43 +22,6 @@ constexpr cuda_error_t cuda_success = 0;
 constexpr int cuda_memcpy_host_to_device = 1;
 constexpr int cuda_memcpy_device_to_host = 2;
 constexpr int cublas_op_n = 0;
-
-using free_fn = cuda_error_t (*)(void*);
-using destroy_fn = cublas_status_t (*)(cublas_handle_t);
-
-struct DeviceResources {
-    free_fn cuda_free = nullptr;
-    destroy_fn cublas_destroy = nullptr;
-    void* device_a = nullptr;
-    void* device_b = nullptr;
-    void* device_c = nullptr;
-    cublas_handle_t handle = nullptr;
-
-    int cleanup() noexcept {
-        int first_failure = 0;
-        if (handle) {
-            const int status = cublas_destroy(handle);
-            if (first_failure == 0 && status != 0) first_failure = status;
-            handle = nullptr;
-        }
-        if (device_c) {
-            const int status = cuda_free(device_c);
-            if (first_failure == 0 && status != 0) first_failure = status;
-            device_c = nullptr;
-        }
-        if (device_b) {
-            const int status = cuda_free(device_b);
-            if (first_failure == 0 && status != 0) first_failure = status;
-            device_b = nullptr;
-        }
-        if (device_a) {
-            const int status = cuda_free(device_a);
-            if (first_failure == 0 && status != 0) first_failure = status;
-            device_a = nullptr;
-        }
-        return first_failure;
-    }
-};
 
 struct Library {
     void* handle = nullptr;
@@ -129,11 +93,11 @@ int run(const Options& options) {
 
     const auto get_device_count = runtime.symbol<get_device_count_fn>("cudaGetDeviceCount");
     const auto cuda_malloc = runtime.symbol<malloc_fn>("cudaMalloc");
-    const auto cuda_free = runtime.symbol<free_fn>("cudaFree");
+    const auto cuda_free = runtime.symbol<flowparallel::CudaFree>("cudaFree");
     const auto cuda_memcpy = runtime.symbol<memcpy_fn>("cudaMemcpy");
     const auto cuda_synchronize = runtime.symbol<synchronize_fn>("cudaDeviceSynchronize");
     const auto cublas_create = blas.symbol<create_fn>("cublasCreate_v2");
-    const auto cublas_destroy = blas.symbol<destroy_fn>("cublasDestroy_v2");
+    const auto cublas_destroy = blas.symbol<flowparallel::CublasDestroy>("cublasDestroy_v2");
     const auto cublas_sgemm = blas.symbol<sgemm_fn>("cublasSgemm_v2");
 
     int device_count = 0;
@@ -150,7 +114,7 @@ int run(const Options& options) {
         }
     }
 
-    DeviceResources resources{cuda_free, cublas_destroy};
+    flowparallel::CudaDeviceResources resources{cuda_free, cublas_destroy};
     try {
         require_cuda(cuda_malloc(&resources.device_a, bytes), "cudaMalloc(A)");
         require_cuda(cuda_malloc(&resources.device_b, bytes), "cudaMalloc(B)");

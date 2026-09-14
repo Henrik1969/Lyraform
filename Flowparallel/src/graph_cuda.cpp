@@ -1,5 +1,6 @@
 #include <dlfcn.h>
 #include <flowcontracts/artifacts.hpp>
+#include <flowparallel/cuda_resources.hpp>
 
 #include <cstddef>
 #include <chrono>
@@ -18,43 +19,6 @@ using handle_t = void*;
 constexpr int success = 0;
 constexpr int host_to_device = 1;
 constexpr int device_to_host = 2;
-
-using free_fn = error_t (*)(void*);
-using destroy_fn = error_t (*)(handle_t);
-
-struct DeviceResources {
-    free_fn cuda_free = nullptr;
-    destroy_fn destroy = nullptr;
-    void* da = nullptr;
-    void* db = nullptr;
-    void* dc = nullptr;
-    handle_t handle = nullptr;
-
-    int cleanup() noexcept {
-        int first_failure = success;
-        if (handle) {
-            const int status = destroy(handle);
-            if (first_failure == success && status != success) first_failure = status;
-            handle = nullptr;
-        }
-        if (dc) {
-            const int status = cuda_free(dc);
-            if (first_failure == success && status != success) first_failure = status;
-            dc = nullptr;
-        }
-        if (db) {
-            const int status = cuda_free(db);
-            if (first_failure == success && status != success) first_failure = status;
-            db = nullptr;
-        }
-        if (da) {
-            const int status = cuda_free(da);
-            if (first_failure == success && status != success) first_failure = status;
-            da = nullptr;
-        }
-        return first_failure;
-    }
-};
 
 struct Library {
     void* handle;
@@ -99,17 +63,17 @@ int run(std::string_view report) {
     using create_fn = error_t (*)(handle_t*); using gemm_fn = error_t (*)(handle_t, int, int, int, int, int, const float*, const float*, int, const float*, int, const float*, float*, int);
     const auto count = runtime.get<count_fn>("cudaGetDeviceCount"); int devices = 0; check(count(&devices), "cudaGetDeviceCount");
     if (devices < 1) { std::cout << "{\"format\":\"flowparallel.graph_cuda\",\"version\":1,\"status\":\"unavailable\",\"provider\":\"cuda.cublas\",\"device_count\":0}\n"; return 2; }
-    const auto cuda_malloc = runtime.get<malloc_fn>("cudaMalloc"); const auto cuda_free = runtime.get<free_fn>("cudaFree"); const auto cuda_memcpy = runtime.get<memcpy_fn>("cudaMemcpy"); const auto cuda_sync = runtime.get<sync_fn>("cudaDeviceSynchronize");
-    const auto create = blas.get<create_fn>("cublasCreate_v2"); const auto destroy = blas.get<destroy_fn>("cublasDestroy_v2"); const auto gemm = blas.get<gemm_fn>("cublasSgemm_v2");
+    const auto cuda_malloc = runtime.get<malloc_fn>("cudaMalloc"); const auto cuda_free = runtime.get<flowparallel::CudaFree>("cudaFree"); const auto cuda_memcpy = runtime.get<memcpy_fn>("cudaMemcpy"); const auto cuda_sync = runtime.get<sync_fn>("cudaDeviceSynchronize");
+    const auto create = blas.get<create_fn>("cublasCreate_v2"); const auto destroy = blas.get<flowparallel::CublasDestroy>("cublasDestroy_v2"); const auto gemm = blas.get<gemm_fn>("cublasSgemm_v2");
     std::vector<float> power = adjacency, next(elements), reach = adjacency; const std::size_t bytes = elements * sizeof(float);
-    DeviceResources resources{cuda_free, destroy};
+    flowparallel::CudaDeviceResources resources{cuda_free, destroy};
     try {
-        check(cuda_malloc(&resources.da, bytes), "cudaMalloc(A)"); check(cuda_malloc(&resources.db, bytes), "cudaMalloc(B)"); check(cuda_malloc(&resources.dc, bytes), "cudaMalloc(C)"); check(cuda_memcpy(resources.db, adjacency.data(), bytes, host_to_device), "cudaMemcpy(B)"); check(create(&resources.handle), "cublasCreate");
+        check(cuda_malloc(&resources.device_a, bytes), "cudaMalloc(A)"); check(cuda_malloc(&resources.device_b, bytes), "cudaMalloc(B)"); check(cuda_malloc(&resources.device_c, bytes), "cudaMalloc(C)"); check(cuda_memcpy(resources.device_b, adjacency.data(), bytes, host_to_device), "cudaMemcpy(B)"); check(create(&resources.handle), "cublasCreate");
     const float alpha = 1.0F; const float beta = 0.0F;
     for (std::size_t step = 1; step < rows; ++step) {
-        check(cuda_memcpy(resources.da, power.data(), bytes, host_to_device), "cudaMemcpy(A)");
-        check(gemm(resources.handle, 0, 0, static_cast<int>(rows), static_cast<int>(columns), static_cast<int>(rows), &alpha, static_cast<const float*>(resources.da), static_cast<int>(rows), static_cast<const float*>(resources.db), static_cast<int>(rows), &beta, static_cast<float*>(resources.dc), static_cast<int>(rows)), "cublasSgemm");
-        check(cuda_sync(), "cudaDeviceSynchronize"); check(cuda_memcpy(next.data(), resources.dc, bytes, device_to_host), "cudaMemcpy(C)");
+        check(cuda_memcpy(resources.device_a, power.data(), bytes, host_to_device), "cudaMemcpy(A)");
+        check(gemm(resources.handle, 0, 0, static_cast<int>(rows), static_cast<int>(columns), static_cast<int>(rows), &alpha, static_cast<const float*>(resources.device_a), static_cast<int>(rows), static_cast<const float*>(resources.device_b), static_cast<int>(rows), &beta, static_cast<float*>(resources.device_c), static_cast<int>(rows)), "cublasSgemm");
+        check(cuda_sync(), "cudaDeviceSynchronize"); check(cuda_memcpy(next.data(), resources.device_c, bytes, device_to_host), "cudaMemcpy(C)");
         for (std::size_t index = 0; index < elements; ++index) { power[index] = next[index] > 0.5F ? 1.0F : 0.0F; reach[index] = (reach[index] > 0.5F || power[index] > 0.5F) ? 1.0F : 0.0F; }
     }
     } catch (...) {
