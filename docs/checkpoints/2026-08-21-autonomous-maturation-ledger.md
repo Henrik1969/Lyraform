@@ -2622,6 +2622,18 @@ stronger trust anchors, and multi-platform assurance remain unfinished.
 State remains CONTINUE. Injected discovery/library failures and broader
 Frankencore API containment still require dedicated evidence.
 
+## 2026-09-14 runtime probe sanitizer revalidation
+
+- Rebuilt `frankencore_runtime_probe` from the current source in the existing
+  Clang ASan/UBSan tree `/tmp/lyraform-asan-20260914`.
+- With `ASAN_OPTIONS=detect_leaks=0:verify_asan_link_order=0` and
+  `UBSAN_OPTIONS=halt_on_error=1`, the focused runtime-probe test passed with
+  no sanitizer diagnostics.
+
+State remains CONTINUE. This confirms the new process-boundary containment
+under instrumentation; it does not close injected discovery/library failure
+coverage or the broader future trust and platform gates.
+
 ## 2026-09-14 Flowkernel structured failure boundary
 
 - Added `flowkernel --diagnostics json` for malformed command and probe input.
