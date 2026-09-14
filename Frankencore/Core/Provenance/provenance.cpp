@@ -222,6 +222,20 @@ struct ScopedFd {
     ScopedFd& operator=(const ScopedFd&) = delete;
 };
 
+struct ScopedLock {
+    int value = -1;
+    explicit ScopedLock(const int descriptor) : value(descriptor) {}
+    ~ScopedLock() { release(); }
+    ScopedLock(const ScopedLock&) = delete;
+    ScopedLock& operator=(const ScopedLock&) = delete;
+    void release() {
+        if (value < 0) return;
+        ::flock(value, LOCK_UN);
+        ::close(value);
+        value = -1;
+    }
+};
+
 HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
                          std::size_t max_history_bytes) {
     HistoryScan scan;
@@ -801,13 +815,13 @@ HistoryResult ErrorStateHistory::append(const ErrorStateEvent& event) const noex
 
 HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
     try {
-        const int lock = lock_history(path_, LOCK_EX);
+        ScopedLock lock_guard{lock_history(path_, LOCK_EX)};
+        const int lock = lock_guard.value;
         if (lock < 0)
             return {false, false, 0, "error", std::string("cannot lock history: ") + std::strerror(errno), {}};
         const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
         if (!scan.incomplete_tail) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             if (scan.result.valid) return {true, false, scan.result.records, "no_repair", {}, {}};
             return scan.result;
         }
@@ -815,23 +829,20 @@ HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
         const int quarantine_descriptor = ::open(quarantine.c_str(), O_CREAT | O_WRONLY | O_EXCL, 0644);
         if (quarantine_descriptor < 0) {
             const int saved = errno;
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "error", std::string("cannot create quarantine: ") + std::strerror(saved), quarantine};
         }
         const auto quarantine_write = write_all(quarantine_descriptor, scan.tail.data(), scan.tail.size());
         const bool quarantined = quarantine_write.complete && ::fsync(quarantine_descriptor) == 0;
         ::close(quarantine_descriptor);
         if (!quarantined) {
-            ::flock(lock, LOCK_UN);
-            ::close(lock);
+            lock_guard.release();
             return {false, false, scan.result.records, "error", "cannot persist incomplete tail quarantine", quarantine};
         }
         const int descriptor = ::open(path_.c_str(), O_WRONLY);
         const bool truncated = descriptor >= 0 && ::ftruncate(descriptor, static_cast<off_t>(scan.valid_prefix)) == 0 && ::fsync(descriptor) == 0;
         if (descriptor >= 0) ::close(descriptor);
-        ::flock(lock, LOCK_UN);
-        ::close(lock);
+        lock_guard.release();
         if (!truncated || sync_parent_directory(path_) != 0)
             return {false, false, scan.result.records, "error", "cannot durably truncate history to valid prefix", quarantine};
         return {true, true, scan.result.records, "repaired", "incomplete final record quarantined", quarantine};

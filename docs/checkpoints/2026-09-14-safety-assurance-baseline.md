@@ -147,6 +147,16 @@ identity in addition to the collection cases.
 The safety state remains `CONTINUE`; the bounds do not create an isolation
 provider or signed trust profile.
 
+## Recovery-lock ownership — 2026-09-14
+
+Incomplete-tail repair now owns its history lock through a scoped guard. Normal
+repair, refusal, quarantine failure, truncation failure, and exceptional scan
+paths all release the lock, while the existing quarantine and durable-prefix
+rules remain unchanged. The recovery fault suite remains green.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and retention
+semantics remain open.
+
 ## Trust and isolation evidence bounds — 2026-09-14
 
 Verification evidence and isolation claims now reject text fields larger than
