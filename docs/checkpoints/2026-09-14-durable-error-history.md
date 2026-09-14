@@ -50,3 +50,10 @@ now rejects records that do not begin with `opened` or that violate the
 documented transition graph. Linear mutation replay also requires each
 subsequent record's old revision and before-state reference to match the
 previous committed state for that entity.
+
+The focused provenance trio (`frankencore_revision_contract`,
+`frankencore_provenance_api`, and `frankencore_error_state_history`) also
+passes under Clang 18.1.3 ASan/UBSan with the documented leak exclusions.
+The complete sanitizer CTest matrix is not credited here: 24 subprocess tests
+were rejected by the environment's incompatible-ASan-runtime supervision
+boundary, while the remaining tests passed.

@@ -2469,3 +2469,9 @@ State remains CONTINUE. Durable history now has bounded storage, typed JSON
 validation, and fail-closed error-state lifecycle replay; mutation replay,
 retention, crash fault injection, and cross-branch reconciliation remain open
 Gate 5 work.
+
+The focused provenance trio also passes under Clang 18.1.3 ASan/UBSan with
+the documented leak exclusions. The complete sanitizer matrix remains an
+environment-limited evidence gap: 24 subprocess tests were rejected by the
+supervision layer's incompatible-ASan-runtime check, rather than reporting a
+project sanitizer finding.
