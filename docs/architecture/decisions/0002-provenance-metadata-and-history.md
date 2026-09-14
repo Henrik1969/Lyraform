@@ -112,7 +112,9 @@ revision/state replay, and a read-only lock-ordered reconciliation API for
 independently produced branch histories. Reconciliation reports common,
 branch-only, and conflicting event identities; it never chooses a winner or
 rewrites either input. Retention and deeper crash fault injection remain
-future work. No deletion or compaction operation is currently admitted; the
+future work. Mutation replay exposes the final revision and state reference
+for each entity only after continuity validation; negative revisions are
+rejected. No deletion or compaction operation is currently admitted; the
 bounded store therefore refuses further publication at exhaustion rather than
 silently applying retention.
 

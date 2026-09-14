@@ -96,7 +96,8 @@ events also carry event, attempt, and correlation ULIDs.
 
 The core validates JSON syntax, event shape, field types, and status
 vocabulary. The history boundary also validates legal error-state transitions
-and linear mutation revision/state continuity. Policy authorizes exceptional
+and linear mutation revision/state continuity, and exposes a typed read-only
+final mutation-state replay projection. Policy authorizes exceptional
 transitions, which must record their authorization and reason; history records
 the resulting fact immutably.
 

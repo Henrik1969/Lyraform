@@ -93,6 +93,12 @@ int main() {
     assert(readable.records == 4);
     assert(readable.json_records.size() == 4);
     assert(readable.json_records.front().find("frankencore.error_state_event") != std::string::npos);
+    const auto replay = history.replay_mutations();
+    assert(replay.valid && replay.status == "replayed");
+    assert(replay.records == 4 && replay.states.size() == 1);
+    assert(replay.states.front().entity_identity == "entity");
+    assert(replay.states.front().revision == 2);
+    assert(replay.states.front().state_reference == "after");
     const auto found = history.find_event(first.event_id);
     assert(found.valid && found.found && found.status == "found");
     assert(history.find_event(generate_ulid()).status == "not_found");

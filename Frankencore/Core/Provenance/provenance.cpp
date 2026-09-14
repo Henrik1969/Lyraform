@@ -2,6 +2,7 @@
 #include <flowcontracts/json.hpp>
 
 #include <sstream>
+#include <algorithm>
 #include <new>
 #include <stdexcept>
 #include <cerrno>
@@ -67,10 +68,11 @@ bool valid_json_record(const std::string& line, std::string& error) {
         }
         if (format == "frankencore.mutation_record") {
             if (status != "committed") throw Error("$.status", "mutation record must be committed");
-            integer(required(root, "old_revision"), "$.old_revision");
-            integer(required(root, "new_revision"), "$.new_revision");
-            if (integer(required(root, "new_revision"), "$.new_revision") <=
-                integer(required(root, "old_revision"), "$.old_revision"))
+            const auto old_revision = integer(required(root, "old_revision"), "$.old_revision");
+            const auto new_revision = integer(required(root, "new_revision"), "$.new_revision");
+            if (old_revision < 0 || new_revision < 0)
+                throw Error("$.old_revision", "revisions must be non-negative");
+            if (new_revision <= old_revision)
                 throw Error("$.new_revision", "must be greater than old_revision");
             for (const auto field : {"attempt_id", "correlation_id"}) {
                 const auto& value = string(required(root, field), std::string("$.") + field);
@@ -613,6 +615,32 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
 }
 
 } // namespace
+
+MutationReplayResult ErrorStateHistory::replay_mutations() const noexcept {
+    try {
+        const int lock = lock_history(path_, LOCK_SH);
+        if (lock < 0)
+            return {false, 0, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
+        const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
+        ::flock(lock, LOCK_UN);
+        ::close(lock);
+        if (!scan.result.valid || scan.incomplete_tail)
+            return {false, scan.result.records, {}, scan.incomplete_tail ? "incomplete" : scan.result.status,
+                    scan.incomplete_tail ? "history has an incomplete final record; explicit repair is required" : scan.result.error};
+        MutationReplayResult result{true, scan.result.records, {}, "replayed", {}};
+        result.states.reserve(scan.mutations.size());
+        for (const auto& [entity, state] : scan.mutations)
+            result.states.push_back({entity, static_cast<std::uint64_t>(state.revision), state.state_reference});
+        std::sort(result.states.begin(), result.states.end(), [](const auto& left, const auto& right) {
+            return left.entity_identity < right.entity_identity;
+        });
+        return result;
+    } catch (const std::exception& error) {
+        return {false, 0, {}, "error", error.what()};
+    } catch (...) {
+        return {false, 0, {}, "error", "mutation replay failed with an unknown non-standard failure"};
+    }
+}
 
 HistoryReconciliationResult reconcile_histories(const std::string& left_path,
                                                 const std::string& right_path) noexcept {

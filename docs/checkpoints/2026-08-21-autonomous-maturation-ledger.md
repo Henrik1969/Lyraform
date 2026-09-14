@@ -2734,6 +2734,19 @@ API boundaries still require dedicated coverage.
 State remains CONTINUE. Deeper storage fault injection, retention, and
 cross-branch reconciliation remain open Gate 5 work.
 
+## 2026-09-14 typed mutation replay projection
+
+- Exposed a read-only `replay_mutations()` projection from the durable history
+  API, returning deterministic final revision/state-reference entries per
+  entity only after full continuity validation.
+- Added non-negative revision enforcement so malformed negative revisions cannot
+  enter replay state.
+- Extended the history test and Gate 5 documentation; focused history test
+  passes and branch reconciliation remains non-mutating.
+
+State remains CONTINUE. Retention and deeper crash fault injection remain open
+Gate 5 work.
+
 The canonical normal CTest graph after this checkpoint is **112/112 PASS**;
 the benchmark diagnostic test is hardware-independent, while CUDA
 execution/calibration remain explicitly host-gated.

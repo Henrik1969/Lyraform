@@ -125,6 +125,20 @@ struct HistoryReconciliationResult {
     std::string error;
 };
 
+struct MutationReplayState {
+    std::string entity_identity;
+    std::uint64_t revision = 0;
+    std::string state_reference;
+};
+
+struct MutationReplayResult {
+    bool valid = false;
+    std::size_t records = 0;
+    std::vector<MutationReplayState> states;
+    std::string status;
+    std::string error;
+};
+
 // Project-local append-only error-state history. The file is JSONL with one
 // complete ErrorStateEvent per line; callers must explicitly repair a torn
 // final line before appending again.
@@ -140,6 +154,7 @@ public:
     HistoryResult append(const MutationRejection& rejection) const noexcept;
     HistoryResult append(const ErrorStateEvent& event) const noexcept;
     HistoryResult repair_incomplete_tail() const noexcept;
+    MutationReplayResult replay_mutations() const noexcept;
 
 private:
     std::string path_;
