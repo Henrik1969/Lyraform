@@ -38,6 +38,7 @@ target_link_libraries(flowparallel_runtime_planner PRIVATE flowcontracts)
 
 add_executable(flowparallel_graph_reference src/graph_reference.cpp)
 target_compile_options(flowparallel_graph_reference PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowparallel_graph_reference PRIVATE flowcontracts)
 
 add_executable(flowparallel_graph_cuda src/graph_cuda.cpp)
 target_include_directories(flowparallel_graph_cuda PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

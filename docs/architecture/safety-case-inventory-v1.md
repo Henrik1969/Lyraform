@@ -23,7 +23,7 @@ not-claimed       no safety claim is made
 
 | Hazard | Control/enforcement point | Evidence | Status | Residual risk |
 |---|---|---|---|---|
-| Malformed or truncated stage artifact is consumed | Typed version/field/identity validation at each consumer | `flowcontracts_json`, `flowvalidate_artifacts`, `tinyvm_artifact_v2_hostile` | implemented | New artifact fields require the same hostile coverage |
+| Malformed or truncated stage artifact is consumed | Typed version/field/identity validation at each consumer, including Flowparallel CPU and graph-reference consumers | `flowcontracts_json`, `flowvalidate_artifacts`, `tinyvm_artifact_v2_hostile`, `flowparallel_cpu_provider`, `flowparallel_graph_reference` | implemented | New artifact fields require the same hostile coverage |
 | Duplicate keys or ambiguous authority alter meaning | Strict artifact parsing and duplicate-key refusal | Flowcontracts and fuzz gates | implemented | Schema expansion can reintroduce parser gaps |
 | Provider symbol exists but is unsafe or unauthorized | Exact provider/library/symbol/convention/carrier/effect policy grant | `provider_call_identity`, `flowbind_provider`, native binding tests | implemented | General ABI/FFI remains refused |
 | Binding evidence is mistaken for execution permission | Flowbind separates discovery, authorization, and lowering | `native_binding_inventory`, binding boundary tests | implemented | Broader policy resolver integration remains incomplete |

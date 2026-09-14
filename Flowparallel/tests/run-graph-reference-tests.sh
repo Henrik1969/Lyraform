@@ -16,4 +16,11 @@ blocked_rc=$?
 set -e
 test "$blocked_rc" -eq 2
 printf '%s\n' "$blocked" | jq -e '.status == "blocked"' >/dev/null
+
+set +e
+malformed=$(printf '%s\n' '{"format":"flowanalyst.semantic_report","version":1,"format":"forged","status":"ok"}' | "$reference" 2>/dev/null)
+malformed_rc=$?
+set -e
+test "$malformed_rc" -ne 0
+test -z "$malformed"
 echo 'Flowparallel graph reference: PASS'

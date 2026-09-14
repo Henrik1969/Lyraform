@@ -2520,3 +2520,14 @@ provider isolation or cross-platform assurance.
 
 State remains CONTINUE. This hardens input admission but does not implement
 the refused scheduling semantics.
+
+## 2026-09-14 typed graph-reference boundary
+
+- Replaced graph-reference substring scanning with shared semantic-report and
+  matrix validation, including duplicate-key, wrong-type, bounds, and
+  duplicate-coordinate refusal.
+- The graph-reference positive, blocked, and malformed-input checks pass; the
+  complete normal CTest graph passes **111/111**.
+
+State remains CONTINUE. This closes another artifact-consumer validation gap;
+unsupported scheduling and effect semantics remain explicitly refused.
