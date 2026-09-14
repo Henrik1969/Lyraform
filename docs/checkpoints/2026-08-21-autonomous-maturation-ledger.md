@@ -2608,6 +2608,17 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Broader Stage 0 API containment, allocation/provider
 fault injection, and the remaining Gate 5/6/8 work are unfinished.
 
+## 2026-09-14 Flowoptimize structured failure containment
+
+- Added `flowoptimize --diagnostics json` for contract and CLI failures at the
+  optimization boundary. It emits a stable failure record on stderr, keeps
+  stdout empty, marks the attempt `no_artifact`, and returns nonzero.
+- Added malformed-artifact coverage to the Flowoptimize pipeline test. The
+  focused test passes.
+
+State remains CONTINUE. Native provider fault injection and remaining Stage 0
+API containment work are unfinished.
+
 ## 2026-09-14 CUDA cleanup callback containment
 
 - Hardened `CudaDeviceResources::cleanup()` so provider cleanup callbacks are

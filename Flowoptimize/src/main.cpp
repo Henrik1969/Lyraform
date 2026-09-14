@@ -11,18 +11,38 @@
 
 namespace {
 constexpr std::string_view VERSION = "0.1.0";
-struct Options { std::string input_path; std::string provider_decision_path; };
+struct Options { std::string input_path; std::string provider_decision_path; bool structured_diagnostics = false; };
 
 Options parse_options(int argc, char** argv) {
     Options options;
     for (int index = 1; index < argc; ++index) {
         const std::string argument = argv[index];
-        if (argument == "--provider-decision") { if (++index >= argc) throw std::runtime_error("--provider-decision requires a file"); options.provider_decision_path = argv[index]; }
+        if (argument == "--diagnostics") { if (++index >= argc || std::string(argv[index]) != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
+        else if (argument == "--provider-decision") { if (++index >= argc) throw std::runtime_error("--provider-decision requires a file"); options.provider_decision_path = argv[index]; }
         else if (!argument.empty() && argument[0] == '-') throw std::runtime_error("unknown option: " + argument);
         else if (options.input_path.empty()) options.input_path = argument;
         else throw std::runtime_error("only one input report is accepted");
     }
     return options;
+}
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const unsigned char c : value) {
+        if (c == '"') escaped += "\\\"";
+        else if (c == '\\') escaped += "\\\\";
+        else if (c == '\n') escaped += "\\n";
+        else if (c == '\r') escaped += "\\r";
+        else if (c == '\t') escaped += "\\t";
+        else if (c < 0x20) { const char* digits = "0123456789abcdef"; escaped += "\\u00"; escaped += digits[c >> 4]; escaped += digits[c & 0x0f]; }
+        else escaped.push_back(static_cast<char>(c));
+    }
+    return escaped;
+}
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) {
+    std::cerr << "{\"status\":\"failed\",\"code\":\"" << json_escape(code)
+              << "\",\"stage\":\"" << json_escape(stage)
+              << "\",\"message\":\"" << json_escape(message)
+              << "\",\"disposition\":\"no_artifact\"}\n";
 }
 std::string read_path_or_stdin(const std::string& path) {
     std::ostringstream input;
@@ -99,6 +119,7 @@ int analyze(std::string_view input, const std::optional<flowcontracts::ProviderD
 } // namespace
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         if (argc == 2) {
             const std::string option = argv[1];
@@ -107,9 +128,17 @@ int main(int argc, char** argv) {
             if (option == "-v" || option == "--version") { std::cout << VERSION << '\n'; return 0; }
         }
         const auto options = parse_options(argc, argv);
+        structured_diagnostics = options.structured_diagnostics;
         std::optional<flowcontracts::ProviderDecision> decision;
         if (!options.provider_decision_path.empty()) decision = flowcontracts::provider_decision(flowcontracts::json::parse(read_path_or_stdin(options.provider_decision_path)));
         return analyze(read_path_or_stdin(options.input_path), decision);
-    } catch (const flowcontracts::json::Error& error) { std::cerr << "flowoptimize contract error: " << error.what() << '\n'; return 1; }
-      catch (const std::exception& error) { std::cerr << "flowoptimize error: " << error.what() << '\n'; return 1; }
+    } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_CONTRACT_FAILURE", "contract", error.what());
+        else std::cerr << "flowoptimize contract error: " << error.what() << '\n';
+        return 1;
+    } catch (const std::exception& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_FAILURE", "cli", error.what());
+        else std::cerr << "flowoptimize error: " << error.what() << '\n';
+        return 1;
+    }
 }
