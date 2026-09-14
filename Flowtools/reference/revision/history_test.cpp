@@ -153,6 +153,10 @@ int main() {
     assert(!line_bounded_result.valid && line_bounded_result.status == "exhausted");
     assert(line_bounded_result.error == "history record exceeds configured line bound");
     assert(line_bounded.inspect().valid && line_bounded.inspect().records == 0);
+    ErrorStateHistory invalid_bounds(base / "invalid-bounds.jsonl", 0, 1024);
+    assert(!invalid_bounds.inspect().valid);
+    assert(invalid_bounds.inspect().status == "rejected");
+    assert(invalid_bounds.append(first).status == "rejected");
 
     const auto malformed_path = base / "malformed.jsonl";
     {

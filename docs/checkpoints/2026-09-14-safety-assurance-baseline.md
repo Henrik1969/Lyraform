@@ -116,6 +116,17 @@ suite remains green.
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open before broader mutation expansion.
 
+## Durable-history bound validation — 2026-09-14
+
+The history scanner now rejects zero line or total-history bounds with a
+deterministic `rejected` result before opening the history file. This prevents
+an invalid caller configuration from being interpreted as an empty or
+unbounded history policy. The history probe covers inspection and append under
+invalid bounds.
+
+The safety state remains `CONTINUE`: crash-depth fault injection and retention
+semantics remain open.
+
 ## Trust and isolation evidence bounds — 2026-09-14
 
 Verification evidence and isolation claims now reject text fields larger than

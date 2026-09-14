@@ -225,6 +225,10 @@ struct ScopedFd {
 HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
                          std::size_t max_history_bytes) {
     HistoryScan scan;
+    if (max_line_bytes == 0 || max_history_bytes == 0) {
+        scan.result = {false, false, 0, "rejected", "history bounds must be greater than zero", {}};
+        return scan;
+    }
     ScopedFd descriptor_guard{::open(path.c_str(), O_RDONLY)};
     const int descriptor = descriptor_guard.value;
     if (descriptor < 0) {
