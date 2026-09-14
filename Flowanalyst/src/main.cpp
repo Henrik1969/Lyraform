@@ -1509,5 +1509,9 @@ int main(int argc, char** argv) {
         if (structured_diagnostics) write_structured_failure("FLOWANALYST_FAILURE", "cli", error.what());
         else std::cerr << "flowanalyst error: " << error.what() << '\n';
         return 1;
+    } catch (...) {
+        if (structured_diagnostics) write_structured_failure("FLOWANALYST_UNKNOWN_FAILURE", "cli", "unknown non-standard failure");
+        else std::cerr << "flowanalyst error: unknown non-standard failure\n";
+        return 1;
     }
 }

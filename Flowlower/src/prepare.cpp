@@ -132,5 +132,8 @@ int main(int argc, char** argv) {
     } catch (const std::exception& error) {
         if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_FAILURE\",\"stage\":\"cli\",\"message\":" << serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
         std::cerr << "flowprepare error: " << error.what() << '\n'; return 1;
+    } catch (...) {
+        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_UNKNOWN_FAILURE\",\"stage\":\"cli\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        std::cerr << "flowprepare error: unknown non-standard failure\n"; return 1;
     }
 }

@@ -54,5 +54,8 @@ int main(int argc, char** argv) {
     } catch (const std::exception& error) {
         if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWTARGET_FAILURE\",\"stage\":\"cli\",\"message\":" << json::serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
         std::cerr << "flowtarget error: " << error.what() << '\n'; return 1;
+    } catch (...) {
+        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWTARGET_UNKNOWN_FAILURE\",\"stage\":\"cli\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        std::cerr << "flowtarget error: unknown non-standard failure\n"; return 1;
     }
 }

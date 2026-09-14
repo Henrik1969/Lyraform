@@ -64,5 +64,11 @@ int main(int argc, char** argv) {
             return 1;
         }
         std::cerr << "flowvalidate: " << error.what() << '\n'; return 1;
+    } catch (...) {
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_UNKNOWN_FAILURE\",\"stage\":\"cli\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+            return 1;
+        }
+        std::cerr << "flowvalidate: unknown non-standard failure\n"; return 1;
     }
 }

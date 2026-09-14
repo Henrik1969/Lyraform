@@ -139,5 +139,9 @@ int main(int argc, char** argv) {
         if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_FAILURE", "cli", error.what());
         else std::cerr << "flowoptimize error: " << error.what() << '\n';
         return 1;
+    } catch (...) {
+        if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_UNKNOWN_FAILURE", "cli", "unknown non-standard failure");
+        else std::cerr << "flowoptimize error: unknown non-standard failure\n";
+        return 1;
     }
 }

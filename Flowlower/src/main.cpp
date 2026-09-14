@@ -179,5 +179,10 @@ int main(int argc, char** argv) {
                      "\"backend\":\"llvm\",\"diagnostic\":{\"code\":\"FLOWLOWER_REFUSAL\",\"reason\":"
                   << quote(error.what()) << "}}\n";
         std::cerr << "flowlower error: " << error.what() << '\n'; return 1;
+    } catch (...) {
+        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_UNKNOWN_FAILURE", "cli", "unknown non-standard failure"); return 1; }
+        std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"unsupported\","
+                     "\"backend\":\"llvm\",\"diagnostic\":{\"code\":\"FLOWLOWER_UNKNOWN_FAILURE\",\"reason\":\"unknown non-standard failure\"}}\n";
+        std::cerr << "flowlower error: unknown non-standard failure\n"; return 1;
     }
 }

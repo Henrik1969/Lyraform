@@ -314,3 +314,33 @@ The safety state remains `CONTINUE`: this evidence strengthens implementation
 and memory-tooling assurance but does not close the explicitly future
 cancellation/async/backpressure, isolation/trust, platform-assurance, or
 deeper crash/retention boundaries.
+
+## Public exception-boundary audit — 2026-09-14
+
+The Stage 0 executable audit found seven admitted artifact/tool boundaries
+whose `main()` functions translated standard exceptions but had no final
+non-standard-failure disposition: Flowbind, Flowanalyst, Flowvalidate,
+Flowoptimize, Flowlower, Flowprepare, and Flowtarget. Each now emits the
+existing structured `no_artifact` failure shape in diagnostics mode and a
+deterministic refusal message otherwise. No language-level exception
+semantics were added, and no exception is used as a safety mechanism.
+
+The audit command was:
+
+```text
+rg -l 'int main\\(' --glob '*.{cpp,cc,cxx}' \\
+  --glob '!Pattern_explored/**' --glob '!subprojects/FlowLFS/**'
+```
+
+Current public executable boundaries now have either a standard and
+non-standard catch disposition or a deliberately non-throwing C/execv
+interface. Historical `_archive/` and `Pattern_explored/` sources, and
+test-only throw sites used to inject hostile worker/provider failures, remain
+outside the admitted public surface and were not rewritten.
+
+Focused GCC and Clang ASan/UBSan regressions passed 9/9 after this change;
+the full canonical sanitizer and normal suites remain the required closure
+gates at this checkpoint.
+
+The safety state remains `CONTINUE`: allocation-fault injection across every
+public boundary and the broader crash/retention campaign remain open.
