@@ -27,11 +27,14 @@
   it. The public process boundary also labels an unknown non-standard failure.
 - The CUDA matrix executor now uses the same explicit owner and reports the
   first cleanup failure on both exceptional and normal paths.
+- The shared owner is exercised without CUDA hardware using injected provider
+  callbacks for complete, partial, failing, and repeated cleanup sequences.
 
 ## Gaps requiring Gate 3 work
 
 - CUDA/device allocations still need injected provider-failure tests covering
-  every allocation, transfer, execution, and cleanup operation.
+  every allocation, transfer, and execution operation; the owner-level
+  cleanup cases are now covered.
 - The runtime-provider and artifact allocators have bounded behavior checks,
   but do not yet expose systematic allocation-failure injection at every
   ownership-transfer point.
