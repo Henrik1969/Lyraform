@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cerrno>
+
 namespace flowparallel {
 
 using CudaFree = int (*)(void*);
@@ -19,22 +21,22 @@ struct CudaDeviceResources {
     int cleanup() noexcept {
         int first_failure = 0;
         if (handle) {
-            const int status = cublas_destroy(handle);
+            const int status = cublas_destroy ? cublas_destroy(handle) : EINVAL;
             if (first_failure == 0 && status != 0) first_failure = status;
             handle = nullptr;
         }
         if (device_c) {
-            const int status = cuda_free(device_c);
+            const int status = cuda_free ? cuda_free(device_c) : EINVAL;
             if (first_failure == 0 && status != 0) first_failure = status;
             device_c = nullptr;
         }
         if (device_b) {
-            const int status = cuda_free(device_b);
+            const int status = cuda_free ? cuda_free(device_b) : EINVAL;
             if (first_failure == 0 && status != 0) first_failure = status;
             device_b = nullptr;
         }
         if (device_a) {
-            const int status = cuda_free(device_a);
+            const int status = cuda_free ? cuda_free(device_a) : EINVAL;
             if (first_failure == 0 && status != 0) first_failure = status;
             device_a = nullptr;
         }

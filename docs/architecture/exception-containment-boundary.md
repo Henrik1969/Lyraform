@@ -93,6 +93,9 @@ exit distinction.
 - The CPU execution API translates task and worker failures into explicit
   result metadata with stable codes and `no_artifact` disposition, publishing
   only after all already-launched workers have joined.
+- The shared CUDA resource owner fails closed with `EINVAL` when a cleanup
+  callback is absent, preventing an internal null-call from crossing a public
+  provider boundary.
 - These paths are covered by the hardware-independent
   `flowparallel_exception_containment` conformance test, which checks empty
   artifact stdout, stable failure codes, `no_artifact` disposition, and

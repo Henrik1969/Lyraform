@@ -2644,6 +2644,17 @@ provider boundaries still require dedicated evidence.
 State remains CONTINUE. Native provider fault injection and remaining Stage 0
 API boundaries still require dedicated coverage.
 
+## 2026-09-14 CUDA cleanup callback fail-closed boundary
+
+- Hardened `CudaDeviceResources::cleanup()` against missing provider cleanup
+  callbacks. It returns deterministic `EINVAL` and never dereferences null.
+- Added a no-crash regression covering missing callbacks and deterministic
+  cleared ownership state; existing provider-error/idempotence cases remain
+  green.
+
+State remains CONTINUE. Systematic allocation/provider fault injection remains
+open Gate 3 and Gate 8 work.
+
 ## 2026-09-14 Flowparallel exception-containment conformance
 
 - Added the hardware-independent `flowparallel_exception_containment` test.

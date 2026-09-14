@@ -61,5 +61,12 @@ int main() {
     assert(failed.cleanup() == 0);
     assert(destroy_calls == 1);
     assert(free_calls == 1);
+
+    flowparallel::CudaDeviceResources missing_callbacks{};
+    missing_callbacks.device_a = reinterpret_cast<void*>(1);
+    missing_callbacks.handle = reinterpret_cast<void*>(2);
+    assert(missing_callbacks.cleanup() == EINVAL);
+    assert(missing_callbacks.device_a == nullptr);
+    assert(missing_callbacks.handle == nullptr);
     return 0;
 }

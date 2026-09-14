@@ -73,3 +73,7 @@ with trailing data such as `64junk` are rejected before provider setup.
 
 The complete normal CTest graph now passes **112/112**, including the new
 hardware-independent matrix-benchmark diagnostic boundary.
+
+The shared CUDA cleanup owner now treats a missing cleanup callback as an
+explicit `EINVAL` failure instead of dereferencing null; it preserves the
+established idempotent clearing behavior for valid provider callbacks.
