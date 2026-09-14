@@ -85,6 +85,9 @@ exit distinction.
   before or during native provider setup, with no graph artifact and an
   explicit `no_artifact` disposition. Hardware-dependent CUDA differential
   firetests remain separate evidence.
+- The CUDA matrix execution consumer provides the same structured failure
+  projection, including provider and cleanup failures. Cleanup remains
+  explicit, and a cleanup failure cannot become a verified execution result.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.

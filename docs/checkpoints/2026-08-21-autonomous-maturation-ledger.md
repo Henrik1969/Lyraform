@@ -2610,6 +2610,19 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. CUDA resource fault injection and the remaining native
 provider boundaries still require dedicated evidence.
 
+## 2026-09-14 CUDA execution structured diagnostic boundary
+
+- Added `flowparallel_cuda_execute --diagnostics json` for explicit argument,
+  provider, and cleanup failure translation.
+- Fixed early argument failures so structured mode is recognized before
+  validation can fail; direct hostile-argument evidence passes with empty
+  stdout, stable code, `no_artifact` disposition, and nonzero status.
+- CUDA execution remains hardware-gated; no execution success is inferred from
+  the diagnostic test.
+
+State remains CONTINUE. Native provider fault injection and remaining Stage 0
+API boundaries still require dedicated coverage.
+
 ## 2026-09-14 graph-reference structured diagnostic boundary
 
 - Added `flowparallel_graph_reference --diagnostics json` for malformed and

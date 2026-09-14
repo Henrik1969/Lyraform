@@ -7,6 +7,15 @@ plan=${FLOWPARALLEL_PLAN:?FLOWPARALLEL_PLAN is required}
 test -x "$cuda_execute"
 test -x "$provider"
 test -f "$plan"
+diagnostic_err=$(mktemp)
+trap 'rm -f "$diagnostic_err"' EXIT
+
+set +e
+"$cuda_execute" --size 1 --diagnostics json >/dev/null 2>"$diagnostic_err"
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_EXECUTE_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
 
 sizes=(2 3 7 16 31 64 127 256 512)
 runs=0

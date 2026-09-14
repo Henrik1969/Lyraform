@@ -48,7 +48,19 @@ void require_cublas(cublas_status_t status, const char* operation) {
     if (status != 0) throw std::runtime_error(std::string(operation) + " failed with cuBLAS status " + std::to_string(status));
 }
 
-struct Options { int size = 64; };
+struct Options { int size = 64; bool structured_diagnostics = false; };
+
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const char character : value) {
+        if (character == '\\' || character == '"') escaped.push_back('\\');
+        if (character == '\n') escaped += "\\n";
+        else if (character == '\r') escaped += "\\r";
+        else if (character == '\t') escaped += "\\t";
+        else escaped.push_back(character);
+    }
+    return escaped;
+}
 
 Options parse(int argc, char** argv) {
     Options options;
@@ -58,9 +70,12 @@ Options parse(int argc, char** argv) {
             if (++i >= argc) throw std::runtime_error("--size requires a value");
             options.size = std::stoi(argv[i]);
             if (options.size < 2 || options.size > 4096) throw std::runtime_error("--size must be between 2 and 4096");
+        } else if (arg == "--diagnostics") {
+            if (++i >= argc || std::string(argv[i]) != "json") throw std::runtime_error("--diagnostics requires json");
+            options.structured_diagnostics = true;
         } else if (arg == "-h" || arg == "-?" || arg == "--help") {
             std::cout << "flowparallel_cuda_execute - verified CUDA matrix multiplication\n\n"
-                         "Options: --size N\n"
+                         "Options: --size N [--diagnostics json]\n"
                          "         -h, -?, --help  show help\n"
                          "         -a, --about    show about information\n"
                          "         -v, --version  print the raw version number\n";
@@ -164,6 +179,21 @@ int run(const Options& options) {
 } // namespace
 
 int main(int argc, char** argv) {
-    try { return run(parse(argc, argv)); }
-    catch (const std::exception& error) { std::cerr << "flowparallel_cuda_execute error: " << error.what() << '\n'; return 1; }
+    bool structured_diagnostics = false;
+    for (int i = 1; i + 1 < argc; ++i)
+        if (std::string(argv[i]) == "--diagnostics" && std::string(argv[i + 1]) == "json") structured_diagnostics = true;
+    try {
+        const auto options = parse(argc, argv);
+        return run(options);
+    } catch (const std::exception& error) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_EXECUTE_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cuda_execute error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics)
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_EXECUTE_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_cuda_execute error: unknown non-standard failure\n";
+        return 1;
+    }
 }

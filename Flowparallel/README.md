@@ -131,6 +131,10 @@ The implementation is deliberately narrow: it proves the runtime boundary and
 numerical execution. Scheduling, workload thresholds, memory policy, and
 lowering from a Flowparallel plan remain separate capabilities.
 
+`--diagnostics json` translates argument, provider, and cleanup failures into
+a stable `no_artifact` record on stderr; normal human-readable diagnostics
+remain the default.
+
 `flowparallel_matrix_benchmark` compares an optimized single-thread CPU
 baseline with cuBLAS and reports both compute-only and end-to-end timings. Its
 purpose is calibration evidence, not a universal compile-time threshold: small

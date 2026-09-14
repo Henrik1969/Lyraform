@@ -56,3 +56,7 @@ No new ownership semantics are admitted by this audit. Existing bounded paths
 remain available, while the identified CUDA cleanup and fault-injection gaps
 remain explicit residual risk and block claiming Gate 3 complete. No FlowLFS
 or `master` content was touched.
+
+The CUDA matrix execution CLI now also supports `--diagnostics json`; hostile
+argument evidence proves a stable `no_artifact` failure projection without
+claiming CUDA execution.
