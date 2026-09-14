@@ -140,6 +140,11 @@ baseline with cuBLAS and reports both compute-only and end-to-end timings. Its
 purpose is calibration evidence, not a universal compile-time threshold: small
 matrices may lose to CUDA because transfer and launch costs dominate.
 
+The benchmark uses the same explicit device-resource owner as the execution
+paths. Allocation, transfer, warm-up, timed execution, verification, and
+cleanup failures are checked; `--diagnostics json` produces a stable
+`no_artifact` failure record without presenting calibration as execution proof.
+
 ## Runtime provider planner
 
 `flowparallel_runtime_planner` is the first explainable selection boundary. It

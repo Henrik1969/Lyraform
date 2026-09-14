@@ -60,3 +60,10 @@ or `master` content was touched.
 The CUDA matrix execution CLI now also supports `--diagnostics json`; hostile
 argument evidence proves a stable `no_artifact` failure projection without
 claiming CUDA execution.
+
+The matrix benchmark now uses the shared explicit cleanup owner and checks its
+warm-up GEMM result. Its hostile argument path also has structured diagnostic
+coverage; hardware-dependent calibration remains a separate evidence gate.
+
+The complete normal CTest graph now passes **112/112**, including the new
+hardware-independent matrix-benchmark diagnostic boundary.

@@ -88,6 +88,8 @@ exit distinction.
 - The CUDA matrix execution consumer provides the same structured failure
   projection, including provider and cleanup failures. Cleanup remains
   explicit, and a cleanup failure cannot become a verified execution result.
+- The CUDA matrix benchmark provides the same structured failure projection;
+  calibration failure cannot be serialized as verified calibration evidence.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.

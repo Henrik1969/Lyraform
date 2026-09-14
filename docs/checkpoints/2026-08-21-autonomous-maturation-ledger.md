@@ -2597,6 +2597,10 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+The canonical normal CTest graph after this checkpoint is **112/112 PASS**;
+the benchmark diagnostic test is hardware-independent, while CUDA
+execution/calibration remain explicitly host-gated.
+
 ## 2026-09-14 native graph-CUDA diagnostic boundary
 
 - Added `flowparallel_graph_cuda --diagnostics json` for structured failure
@@ -2619,6 +2623,19 @@ provider boundaries still require dedicated evidence.
   stdout, stable code, `no_artifact` disposition, and nonzero status.
 - CUDA execution remains hardware-gated; no execution success is inferred from
   the diagnostic test.
+
+State remains CONTINUE. Native provider fault injection and remaining Stage 0
+API boundaries still require dedicated coverage.
+
+## 2026-09-14 matrix benchmark ownership boundary
+
+- Replaced raw benchmark CUDA handles and manual success-only cleanup with the
+  shared explicit resource owner, covering allocation, transfer, warm-up,
+  timed execution, and cleanup failure paths.
+- Added a checked warm-up GEMM and structured `--diagnostics json` failure
+  projection with hostile argument evidence.
+- The full canonical suite remains green; hardware-dependent calibration is
+  still not inferred from host-independent tests.
 
 State remains CONTINUE. Native provider fault injection and remaining Stage 0
 API boundaries still require dedicated coverage.

@@ -44,4 +44,5 @@ CUDA-provider structured-diagnostics test: PASS
 CPU-provider structured-diagnostics test: PASS
 Runtime-planner structured-diagnostics test: PASS
 Plan-producing CLI structured-diagnostics test: PASS
+Matrix-benchmark structured-diagnostics test: PASS
 ```

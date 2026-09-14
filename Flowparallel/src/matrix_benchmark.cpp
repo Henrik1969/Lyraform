@@ -1,4 +1,5 @@
 #include <dlfcn.h>
+#include <flowparallel/cuda_resources.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -30,7 +31,9 @@ struct Library {
 };
 
 void check(error_t value, const char* operation) { if (value != success) throw std::runtime_error(std::string(operation) + " failed: " + std::to_string(value)); }
-struct Options { int size = 512; int iterations = 5; };
+struct Options { int size = 512; int iterations = 5; bool structured_diagnostics = false; };
+
+std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
 Options parse(int argc, char** argv) {
     Options options;
@@ -41,9 +44,10 @@ Options parse(int argc, char** argv) {
             int value = std::stoi(argv[i]);
             if (arg == "--size") options.size = value; else options.iterations = value;
         } else if (arg == "-h" || arg == "-?" || arg == "--help") {
-            std::cout << "flowparallel_matrix_benchmark - CPU/CUDA matrix benchmark\n\nOptions: --size N --iterations N\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0);
+            std::cout << "flowparallel_matrix_benchmark - CPU/CUDA matrix benchmark\n\nOptions: --size N --iterations N --diagnostics json\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0);
         } else if (arg == "-a" || arg == "--about") { std::cout << "Flowparallel compares a single-thread CPU matrix baseline with CUDA cuBLAS.\n"; std::exit(0); }
         else if (arg == "-v" || arg == "--version") { std::cout << "0.1.0\n"; std::exit(0); }
+        else if (arg == "--diagnostics") { if (++i >= argc || std::string(argv[i]) != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
         else throw std::runtime_error("unknown option '" + arg + "'");
     }
     if (options.size < 32 || options.size > 2048 || options.iterations < 2 || options.iterations > 100) throw std::runtime_error("benchmark dimensions are outside safe bounds");
@@ -78,30 +82,53 @@ int run(const Options& options) {
     using create_fn = error_t (*)(handle_t*); using destroy_fn = error_t (*)(handle_t); using gemm_fn = error_t (*)(handle_t, int, int, int, int, int, const float*, const float*, int, const float*, int, const float*, float*, int);
     const auto cuda_malloc = runtime.get<malloc_fn>("cudaMalloc"); const auto cuda_free = runtime.get<free_fn>("cudaFree"); const auto cuda_memcpy = runtime.get<memcpy_fn>("cudaMemcpy"); const auto cuda_sync = runtime.get<sync_fn>("cudaDeviceSynchronize");
     const auto create = blas.get<create_fn>("cublasCreate_v2"); const auto destroy = blas.get<destroy_fn>("cublasDestroy_v2"); const auto gemm = blas.get<gemm_fn>("cublasSgemm_v2");
-    void* da = nullptr; void* db = nullptr; void* dc = nullptr; handle_t handle = nullptr;
-    check(cuda_malloc(&da, bytes), "cudaMalloc(A)"); check(cuda_malloc(&db, bytes), "cudaMalloc(B)"); check(cuda_malloc(&dc, bytes), "cudaMalloc(C)");
-    check(cuda_memcpy(da, a.data(), bytes, host_to_device), "cudaMemcpy(A)"); check(cuda_memcpy(db, b.data(), bytes, host_to_device), "cudaMemcpy(B)"); check(create(&handle), "cublasCreate");
+    flowparallel::CudaDeviceResources resources{cuda_free, destroy};
+    double gpu_compute_ms = 0.0;
+    double end_to_end_ms = 0.0;
+    try {
+    check(cuda_malloc(&resources.device_a, bytes), "cudaMalloc(A)" ); check(cuda_malloc(&resources.device_b, bytes), "cudaMalloc(B)"); check(cuda_malloc(&resources.device_c, bytes), "cudaMalloc(C)");
+    check(cuda_memcpy(resources.device_a, a.data(), bytes, host_to_device), "cudaMemcpy(A)"); check(cuda_memcpy(resources.device_b, b.data(), bytes, host_to_device), "cudaMemcpy(B)"); check(create(&resources.handle), "cublasCreate");
     const float alpha = 1.0F; const float beta = 0.0F;
-    gemm(handle, 0, 0, n, n, n, &alpha, static_cast<const float*>(da), n, static_cast<const float*>(db), n, &beta, static_cast<float*>(dc), n);
+    check(gemm(resources.handle, 0, 0, n, n, n, &alpha, static_cast<const float*>(resources.device_a), n, static_cast<const float*>(resources.device_b), n, &beta, static_cast<float*>(resources.device_c), n), "cublasSgemm");
     check(cuda_sync(), "warmup");
     const auto gpu_start = std::chrono::steady_clock::now();
-    for (int iteration = 0; iteration < options.iterations; ++iteration) check(gemm(handle, 0, 0, n, n, n, &alpha, static_cast<const float*>(da), n, static_cast<const float*>(db), n, &beta, static_cast<float*>(dc), n), "cublasSgemm");
+    for (int iteration = 0; iteration < options.iterations; ++iteration) check(gemm(resources.handle, 0, 0, n, n, n, &alpha, static_cast<const float*>(resources.device_a), n, static_cast<const float*>(resources.device_b), n, &beta, static_cast<float*>(resources.device_c), n), "cublasSgemm");
     check(cuda_sync(), "cudaDeviceSynchronize");
-    const double gpu_compute_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - gpu_start).count() / options.iterations;
+    gpu_compute_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - gpu_start).count() / options.iterations;
     const auto end_to_end_start = std::chrono::steady_clock::now();
     for (int iteration = 0; iteration < options.iterations; ++iteration) {
-        check(cuda_memcpy(da, a.data(), bytes, host_to_device), "cudaMemcpy(A)");
-        check(cuda_memcpy(db, b.data(), bytes, host_to_device), "cudaMemcpy(B)");
-        check(gemm(handle, 0, 0, n, n, n, &alpha, static_cast<const float*>(da), n, static_cast<const float*>(db), n, &beta, static_cast<float*>(dc), n), "cublasSgemm");
+        check(cuda_memcpy(resources.device_a, a.data(), bytes, host_to_device), "cudaMemcpy(A)");
+        check(cuda_memcpy(resources.device_b, b.data(), bytes, host_to_device), "cudaMemcpy(B)");
+        check(gemm(resources.handle, 0, 0, n, n, n, &alpha, static_cast<const float*>(resources.device_a), n, static_cast<const float*>(resources.device_b), n, &beta, static_cast<float*>(resources.device_c), n), "cublasSgemm");
         check(cuda_sync(), "cudaDeviceSynchronize");
-        check(cuda_memcpy(gpu.data(), dc, bytes, device_to_host), "cudaMemcpy(C)");
+        check(cuda_memcpy(gpu.data(), resources.device_c, bytes, device_to_host), "cudaMemcpy(C)");
     }
-    const double end_to_end_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - end_to_end_start).count() / options.iterations;
-    check(destroy(handle), "cublasDestroy"); check(cuda_free(dc), "cudaFree(C)"); check(cuda_free(db), "cudaFree(B)"); check(cuda_free(da), "cudaFree(A)");
+    end_to_end_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - end_to_end_start).count() / options.iterations;
+    } catch (...) {
+        const int cleanup_status = resources.cleanup();
+        if (cleanup_status != success) throw std::runtime_error("CUDA benchmark failed and cleanup failed with status " + std::to_string(cleanup_status));
+        throw;
+    }
+    const int cleanup_status = resources.cleanup();
+    if (cleanup_status != success) throw std::runtime_error("CUDA benchmark cleanup failed with status " + std::to_string(cleanup_status));
     double max_error = 0.0; for (std::size_t i = 0; i < elements; ++i) max_error = std::max(max_error, std::fabs(static_cast<double>(cpu[i]) - gpu[i]));
     std::cout << std::setprecision(10) << "{\n  \"format\": \"flowparallel.matrix_benchmark\",\n  \"status\": \"verified\",\n  \"matrix_size\": " << n << ",\n  \"iterations\": " << options.iterations << ",\n  \"cpu_single_thread_ms\": " << cpu_ms << ",\n  \"cuda_cublas_compute_ms\": " << gpu_compute_ms << ",\n  \"cuda_end_to_end_ms\": " << end_to_end_ms << ",\n  \"compute_speedup\": " << cpu_ms / gpu_compute_ms << ",\n  \"end_to_end_speedup\": " << cpu_ms / end_to_end_ms << ",\n  \"max_error\": " << max_error << ",\n  \"cpu_checksum\": " << checksum(cpu) << ",\n  \"cuda_checksum\": " << checksum(gpu) << "\n}\n";
     return max_error < 0.001 ? 0 : 2;
 }
 }
 
-int main(int argc, char** argv) { try { return run(parse(argc, argv)); } catch (const std::exception& error) { std::cerr << "flowparallel_matrix_benchmark error: " << error.what() << '\n'; return 1; } }
+int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
+    for (int i = 1; i + 1 < argc; ++i)
+        if (std::string(argv[i]) == "--diagnostics" && std::string(argv[i + 1]) == "json") structured_diagnostics = true;
+    try { return run(parse(argc, argv)); }
+    catch (const std::exception& error) {
+        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_matrix_benchmark error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        else std::cerr << "flowparallel_matrix_benchmark error: unknown non-standard failure\n";
+        return 1;
+    }
+}

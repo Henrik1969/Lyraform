@@ -29,6 +29,7 @@ target_compile_options(flowparallel_cuda_execute PRIVATE -Wall -Wextra -Wpedanti
 target_link_libraries(flowparallel_cuda_execute PRIVATE ${CMAKE_DL_LIBS})
 
 add_executable(flowparallel_matrix_benchmark src/matrix_benchmark.cpp)
+target_include_directories(flowparallel_matrix_benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(flowparallel_matrix_benchmark PRIVATE -Wall -Wextra -Wpedantic -O3)
 target_link_libraries(flowparallel_matrix_benchmark PRIVATE ${CMAKE_DL_LIBS})
 
@@ -50,6 +51,11 @@ target_compile_options(flowparallel_graph_planner PRIVATE -Wall -Wextra -Wpedant
 target_link_libraries(flowparallel_graph_planner PRIVATE flowcontracts)
 enable_testing()
 find_package(Threads REQUIRED)
+
+add_test(NAME flowparallel_matrix_benchmark_diagnostics
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWPARALLEL_MATRIX_BENCHMARK_BIN=$<TARGET_FILE:flowparallel_matrix_benchmark>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-matrix-benchmark-tests.sh)
 
 add_library(flowparallel_cpu_runtime STATIC src/cpu_execution.cpp)
 target_include_directories(flowparallel_cpu_runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
