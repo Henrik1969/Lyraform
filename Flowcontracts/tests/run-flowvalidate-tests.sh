@@ -49,6 +49,14 @@ jq -e '.classification == "unsupported"' "$tmpdir/unsupported.json" >/dev/null
 jq -e '.classification == "blocked"' "$tmpdir/blocked.json" >/dev/null
 jq -e '.classification == "invalid" and (.reason | contains("duplicate"))' "$tmpdir/duplicate.json" >/dev/null
 
+set +e
+printf '%s' '{"format":' | "$validator" --diagnostics json > "$tmpdir/structured.stdout" 2> "$tmpdir/structured.stderr"
+structured_rc=$?
+set -e
+test "$structured_rc" -eq 1
+test ! -s "$tmpdir/structured.stdout"
+jq -e '.status == "failed" and .code == "FLOWVALIDATE_CONTRACT_FAILURE" and .stage == "contract" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/structured.stderr" >/dev/null
+
 for evidence in \
   '{"format":"flowcore.abi_manifest","version":1,"provider":"test","types":[]}' \
   '{"format":"frankencore.runtime_capabilities","version":1,"cuda":{"status":"unavailable","device_count":0}}' \

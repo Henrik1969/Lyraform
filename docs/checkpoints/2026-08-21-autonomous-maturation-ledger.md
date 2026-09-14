@@ -2621,6 +2621,19 @@ State remains CONTINUE. Crash interruption depth, retention policy, native
 fault-injection breadth, isolation/trust, and remaining Gate 5/6/8 evidence
 remain unfinished.
 
+## 2026-09-14 Flowvalidate exceptional-boundary containment
+
+- Added `flowvalidate --diagnostics json` for parser, I/O, and unexpected
+  exceptional failures. Existing invalid/blocked/unsupported classification
+  artifacts remain the default; structured exceptional failures emit
+  `no_artifact` on stderr and return nonzero.
+- Added malformed-input coverage proving empty stdout and a stable structured
+  failure record at the validator boundary.
+
+State remains CONTINUE. Native fault-injection breadth, retention/crash depth,
+isolation/trust, cancellation/async, and remaining Gate 5/6/8 evidence remain
+unfinished.
+
 ## 2026-09-14 safety-case inventory reconciliation
 
 - Updated the authoritative safety-case matrix to name the bounded Text

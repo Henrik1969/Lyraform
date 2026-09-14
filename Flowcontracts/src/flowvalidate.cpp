@@ -24,12 +24,17 @@ int exit_code(flowcontracts::ValidationClass value) {
 }
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         bool canonical = false, human = false; std::string path;
         for (int index = 1; index < argc; ++index) {
             const std::string argument = argv[index];
             if (argument == "--canonical") canonical = true;
             else if (argument == "--human") human = true;
+            else if (argument == "--diagnostics") {
+                if (++index >= argc || std::string(argv[index]) != "json") throw std::runtime_error("--diagnostics requires json");
+                structured_diagnostics = true;
+            }
             else if (!argument.empty() && argument.front() == '-') throw std::runtime_error("unknown option '" + argument + "'");
             else if (path.empty()) path = argument;
             else throw std::runtime_error("too many input paths");
@@ -43,9 +48,21 @@ int main(int argc, char** argv) {
             {"path", result.path}, {"reason", result.reason}, {"source", result.source}, {"version", result.version}}) << '\n';
         return exit_code(result.classification);
     } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":"
+                      << flowcontracts::json::serialize(std::string(error.what()))
+                      << ",\"disposition\":\"no_artifact\"}\n";
+            return 1;
+        }
         std::cout << flowcontracts::json::serialize(flowcontracts::json::Object{{"classification", "invalid"}, {"format", ""}, {"path", error.path()}, {"reason", error.reason()}, {"version", 0}}) << '\n';
         return 1;
     } catch (const std::exception& error) {
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_FAILURE\",\"stage\":\"cli\",\"message\":"
+                      << flowcontracts::json::serialize(std::string(error.what()))
+                      << ",\"disposition\":\"no_artifact\"}\n";
+            return 1;
+        }
         std::cerr << "flowvalidate: " << error.what() << '\n'; return 1;
     }
 }
