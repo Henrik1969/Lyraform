@@ -46,6 +46,17 @@ int main(int argc,char **argv){
     snprintf(import.parameters,64,"Text,Text");
     snprintf(import.result,64,"TextOutcome");
     snprintf(import.evidence,64,"runtime-provider-allocation-fault");
+    TinyvmValue copied_text_args[]={
+        {TINYVM_CARRIER_OPAQUE_HANDLE,(UINT64_C(1)<<56)|1,true},
+        {TINYVM_CARRIER_OPAQUE_HANDLE,(UINT64_C(1)<<56)|1,true}
+    };
+    result=(TinyvmValue){0};
+    fault=NULL;
+    if(tinyvm_runtime_provider_resolve(&provider,&artifact,&import,copied_text_args,2,&result,&fault)||!fault||strcmp(fault,"runtime provider allocation exhausted")||result.initialized||provider.text_outcome_count||provider.text_outcomes){
+        fprintf(stderr,"unexpected copied-text allocation result: fault=%s initialized=%d outcomes=%zu\n",fault?fault:"<null>",result.initialized,provider.text_outcome_count);
+        tinyvm_runtime_provider_destroy(&provider);
+        return 1;
+    }
     TinyvmValue text_args[]={
         {TINYVM_CARRIER_OPAQUE_HANDLE,(UINT64_C(3)<<56)|0,true},
         {TINYVM_CARRIER_OPAQUE_HANDLE,(UINT64_C(3)<<56)|1,true}

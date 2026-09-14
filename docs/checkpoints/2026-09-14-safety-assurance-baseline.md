@@ -360,6 +360,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## TinyVM Text compatibility allocation precedence — 2026-09-15
+
+The TinyVM Text compatibility thunks now preserve allocation exhaustion when
+artifact-owned string copying fails; they no longer convert that condition to
+`invalid_input` or a provider-unavailable outcome. The focused provider fault
+test and complete 147/147 normal and 147/147 ASan/UBSan suites passed, with
+the focused Valgrind run reporting zero errors and zero leaks.
+
+The safety state remains `CONTINUE`.
+
 ## TinyVM runtime-provider string allocation classification — 2026-09-15
 
 The TinyVM runtime provider now distinguishes artifact-owned string-copy
