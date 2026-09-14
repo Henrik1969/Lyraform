@@ -7,6 +7,8 @@ flowmini=${FLOWMINI_BIN:-$root/Lyraform/compiler/cmake-build-debug/flowmini}
 fixture="$root/Lyraform/compiler/examples/ast/target_projection_probe.flow"
 test -x "$flowmini"
 test -x "$bin"
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
 
 report=$("$flowmini" --dump-frontend-bundle "$fixture" | "$bin")
 printf '%s\n' "$report" | grep -q '"status": "ok"'
@@ -134,6 +136,14 @@ if printf '%s' '{"format":"wrong","version":2}' | "$bin" >/dev/null 2>&1; then
     echo 'invalid bundle unexpectedly accepted' >&2
     exit 1
 fi
+
+set +e
+printf '%s' '{"format":"wrong","version":2}' | "$bin" --diagnostics json >"$tmpdir/hostile-stdout" 2>"$tmpdir/hostile-stderr"
+hostile_rc=$?
+set -e
+test "$hostile_rc" -eq 1
+test ! -s "$tmpdir/hostile-stdout"
+jq -e '.status == "failed" and .code == "FLOWANALYST_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
 for hostile in \
   '{"format":"flowmini.frontend_bundle","format":"flowmini.frontend_bundle","version":2}' \
   '{"decoy":{"format":"flowmini.frontend_bundle","version":2}}' \

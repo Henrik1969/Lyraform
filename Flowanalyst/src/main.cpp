@@ -44,6 +44,32 @@ int integer(const Json* value, int fallback = -1) {
 }
 const Array& list(const Json* value) { static const Array empty; return value && std::holds_alternative<Array>(*value) ? std::get<Array>(*value) : empty; }
 std::string quote(std::string_view value) { std::ostringstream out; out << '"'; for (char c : value) { if (c == '"' || c == '\\') out << '\\'; if (c == '\n') out << "\\n"; else if (c == '\r') out << "\\r"; else if (c != '\n') out << c; } return out.str() + '"'; }
+std::string json_escape(std::string_view value) {
+    std::string escaped;
+    for (const unsigned char c : value) {
+        switch (c) {
+            case '"': escaped += "\\\""; break;
+            case '\\': escaped += "\\\\"; break;
+            case '\n': escaped += "\\n"; break;
+            case '\r': escaped += "\\r"; break;
+            case '\t': escaped += "\\t"; break;
+            default:
+                if (c < 0x20) {
+                    const char* digits = "0123456789abcdef";
+                    escaped += "\\u00";
+                    escaped += digits[c >> 4];
+                    escaped += digits[c & 0x0f];
+                } else escaped.push_back(static_cast<char>(c));
+        }
+    }
+    return escaped;
+}
+void write_structured_failure(const std::string& code, const std::string& stage, const std::string& message) {
+    std::cerr << "{\"status\":\"failed\",\"code\":\"" << json_escape(code)
+              << "\",\"stage\":\"" << json_escape(stage)
+              << "\",\"message\":\"" << json_escape(message)
+              << "\",\"disposition\":\"no_artifact\"}\n";
+}
 struct Diagnostic { std::string code, severity, message, ast_path, region, source; int symbol = -1, line = -1, column = -1; };
 struct Target { int symbol = -1, mains = 0; std::string name; };
 struct BindingRequirement { std::string contract, library, convention, symbol, effect, parameter_types, return_type, evidence; };
@@ -1424,6 +1450,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
 }
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
         if (argc == 2) {
             const std::string option = argv[1];
@@ -1433,7 +1460,8 @@ int main(int argc, char** argv) {
                              "       flowmini --dump-frontend-bundle source.flow | flowanalyst\n\n"
                              "Options: -h, -?, --help  show help\n"
                              "         -a, --about    show about information\n"
-                             "         -v, --version  print the raw version number\n\n"
+                             "         -v, --version  print the raw version number\n"
+                             "         --diagnostics json  emit machine-readable failures on stderr\n\n"
                              "More help: Flowanalyst/README.md and the Flowanalyst consumer contract.\n";
                 return 0;
             }
@@ -1447,7 +1475,10 @@ int main(int argc, char** argv) {
         int lowering_plan_version = 1, graph_plan_version = 1; std::string input_path, graph_provider_path;
         for (int index = 1; index < argc; ++index) {
             const std::string argument = argv[index];
-            if (argument == "--lowering-plan-version") {
+            if (argument == "--diagnostics") {
+                if (++index >= argc || std::string(argv[index]) != "json") throw std::runtime_error("--diagnostics requires json");
+                structured_diagnostics = true;
+            } else if (argument == "--lowering-plan-version") {
                 if (++index >= argc) throw std::runtime_error("--lowering-plan-version requires 1 or 2");
                 lowering_plan_version = std::stoi(argv[index]);
                 if (lowering_plan_version != 1 && lowering_plan_version != 2) throw std::runtime_error("unsupported lowering plan version");
@@ -1474,5 +1505,9 @@ int main(int argc, char** argv) {
         }
         return run(Parser(input.str()).parse(), lowering_plan_version, provider_map, graph_plan_version);
     }
-    catch (const std::exception& error) { std::cerr << "flowanalyst error: " << error.what() << '\n'; return 1; }
+    catch (const std::exception& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWANALYST_FAILURE", "cli", error.what());
+        else std::cerr << "flowanalyst error: " << error.what() << '\n';
+        return 1;
+    }
 }
