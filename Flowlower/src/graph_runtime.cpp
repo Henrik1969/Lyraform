@@ -153,8 +153,11 @@ extern "C" void flow_graph_parallel_result(std::int64_t activation_id, std::int6
 extern "C" [[noreturn]] void flow_graph_fail(std::uint64_t operation, const char* reason) {
     // Both strings are compiler-serialized constants; no payload or raw pointer
     // is interpolated into the diagnostic. Failure never publishes an output.
+    const char* safe_activation = activation;
+    if (safe_activation && ::strnlen(safe_activation, max_diagnostic_bytes + 1) > max_diagnostic_bytes)
+        safe_activation = nullptr;
     std::fprintf(stderr, "{\"format\":\"flowcore.graph_failure\",\"version\":1,\"operation_id\":%llu,\"reason\":\"%s\",\"code\":%d,\"activation\":%s}\n",
-        static_cast<unsigned long long>(operation), reason, failure_code, activation ? activation : "null");
+        static_cast<unsigned long long>(operation), reason, failure_code, safe_activation ? safe_activation : "null");
     std::exit(70);
 }
 

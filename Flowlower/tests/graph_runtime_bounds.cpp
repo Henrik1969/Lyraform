@@ -13,6 +13,8 @@ extern "C" void flow_graph_parallel_run(
     void (*const* workers)(std::int64_t, std::int64_t*), const std::int64_t* inputs,
     std::int64_t* outputs, std::int64_t count);
 extern "C" void flow_graph_drop(const char* value);
+extern "C" void flow_graph_enter(const char* value);
+extern "C" [[noreturn]] void flow_graph_fail(std::uint64_t operation, const char* reason);
 
 namespace {
 void worker(std::int64_t input, std::int64_t* output) { *output = input + 1; }
@@ -46,6 +48,25 @@ int main() {
     assert(waitpid(throwing_child, &status, 0) == throwing_child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 70);
 
+    const std::string oversized_activation(17U * 1024U * 1024U, 'a');
+    char failure_path[] = "/tmp/flowgraph-failure-bound-XXXXXX";
+    const int failure_descriptor = mkstemp(failure_path);
+    assert(failure_descriptor >= 0);
+    const pid_t failure_child = fork();
+    assert(failure_child >= 0);
+    if (failure_child == 0) {
+        assert(dup2(failure_descriptor, STDERR_FILENO) >= 0);
+        flow_graph_enter(oversized_activation.c_str());
+        flow_graph_fail(7, "hostile failure");
+    }
+    assert(waitpid(failure_child, &status, 0) == failure_child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 70);
+    struct stat failure_details{};
+    assert(fstat(failure_descriptor, &failure_details) == 0);
+    close(failure_descriptor);
+    unlink(failure_path);
+    assert(static_cast<std::uintmax_t>(failure_details.st_size) < 4096U);
+
     char path[] = "/tmp/flowgraph-diagnostic-bound-XXXXXX";
     const int descriptor = mkstemp(path);
     assert(descriptor >= 0);
@@ -54,8 +75,7 @@ int main() {
     assert(dup2(descriptor, STDERR_FILENO) >= 0);
     const std::string large(1024U * 1024U, 'x');
     for (int index = 0; index < 20; ++index) flow_graph_drop(large.c_str());
-    const std::string oversized(17U * 1024U * 1024U, 'y');
-    flow_graph_drop(oversized.c_str());
+    flow_graph_drop(oversized_activation.c_str());
     std::fflush(stderr);
     assert(dup2(saved_stderr, STDERR_FILENO) >= 0);
     close(saved_stderr);

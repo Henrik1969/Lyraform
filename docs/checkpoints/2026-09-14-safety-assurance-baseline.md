@@ -79,3 +79,17 @@ Flowbind fuzz gate: passing in canonical suite
 Build the safety-case inventory: map each admitted operation, provider,
 artifact, resource, and lifecycle to its hazard, contract, enforcement point,
 diagnostic, cleanup/recovery disposition, tests, and residual risk.
+
+## Graph failure-activation bound — 2026-09-14
+
+The graph runtime's process-boundary failure diagnostic now bounds the scan of
+the raw activation fragment before it can reach `stderr`. An oversized or
+unterminated activation is represented as `null`, preserving the deterministic
+structured failure disposition without allowing an attacker-controlled string
+to exhaust diagnostic output. `flowgraph_runtime_bounds` forks a hostile
+17 MiB activation through `flow_graph_fail` and verifies that the resulting
+failure record remains bounded.
+
+The safety state remains `CONTINUE`: this closes one current graph-runtime
+output boundary but does not add cancellation, async scheduling, generalized
+mutation durability, isolation, trust-anchor, or arbitrary-FFI semantics.
