@@ -55,6 +55,13 @@ exit distinction.
 - TokenTree catches allocation and unknown exceptions at its C API bridge.
 - Frankencore provenance validation and ULID generation still use C++ standard
   exceptions for invalid records and entropy exhaustion.
+- The Clock and Revision reference CLIs still use exception-based argument
+  parsing and human-only error output; their provider reports and provenance
+  records otherwise use explicit structured data.
+- Package inventory, language, requirements, policy, and runtime capability
+  projections already return explicit diagnostic/result structures for their
+  normal provider failures, but their serialization APIs still need a common
+  checked boundary if they become Stage 1 dependencies.
 - These paths are covered as implementation behavior, but the repository does
   not yet have one conformance test proving exception containment at every
   public boundary.
