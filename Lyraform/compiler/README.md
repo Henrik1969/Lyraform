@@ -30,6 +30,13 @@ boundary.
 The historical projection status is documented in
 [v0.25 SymbolTable projection status](docs/v0.25-symboltable-projection-status.md).
 
+Source ingress validates UTF-8 before lexing. Valid non-ASCII source is
+accepted; malformed, truncated, overlong, surrogate, and out-of-range byte
+sequences fail with a byte-offset diagnostic and no frontend artifact. The
+boundary is covered by the `flowmini_utf8_source_boundary` CTest. This is a
+Stage 0 ingress guarantee, not yet the Flow-written source reader required for
+self-hosting.
+
 ## Build
 
 From this directory:
@@ -47,6 +54,7 @@ cmake --build cmake-build-debug --target flowmini_symbol_projection_tests
 cmake --build cmake-build-debug --target flowmini_ast_golden_tests
 cmake --build cmake-build-debug --target flowmini_suite
 ctest --test-dir cmake-build-debug --output-on-failure
+# includes flowmini_utf8_source_boundary
 ```
 
 Opening baseline:
