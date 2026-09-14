@@ -28,6 +28,13 @@ printf '%s\n' "$report" | jq -e '
   .execution == "not-performed" and
   .fallback.required == true
 ' >/dev/null
+set +e
+diagnostic_report=$(printf '%s\n' "$plan" | "$cuda" --matrix-size 64junk --diagnostics json 2>"$diagnostic_err")
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+test -z "$diagnostic_report"
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_FAILURE" and (.message | contains("complete non-negative integer")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 printf '%s\n' "$plan" | jq '.cancellation = "requested"' >"$unsupported_plan"
 if unsupported=$("$cuda" --plan "$unsupported_plan" 2>/dev/null); then
   echo 'CUDA provider accepted an unsupported cancellation request' >&2

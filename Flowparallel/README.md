@@ -202,6 +202,9 @@ Policy thresholds must be complete finite numeric tokens. Values such as
 `0.2junk` are rejected before a provider decision is emitted, including in
 structured diagnostic mode.
 
+The CUDA provider likewise requires `--matrix-size` to be a complete
+non-negative integer before reading a plan or probing the CUDA driver.
+
 The CUDA graph provider also emits `cpu_reference_ms`,
 `cuda_end_to_end_ms`, and `end_to_end_speedup`. That report is an accepted
 calibration input to the graph planner. Small graphs are expected to lose: the

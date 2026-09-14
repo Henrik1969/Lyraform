@@ -2609,6 +2609,18 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Native provider fault injection and remaining Stage 0
 API boundaries still require dedicated coverage.
 
+## 2026-09-14 CUDA provider workload ingress boundary
+
+- Replaced prefix-accepting `stoul` conversion with complete-token parsing for
+  `--matrix-size`.
+- Added hostile `64junk` coverage proving structured failure, empty output, and
+  no CUDA-driver probe on invalid workload input.
+- Focused CUDA-provider test passes; the canonical suite remains the
+  publication gate.
+
+State remains CONTINUE. Native allocation/provider fault injection and broader
+Stage 0 API containment remain unfinished.
+
 ## 2026-09-14 runtime planner numeric-policy boundary
 
 - Replaced prefix-accepting `stod` conversion with complete finite-number

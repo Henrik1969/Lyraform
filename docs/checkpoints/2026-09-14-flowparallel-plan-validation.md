@@ -49,4 +49,5 @@ Matrix-benchmark structured-diagnostics test: PASS
 CPU provider numeric-policy hostile-input test: PASS
 Runtime planner numeric-policy hostile-input test: PASS
 Graph planner numeric-policy hostile-input test: PASS
+CUDA provider matrix-size hostile-input test: PASS
 ```

@@ -2,6 +2,7 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowcontracts/json.hpp>
 
+#include <charconv>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
@@ -16,6 +17,14 @@ namespace {
 struct Options { std::string plan_path; unsigned matrix_size = 512; bool structured_diagnostics = false; };
 
 std::string quote(std::string_view value) { return "\"" + std::string(value) + "\""; }
+
+unsigned parse_unsigned(std::string_view text, const char* option) {
+    unsigned value = 0;
+    const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size())
+        throw std::runtime_error(std::string(option) + " requires a complete non-negative integer");
+    return value;
+}
 
 std::string json_escape(std::string_view value) {
     std::string escaped;
@@ -71,7 +80,7 @@ Options parse(int argc, char** argv) {
     for (int index = 1; index < argc; ++index) {
         const std::string argument = argv[index];
         if (argument == "--plan") { if (++index >= argc) throw std::runtime_error("--plan requires a value"); options.plan_path = argv[index]; }
-        else if (argument == "--matrix-size") { if (++index >= argc) throw std::runtime_error("--matrix-size requires a value"); options.matrix_size = static_cast<unsigned>(std::stoul(argv[index])); }
+        else if (argument == "--matrix-size") { if (++index >= argc) throw std::runtime_error("--matrix-size requires a value"); options.matrix_size = parse_unsigned(argv[index], "--matrix-size"); }
         else if (argument == "--diagnostics") { if (++index >= argc || std::string(argv[index]) != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
         else if (argument == "-h" || argument == "--help" || argument == "-?") { std::cout << "flowparallel_cuda - optional CUDA provider probe\n\nOptions: --plan plan.json --matrix-size N --diagnostics json\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0); }
         else if (argument == "-a" || argument == "--about") { std::cout << "Flowparallel CUDA probes linear-algebra provider availability and preserves CPU fallback.\n"; std::exit(0); }
@@ -115,6 +124,9 @@ int run(const std::string& plan, const Options& options) {
 
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
+    for (int index = 1; index < argc; ++index)
+        if (std::string(argv[index]) == "--diagnostics" && index + 1 < argc && std::string(argv[index + 1]) == "json")
+            structured_diagnostics = true;
     try {
         const auto options = parse(argc, argv);
         structured_diagnostics = options.structured_diagnostics;
