@@ -3378,6 +3378,17 @@ remain explicitly provisional.
 State remains CONTINUE. General scheduler admission, cancellation, and
 effectful parallelism remain outside the admitted contract.
 
+## 2026-09-14 graph-runtime worker admission boundary
+
+- Added a 256-worker ceiling to the graph runtime before vector reservation or
+  thread creation.
+- Invalid counts and null workers now use the existing structured graph-failure
+  process boundary instead of silent aborts.
+- Added a valid one-worker and hostile 257-worker process test.
+
+State remains CONTINUE. General effectful, reentrant, and asynchronous
+parallelism remains refused.
+
 ## 2026-09-14 Flowparallel plan CLI diagnostic boundary
 
 - Added `flowparallel --diagnostics json` for stable contract-failure

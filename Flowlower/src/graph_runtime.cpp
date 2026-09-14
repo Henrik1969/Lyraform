@@ -8,6 +8,7 @@
 #include <vector>
 
 namespace {
+constexpr std::int64_t max_parallel_workers = 256;
 thread_local const char* activation = nullptr;
 thread_local std::string stream_activation;
 thread_local std::uint64_t active_operation = 0;
@@ -32,6 +33,7 @@ std::string quote(const char* value) {
     return result;
 }
 }
+extern "C" [[noreturn]] void flow_graph_fail(std::uint64_t operation, const char* reason);
 extern "C" void flow_graph_enter(const char* value) {
     activation = value; active_operation = 0; failure_code = 0;
     if (tracing()) record(value);
@@ -89,11 +91,12 @@ extern "C" void flow_graph_stream_drop(const char* node, const char* wire, std::
 extern "C" void flow_graph_parallel_run(
     void (*const* workers)(std::int64_t, std::int64_t*), const std::int64_t* inputs,
     std::int64_t* outputs, std::int64_t count) {
-    if (!workers || !inputs || !outputs || count < 0) std::abort();
+    if (!workers || !inputs || !outputs || count < 0) flow_graph_fail(active_operation, "invalid graph parallel invocation");
+    if (count > max_parallel_workers) flow_graph_fail(active_operation, "graph parallel worker count exceeds the 256-worker limit");
     std::vector<std::thread> threads;
     threads.reserve(static_cast<std::size_t>(count));
     for (std::int64_t index = 0; index < count; ++index) {
-        if (!workers[index]) std::abort();
+        if (!workers[index]) flow_graph_fail(active_operation, "graph parallel invocation contains a null worker");
         threads.emplace_back(workers[index], inputs[index], &outputs[index]);
     }
     for (auto& thread : threads) thread.join();
