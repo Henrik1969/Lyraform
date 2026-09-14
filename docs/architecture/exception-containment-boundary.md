@@ -68,6 +68,13 @@ returns a nonzero status. The current CLI codes are intentionally conservative:
 not make the internal exception mechanisms themselves part of the language
 contract or close provider/runtime/API containment.
 
+The runtime graph now also exposes `runModuleChecked`, which translates
+runtime, allocation, and unexpected standard failures into an explicit
+`RuntimeResult` before the compiler's public caller handles the result. The
+legacy `runModule` and `RuntimeGraph::startAt` entry points remain available
+for compatibility and still use internal exceptions; they are not yet the
+preferred Stage 1 boundary.
+
 ## Required implementation slice
 
 1. Define a small public `Outcome`/diagnostic boundary type without changing
