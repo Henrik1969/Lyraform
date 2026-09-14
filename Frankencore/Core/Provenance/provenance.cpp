@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -35,6 +36,18 @@ int lock_history(const std::string& path, int operation) {
         return -1;
     }
     return descriptor;
+}
+
+int sync_parent_directory(const std::string& path) {
+    const auto parent = std::filesystem::path(path).parent_path();
+    const auto directory = parent.empty() ? std::string{"."} : parent.string();
+    const int descriptor = ::open(directory.c_str(), O_RDONLY | O_DIRECTORY);
+    if (descriptor < 0) return -1;
+    const int status = ::fsync(descriptor);
+    const int saved = errno;
+    ::close(descriptor);
+    errno = saved;
+    return status;
 }
 
 bool write_all(int descriptor, const char* bytes, std::size_t length) {
@@ -415,12 +428,16 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             return {false, false, scan.result.records, "error", std::string("cannot open history for append: ") + std::strerror(saved), {}};
         }
         const std::string line = json + '\n';
-        const bool written = write_all(descriptor, line.data(), line.size()) && ::fsync(descriptor) == 0;
-        const int saved = errno;
+        bool written = write_all(descriptor, line.data(), line.size()) && ::fsync(descriptor) == 0;
+        int saved = written ? 0 : errno;
         ::close(descriptor);
+        if (written && sync_parent_directory(path) != 0) {
+            written = false;
+            saved = errno;
+        }
         ::flock(lock, LOCK_UN);
         ::close(lock);
-        if (!written) return {false, false, scan.result.records, "error", std::string("history append failed: ") + std::strerror(saved), {}};
+        if (!written) return {false, false, scan.result.records, "error", std::string("history append durability failed: ") + std::strerror(saved == 0 ? EIO : saved), {}};
         return {true, true, scan.result.records + 1, "appended", {}, {}};
     } catch (const std::exception& error) {
         return {false, false, 0, "error", error.what(), {}};
@@ -518,7 +535,8 @@ HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
         if (descriptor >= 0) ::close(descriptor);
         ::flock(lock, LOCK_UN);
         ::close(lock);
-        if (!truncated) return {false, false, scan.result.records, "error", "cannot truncate history to valid prefix", quarantine};
+        if (!truncated || sync_parent_directory(path_) != 0)
+            return {false, false, scan.result.records, "error", "cannot durably truncate history to valid prefix", quarantine};
         return {true, true, scan.result.records, "repaired", "incomplete final record quarantined", quarantine};
     } catch (const std::exception& error) {
         return {false, false, 0, "error", error.what(), {}};

@@ -12,6 +12,10 @@ event per line, deduplicates exact replay by `event_id`, rejects conflicting
 duplicate content, and exposes an ordered `read_records()` projection only
 after the history prefix validates.
 
+Successful append and repair operations now flush both the history file and
+its parent directory, so file creation/truncation durability is part of the
+reported success condition.
+
 An incomplete final line makes the history non-publishable. Appends refuse to
 continue until the operator explicitly calls `repair_incomplete_tail()`. That
 operation writes the incomplete bytes to a non-overwriting `.quarantine` file,
