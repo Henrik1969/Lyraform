@@ -655,12 +655,12 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
 
 MutationReplayResult ErrorStateHistory::replay_mutations() const noexcept {
     try {
-        const int lock = lock_history(path_, LOCK_SH);
+        ScopedLock lock_guard{lock_history(path_, LOCK_SH)};
+        const int lock = lock_guard.value;
         if (lock < 0)
             return {false, 0, {}, "error", std::string("cannot lock history: ") + std::strerror(errno)};
         const auto scan = scan_history(path_, max_line_bytes_, max_history_bytes_);
-        ::flock(lock, LOCK_UN);
-        ::close(lock);
+        lock_guard.release();
         if (!scan.result.valid || scan.incomplete_tail)
             return {false, scan.result.records, {}, scan.incomplete_tail ? "incomplete" : scan.result.status,
                     scan.incomplete_tail ? "history has an incomplete final record; explicit repair is required" : scan.result.error};
@@ -684,24 +684,23 @@ HistoryReconciliationResult reconcile_histories(const std::string& left_path,
     try {
         const std::string first = left_path < right_path ? left_path : right_path;
         const std::string second = left_path < right_path ? right_path : left_path;
-        const int first_lock = lock_history(first, LOCK_SH);
+        ScopedLock first_guard{lock_history(first, LOCK_SH)};
+        const int first_lock = first_guard.value;
         if (first_lock < 0)
             return {false, 0, 0, 0, 0, 0, 0, "error", std::string("cannot lock history: ") + std::strerror(errno)};
-        const int second_lock = second == first ? -1 : lock_history(second, LOCK_SH);
+        ScopedLock second_guard{second == first ? -1 : lock_history(second, LOCK_SH)};
+        const int second_lock = second_guard.value;
         if (second != first && second_lock < 0) {
             const int saved = errno;
-            ::flock(first_lock, LOCK_UN);
-            ::close(first_lock);
+            first_guard.release();
             return {false, 0, 0, 0, 0, 0, 0, "error", std::string("cannot lock history: ") + std::strerror(saved)};
         }
         const auto left = scan_history(left_path, 1024 * 1024, 64 * 1024 * 1024);
         const auto right = scan_history(right_path, 1024 * 1024, 64 * 1024 * 1024);
         if (second_lock >= 0) {
-            ::flock(second_lock, LOCK_UN);
-            ::close(second_lock);
+            second_guard.release();
         }
-        ::flock(first_lock, LOCK_UN);
-        ::close(first_lock);
+        first_guard.release();
         if (!left.result.valid || left.incomplete_tail || !right.result.valid || right.incomplete_tail)
             return {false, left.result.records, right.result.records, 0, 0, 0, 0, "invalid", "both histories must have valid complete prefixes"};
 

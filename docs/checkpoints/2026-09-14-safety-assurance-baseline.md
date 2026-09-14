@@ -157,6 +157,16 @@ rules remain unchanged. The recovery fault suite remains green.
 The safety state remains `CONTINUE`: deeper crash fault injection and retention
 semantics remain open.
 
+## Replay and reconciliation lock ownership — 2026-09-14
+
+Mutation replay and two-history reconciliation now use scoped shared-lock
+ownership, including the second-lock acquisition failure path. Exceptional
+allocation, parsing, and comparison paths therefore release all acquired
+history locks before returning their structured error result.
+
+The safety state remains `CONTINUE`: deeper crash fault injection and
+retention semantics remain open.
+
 ## Append close-error disposition — 2026-09-14
 
 Durable history append now treats a failed `close()` after writing and syncing
