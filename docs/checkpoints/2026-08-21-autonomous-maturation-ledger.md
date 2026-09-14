@@ -2597,6 +2597,20 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-14 durable-history partial-write uncertainty
+
+- Changed the durable history append boundary to distinguish a completed write
+  from a write that changed the file and then failed. The latter now returns
+  `uncertain` with `changed=true`, preserving the fail-closed recovery path.
+- Added linker-injected partial-write coverage proving the torn tail is
+  visible, publication is refused, and explicit repair preserves the valid
+  prefix.
+- Focused `frankencore_error_state_history` passed; the full 115-test gate had
+  already passed immediately before this slice.
+
+State remains CONTINUE. Retention, deeper crash fault injection, and broader
+native/provider fault injection remain unfinished Gate 5/8 work.
+
 ## 2026-09-14 durable-history uncertain fsync result
 
 - Distinguished a failed write from bytes-written-but-unsynchronized history

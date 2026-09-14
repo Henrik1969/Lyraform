@@ -47,6 +47,11 @@ error-state lifecycle replay refusal: PASS
 linear mutation revision/state replay refusal: PASS
 ```
 
+Partial writes are fault-injected as well: if a write changes the file but
+does not complete, append returns `uncertain` with `changed=true`, and the
+incomplete tail remains visible for explicit repair. This prevents a torn
+record from being reported as an ordinary no-change error.
+
 This is a durable error-state boundary, not a complete history subsystem.
 Retention and deeper crash fault injection remain open Gate 5 work. The history test
 now uses a child process that exits immediately after writing an incomplete

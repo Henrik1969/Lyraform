@@ -11,6 +11,7 @@
 namespace {
 
 bool fail_fsync = false;
+bool fail_write_after_partial = false;
 
 extern "C" int __real_fsync(int);
 extern "C" int __wrap_fsync(int descriptor) {
@@ -19,6 +20,22 @@ extern "C" int __wrap_fsync(int descriptor) {
         return -1;
     }
     return __real_fsync(descriptor);
+}
+
+extern "C" ssize_t __real_write(int, const void*, size_t);
+extern "C" ssize_t __wrap_write(int descriptor, const void* bytes, size_t length) {
+    static bool partial_write_emitted = false;
+    if (fail_write_after_partial && !partial_write_emitted) {
+        partial_write_emitted = true;
+        const auto partial = length > 3 ? 3 : length;
+        return __real_write(descriptor, bytes, partial);
+    }
+    if (fail_write_after_partial) {
+        errno = EIO;
+        return -1;
+    }
+    partial_write_emitted = false;
+    return __real_write(descriptor, bytes, length);
 }
 
 frankencore::provenance::ErrorStateEvent event(const char* status) {
@@ -223,6 +240,22 @@ int main() {
     assert(uncertain_append.status == "uncertain");
     assert(uncertain_append.records == 2);
     assert(durability.inspect().valid && durability.inspect().records == 2);
+
+    const auto partial_path = base / "partial-write.jsonl";
+    ErrorStateHistory partial_history(partial_path.string());
+    const auto partial_opened = event("opened");
+    assert(partial_history.append(partial_opened).status == "appended");
+    auto partial_diagnosed = partial_opened;
+    partial_diagnosed.event_id = generate_ulid();
+    partial_diagnosed.status = "diagnosed";
+    fail_write_after_partial = true;
+    const auto partial_append = partial_history.append(partial_diagnosed);
+    fail_write_after_partial = false;
+    assert(!partial_append.valid && partial_append.changed);
+    assert(partial_append.status == "uncertain");
+    assert(partial_history.inspect().status == "incomplete");
+    assert(partial_history.repair_incomplete_tail().status == "repaired");
+    assert(partial_history.inspect().valid && partial_history.inspect().records == 1);
 
     {
         std::ofstream output(path, std::ios::binary | std::ios::app);

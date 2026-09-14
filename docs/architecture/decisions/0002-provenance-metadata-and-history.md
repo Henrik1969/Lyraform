@@ -104,7 +104,10 @@ The C++ core provides ULID generation, mutation-event structures, and a
 project-local `ErrorStateHistory` boundary. The boundary uses an exclusive
 writer lock, validates the complete JSONL prefix before append, deduplicates
 identical event IDs, rejects conflicting IDs, flushes successful appends, and
-requires explicit quarantine/repair for an incomplete final line. The current
+requires explicit quarantine/repair for an incomplete final line. A write that
+changes the file but fails to complete is reported as `uncertain`, just like a
+durability failure, because the resulting prefix may contain a torn record.
+The current
 implementation performs full JSON syntax validation and known-record
 type/status validation, plus bounded inspection, ordered reads, and exact
 identity lookup, error-state lifecycle replay, and linear mutation

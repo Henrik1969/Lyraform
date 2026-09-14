@@ -192,15 +192,22 @@ int sync_parent_directory(const std::string& path) {
     return status;
 }
 
-bool write_all(int descriptor, const char* bytes, std::size_t length) {
+struct WriteResult {
+    bool complete;
+    bool changed;
+};
+
+WriteResult write_all(int descriptor, const char* bytes, std::size_t length) {
+    bool changed = false;
     while (length != 0) {
         const auto written = ::write(descriptor, bytes, length);
         if (written < 0 && errno == EINTR) continue;
-        if (written <= 0) return false;
+        if (written <= 0) return {false, changed};
+        changed = true;
         bytes += written;
         length -= static_cast<std::size_t>(written);
     }
-    return true;
+    return {true, changed};
 }
 
 HistoryScan scan_history(const std::string& path, std::size_t max_line_bytes,
@@ -600,8 +607,9 @@ HistoryResult append_serialized(const std::string& path, std::size_t max_line_by
             ::close(lock);
             return {false, false, scan.result.records, "error", std::string("cannot open history for append: ") + std::strerror(saved), {}};
         }
-        const bool bytes_written = write_all(descriptor, line.data(), line.size());
-        const bool durable = bytes_written && ::fsync(descriptor) == 0;
+        const auto write_result = write_all(descriptor, line.data(), line.size());
+        const bool bytes_written = write_result.changed;
+        const bool durable = write_result.complete && ::fsync(descriptor) == 0;
         bool written = durable;
         int saved = written ? 0 : errno;
         ::close(descriptor);
@@ -797,7 +805,8 @@ HistoryResult ErrorStateHistory::repair_incomplete_tail() const noexcept {
             ::close(lock);
             return {false, false, scan.result.records, "error", std::string("cannot create quarantine: ") + std::strerror(saved), quarantine};
         }
-        const bool quarantined = write_all(quarantine_descriptor, scan.tail.data(), scan.tail.size()) && ::fsync(quarantine_descriptor) == 0;
+        const auto quarantine_write = write_all(quarantine_descriptor, scan.tail.data(), scan.tail.size());
+        const bool quarantined = quarantine_write.complete && ::fsync(quarantine_descriptor) == 0;
         ::close(quarantine_descriptor);
         if (!quarantined) {
             ::flock(lock, LOCK_UN);

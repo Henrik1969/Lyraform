@@ -19,7 +19,7 @@ add_executable(frankencore_error_state_history_test history_test.cpp)
 target_link_libraries(frankencore_error_state_history_test PRIVATE Frankencore::Provenance)
 target_compile_features(frankencore_error_state_history_test PRIVATE cxx_std_20)
 target_compile_options(frankencore_error_state_history_test PRIVATE -Wall -Wextra -Wpedantic)
-target_link_options(frankencore_error_state_history_test PRIVATE "-Wl,--wrap=fsync")
+target_link_options(frankencore_error_state_history_test PRIVATE "-Wl,--wrap=fsync" "-Wl,--wrap=write")
 add_test(NAME frankencore_error_state_history
     COMMAND frankencore_error_state_history_test)
 add_test(NAME frankencore_reference_structured_diagnostics
