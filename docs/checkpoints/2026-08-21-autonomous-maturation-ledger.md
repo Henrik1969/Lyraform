@@ -2717,6 +2717,23 @@ fault injection, isolation, trust, and Stage 1 readiness work remains open.
 State remains CONTINUE. Wider Stage 0 exception/API containment, fault
 injection, isolation, trust, and Stage 1 readiness work remains open.
 
+## 2026-09-15 TinyVM lowerer process-failure classification
+
+- Added exact structured diagnostics for contract, input, output, resource,
+  runtime, and unknown failures at the portable TinyVM lowering boundary.
+- Extended the backend boundary to prove malformed JSON, missing and oversized
+  input, and output-open failure produce empty stdout, no new artifact, and
+  explicit staged diagnostics.
+- Updated the allocation-fault gate to require a structured runtime exhaustion
+  result before input consumption.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 2/2. Complete suites
+  passed 149/149 under GCC in 52.67 seconds and Clang sanitizers in 104.35
+  seconds with the documented leak setting.
+
+State remains CONTINUE. TinyVM v2 output still writes directly to the final
+destination; atomic publication and write/close fault injection remain open,
+along with wider Stage 0 containment and trust work.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

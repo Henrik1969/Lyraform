@@ -1474,3 +1474,25 @@ passed 149/149 under GCC in 52.02 seconds and 149/149 under Clang sanitizers in
 This closes the identified Flowmini startup-allocation escape only. Wider
 Stage 0 exception/API containment, fault injection, isolation, and trust work
 remain open. The safety state remains `CONTINUE`.
+
+## TinyVM lowerer process-failure classification — 2026-09-15
+
+The portable TinyVM backend lowerer now accepts `--diagnostics json` and
+separates malformed lowering contracts, invalid or unavailable input, output
+publication failures, allocation exhaustion, runtime exceptions, and unknown
+non-standard failures into stable `contract`, `input`, `output`, and `runtime`
+stages. Structured failures leave stdout empty with `no_artifact`; successful
+and explicitly unsupported lowering results remain on stdout.
+
+The existing backend boundary now proves malformed JSON, missing and oversized
+input, and output-open failure classification without creating a new output
+artifact. The allocation-fault build proves a structured resource-exhaustion
+result before input consumption. Both focused tests passed 2/2 under GCC and
+Clang 18.1.3 ASan/UBSan. Complete suites passed 149/149 under GCC in 52.67
+seconds and 149/149 under Clang sanitizers in 104.35 seconds with the documented
+leak setting.
+
+The underlying v2 writer still opens the destination directly. A write or
+close failure can therefore leave a partial or truncated destination visible;
+atomic artifact publication and injected write/close faults remain open. The
+safety state remains `CONTINUE`.

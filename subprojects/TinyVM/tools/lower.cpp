@@ -1,5 +1,6 @@
 #include <flowcontracts/validate.hpp>
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 extern "C" {
 #include <tinyvm/isa_v1.h>
 }
@@ -24,10 +25,32 @@ namespace {
 using namespace flowcontracts;
 using namespace flowcontracts::json;
 
+struct InputError : std::runtime_error { using std::runtime_error::runtime_error; };
+struct OutputError : std::runtime_error { using std::runtime_error::runtime_error; };
+struct Unsupported : std::runtime_error { using std::runtime_error::runtime_error; };
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowcontracts::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowcontracts::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowcontracts::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
+
 std::string read(const char* path) {
-    if (std::strcmp(path, "-") == 0) return flowcontracts::read_bounded(std::cin, "backend lowering artifact");
-    std::ifstream file(path); if (!file) throw std::runtime_error("cannot open backend lowering artifact");
-    return flowcontracts::read_bounded(file, "backend lowering artifact");
+    try {
+        if (std::strcmp(path, "-") == 0) return flowcontracts::read_bounded(std::cin, "backend lowering artifact");
+        std::ifstream file(path); if (!file) throw InputError("cannot open backend lowering artifact");
+        return flowcontracts::read_bounded(file, "backend lowering artifact");
+    } catch (const std::bad_alloc&) {
+        throw;
+    } catch (const InputError&) {
+        throw;
+    } catch (const std::exception& error) {
+        throw InputError(error.what());
+    }
 }
 
 std::string identity(std::string_view prefix, std::string_view meaning) {
@@ -40,8 +63,6 @@ std::string identity(std::string_view prefix, std::string_view meaning) {
 }
 
 void copy(char output[64], const std::string& value) { std::snprintf(output, 64, "%s", value.c_str()); }
-
-struct Unsupported : std::runtime_error { using std::runtime_error::runtime_error; };
 
 class Compiler {
 public:
@@ -789,7 +810,7 @@ int lower(const char* input_path, const char* output_path) {
     artifact.graph_activations = compiler.graph_activations.data(); artifact.graph_activation_count = compiler.graph_activations.size();
     char diagnostic[256];
     if (!tinyvm_artifact_v2_write(output_path, &artifact, diagnostic, sizeof diagnostic))
-        throw std::runtime_error(std::string("cannot emit TinyVM artifact: ") + diagnostic);
+        throw OutputError(std::string("cannot emit TinyVM artifact: ") + diagnostic);
     std::cout << serialize(Object{{"artifact_id", std::string(artifact.artifact_id)}, {"backend", "tinyvm"},
                                  {"format", "flowtiny.lowering_result"}, {"isa_version", Integer{compiler.isa_version()}},
                                  {"status", "emitted"}, {"version", Integer{1}}}) << '\n';
@@ -798,14 +819,52 @@ int lower(const char* input_path, const char* output_path) {
 } // namespace
 
 int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
     try {
-        if (argc != 3) { std::cerr << "usage: flowtinylower INPUT.json OUTPUT.tvm\n"; return 2; }
-        return lower(argv[1], argv[2]);
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
+
+        const char* input_path = nullptr;
+        const char* output_path = nullptr;
+        for (int index = 1; index < argc; ++index) {
+            if (std::strcmp(argv[index], "--diagnostics") == 0) {
+                if (++index >= argc || std::strcmp(argv[index], "json") != 0)
+                    throw InputError("--diagnostics requires json");
+            } else if (!input_path) {
+                input_path = argv[index];
+            } else if (!output_path) {
+                output_path = argv[index];
+            } else {
+                throw InputError("unexpected extra argument");
+            }
+        }
+        if (!input_path || !output_path)
+            throw InputError("usage: flowtinylower [--diagnostics json] INPUT.json OUTPUT.tvm");
+        return lower(input_path, output_path);
     } catch (const flowcontracts::json::Error& error) {
-        std::cerr << "flowtinylower contract error: " << error.what() << '\n'; return 1;
+        if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_CONTRACT_FAILURE", "contract", error.what());
+        else std::cerr << "flowtinylower contract error: " << error.what() << '\n';
+        return 1;
     } catch (const std::bad_alloc&) {
-        std::cerr << "flowtinylower error: allocation failed\n"; return 1;
+        if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
+        else std::cerr << "flowtinylower error: allocation failed\n";
+        return 1;
+    } catch (const InputError& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_INPUT_INVALID", "input", error.what());
+        else std::cerr << "flowtinylower input error: " << error.what() << '\n';
+        return 1;
+    } catch (const OutputError& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_OUTPUT_FAILURE", "output", error.what());
+        else std::cerr << "flowtinylower output error: " << error.what() << '\n';
+        return 1;
     } catch (const std::exception& error) {
-        std::cerr << "flowtinylower error: " << error.what() << '\n'; return 1;
+        if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_RUNTIME_FAILURE", "runtime", error.what());
+        else std::cerr << "flowtinylower error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
+        else std::cerr << "flowtinylower error: unknown non-standard failure\n";
+        return 1;
     }
 }

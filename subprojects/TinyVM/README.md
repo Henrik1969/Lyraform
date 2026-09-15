@@ -99,6 +99,11 @@ admitted slices cover empty programs plus provider-free typed literals,
 conversions, unary/binary arithmetic, comparisons, local definitions,
 assignments, structured branches, loops and returns. Other valid plans receive
 a structured unsupported result until their lowering rules land.
+`--diagnostics json` reports malformed contracts, invalid or unavailable input,
+output publication failure, resource exhaustion, runtime failure, and unknown
+non-standard failure as distinct staged `no_artifact` records on standard
+error. Successful and explicitly unsupported lowering results remain on
+standard output.
 
 The current Gate 6 slice additionally admits executable source graphs with one
 authorized startup provider and serial fresh receiver activations. Receiver

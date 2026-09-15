@@ -10,6 +10,24 @@ artifact="$build/backend-empty.tvm"
 artifact_again="$build/backend-empty-again.tvm"
 report="$build/backend-empty-report.json"
 
+check_failure() {
+    name=$1
+    code=$2
+    stage=$3
+    shift 3
+    stdout="$build/$name.stdout"
+    stderr="$build/$name.stderr"
+    set +e
+    "$@" >"$stdout" 2>"$stderr"
+    status=$?
+    set -e
+    test "$status" -eq 1
+    test ! -s "$stdout"
+    jq -e --arg code "$code" --arg stage "$stage" \
+        '.status == "failed" and .code == $code and .stage == $stage and .disposition == "no_artifact" and (.message | length > 0)' \
+        "$stderr" >/dev/null
+}
+
 "$lower" "$fixture" "$artifact" > "$report"
 "$lower" "$fixture" "$artifact_again" >/dev/null
 cmp -s "$artifact" "$artifact_again"
@@ -50,5 +68,25 @@ do
   "$validate" "$build/opaque-value.tvm" | grep -q '"status":"valid"'
   "$run" "$build/opaque-value.tvm" | grep -q '"carrier":2,"result":0'
 done
+
+printf '{"version":' >"$build/backend-malformed.json"
+rm -f "$build/backend-malformed.tvm"
+check_failure malformed FLOWTINYLOWER_CONTRACT_FAILURE contract \
+    "$lower" --diagnostics json "$build/backend-malformed.json" "$build/backend-malformed.tvm"
+test ! -e "$build/backend-malformed.tvm"
+
+rm -f "$build/backend-missing.json" "$build/backend-missing.tvm"
+check_failure missing FLOWTINYLOWER_INPUT_INVALID input \
+    "$lower" --diagnostics json "$build/backend-missing.json" "$build/backend-missing.tvm"
+test ! -e "$build/backend-missing.tvm"
+
+dd if=/dev/zero of="$build/backend-oversized.json" bs=1048576 count=17 2>/dev/null
+rm -f "$build/backend-oversized.tvm"
+check_failure oversized FLOWTINYLOWER_INPUT_INVALID input \
+    "$lower" --diagnostics json "$build/backend-oversized.json" "$build/backend-oversized.tvm"
+test ! -e "$build/backend-oversized.tvm"
+
+check_failure output FLOWTINYLOWER_OUTPUT_FAILURE output \
+    "$lower" --diagnostics json "$fixture" "$build"
 
 echo 'TinyVM backend lowering boundary: PASS'
