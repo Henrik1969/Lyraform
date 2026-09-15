@@ -2622,6 +2622,16 @@ Frankencore/provider exception containment remain open.
 State remains CONTINUE. Deeper parser/provider containment and generalized
 allocation-fault coverage remain open.
 
+## 2026-09-15 kernel and artifact-validator diagnostic boundary
+
+- Migrated Flowkernel’s structured exception diagnostic to the shared bounded
+  Flowcontracts writer and wired its include path explicitly.
+- Migrated Flowvalidate’s exception-text projections without changing its
+  canonical artifact output.
+- Focused kernel probe and artifact-validator tests passed.
+
+State remains CONTINUE. Broader API/provider fault coverage remains open.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance

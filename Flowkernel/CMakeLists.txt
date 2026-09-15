@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(flowkernel src/main.cpp)
 target_compile_options(flowkernel PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(flowkernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../Flowcontracts/include)
 
 enable_testing()
 add_test(NAME flowkernel_readonly

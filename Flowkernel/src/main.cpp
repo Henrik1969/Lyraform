@@ -19,6 +19,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#include <flowcontracts/diagnostics.hpp>
+
 namespace {
 
 constexpr std::string_view VERSION = "0.1.0";
@@ -189,18 +191,6 @@ void print_result(const Result& result) {
     std::cout << "}";
 }
 
-std::string json_escape(std::string_view value) {
-    std::string escaped;
-    for (const char character : value) {
-        if (character == '\\' || character == '"') escaped.push_back('\\');
-        if (character == '\n') escaped += "\\n";
-        else if (character == '\r') escaped += "\\r";
-        else if (character == '\t') escaped += "\\t";
-        else escaped.push_back(character);
-    }
-    return escaped;
-}
-
 int run(std::string_view probe, bool require_complete) {
     if (probe != "readonly" && probe != "tempfs" && probe != "ipc" && probe != "socket_ipc" && probe != "loopback" && probe != "namespaces" && probe != "all") throw std::runtime_error("unknown probe; choose readonly, tempfs, ipc, socket_ipc, loopback, namespaces, or all");
     const bool run_readonly = probe == "readonly" || probe == "all";
@@ -262,8 +252,11 @@ int main(int argc, char** argv) {
         if (probe.empty()) throw std::runtime_error("usage: flowkernel --probe readonly|tempfs|ipc|socket_ipc|loopback|namespaces|all [--require-complete] [--diagnostics json]");
         return run(probe, require_complete);
     } catch (const std::exception& error) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWKERNEL_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) {
+            std::fputs("{\"status\":\"failed\",\"code\":\"FLOWKERNEL_FAILURE\",\"message\":\"", stderr);
+            flowcontracts::write_json_string(stderr, error.what());
+            std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+        }
         else std::cerr << "flowkernel error: " << error.what() << '\n';
         return 1;
     } catch (...) {

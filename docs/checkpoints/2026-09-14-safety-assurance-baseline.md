@@ -377,6 +377,24 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Kernel and artifact-validator diagnostic boundary — 2026-09-15
+
+Flowkernel and Flowvalidate now use the bounded Flowcontracts writer when
+structured process failures include exception text. Flowkernel’s probe
+executable is wired to the shared header without changing its probe or
+machine-result contract; Flowvalidate’s canonical artifact output is likewise
+unchanged.
+
+The focused `flowkernel_readonly`, `flowkernel_tempfs`, `flowkernel_ipc`,
+`flowkernel_socket_ipc`, `flowkernel_loopback`, `flowkernel_namespaces`,
+`flowkernel_all`, `flowkernel_all_contract`, `flowkernel_require_complete`,
+`flowkernel_structured_diagnostics`, `flowvalidate_artifacts`, and
+`flowvalidate_allocation_fault` tests passed in the normal GCC tree. This
+closes only these two public process boundaries; broader API and provider
+fault coverage remains open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Lowering-tool diagnostic allocation boundary — 2026-09-15
 
 Flowlower, Flowprepare, and Flowtarget now use the shared bounded,

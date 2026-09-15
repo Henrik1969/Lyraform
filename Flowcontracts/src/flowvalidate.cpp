@@ -1,5 +1,6 @@
 #include <flowcontracts/validate.hpp>
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -59,18 +60,18 @@ int main(int argc, char** argv) {
         std::cerr << "flowvalidate: allocation failed\n"; return 1;
     } catch (const flowcontracts::json::Error& error) {
         if (structured_diagnostics) {
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":"
-                      << flowcontracts::json::serialize(std::string(error.what()))
-                      << ",\"disposition\":\"no_artifact\"}\n";
+            std::fputs("{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":\"", stderr);
+            flowcontracts::write_json_string(stderr, error.what());
+            std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
             return 1;
         }
         std::cout << flowcontracts::json::serialize(flowcontracts::json::Object{{"classification", "invalid"}, {"format", ""}, {"path", error.path()}, {"reason", error.reason()}, {"version", 0}}) << '\n';
         return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics) {
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_FAILURE\",\"stage\":\"cli\",\"message\":"
-                      << flowcontracts::json::serialize(std::string(error.what()))
-                      << ",\"disposition\":\"no_artifact\"}\n";
+            std::fputs("{\"status\":\"failed\",\"code\":\"FLOWVALIDATE_FAILURE\",\"stage\":\"cli\",\"message\":\"", stderr);
+            flowcontracts::write_json_string(stderr, error.what());
+            std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
             return 1;
         }
         std::cerr << "flowvalidate: " << error.what() << '\n'; return 1;
