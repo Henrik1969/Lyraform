@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-15",
     "branch": "main",
-    "commit": "bbfac2de9470d266782c8232d4151528b5165942"
+    "commit": "6bf9d7cf856fa6cd0cdd503e482e2040fe119bba"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
@@ -35,7 +35,7 @@
     "Deterministic TinyVM graph activation-record budgets with switch/computed refusal parity",
     "Bounded TinyVM graph activation FIFO with switch/computed order and drain parity",
     "Fail-closed trust admission that prevents isolation claim text from authorizing execution without an admitted enforcement provider",
-    "TinyVM v1/v2 atomic publication with parent-directory synchronization and an explicit published-but-durability-uncertain result"
+    "TinyVM v1/v2 and LLVM artifact publication with parent-directory synchronization and an explicit published-but-durability-uncertain result"
   ],
   "verification": {
     "gcc_superbuild": "pass",
