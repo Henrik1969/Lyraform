@@ -2668,6 +2668,17 @@ scoped.
 State remains CONTINUE. End-to-end log retention and provider fault coverage
 remain open.
 
+## 2026-09-15 durable-history partial-write crash boundary
+
+- Added a forked crash-at-partial-write test for the durable error-state
+  history.
+- Verified that the torn append is reported as incomplete, never treated as a
+  committed record, and repaired only through explicit quarantine/repair.
+- GCC, ASan/UBSan, and Valgrind focused history gates pass.
+
+State remains CONTINUE. Retention and deeper filesystem crash points remain
+open.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance

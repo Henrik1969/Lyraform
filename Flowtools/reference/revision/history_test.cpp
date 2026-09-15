@@ -20,6 +20,7 @@ bool fail_close = false;
 bool fail_directory_close = false;
 bool fail_truncate = false;
 bool crash_on_file_fsync = false;
+bool crash_on_partial_write = false;
 
 extern "C" int __real_ftruncate(int, off_t);
 extern "C" int __wrap_ftruncate(int descriptor, off_t length) {
@@ -61,10 +62,12 @@ extern "C" int __wrap_fsync(int descriptor) {
 extern "C" ssize_t __real_write(int, const void*, size_t);
 extern "C" ssize_t __wrap_write(int descriptor, const void* bytes, size_t length) {
     static bool partial_write_emitted = false;
-    if ((fail_write_after_partial || fail_zero_write_after_partial) && !partial_write_emitted) {
+    if ((fail_write_after_partial || fail_zero_write_after_partial || crash_on_partial_write) && !partial_write_emitted) {
         partial_write_emitted = true;
         const auto partial = length > 3 ? 3 : length;
-        return __real_write(descriptor, bytes, partial);
+        const auto result = __real_write(descriptor, bytes, partial);
+        if (crash_on_partial_write) ::_exit(138);
+        return result;
     }
     if (fail_zero_write_after_partial) return 0;
     if (fail_write_after_partial) {
@@ -317,6 +320,31 @@ int main() {
     const auto fsync_crash_inspection = fsync_crash_history.inspect();
     assert(fsync_crash_inspection.valid);
     assert(fsync_crash_inspection.records == 2);
+
+    const auto partial_crash_path = base / "partial-write-crash.jsonl";
+    ErrorStateHistory partial_crash_history(partial_crash_path.string());
+    const auto partial_crash_opened = event("opened");
+    assert(partial_crash_history.append(partial_crash_opened).status == "appended");
+    const auto partial_crash_pid = ::fork();
+    assert(partial_crash_pid >= 0);
+    if (partial_crash_pid == 0) {
+        crash_on_partial_write = true;
+        auto partial_crash_diagnosed = partial_crash_opened;
+        partial_crash_diagnosed.event_id = generate_ulid();
+        partial_crash_diagnosed.status = "diagnosed";
+        (void)partial_crash_history.append(partial_crash_diagnosed);
+        ::_exit(126);
+    }
+    int partial_crash_status = 0;
+    assert(::waitpid(partial_crash_pid, &partial_crash_status, 0) == partial_crash_pid);
+    assert(WIFEXITED(partial_crash_status) && WEXITSTATUS(partial_crash_status) == 138);
+    crash_on_partial_write = false;
+    const auto partial_crash_inspection = partial_crash_history.inspect();
+    assert(!partial_crash_inspection.valid && partial_crash_inspection.status == "incomplete");
+    assert(partial_crash_inspection.records == 1);
+    const auto partial_crash_repair = partial_crash_history.repair_incomplete_tail();
+    assert(partial_crash_repair.valid && partial_crash_repair.status == "repaired");
+    assert(partial_crash_history.inspect().valid && partial_crash_history.inspect().records == 1);
 
     const auto left_path = base / "branch-left.jsonl";
     const auto right_path = base / "branch-right.jsonl";

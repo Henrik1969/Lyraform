@@ -377,6 +377,19 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Durable-history partial-write crash boundary — 2026-09-15
+
+The history fault matrix now includes a child process that crashes immediately
+after a partial record write and before synchronization. The parent observes
+an `incomplete` history with only the pre-existing valid record; explicit
+repair then quarantines the torn tail and restores that valid prefix without
+promoting the crashed append. `frankencore_error_state_history` passes in the
+normal GCC and Clang 18.1.3 ASan/UBSan trees. Valgrind 3.22.0 Memcheck reports
+zero errors and zero definite/indirect leaks across the forked test.
+
+This strengthens crash-depth evidence but does not close retention or all
+possible kernel/filesystem crash points. The safety state remains `CONTINUE`.
+
 ## Shared diagnostic-writer adversarial contract — 2026-09-15
 
 The Flowcontracts diagnostic writer now has direct adversarial unit coverage:
