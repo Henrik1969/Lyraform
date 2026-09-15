@@ -110,6 +110,8 @@ only after a successful close. Publication failure preserves any previous
 destination and removes the temporary file during ordinary failure handling;
 parent-directory crash durability and abrupt-death orphan cleanup are not
 claimed.
+The retained recovered-VM v1 compatibility writer uses the same publication
+sequence and limitations.
 
 The current Gate 6 slice additionally admits executable source graphs with one
 authorized startup provider and serial fresh receiver activations. Receiver

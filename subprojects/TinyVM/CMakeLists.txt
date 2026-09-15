@@ -106,6 +106,13 @@ target_link_options(tinyvm_artifact_v2_publication_fault PRIVATE
     "-Wl,--wrap=fsync"
     "-Wl,--wrap=fclose"
     "-Wl,--wrap=rename")
+add_executable(tinyvm_artifact_v1_publication_fault tests/artifact-v1-publication-fault.c)
+target_link_libraries(tinyvm_artifact_v1_publication_fault PRIVATE tinyvm_recovered)
+target_link_options(tinyvm_artifact_v1_publication_fault PRIVATE
+    "-Wl,--wrap=fwrite"
+    "-Wl,--wrap=fsync"
+    "-Wl,--wrap=fclose"
+    "-Wl,--wrap=rename")
 endif()
 
 if(BUILD_TESTING)
@@ -150,6 +157,9 @@ if(BUILD_TESTING)
                 ${CMAKE_CURRENT_BINARY_DIR})
     add_test(NAME tinyvm_artifact_v2_publication_fault
         COMMAND $<TARGET_FILE:tinyvm_artifact_v2_publication_fault>
+                ${CMAKE_CURRENT_BINARY_DIR})
+    add_test(NAME tinyvm_artifact_v1_publication_fault
+        COMMAND $<TARGET_FILE:tinyvm_artifact_v1_publication_fault>
                 ${CMAKE_CURRENT_BINARY_DIR})
     add_test(NAME tinyvm_artifact_v1_allocation_fault
         COMMAND $<TARGET_FILE:flowtinyv1_allocation_fault>

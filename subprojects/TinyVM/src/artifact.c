@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef TINYVM_ARTIFACT_V1_TEST_ALLOCATION_FAILURE
 static void *tinyvm_artifact_v1_fault_malloc(size_t size){(void)size;return NULL;}
@@ -147,6 +148,27 @@ static void encode(const TinyvmArtifact *artifact, uint8_t *bytes, size_t size) 
     SHA256(bytes,size,bytes+384);
 }
 
+static bool publish_atomic(const char *path,const uint8_t *bytes,size_t size){
+    static const char suffix[]=".tmp.XXXXXX";
+    size_t path_size=strlen(path);
+    if(path_size>SIZE_MAX-sizeof(suffix))return false;
+    char *temporary=malloc(path_size+sizeof(suffix));
+    if(!temporary)return false;
+    memcpy(temporary,path,path_size);memcpy(temporary+path_size,suffix,sizeof(suffix));
+    int descriptor=mkstemp(temporary);
+    if(descriptor<0){free(temporary);return false;}
+    FILE *file=fdopen(descriptor,"wb");
+    bool ok=false;
+    if(file){
+        ok=fwrite(bytes,1,size,file)==size;
+        if(ok&&fflush(file)!=0)ok=false;
+        if(ok&&fsync(descriptor)!=0)ok=false;
+        if(fclose(file)!=0)ok=false;
+    }else close(descriptor);
+    if(ok&&rename(temporary,path)==0){free(temporary);return true;}
+    unlink(temporary);free(temporary);return false;
+}
+
 bool tinyvm_artifact_write(const char *path, TinyvmArtifact *artifact,
                            char *diagnostic, size_t capacity) {
     if (!tinyvm_artifact_validate(artifact,diagnostic,capacity)) return false;
@@ -154,12 +176,7 @@ bool tinyvm_artifact_write(const char *path, TinyvmArtifact *artifact,
     const size_t size=HEADER_BYTES+artifact->code_count*WORD_BYTES;
     uint8_t *bytes=malloc(size); if(!bytes){diagnose(diagnostic,capacity,"allocation failed");return false;}
     encode(artifact,bytes,size); memcpy(artifact->digest,bytes+384,32);
-    FILE *file=fopen(path,"wb");
-    bool ok=false;
-    if(file != NULL) {
-        ok=fwrite(bytes,1,size,file)==size;
-        if(fclose(file)!=0) ok=false;
-    }
+    bool ok=publish_atomic(path,bytes,size);
     free(bytes);
     diagnose(diagnostic,capacity,ok?"valid":"artifact write failed"); return ok;
 }

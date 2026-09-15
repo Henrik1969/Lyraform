@@ -2750,6 +2750,21 @@ State remains CONTINUE. Parent-directory crash durability, abrupt-death orphan
 cleanup, v1 atomic publication, cross-platform equivalents, and broader trust
 work remain open.
 
+## 2026-09-15 TinyVM v1 compatibility atomic artifact publication
+
+- Applied the v2 encode-first, private-sibling, synchronized atomic-rename
+  publication sequence to the retained recovered-VM v1 writer.
+- Added independent partial-write, `fsync`, close, and rename failure injection;
+  each preserves the old destination and removes its temporary file, while
+  success publishes a readable artifact.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 2/2. Valgrind 3.22.0
+  reported zero errors and no leaks, with 4,968 allocations and frees.
+- Complete suites passed 151/151 under GCC in 58.71 seconds and Clang
+  sanitizers in 106.64 seconds with the documented leak setting.
+
+State remains CONTINUE. Parent-directory crash durability, abrupt-death orphan
+cleanup, cross-platform equivalents, and broader trust work remain open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

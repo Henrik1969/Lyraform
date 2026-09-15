@@ -1518,3 +1518,22 @@ This proves ordinary Linux process-level atomic visibility, not persistence of
 the rename across a host crash. Parent-directory synchronization, abrupt-death
 orphan cleanup, v1 atomic publication, and cross-platform equivalents remain
 open. The safety state remains `CONTINUE`.
+
+## TinyVM v1 compatibility atomic artifact publication — 2026-09-15
+
+The retained recovered-VM v1 writer now uses the same encode-first, private
+sibling, write/flush/`fsync`/close, and atomic-rename publication sequence as
+v2. The new v1 gate injects partial write, synchronization, close, and rename
+failure independently; every case preserves the prior destination byte-for-byte
+and removes the temporary file, while the success case publishes an
+independently readable artifact.
+
+The focused v1 allocation/publication tests passed 2/2 under GCC and Clang
+18.1.3 ASan/UBSan. Valgrind 3.22.0 reported zero errors, zero live blocks, and
+4,968 allocations matched by 4,968 frees. Complete suites passed 151/151 under
+GCC in 58.71 seconds and 151/151 under Clang sanitizers in 106.64 seconds with
+the documented leak setting.
+
+This closes ordinary Linux atomic visibility for both retained binary artifact
+formats. Parent-directory crash durability, abrupt-death orphan cleanup, and
+cross-platform equivalents remain open. The safety state remains `CONTINUE`.
