@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Optional ConfigResolve adapter containment — 2026-09-15
+
+The optional ConfigResolve policy adapter now declares its public resolution
+boundary `noexcept`, translates allocation, standard, and unknown failures to
+an unresolved `Decision`, and preserves provider-context cleanup when C++
+exception paths are taken. ConfigResolve is disabled in the authoritative
+build, so this source-level hardening is not presented as compiled-provider
+evidence; an enabled-provider build and fault suite remain required. The
+safety state remains `CONTINUE`.
+
 ## Runtime capability discovery boundary — 2026-09-15
 
 Runtime capability discovery now exposes `discover_checked()` as an explicit

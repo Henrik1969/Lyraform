@@ -27,6 +27,6 @@ struct Decision {
 // The provider receives facts and returns a normalized Frankencore decision;
 // it does not invent policy semantics or bypass ConfigResolve.
 Decision resolve_with_configresolve(const std::vector<Fact>& facts,
-                                    const std::string& outcome_key);
+                                    const std::string& outcome_key) noexcept;
 
 } // namespace frankencore::policy

@@ -76,6 +76,12 @@ exit distinction.
   non-throwing boundary, so injected or unexpected discovery failures produce
   an explicit unresolved result rather than relying on CLI-level exception
   containment.
+- The optional ConfigResolve adapter now declares its policy-resolution
+  boundary `noexcept` and owns its provider context across exceptional C++
+  paths. It translates allocation, standard, and unknown failures into an
+  unresolved `Decision`; this adapter is disabled in the authoritative build,
+  so compiled-provider evidence remains pending an enabled ConfigResolve
+  configuration.
 - The Clock and Revision reference CLIs still use exception-based argument
   parsing internally, but their public failure boundary now supports
   `--diagnostics json` with stable failure codes, empty artifact stdout, and a
