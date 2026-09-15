@@ -2637,6 +2637,18 @@ FlowLFS content, or `master` history was changed.
 State remains CONTINUE. Broader native cleanup and cancellation coverage remain
 open; FlowLFS and `master` remain untouched.
 
+## 2026-09-15 cleanup residual classification
+
+- Audited the durable-history `ScopedFd`/`ScopedLock` ownership paths and
+  recorded the remaining limitation: destructor-only cleanup during an
+  unexpected unwind cannot publish a close failure, even though explicit
+  return paths observe close status.
+- Kept the resource row provisional and linked the apt-pipe and CUDA cleanup
+  evidence rather than promoting the broader cleanup claim.
+
+State remains CONTINUE. No cleanup failure is converted into success, but
+broader native fault injection and cancellation cleanup remain open.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA
