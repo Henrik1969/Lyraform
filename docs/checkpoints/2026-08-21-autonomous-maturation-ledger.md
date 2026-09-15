@@ -2701,6 +2701,17 @@ filesystem boundary; retention and further crash points remain open.
 State remains CONTINUE. Optional-provider evidence is not inferred from the
 disabled canonical build.
 
+## 2026-09-15 safety-case evidence reconciliation
+
+- Updated the authoritative safety-case inventory date and exception-boundary
+  row to enumerate the current compiler, artifact, lowering, Flowparallel,
+  kernel, validator, runtime, and provenance evidence by test name.
+- Preserved the provisional classification and residual risks; enumeration is
+  not a certification claim and does not close provider/API fault coverage.
+
+State remains CONTINUE. Gate 8 adversarial coverage and Gate 9 Flow-owned
+self-hosting closure remain unfinished.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance
