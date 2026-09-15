@@ -43,6 +43,8 @@ add_executable(frankencore_runtime_memory_test runtime-memory-test.cpp)
 target_include_directories(frankencore_runtime_memory_test PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_compile_features(frankencore_runtime_memory_test PRIVATE cxx_std_20)
 target_compile_options(frankencore_runtime_memory_test PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_definitions(frankencore_runtime_memory_test PRIVATE
+    FRANKENCORE_RUNTIME_SERIALIZATION_TEST_FAULT)
 target_link_libraries(frankencore_runtime_memory_test PRIVATE ${CMAKE_DL_LIBS})
 
 add_test(NAME frankencore_runtime_probe

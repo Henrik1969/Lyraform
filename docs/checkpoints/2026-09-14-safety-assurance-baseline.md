@@ -377,6 +377,17 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore runtime projection allocation fault — 2026-09-15
+
+The runtime memory test now injects allocation exhaustion inside the checked
+capability JSON projection. It verifies an invalid result, empty serialized
+output, and the explicit `exhausted memory` diagnostic. The focused
+`frankencore_runtime_memory` gate passed 1/1.
+
+This adds direct projection-fault evidence; it does not claim complete runtime
+allocation coverage or broader platform assurance. The safety state remains
+`CONTINUE`.
+
 ## Frankencore runtime CUDA close-fault evidence — 2026-09-15
 
 Runtime capability discovery now has a hardware-independent cleanup-fault

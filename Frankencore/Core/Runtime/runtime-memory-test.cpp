@@ -16,6 +16,10 @@ int runtime_memory_parser_test() {
     assert(parse_kibibytes("MemTotal:       " +
                            std::to_string(std::numeric_limits<std::uint64_t>::max()) +
                            " kB") == std::numeric_limits<std::uint64_t>::max());
+    const auto serialization = to_json_checked(Capabilities{});
+    assert(!serialization.valid);
+    assert(serialization.json.empty());
+    assert(serialization.error.find("exhausted memory") != std::string::npos);
     return 0;
 }
 

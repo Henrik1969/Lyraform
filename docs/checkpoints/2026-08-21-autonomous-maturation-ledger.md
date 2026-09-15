@@ -2660,6 +2660,16 @@ broader native fault injection and cancellation cleanup remain open.
 State remains CONTINUE. Runtime refresh and broader platform assurance remain
 open; arbitrary FFI and unsupported scheduling remain refused.
 
+## 2026-09-15 runtime projection allocation fault
+
+- Added a test-only fault inside the checked runtime capability JSON
+  projection.
+- The focused `frankencore_runtime_memory` test proves allocation exhaustion
+  yields an invalid result with empty output and an explicit diagnostic.
+
+State remains CONTINUE. Broader runtime fault coverage and platform assurance
+remain open.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA

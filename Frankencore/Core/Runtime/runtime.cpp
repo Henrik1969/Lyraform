@@ -155,6 +155,10 @@ std::string to_json(const Capabilities& capabilities) {
 
 JsonResult to_json_checked(const Capabilities& capabilities) noexcept {
     try {
+#ifdef FRANKENCORE_RUNTIME_SERIALIZATION_TEST_FAULT
+        (void)capabilities;
+        throw std::bad_alloc();
+#endif
         return {true, to_json(capabilities), {}};
     } catch (const std::bad_alloc&) {
         return {false, {}, "runtime capability serialization exhausted memory"};
