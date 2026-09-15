@@ -169,10 +169,18 @@ FailureClassification classify_failure(std::string_view message) noexcept {
 }
 
 FailureClassification classify_blocked(const std::vector<std::string>& failures) noexcept {
+    bool provider = false;
+    bool abi = false;
+    bool policy = false;
     for (const auto& failure : failures) {
         const auto classification = classify_failure(failure);
-        if (classification.stage != "input") return classification;
+        provider = provider || classification.stage == "provider";
+        abi = abi || classification.stage == "abi";
+        policy = policy || classification.stage == "policy";
     }
+    if (provider) return {"FLOWBIND_PROVIDER_FAILURE", "provider"};
+    if (abi) return {"FLOWBIND_ABI_FAILURE", "abi"};
+    if (policy) return {"FLOWBIND_POLICY_FAILURE", "policy"};
     return {"FLOWBIND_BINDING_REJECTED", "binding"};
 }
 

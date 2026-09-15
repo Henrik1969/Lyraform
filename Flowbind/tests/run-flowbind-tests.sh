@@ -113,14 +113,14 @@ bad_return=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"s
 bad_return_rc=$?
 set -e
 test "$bad_return_rc" -eq 2
-printf '%s\n' "$bad_return" | grep -q 'unsupported return ABI type'
+printf '%s\n' "$bad_return" | jq -e '.code == "FLOWBIND_ABI_FAILURE" and .stage == "abi" and any(.failures[]; contains("unsupported return ABI type"))' >/dev/null
 
 set +e
 bad_convention=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[{"contract":"bad","library":"libc.so.6","convention":"fastcall","symbol":"abs","effect":"pure","parameter_types":"c_int","return_type":"c_int"}]}' | "$bin" --policy "$policy")
 bad_convention_rc=$?
 set -e
 test "$bad_convention_rc" -eq 2
-printf '%s\n' "$bad_convention" | grep -q "unsupported calling convention 'fastcall'"
+printf '%s\n' "$bad_convention" | jq -e '.code == "FLOWBIND_ABI_FAILURE" and .stage == "abi" and any(.failures[]; contains("unsupported calling convention"))' >/dev/null
 
 set +e
 denied=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[{"contract":"bad","library":"libc.so.6","convention":"c","symbol":"abs","effect":"pure","parameter_types":"c_int","return_type":"c_int"}]}' | "$bin")

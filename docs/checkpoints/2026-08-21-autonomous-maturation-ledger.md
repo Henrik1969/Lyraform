@@ -2597,6 +2597,16 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 Flowbind mixed-failure precedence
+
+- Mixed blocked requests now use deterministic summary precedence: provider,
+  ABI, then policy.
+- Individual failure evidence remains bounded and present in the report.
+- Full GCC and Clang 18.1.3 ASan/UBSan suites pass at 149/149.
+
+State remains CONTINUE. This is classification hardening only; provider
+execution, recovery, trust, and arbitrary ABI/FFI remain unadmitted.
+
 ## 2026-09-15 Flowbind blocked-report condition codes
 
 - Added stable `code` and `stage` fields to blocked binding reports.

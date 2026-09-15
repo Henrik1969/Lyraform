@@ -88,3 +88,6 @@ surface.
 Blocked reports retain at most 256 failure entries. When more failures are
 detected, `failure_count` preserves the total and `failures_truncated` is set;
 the report does not grow without bound in response to hostile input.
+When one request produces multiple failure classes, the report code uses the
+deterministic precedence provider, ABI, then policy; all individual failures
+remain available up to the report bound.

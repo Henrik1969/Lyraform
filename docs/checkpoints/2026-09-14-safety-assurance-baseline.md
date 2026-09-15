@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowbind mixed-failure precedence — 2026-09-15
+
+When one binding request produces multiple failure classes, Flowbind now uses
+deterministic precedence: provider, then ABI, then policy. The individual
+failures remain in the bounded report, so the summary code cannot hide the
+underlying evidence. The full GCC and Clang 18.1.3 ASan/UBSan suites pass at
+149/149.
+
+The safety state remains `CONTINUE`.
+
 ## Flowbind bounded blocked-report output — 2026-09-15
 
 Flowbind now bounds retained failures in a blocked binding report to 256
