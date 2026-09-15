@@ -404,6 +404,18 @@ ValidationResult validate(const MutationRecord& record) {
     return {true, {}};
 }
 
+ValidationResult validate_checked(const MutationRecord& record) noexcept {
+    try {
+        return validate(record);
+    } catch (const std::bad_alloc&) {
+        return {false, "mutation record validation exhausted memory"};
+    } catch (const std::exception&) {
+        return {false, "mutation record validation failed"};
+    } catch (...) {
+        return {false, "mutation record validation failed with unknown non-standard failure"};
+    }
+}
+
 std::string to_json(const MutationRecord& record) {
     const auto result = validate(record);
     if (!result.valid) throw std::invalid_argument(result.error);

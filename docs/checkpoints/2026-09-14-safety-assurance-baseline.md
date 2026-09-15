@@ -920,6 +920,20 @@ reader boundary. Normal, ASan/UBSan, and Valgrind focused runs remain green.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore mutation validation boundary — 2026-09-15
+
+Frankencore provenance now exposes `validate_checked(const MutationRecord&)`
+as an explicit `noexcept` boundary. It preserves the existing validation
+rules while translating allocation, standard, and unknown failures into an
+invalid `ValidationResult`; the throwing-compatible `validate()` API remains
+available for legacy callers. The provenance API test asserts the non-throwing
+signature and covers both valid and invalid records.
+
+The focused revision/provenance tests passed in the normal tree. This is a
+direct validation boundary improvement, not a claim that every legacy C++
+throwing helper has been removed or that allocation-fault coverage is
+complete. The safety state remains `CONTINUE`.
+
 ## Flowoptimize allocation-fault boundary — 2026-09-15
 
 Flowoptimize now has a test-only fault-injected executable that raises

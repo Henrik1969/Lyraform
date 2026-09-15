@@ -41,6 +41,8 @@ int main() {
         .after = {"current"},
     };
     assert(validate(record).valid);
+    static_assert(noexcept(validate_checked(record)));
+    assert(validate_checked(record).valid);
     const auto json = to_json(record);
     assert(json.find("frankencore.mutation_record") != std::string::npos);
     assert(json.find(event_id) != std::string::npos);
@@ -48,6 +50,9 @@ int main() {
 
     record.new_revision = record.old_revision;
     assert(!validate(record).valid);
+    const auto invalid_record = validate_checked(record);
+    assert(!invalid_record.valid);
+    assert(invalid_record.error.find("new_revision") != std::string::npos);
     const auto invalid_json = to_json_checked(record);
     assert(!invalid_json.valid);
     assert(invalid_json.json.empty());

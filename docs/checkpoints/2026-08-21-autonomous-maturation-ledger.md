@@ -2597,6 +2597,23 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 Frankencore mutation validation boundary
+
+- Added `validate_checked(const MutationRecord&) noexcept` to the provenance
+  API. It preserves the canonical validation rules while converting allocation,
+  standard, and unknown failures into an explicit invalid result; the original
+  throwing-compatible `validate()` remains available for legacy callers.
+- Extended the provenance API test with a compile-time `noexcept` assertion and
+  valid/invalid checked-validation cases.
+- Focused provenance tests passed 3/3 in the normal tree. The complete normal
+  GCC gate passed 148/148; the complete Clang 18.1.3 ASan/UBSan gate passed
+  148/148 with the established ptrace-compatible leak settings; Valgrind on
+  the provenance API test reported no errors.
+
+State remains CONTINUE. This closes one direct Frankencore validation boundary;
+broader allocation-fault coverage and the remaining Stage 0 safety gates stay
+open.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA

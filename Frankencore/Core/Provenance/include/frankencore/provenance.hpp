@@ -171,6 +171,7 @@ private:
 };
 
 ValidationResult validate(const MutationRecord& record);
+ValidationResult validate_checked(const MutationRecord& record) noexcept;
 
 // JSON is an inspectable projection of the canonical C++ record.
 std::string to_json(const MutationRecord& record);
