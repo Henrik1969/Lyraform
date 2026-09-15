@@ -135,6 +135,33 @@ ValidationResult validate(const IsolationClaim& claim) {
     return valid();
 }
 
+ValidationResult authorize_execution(const VerificationEvidence& evidence,
+                                     const IsolationClaim* isolation) {
+    const auto evidence_validation = validate(evidence);
+    if (!evidence_validation.valid) return evidence_validation;
+
+    switch (evidence.policy_outcome) {
+    case PolicyOutcome::allowed:
+        return valid();
+    case PolicyOutcome::allowed_with_isolation: {
+        if (isolation == nullptr)
+            return invalid("isolated execution requires an isolation claim");
+        const auto isolation_validation = validate(*isolation);
+        if (!isolation_validation.valid) return isolation_validation;
+        if (isolation->assurance_level != "isolated" &&
+            isolation->assurance_level != "hardened")
+            return invalid("isolated execution requires isolated or hardened assurance");
+        return invalid("isolated execution requires an admitted independent enforcement provider");
+    }
+    case PolicyOutcome::requires_confirmation:
+    case PolicyOutcome::quarantined:
+    case PolicyOutcome::rejected:
+    case PolicyOutcome::unresolved:
+        return invalid("policy outcome does not authorize execution");
+    }
+    return invalid("unknown policy outcome does not authorize execution");
+}
+
 ValidationResult validate(const LanguageMap& map) {
     if (map.format != "frankencore.language-map") return invalid("invalid language-map format");
     if (map.version != 1) return invalid("unsupported language-map version");
@@ -228,6 +255,19 @@ ValidationResult validate_checked(const ChainPolicy& policy) noexcept {
 
 ValidationResult validate_checked(const FacadeInvocation& invocation) noexcept {
     return checked_validate(invocation);
+}
+
+ValidationResult authorize_execution_checked(const VerificationEvidence& evidence,
+                                             const IsolationClaim* isolation) noexcept {
+    try {
+        return authorize_execution(evidence, isolation);
+    } catch (const std::bad_alloc&) {
+        return {false, "execution admission exhausted memory"};
+    } catch (const std::exception&) {
+        return {false, "execution admission failed"};
+    } catch (...) {
+        return {false, "execution admission failed with unknown non-standard failure"};
+    }
 }
 
 } // namespace frankencore::contracts

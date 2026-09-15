@@ -114,11 +114,20 @@ ValidationResult validate(const LanguageMap& map);
 ValidationResult validate(const ChainPolicy& policy);
 ValidationResult validate(const FacadeInvocation& invocation);
 
+// Execution admission is deliberately narrower than contract validity. The
+// current boundary admits directly trusted evidence only; an isolation claim
+// remains descriptive until an independent enforcement provider is wired to
+// this decision point.
+ValidationResult authorize_execution(const VerificationEvidence& evidence,
+                                     const IsolationClaim* isolation = nullptr);
+
 // Non-throwing public validation boundary for language/runtime consumers.
 ValidationResult validate_checked(const VerificationEvidence& evidence) noexcept;
 ValidationResult validate_checked(const IsolationClaim& claim) noexcept;
 ValidationResult validate_checked(const LanguageMap& map) noexcept;
 ValidationResult validate_checked(const ChainPolicy& policy) noexcept;
 ValidationResult validate_checked(const FacadeInvocation& invocation) noexcept;
+ValidationResult authorize_execution_checked(const VerificationEvidence& evidence,
+                                             const IsolationClaim* isolation = nullptr) noexcept;
 
 } // namespace frankencore::contracts

@@ -2597,6 +2597,26 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 trust and isolation execution admission
+
+- Added a public, non-throwing execution-admission contract that admits the
+  existing exact trusted-evidence path and refuses non-authorizing policy
+  outcomes.
+- Kept `allowed_with_isolation` fail-closed: absent and sub-isolated claims are
+  rejected, while isolated or hardened claim text cannot authorize execution
+  until an independent enforcement provider is admitted and wired to the
+  decision point.
+- Added adversarial conformance coverage for trusted admission, missing claims,
+  constrained/self-report claims, isolated and hardened
+  `independently_verified` labels, malformed evidence, and quarantine.
+- Focused GCC and Clang ASan/UBSan checks passed 1/1; Valgrind 3.22.0 reported
+  zero errors and leaks with 53/53 allocations/frees; full suites passed
+  153/153 in 60.74 seconds under GCC and 107.28 seconds under Clang sanitizers.
+
+State remains CONTINUE. This prevents claim text from becoming authority but
+does not implement isolation, provider identity binding, or consumer-wide
+execution admission.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,

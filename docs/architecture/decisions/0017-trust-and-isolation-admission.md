@@ -53,6 +53,13 @@ The system should prefer, in order:
 Every outcome records the provenance, verification, isolation, policy, and
 responsibility that produced it.
 
+The current C++ contracts implementation admits only the first path. Trusted,
+integrity-matched, authenticated evidence with an `allowed` policy outcome can
+pass execution admission. `allowed_with_isolation` remains fail-closed even
+with a structurally valid isolation claim because no independent enforcement
+provider is connected to the admission boundary. Quarantined, rejected,
+confirmation-required, and unresolved outcomes never authorize execution.
+
 ## No universal trust score
 
 Frankencore does not reduce trust to one numeric score. A score creates false

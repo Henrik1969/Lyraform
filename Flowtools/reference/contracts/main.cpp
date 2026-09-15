@@ -8,6 +8,8 @@
 int main() {
     static_assert(noexcept(frankencore::contracts::validate_checked(
         std::declval<const frankencore::contracts::VerificationEvidence&>())));
+    static_assert(noexcept(frankencore::contracts::authorize_execution_checked(
+        std::declval<const frankencore::contracts::VerificationEvidence&>(), nullptr)));
     using namespace frankencore::contracts;
 
     VerificationEvidence evidence{
@@ -17,6 +19,8 @@ int main() {
         PolicyOutcome::allowed};
     assert(validate(evidence).valid);
     assert(validate_checked(evidence).valid);
+    assert(authorize_execution(evidence).valid);
+    assert(authorize_execution_checked(evidence).valid);
     evidence.key_state = "unknown";
     assert(!validate(evidence).valid);
     evidence.key_state = "trusted";
@@ -27,15 +31,32 @@ int main() {
     evidence.authenticity = "unverified";
     evidence.policy_outcome = PolicyOutcome::allowed_with_isolation;
     assert(validate(evidence).valid);
+    assert(!authorize_execution(evidence).valid);
     evidence.integrity = "mismatched";
     assert(!validate(evidence).valid);
+    evidence.integrity = "matched";
 
     IsolationClaim isolation{
         "project execution", "constrained", "locally_verified", "namespace-provider", "1",
         "cpu=2,memory=256MiB", "uid=unprivileged", "project-read-only", "denied",
         "no-new-privileges", "joined-and-closed", "namespace-sanity-v1"};
     assert(validate(isolation).valid);
+    auto admission = authorize_execution(evidence, &isolation);
+    assert(!admission.valid);
+    assert(admission.error ==
+           "isolated execution requires isolated or hardened assurance");
     isolation.assurance_level = "isolated";
+    isolation.enforcement = "independently_verified";
+    assert(validate(isolation).valid);
+    admission = authorize_execution_checked(evidence, &isolation);
+    assert(!admission.valid);
+    assert(admission.error ==
+           "isolated execution requires an admitted independent enforcement provider");
+    isolation.assurance_level = "hardened";
+    assert(validate(isolation).valid);
+    assert(!authorize_execution(evidence, &isolation).valid);
+    isolation.assurance_level = "isolated";
+    isolation.enforcement = "locally_verified";
     assert(!validate(isolation).valid);
     isolation.assurance_level = "constrained";
     isolation.enforcement = "unknown";
@@ -53,6 +74,10 @@ int main() {
     isolation.assurance_level = "none";
     isolation.enforcement = "self_report";
     assert(validate(isolation).valid);
+    admission = authorize_execution(evidence, &isolation);
+    assert(!admission.valid);
+    assert(admission.error ==
+           "isolated execution requires isolated or hardened assurance");
     isolation.enforcement = "unknown";
     assert(!validate(isolation).valid);
     isolation.enforcement = "self_report";
@@ -61,6 +86,11 @@ int main() {
     isolation.requested_boundary = "project execution";
     evidence.artifact_identity = std::string(4097, 'x');
     assert(!validate(evidence).valid);
+    assert(!authorize_execution_checked(evidence, &isolation).valid);
+    evidence.artifact_identity = "flowcore";
+    evidence.policy_outcome = PolicyOutcome::quarantined;
+    assert(validate(evidence).valid);
+    assert(!authorize_execution(evidence, &isolation).valid);
 
     LanguageMap language;
     language.id = "Danish";

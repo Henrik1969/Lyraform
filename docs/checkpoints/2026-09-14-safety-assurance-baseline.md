@@ -1582,3 +1582,29 @@ This proves ordinary Linux process-level publication behavior for the covered
 frontend file artifacts. Parent-directory crash durability, abrupt-death orphan
 cleanup, streamed stdout partial delivery, other native file producers, and
 cross-platform equivalents remain open. The safety state remains `CONTINUE`.
+
+## Trust and isolation execution admission — 2026-09-15
+
+The public Frankencore contracts API now separates valid evidence from
+execution authority. Direct execution is admitted only for evidence whose
+validated policy outcome is `allowed`, which already requires trusted key
+state, matched integrity, and supplier authentication or owner attestation.
+Confirmation-required, quarantined, rejected, and unresolved outcomes refuse
+execution.
+
+An `allowed_with_isolation` outcome now fails closed when its claim is absent
+or below isolated assurance. It also remains refused when a structurally valid
+isolated or hardened claim says `independently_verified`, because no admitted
+enforcement provider is wired to the decision point. Claim text therefore
+cannot promote itself into execution authority.
+
+The focused `frankencore_contracts_probe` passed 1/1 under GCC and Clang 18.1.3
+ASan/UBSan. Valgrind 3.22.0 reported zero errors, zero live blocks, and 53
+allocations matched by 53 frees. Complete suites passed 153/153 under GCC in
+60.74 seconds and 153/153 under Clang sanitizers in 107.28 seconds with the
+documented leak setting.
+
+This is a contract-level refusal boundary, not an isolation implementation.
+An independently verified Linux provider, provider-to-claim identity binding,
+and adoption by execution consumers remain open. The safety state remains
+`CONTINUE`.
