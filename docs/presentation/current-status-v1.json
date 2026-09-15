@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-15",
     "branch": "main",
-    "commit": "633b05416561ae221a8fd7cbca8f8088265f6050"
+    "commit": "95636a6b6b49607523b78b7f42ad642c40075594"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
@@ -36,7 +36,8 @@
     "Bounded TinyVM graph activation FIFO with switch/computed order and drain parity",
     "Fail-closed trust admission that prevents isolation claim text from authorizing execution without an admitted enforcement provider",
     "Canonical Flowmini, TinyVM v1/v2, and LLVM file-artifact publication with parent-directory synchronization, explicit published-but-durability-uncertain results, and next-run cleanup after abrupt process death",
-    "Executable inventory of all six canonical native production source files with direct file-write authority"
+    "Executable inventory of all six canonical native production source files with direct file-write authority",
+    "Exact fail-closed scheduling admission across semantic/execution artifacts, optimizer ingress, and Flowparallel planning/provider boundaries"
   ],
   "verification": {
     "gcc_superbuild": "pass",
