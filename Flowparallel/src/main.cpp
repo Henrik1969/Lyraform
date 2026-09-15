@@ -1,5 +1,6 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowparallel/bounded_input.hpp>
+#include <flowparallel/diagnostics.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -116,14 +117,18 @@ int main(int argc, char** argv) {
         else std::cerr << "flowparallel error: allocation failed\n";
         return 1;
     } catch (const flowcontracts::json::Error& error) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CONTRACT_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
-        else std::cerr << "flowparallel contract error: " << error.what() << '\n';
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CONTRACT_FAILURE\",\"message\":\"";
+            flowparallel::write_json_string(stderr, error.what());
+            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
+        } else std::cerr << "flowparallel contract error: " << error.what() << '\n';
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
-        else std::cerr << "flowparallel error: " << error.what() << '\n';
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_FAILURE\",\"message\":\"";
+            flowparallel::write_json_string(stderr, error.what());
+            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
+        } else std::cerr << "flowparallel error: " << error.what() << '\n';
         return 1;
     } catch (...) {
         if (structured_diagnostics)

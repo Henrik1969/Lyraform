@@ -2692,6 +2692,16 @@ remain refused.
 State remains CONTINUE. This closes only the named reference CLI projection
 paths; broader process diagnostic coverage remains open.
 
+## 2026-09-15 Flowparallel bounded process diagnostics
+
+- Migrated the primary Flowparallel and CPU-provider structured catch paths to
+  a bounded allocation-free JSON emitter.
+- Focused `flowparallel_pipeline` and `flowparallel_cpu_provider` tests passed
+  2/2, preserving no-artifact failure output.
+
+State remains CONTINUE. Other Flowparallel process catch paths still require
+the same boundary audit.
+
 ## 2026-09-15 reference diagnostic JSON validity hardening
 
 - Corrected the bounded reference diagnostic emitter so truncation never cuts

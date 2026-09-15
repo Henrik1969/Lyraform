@@ -377,6 +377,17 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel process diagnostic allocation boundary — 2026-09-15
+
+The primary Flowparallel CLI and CPU provider now emit exception messages in
+structured mode through a bounded, allocation-free JSON writer. Escaping is
+performed directly to stderr, control bytes remain valid JSON, and fields are
+bounded at 4096 bytes. The focused `flowparallel_pipeline` and
+`flowparallel_cpu_provider` gates passed 2/2.
+
+This closes the named process projections only; remaining Flowparallel
+providers still require the same audit. The safety state remains `CONTINUE`.
+
 ## Reference CLI diagnostic allocation boundary — 2026-09-15
 
 The clock and provenance reference CLIs now emit structured failure strings
