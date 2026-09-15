@@ -1,5 +1,6 @@
 #include <flowcontracts/validate.hpp>
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -124,6 +125,16 @@ int prepare(const Options& option) {
 }
 } // namespace
 
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowcontracts::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowcontracts::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowcontracts::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
+
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
     try {
@@ -132,16 +143,16 @@ int main(int argc, char** argv) {
         structured_diagnostics = parsed.structured_diagnostics;
         return prepare(parsed);
     } catch (const std::bad_alloc&) {
-        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_RESOURCE_EXHAUSTED", "runtime", "allocation failed"); return 1; }
         std::cerr << "flowprepare error: allocation failed\n"; return 1;
     } catch (const flowcontracts::json::Error& error) {
-        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_CONTRACT_FAILURE\",\"stage\":\"contract\",\"message\":" << serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_CONTRACT_FAILURE", "contract", error.what()); return 1; }
         std::cerr << "flowprepare contract error: " << error.what() << '\n'; return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_FAILURE\",\"stage\":\"cli\",\"message\":" << serialize(std::string(error.what())) << ",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_FAILURE", "cli", error.what()); return 1; }
         std::cerr << "flowprepare error: " << error.what() << '\n'; return 1;
     } catch (...) {
-        if (structured_diagnostics) { std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPREPARE_UNKNOWN_FAILURE\",\"stage\":\"cli\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n"; return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_UNKNOWN_FAILURE", "cli", "unknown non-standard failure"); return 1; }
         std::cerr << "flowprepare error: unknown non-standard failure\n"; return 1;
     }
 }

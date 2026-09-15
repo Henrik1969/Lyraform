@@ -377,6 +377,23 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Lowering-tool diagnostic allocation boundary — 2026-09-15
+
+Flowlower, Flowprepare, and Flowtarget now use the shared bounded,
+allocation-free Flowcontracts writer for structured process failures. Their
+catch paths no longer allocate temporary escaped strings or serialize
+attacker-controlled exception text through the normal JSON allocator. The
+existing artifact output and compatibility diagnostics are unchanged.
+
+The focused `flowlower_backend_artifact`, `flowlower_pipeline`,
+`flowlower_allocation_fault`, `flowprepare_allocation_fault`,
+`flowtarget_policy_boundary`, `flowtarget_cross_compile`, and
+`flowtarget_allocation_fault` tests passed in the normal GCC tree. This closes
+these three lowering-tool process boundaries only; deeper parser/provider
+containment and broader allocation-fault coverage remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Toolchain diagnostic allocation boundary — 2026-09-15
 
 Flowanalyst, Flowoptimize, and Flowbind now emit structured failure JSON with

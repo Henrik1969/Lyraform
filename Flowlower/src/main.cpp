@@ -8,6 +8,7 @@
 
 #include <flowcontracts/validate.hpp>
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 
 #include "structured_plan.hpp"
 
@@ -41,11 +42,14 @@ std::string quote(std::string_view value) {
     return flowcontracts::json::serialize(std::string(value));
 }
 
-void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) {
-    std::cerr << "{\"status\":\"failed\",\"code\":" << quote(code)
-              << ",\"stage\":" << quote(stage)
-              << ",\"message\":" << quote(message)
-              << ",\"disposition\":\"no_artifact\"}\n";
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowcontracts::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowcontracts::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowcontracts::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
 
 int lower(std::string_view report, const Options& options, std::string_view binding_report) {

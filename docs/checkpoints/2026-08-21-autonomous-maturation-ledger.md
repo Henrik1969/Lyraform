@@ -2611,6 +2611,17 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. Flowlower, Flowprepare, Flowtarget, and broader
 Frankencore/provider exception containment remain open.
 
+## 2026-09-15 lowering-tool diagnostic allocation boundary
+
+- Migrated Flowlower, Flowprepare, and Flowtarget structured catch paths to
+  the shared bounded, allocation-free Flowcontracts diagnostic writer.
+- Preserved their normal artifact serialization and compatibility diagnostics.
+- Focused artifact, pipeline, policy, cross-compile, and allocation-fault
+  tests passed for all three utilities.
+
+State remains CONTINUE. Deeper parser/provider containment and generalized
+allocation-fault coverage remain open.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance
