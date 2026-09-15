@@ -2670,6 +2670,18 @@ open; arbitrary FFI and unsupported scheduling remain refused.
 State remains CONTINUE. Broader runtime fault coverage and platform assurance
 remain open.
 
+## 2026-09-15 CPU worker-failure capture bound
+
+- Replaced worker-catch assignment into a potentially allocating shared string
+  with bounded fixed-buffer capture.
+- The public diagnostic string is materialized only after joining workers,
+  preserving deterministic task-failure publication if the original message
+  is large or hostile.
+- Focused CPU execution and launch-allocation-fault tests passed 2/2.
+
+State remains CONTINUE. General scheduler, cancellation, and async contracts
+remain refused.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA

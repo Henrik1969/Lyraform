@@ -1,6 +1,7 @@
 #include "flowparallel/cpu_execution.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <exception>
 #include <mutex>
@@ -22,7 +23,14 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
     std::mutex failure_mutex;
     std::size_t failed_task = static_cast<std::size_t>(-1);
     std::string failure_code;
-    std::string failure;
+    std::array<char, 256> failure_message{};
+
+    const auto capture_failure = [&](const char* message) {
+        const auto length = std::min<std::size_t>(std::char_traits<char>::length(message),
+                                                  failure_message.size() - 1);
+        std::copy_n(message, length, failure_message.data());
+        failure_message[length] = '\0';
+    };
 
     auto worker = [&] {
         while (!failed.load(std::memory_order_acquire)) {
@@ -37,7 +45,7 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
                     std::lock_guard lock(failure_mutex);
                     failed_task = index;
                     failure_code = "TASK_FAILURE";
-                    failure = error.what();
+                    capture_failure(error.what());
                 }
                 return;
             } catch (...) {
@@ -45,7 +53,7 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
                     std::lock_guard lock(failure_mutex);
                     failed_task = index;
                     failure_code = "TASK_UNKNOWN_FAILURE";
-                    failure = "task failed with a non-standard exception";
+                    capture_failure("task failed with a non-standard exception");
                 }
                 return;
             }
@@ -88,7 +96,7 @@ ExecutionResult execute_independent(const std::vector<Task>& tasks, unsigned wor
         result.status = "error";
         result.code = failure_code;
         result.failed_task = failed_task;
-        result.error = failure;
+        result.error = failure_message.data();
     }
     return result;
 }

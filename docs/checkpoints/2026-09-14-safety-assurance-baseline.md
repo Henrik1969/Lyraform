@@ -377,6 +377,18 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowparallel worker-failure capture bound — 2026-09-15
+
+The independent CPU executor now captures worker exception text into a fixed
+256-byte buffer while still inside the worker catch boundary. It truncates
+hostile messages deterministically and constructs the public diagnostic only
+after joining all workers, avoiding an allocation-dependent failure while
+handling the original task failure.
+
+The focused CPU execution and launch-allocation-fault tests passed 2/2. This
+does not admit cancellation, async scheduling, or a general scheduler. The
+safety state remains `CONTINUE`.
+
 ## Frankencore runtime projection allocation fault — 2026-09-15
 
 The runtime memory test now injects allocation exhaustion inside the checked
