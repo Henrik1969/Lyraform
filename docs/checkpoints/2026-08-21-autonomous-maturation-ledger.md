@@ -2607,6 +2607,16 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. This is classification hardening only; provider
 execution, recovery, trust, and arbitrary ABI/FFI remain unadmitted.
 
+## 2026-09-15 Flowbind per-failure diagnostic bound
+
+- Capped each retained blocked-report failure at 1,024 bytes with an explicit
+  `...` marker, in addition to the 256-entry report bound.
+- A hostile 10,000-byte provider identity case passes in GCC and Clang 18.1.3
+  ASan/UBSan.
+
+State remains CONTINUE. This bounds reporting only and does not broaden
+provider execution, recovery, trust, or ABI/FFI semantics.
+
 ## 2026-09-15 Flowbind bounded-report Memcheck
 
 - Direct Valgrind Memcheck of the hostile 1,000-failure report completed with

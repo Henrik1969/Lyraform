@@ -152,6 +152,13 @@ set -e
 test "$many_failures_rc" -eq 2
 printf '%s\n' "$many_failures" | jq -e ' .status == "blocked" and .failure_count == 1000 and .failures_truncated == true and (.failures | length) == 256' >/dev/null
 
+set +e
+long_failure=$(jq -nc '{format:"flowanalyst.semantic_report",version:1,status:"ok",binding_requirements:[{contract:"test",library:("/" + ("x" * 10000)),convention:"c",symbol:"missing",effect:"pure",parameter_types:"c_int",return_type:"c_int"}]}' | "$bin" --policy "$policy")
+long_failure_rc=$?
+set -e
+test "$long_failure_rc" -eq 2
+printf '%s\n' "$long_failure" | jq -e 'any(.failures[]; (length == 1024) and endswith("..."))' >/dev/null
+
 printf '%s\n' 'deny malformed-policy-line' > "$tmpdir/invalid-policy"
 set +e
 policy_diagnostic=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[]}' | "$bin" --policy "$tmpdir/invalid-policy" --diagnostics json 2>&1 >/dev/null)

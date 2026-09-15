@@ -85,9 +85,10 @@ evidence is rejected. These are inspection-time controls; provider replacement
 or degradation after binding and native invocation remain outside the admitted
 surface.
 
-Blocked reports retain at most 256 failure entries. When more failures are
-detected, `failure_count` preserves the total and `failures_truncated` is set;
-the report does not grow without bound in response to hostile input.
+Blocked reports retain at most 256 failure entries and 1,024 bytes per failure.
+When more failures or longer failure text are detected, `failure_count`
+preserves the total and truncation is explicit; the report does not grow
+without bound in response to hostile input.
 When one request produces multiple failure classes, the report code uses the
 deterministic precedence provider, ABI, then policy; all individual failures
 remain available up to the report bound.

@@ -377,6 +377,15 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowbind per-failure diagnostic bound — 2026-09-15
+
+Blocked binding reports now cap each retained failure at 1,024 bytes and append
+an explicit `...` marker when hostile provider identity text exceeds the cap.
+A 10,000-byte identity case passes in GCC and Clang 18.1.3 ASan/UBSan, in
+addition to the 256-entry aggregate bound.
+
+The safety state remains `CONTINUE`.
+
 ## Flowbind bounded-report Memcheck — 2026-09-15
 
 Direct Valgrind Memcheck coverage of the hostile 1,000-failure Flowbind

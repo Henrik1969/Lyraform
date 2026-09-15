@@ -547,8 +547,13 @@ int verify(const std::string& report, const std::string& policy_path, const std:
     std::vector<std::string> failures;
     std::size_t failure_count = 0;
     bool failures_truncated = false;
+    constexpr std::size_t max_failure_text = 1024;
     const auto record_failure = [&](std::string failure) {
         ++failure_count;
+        if (failure.size() > max_failure_text) {
+            failure.resize(max_failure_text - 3);
+            failure += "...";
+        }
         if (failures.size() < max_report_failures) failures.push_back(std::move(failure));
         else failures_truncated = true;
     };
