@@ -377,6 +377,20 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowbind structured failure classification — 2026-09-15
+
+Flowbind now classifies exceptional structured-CLI failures with stable
+machine-readable categories: `FLOWBIND_INPUT_INVALID`,
+`FLOWBIND_POLICY_FAILURE`, `FLOWBIND_ABI_FAILURE`, and
+`FLOWBIND_PROVIDER_FAILURE`. Every classified failure retains the
+`no_artifact` disposition. The provider gate covers input and policy examples
+alongside the blocked provider-inspection report in both normal GCC and Clang
+18.1.3 ASan/UBSan trees.
+
+This is a current inspection-boundary control; it does not create recovery,
+replacement, trust-store, or native-execution semantics. The safety state
+remains `CONTINUE`.
+
 ## Generated-provider replacement evidence recheck — 2026-09-15
 
 The existing `native_binding_generation` gate was re-run in the normal GCC

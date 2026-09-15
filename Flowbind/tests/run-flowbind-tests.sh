@@ -131,7 +131,7 @@ hostile_rc=$?
 set -e
 test "$hostile_rc" -eq 1
 test ! -s "$tmpdir/hostile-stdout"
-jq -e '.status == "failed" and .code == "FLOWBIND_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWBIND_INPUT_INVALID" and .stage == "input" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
 set +e
 jq -nc '{format:"flowanalyst.semantic_report",version:1,status:"ok",binding_requirements:[range(0;100001)|{contract:"test",library:"libc.so.6",convention:"c",symbol:"abs",effect:"pure",parameter_types:"c_int",return_type:"c_int"}]}' \
   | "$bin" --policy "$policy" --diagnostics json >"$tmpdir/oversized-stdout" 2>"$tmpdir/oversized-stderr"
@@ -139,5 +139,13 @@ oversized_rc=$?
 set -e
 test "$oversized_rc" -eq 1
 test ! -s "$tmpdir/oversized-stdout"
-jq -e '.status == "failed" and .code == "FLOWBIND_FAILURE" and .disposition == "no_artifact" and (.message | contains("100000-entry limit"))' "$tmpdir/oversized-stderr" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWBIND_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact" and (.message | contains("100000-entry limit"))' "$tmpdir/oversized-stderr" >/dev/null
+
+printf '%s\n' 'deny malformed-policy-line' > "$tmpdir/invalid-policy"
+set +e
+policy_diagnostic=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[]}' | "$bin" --policy "$tmpdir/invalid-policy" --diagnostics json 2>&1 >/dev/null)
+policy_diagnostic_rc=$?
+set -e
+test "$policy_diagnostic_rc" -eq 1
+printf '%s\n' "$policy_diagnostic" | jq -e '.code == "FLOWBIND_POLICY_FAILURE" and .stage == "policy" and .disposition == "no_artifact"' >/dev/null
 echo 'Flowbind tests: PASS'

@@ -2597,6 +2597,18 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 Flowbind stable failure categories
+
+- Added an explicit structured-CLI classification boundary for input, policy,
+  ABI, and provider inspection failures.
+- The categories are `FLOWBIND_INPUT_INVALID`, `FLOWBIND_POLICY_FAILURE`,
+  `FLOWBIND_ABI_FAILURE`, and `FLOWBIND_PROVIDER_FAILURE`; every category
+  preserves `disposition: no_artifact`.
+- The focused provider gate passes in GCC and Clang 18.1.3 ASan/UBSan.
+
+State remains CONTINUE. This does not admit recovery, replacement,
+trust-store, or native-execution semantics.
+
 ## 2026-09-15 Flowbind provider-unavailable admission
 
 - Added an isolated `flowbind_provider` case where policy authorizes a

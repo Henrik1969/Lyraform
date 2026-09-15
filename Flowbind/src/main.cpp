@@ -151,6 +151,23 @@ void write_structured_failure(std::string_view code, std::string_view stage, std
     std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
 
+struct FailureClassification { std::string_view code, stage; };
+
+FailureClassification classify_failure(std::string_view message) noexcept {
+    if (message.find("library unavailable") != std::string_view::npos ||
+        (message.find(" symbol '") != std::string_view::npos && message.find(" unavailable") != std::string_view::npos) ||
+        message.find("loaded provider") != std::string_view::npos ||
+        message.find("resolved symbol") != std::string_view::npos)
+        return {"FLOWBIND_PROVIDER_FAILURE", "provider"};
+    if (message.find("denied by capability policy") != std::string_view::npos ||
+        message.find("binding policy") != std::string_view::npos)
+        return {"FLOWBIND_POLICY_FAILURE", "policy"};
+    if (message.find("unsupported") != std::string_view::npos &&
+        (message.find("ABI") != std::string_view::npos || message.find("calling convention") != std::string_view::npos))
+        return {"FLOWBIND_ABI_FAILURE", "abi"};
+    return {"FLOWBIND_INPUT_INVALID", "input"};
+}
+
 std::string provider_digest(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) throw std::runtime_error("cannot read loaded provider bytes: " + path);
@@ -627,7 +644,10 @@ int main(int argc, char** argv) {
         else std::cerr << "flowbind error: allocation failed\n";
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) write_structured_failure("FLOWBIND_FAILURE", "cli", error.what());
+        if (structured_diagnostics) {
+            const auto classification = classify_failure(error.what());
+            write_structured_failure(classification.code, classification.stage, error.what());
+        }
         else std::cerr << "flowbind error: " << error.what() << '\n';
         return 1;
     } catch (...) {
