@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-15",
     "branch": "main",
-    "commit": "9c54b57a376e8939f35225d6a04f355b4ea3d7d4"
+    "commit": "71adee5f6c3068fb399ec0a552ad0867b9c56992"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
@@ -33,7 +33,8 @@
     "Verified packed integer aggregate payloads and bounded aggregate streams through LLVM and TinyVM",
     "TinyVM ISA 2 graph activation metadata with switch/computed trace parity",
     "Deterministic TinyVM graph activation-record budgets with switch/computed refusal parity",
-    "Bounded TinyVM graph activation FIFO with switch/computed order and drain parity"
+    "Bounded TinyVM graph activation FIFO with switch/computed order and drain parity",
+    "Fail-closed trust admission that prevents isolation claim text from authorizing execution without an admitted enforcement provider"
   ],
   "verification": {
     "gcc_superbuild": "pass",
@@ -58,7 +59,8 @@
     "Safety certification is not claimed",
     "Native graph execution covers the verified Point aggregate and bounded streams; broader aggregate/runtime activation semantics remain open",
     "The pager renders after a bounded input batch, not continuously",
-    "Provider evidence is checked at binding time and does not pin future loads"
+    "Provider evidence is checked at binding time and does not pin future loads",
+    "No isolation enforcement provider is implemented or wired to execution consumers"
   ],
   "authority": [
     "docs/checkpoints/2026-09-07-reusable-flow-chain-result.md",
