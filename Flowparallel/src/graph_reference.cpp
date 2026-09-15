@@ -1,5 +1,6 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowparallel/bounded_input.hpp>
+#include <flowparallel/diagnostics.hpp>
 
 #include <cstddef>
 #include <cstdlib>
@@ -20,18 +21,6 @@ std::string read_input(int argc, char** argv) {
         throw std::runtime_error("usage: flowparallel_graph_reference [semantic-report.json]");
     if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); return flowparallel::read_bounded(file, "semantic report"); }
     return flowparallel::read_bounded(std::cin, "semantic report");
-}
-
-std::string json_escape(std::string_view value) {
-    std::string escaped;
-    for (const char character : value) {
-        if (character == '\\' || character == '"') escaped.push_back('\\');
-        if (character == '\n') escaped += "\\n";
-        else if (character == '\r') escaped += "\\r";
-        else if (character == '\t') escaped += "\\t";
-        else escaped.push_back(character);
-    }
-    return escaped;
 }
 
 std::string quote(std::string_view value) {
@@ -84,9 +73,11 @@ int main(int argc, char** argv) {
         else std::cerr << "flowparallel_graph_reference error: allocation failed\n";
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
-        else std::cerr << "flowparallel_graph_reference error: " << error.what() << '\n';
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_FAILURE\",\"message\":\"";
+            flowparallel::write_json_string(stderr, error.what());
+            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
+        } else std::cerr << "flowparallel_graph_reference error: " << error.what() << '\n';
         return 1;
     } catch (...) {
         if (structured_diagnostics)

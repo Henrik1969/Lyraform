@@ -2702,6 +2702,16 @@ paths; broader process diagnostic coverage remains open.
 State remains CONTINUE. Other Flowparallel process catch paths still require
 the same boundary audit.
 
+## 2026-09-15 extended Flowparallel bounded diagnostics
+
+- Migrated CUDA provider, CUDA execution, runtime planner, graph-reference,
+  and related process catch paths to the shared bounded JSON writer.
+- The focused provider/allocation gate passed 8/8, with no-artifact failure
+  semantics preserved.
+
+State remains CONTINUE. Matrix-benchmark and graph-planner catch paths remain
+the next compact-handler audit targets.
+
 ## 2026-09-15 reference diagnostic JSON validity hardening
 
 - Corrected the bounded reference diagnostic emitter so truncation never cuts

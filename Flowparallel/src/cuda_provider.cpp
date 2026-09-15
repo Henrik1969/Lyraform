@@ -3,6 +3,7 @@
 #include <flowcontracts/json.hpp>
 #include <flowparallel/bounded_input.hpp>
 #include <flowparallel/dynamic_library.hpp>
+#include <flowparallel/diagnostics.hpp>
 
 #include <charconv>
 #include <cstdint>
@@ -28,18 +29,6 @@ unsigned parse_unsigned(std::string_view text, const char* option) {
     if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size())
         throw std::runtime_error(std::string(option) + " requires a complete non-negative integer");
     return value;
-}
-
-std::string json_escape(std::string_view value) {
-    std::string escaped;
-    for (const char character : value) {
-        if (character == '\\' || character == '"') escaped.push_back('\\');
-        if (character == '\n') escaped += "\\n";
-        else if (character == '\r') escaped += "\\r";
-        else if (character == '\t') escaped += "\\t";
-        else escaped.push_back(character);
-    }
-    return escaped;
 }
 
 int reject_unsupported(std::string_view request, std::string_view reason) {
@@ -154,9 +143,11 @@ int main(int argc, char** argv) {
         else std::cerr << "flowparallel_cuda error: allocation failed\n";
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
-        else std::cerr << "flowparallel_cuda error: " << error.what() << '\n';
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_FAILURE\",\"message\":\"";
+            flowparallel::write_json_string(stderr, error.what());
+            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
+        } else std::cerr << "flowparallel_cuda error: " << error.what() << '\n';
         return 1;
     } catch (...) {
         if (structured_diagnostics)

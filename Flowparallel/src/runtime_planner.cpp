@@ -1,5 +1,6 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowparallel/bounded_input.hpp>
+#include <flowparallel/diagnostics.hpp>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -36,18 +37,6 @@ std::string quote(std::string_view value) {
     }
     result.push_back('"');
     return result;
-}
-
-std::string json_escape(std::string_view value) {
-    std::string escaped;
-    for (const char character : value) {
-        if (character == '\\' || character == '"') escaped.push_back('\\');
-        if (character == '\n') escaped += "\\n";
-        else if (character == '\r') escaped += "\\r";
-        else if (character == '\t') escaped += "\\t";
-        else escaped.push_back(character);
-    }
-    return escaped;
 }
 
 double parse_number(std::string_view text, const char* option) {
@@ -187,9 +176,11 @@ int main(int argc, char** argv) {
         else std::cerr << "flowparallel_runtime_planner error: allocation failed\n";
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_RUNTIME_PLANNER_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
-        else std::cerr << "flowparallel_runtime_planner error: " << error.what() << '\n';
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_RUNTIME_PLANNER_FAILURE\",\"message\":\"";
+            flowparallel::write_json_string(stderr, error.what());
+            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
+        } else std::cerr << "flowparallel_runtime_planner error: " << error.what() << '\n';
         return 1;
     } catch (...) {
         if (structured_diagnostics)

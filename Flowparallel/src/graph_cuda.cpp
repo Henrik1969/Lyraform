@@ -3,6 +3,7 @@
 #include <flowparallel/bounded_input.hpp>
 #include <flowparallel/cuda_resources.hpp>
 #include <flowparallel/dynamic_library.hpp>
+#include <flowparallel/diagnostics.hpp>
 
 #include <cstddef>
 #include <chrono>
@@ -126,7 +127,11 @@ int main(int argc, char** argv) {
         else std::cerr << "flowparallel_graph_cuda error: allocation failed\n";
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_FAILURE\",\"message\":\"";
+            flowparallel::write_json_string(stderr, error.what());
+            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
+        }
         else std::cerr << "flowparallel_graph_cuda error: " << error.what() << '\n';
         return 1;
     } catch (...) {

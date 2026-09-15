@@ -388,6 +388,10 @@ bounded at 4096 bytes. The focused `flowparallel_pipeline` and
 This closes the named process projections only; remaining Flowparallel
 providers still require the same audit. The safety state remains `CONTINUE`.
 
+The follow-up slice extends the bounded writer to the CUDA provider, CUDA
+execution, runtime planner, and graph-reference process boundaries; their
+focused normal provider/allocation gates passed 8/8.
+
 ## Reference CLI diagnostic allocation boundary — 2026-09-15
 
 The clock and provenance reference CLIs now emit structured failure strings
