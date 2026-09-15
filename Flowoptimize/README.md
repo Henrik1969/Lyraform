@@ -38,6 +38,11 @@ gates are defined.
 It also preserves the source path from the semantic report as inspectable
 provenance.
 
+With `--diagnostics json`, invalid or unprocessable upstream artifacts are
+reported as `FLOWOPTIMIZE_INPUT_INVALID` at the `input` stage on stderr, with
+empty stdout and `disposition: no_artifact`. Contract failures and allocation
+exhaustion retain their distinct machine-readable categories.
+
 Try the complete pipeline:
 
 ```sh

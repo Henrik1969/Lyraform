@@ -2607,6 +2607,16 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. This is classification hardening only; provider
 execution, recovery, trust, and arbitrary ABI/FFI remain unadmitted.
 
+## 2026-09-15 Flowoptimize structured input classification
+
+- Classified non-contract input-consumption failures as
+  `FLOWOPTIMIZE_INPUT_INVALID` at the `input` stage.
+- Preserved empty stdout and `no_artifact`; contract and allocation failures
+  remain separate outcomes.
+- The focused Flowoptimize gate passes in GCC and Clang 18.1.3 ASan/UBSan.
+
+State remains CONTINUE.
+
 ## 2026-09-15 Flowbind per-failure diagnostic bound
 
 - Capped each retained blocked-report failure at 1,024 bytes with an explicit

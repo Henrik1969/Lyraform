@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowoptimize structured input classification — 2026-09-15
+
+Flowoptimize now classifies non-contract exceptions while consuming an input
+artifact as `FLOWOPTIMIZE_INPUT_INVALID` at the `input` stage. The structured
+path keeps stdout empty and preserves `disposition: no_artifact`; contract and
+allocation failures remain distinct. The focused gate passes in GCC and Clang
+18.1.3 ASan/UBSan trees.
+
+The safety state remains `CONTINUE`.
+
 ## Flowanalyst structured input classification — 2026-09-15
 
 Flowanalyst now classifies non-allocation failures while consuming or

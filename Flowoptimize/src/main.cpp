@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
         else std::cerr << "flowoptimize contract error: " << error.what() << '\n';
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_FAILURE", "cli", error.what());
+        if (structured_diagnostics) write_structured_failure("FLOWOPTIMIZE_INPUT_INVALID", "input", error.what());
         else std::cerr << "flowoptimize error: " << error.what() << '\n';
         return 1;
     } catch (...) {

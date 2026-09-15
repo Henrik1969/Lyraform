@@ -61,4 +61,8 @@ set -e
 test "$hostile_rc" -eq 1
 test ! -s "$tmpdir/hostile-stdout"
 jq -e '.status == "failed" and .code == "FLOWOPTIMIZE_CONTRACT_FAILURE" and .stage == "contract" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
+
+printf '%s' '{"format":"flowparallel.execution_plan","version":1}' | "$optimizer" --diagnostics json --provider-decision "$tmpdir/missing-decision.json" >"$tmpdir/missing-stdout" 2>"$tmpdir/missing-stderr" || test "$?" -eq 1
+test ! -s "$tmpdir/missing-stdout"
+jq -e '.status == "failed" and .code == "FLOWOPTIMIZE_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$tmpdir/missing-stderr" >/dev/null
 echo 'Flowoptimize tests: PASS'
