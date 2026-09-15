@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Graph-planner diagnostic boundary correction — 2026-09-15
+
+The Flowparallel graph planner’s structured exception path now uses the
+shared bounded diagnostic writer directly. This removes its previous
+unbounded exception-text stream path and preserves the existing planner
+artifact and refusal semantics. Its normal and allocation-fault focused tests
+passed in the GCC tree.
+
+The safety state remains `CONTINUE`.
+
 ## Lyraform compiler-driver diagnostic boundary — 2026-09-15
 
 The current Lyraform compiler driver now emits structured failure records via

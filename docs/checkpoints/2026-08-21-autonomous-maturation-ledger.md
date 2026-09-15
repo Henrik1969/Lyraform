@@ -2644,6 +2644,18 @@ State remains CONTINUE. Broader API/provider fault coverage remains open.
 State remains CONTINUE. Runtime allocation coverage and historical snapshots
 remain separately scoped.
 
+## 2026-09-15 graph-planner diagnostic boundary correction
+
+- Replaced the graph planner’s unbounded exception-text stream path with the
+  shared bounded diagnostic writer.
+- Removed the formatter adapter that could direct output through an
+  unbounded stream operation.
+- Normal and allocation-fault graph-planner tests passed.
+
+State remains CONTINUE. The remaining native graph CUDA formatter helper is
+used only by non-structured compatibility output and remains separately
+scoped.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance

@@ -15,11 +15,12 @@ namespace {
 constexpr std::string_view version = "0.1.0";
 std::string read_file(const std::string& path) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open " + path); return flowparallel::read_bounded(file, "graph planner input"); }
 std::string quote(std::string_view value) { std::string result = "\""; for (const char c : value) { if (c == '\\' || c == '"') result.push_back('\\'); result.push_back(c); } result.push_back('"'); return result; }
-struct JsonEscaped { std::string_view value; };
-JsonEscaped json_escape(std::string_view value) { return {value}; }
-std::ostream& operator<<(std::ostream& output, const JsonEscaped escaped) {
-    flowparallel::write_json_string(stderr, escaped.value);
-    return output;
+void write_structured_failure(std::string_view code, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowparallel::write_json_string(stderr, code);
+    std::fputs("\",\"message\":\"", stderr);
+    flowparallel::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
 double parse_number(std::string_view text, const char* option) { std::size_t consumed = 0; double value = 0.0; try { value = std::stod(std::string(text), &consumed); } catch (...) { throw std::runtime_error(std::string(option) + " requires a complete finite number"); } if (consumed != text.size() || !std::isfinite(value)) throw std::runtime_error(std::string(option) + " requires a complete finite number"); return value; }
 struct Options { std::string graph, capabilities, calibration; double density = 0.25; double min_speedup = 1.25; bool structured_diagnostics = false; };
@@ -67,4 +68,28 @@ int run(const Options& o) {
     return 0;
 }
 }
-int main(int argc, char** argv) { bool structured_diagnostics = false; for (int i = 1; i < argc; ++i) if (std::string(argv[i]) == "--diagnostics" && i + 1 < argc && std::string(argv[i + 1]) == "json") structured_diagnostics = true; try { if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_planner - choose graph representation and provider\n"; return 0; } if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel applies explicit sparse/dense and runtime-provider policy to graph projections.\n"; return 0; } if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << version << '\n'; return 0; } const auto options = parse(argc, argv); structured_diagnostics = options.structured_diagnostics; return run(options); } catch (const std::bad_alloc&) { if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_PLANNER_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n"; else std::cerr << "flowparallel_graph_planner error: allocation failed\n"; return 1; } catch (const std::exception& error) { if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_PLANNER_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n"; else std::cerr << "flowparallel_graph_planner error: " << error.what() << '\n'; return 1; } catch (...) { if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_PLANNER_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n"; else std::cerr << "flowparallel_graph_planner error: unknown non-standard failure\n"; return 1; } }
+int main(int argc, char** argv) {
+    bool structured_diagnostics = false;
+    for (int i = 1; i < argc; ++i)
+        if (std::string(argv[i]) == "--diagnostics" && i + 1 < argc && std::string(argv[i + 1]) == "json") structured_diagnostics = true;
+    try {
+        if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_planner - choose graph representation and provider\n"; return 0; }
+        if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel applies explicit sparse/dense and runtime-provider policy to graph projections.\n"; return 0; }
+        if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << version << '\n'; return 0; }
+        const auto options = parse(argc, argv);
+        structured_diagnostics = options.structured_diagnostics;
+        return run(options);
+    } catch (const std::bad_alloc&) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_RESOURCE_EXHAUSTED", "allocation failed");
+        else std::cerr << "flowparallel_graph_planner error: allocation failed\n";
+        return 1;
+    } catch (const std::exception& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_FAILURE", error.what());
+        else std::cerr << "flowparallel_graph_planner error: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_UNKNOWN_FAILURE", "unknown non-standard failure");
+        else std::cerr << "flowparallel_graph_planner error: unknown non-standard failure\n";
+        return 1;
+    }
+}
