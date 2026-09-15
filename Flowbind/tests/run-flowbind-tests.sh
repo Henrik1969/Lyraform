@@ -90,7 +90,12 @@ missing_provider=$(printf '%s' "{\"format\":\"flowanalyst.semantic_report\",\"ve
 missing_provider_rc=$?
 set -e
 test "$missing_provider_rc" -eq 2
-printf '%s\n' "$missing_provider" | jq -e '.status == "blocked" and (.failures | any(contains("library unavailable")))' >/dev/null
+printf '%s\n' "$missing_provider" | jq -e '
+  .status == "blocked" and
+  any(.failures[]; contains("library unavailable")) and
+  (has("symbols") | not) and
+  (has("execution") | not)
+' >/dev/null
 
 set +e
 bad_type=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[{"contract":"bad","library":"libc.so.6","convention":"c","symbol":"abs","effect":"pure","parameter_types":"not_an_abi_type","return_type":"c_int"}]}' | "$bin" --policy "$policy")
