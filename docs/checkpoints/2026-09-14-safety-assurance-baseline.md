@@ -383,7 +383,7 @@ The CUDA execution provider now uses the shared `DynamicLibrary` owner. Its
 explicit `close()` result is checked after normal execution and on exception
 paths; a nonzero or throwing close callback cannot become a successful
 provider result. The hardware-independent cleanup test injects a close
-failure and verifies idempotent handle clearing; the CUDA allocation-fault
+failure and a throwing close callback, and verifies idempotent handle clearing; the CUDA allocation-fault
 boundary remains green. Graph, matrix benchmark, and provider-probe loaders
 now use the same checked dynamic-library owner and explicit close-result
 handling. The safety state remains `CONTINUE`.

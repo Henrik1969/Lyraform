@@ -1,6 +1,7 @@
 #include <flowparallel/dynamic_library.hpp>
 
 #include <cassert>
+#include <stdexcept>
 
 namespace {
 int close_calls = 0;
@@ -8,6 +9,10 @@ int close_result = 0;
 int fake_close(void*) {
     ++close_calls;
     return close_result;
+}
+int throwing_close(void*) {
+    ++close_calls;
+    throw std::runtime_error("provider close failure");
 }
 }
 
@@ -19,6 +24,12 @@ int main() {
     assert(failed.close_status() == 17);
     assert(failed.handle() == nullptr);
     assert(failed.close() == 17);
+    assert(close_calls == 1);
+
+    close_calls = 0;
+    flowparallel::DynamicLibrary throwing{reinterpret_cast<void*>(1), throwing_close};
+    assert(throwing.close() == EFAULT);
+    assert(throwing.handle() == nullptr);
     assert(close_calls == 1);
 
     close_calls = 0;
