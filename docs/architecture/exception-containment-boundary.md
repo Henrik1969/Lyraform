@@ -53,8 +53,13 @@ exit distinction.
   diagnostics and a nonzero exit, but the generic fallback has no stable
   diagnostic code or structured machine-readable form.
 - TokenTree catches allocation and unknown exceptions at its C API bridge.
-- Frankencore provenance validation and ULID generation still use C++ standard
-  exceptions for invalid records and entropy exhaustion.
+- Frankencore provenance retains throwing compatibility helpers for invalid
+  record serialization and ULID generation, but its checked serialization
+  functions are now explicitly `noexcept`, and `generate_ulid_checked()` plus
+  `UlidGenerator::generate_checked()` translate initialization, entropy,
+  allocation, and unknown failures into an explicit `UlidResult`. Boundary
+  consumers must use the checked APIs; the throwing helpers remain a Stage 0
+  compatibility surface and are not the language failure model.
 - The Clock and Revision reference CLIs still use exception-based argument
   parsing internally, but their public failure boundary now supports
   `--diagnostics json` with stable failure codes, empty artifact stdout, and a

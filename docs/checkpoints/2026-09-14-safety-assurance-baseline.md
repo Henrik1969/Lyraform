@@ -217,6 +217,23 @@ diagnostic. The language probe covers the hostile oversized-input case.
 The safety state remains `CONTINUE`: broader Frankencore/provider exception
 containment and allocation-fault injection remain open.
 
+## Provenance and ULID checked boundary — 2026-09-15
+
+The Frankencore provenance API now exposes `generate_ulid_checked()` and
+`UlidGenerator::generate_checked()` as explicit `noexcept` boundaries. They
+translate generator initialization, entropy, allocation, and unknown failures
+into `UlidResult` without allowing a C++ exception to cross into a language,
+artifact, provider, or embedding consumer. The three provenance
+`to_json_checked()` overloads are also explicitly declared and defined
+`noexcept`, matching their existing structured failure behavior. The throwing
+helpers remain visible as Stage 0 compatibility APIs and are not part of the
+Lyraform failure model.
+
+The `frankencore_provenance_api` test now asserts the checked ULID contract and
+validates the generated identifier. The focused test passed after the change;
+the full normal, sanitizer, and Valgrind gates remain required before this
+checkpoint is published. The safety state remains `CONTINUE`.
+
 ## Requirement parser exception boundary — 2026-09-14
 
 The public version validator and range evaluator now translate internal
@@ -357,6 +374,18 @@ The new CTest case is `flowbind_allocation_fault`. This closes allocation
 exhaustion evidence for the Flowbind process boundary only; it does not claim
 that all provider, parser, or Frankencore allocation paths have been injected.
 Those broader fault-injection cases remain an open Gate 8 item.
+
+The safety state remains `CONTINUE`.
+
+## Provenance checked-boundary verification — 2026-09-15
+
+The provenance checked-boundary slice rebuilt successfully and passed the
+focused `frankencore_provenance_api` test. The full normal GCC CTest gate
+passed 147/147, the Clang 18.1.3 ASan/UBSan gate passed 147/147, and the
+Valgrind provenance API run reported zero errors, zero leaks, and zero bytes
+in use at exit. This evidence covers the new checked ULID boundary and the
+explicitly `noexcept` serialization declarations; broader Frankencore
+allocation-fault injection remains open.
 
 The safety state remains `CONTINUE`.
 

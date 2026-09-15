@@ -10,7 +10,11 @@ emitted into one event stream without confusing rejection with published
 state. Every result has a mandatory `event_id`; every attempt has mandatory
 `attempt_id` and `correlation_id` values so retries can be reconstructed later.
 The core provides `generate_ulid()` and `is_valid_ulid()` for this identity
-paperwork; callers do not define a competing identifier grammar.
+paperwork; callers do not define a competing identifier grammar. Boundary
+consumers should use `generate_ulid_checked()`, which converts generator
+initialization, entropy, allocation, and unknown failures into an explicit
+`UlidResult` without allowing a C++ exception to escape. The throwing helper
+remains as a Stage 0 compatibility API.
 
 `frankencore_revision_probe` is a deliberately small reference producer using
 that API. It emits one versioned JSON evidence record; it does not choose a

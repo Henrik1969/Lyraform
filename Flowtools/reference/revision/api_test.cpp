@@ -11,6 +11,11 @@ int main() {
     assert(is_valid_ulid(second_ulid));
     assert(first_ulid < second_ulid);
 
+    static_assert(noexcept(generate_ulid_checked()));
+    const auto checked_ulid = generate_ulid_checked();
+    assert(checked_ulid.valid);
+    assert(is_valid_ulid(checked_ulid.value));
+
     const auto event_id = generate_ulid();
     MutationRecord record{
         .attempt = {

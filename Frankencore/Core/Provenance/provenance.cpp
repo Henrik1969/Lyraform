@@ -561,7 +561,8 @@ JsonResult checked_json(const Value& value) {
     } catch (const std::bad_alloc&) {
         return {false, {}, "serialization allocation failed"};
     } catch (const std::exception& error) {
-        return {false, {}, std::string{"serialization failed: "} + error.what()};
+        (void)error;
+        return {false, {}, "serialization failed"};
     } catch (...) {
         return {false, {}, "serialization failed with unknown non-standard failure"};
     }
@@ -569,15 +570,15 @@ JsonResult checked_json(const Value& value) {
 
 } // namespace
 
-JsonResult to_json_checked(const MutationRecord& record) {
+JsonResult to_json_checked(const MutationRecord& record) noexcept {
     return checked_json(record);
 }
 
-JsonResult to_json_checked(const MutationRejection& rejection) {
+JsonResult to_json_checked(const MutationRejection& rejection) noexcept {
     return checked_json(rejection);
 }
 
-JsonResult to_json_checked(const ErrorStateEvent& event) {
+JsonResult to_json_checked(const ErrorStateEvent& event) noexcept {
     return checked_json(event);
 }
 

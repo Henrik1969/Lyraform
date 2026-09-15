@@ -12,10 +12,17 @@ namespace frankencore::provenance {
 
 using Ulid = std::string;
 
+struct UlidResult {
+    bool valid = false;
+    Ulid value;
+    std::string error;
+};
+
 class UlidGenerator {
 public:
     UlidGenerator();
     Ulid generate();
+    UlidResult generate_checked() noexcept;
 
 private:
     std::mutex mutex_;
@@ -25,6 +32,7 @@ private:
 };
 
 Ulid generate_ulid();
+UlidResult generate_ulid_checked() noexcept;
 bool is_valid_ulid(const std::string& value);
 
 struct StateEvidence {
@@ -170,9 +178,9 @@ std::string to_json(const MutationRejection& rejection);
 std::string to_json(const ErrorStateEvent& event);
 
 // Non-throwing public serialization boundary for language/runtime consumers.
-JsonResult to_json_checked(const MutationRecord& record);
-JsonResult to_json_checked(const MutationRejection& rejection);
-JsonResult to_json_checked(const ErrorStateEvent& event);
+JsonResult to_json_checked(const MutationRecord& record) noexcept;
+JsonResult to_json_checked(const MutationRejection& rejection) noexcept;
+JsonResult to_json_checked(const ErrorStateEvent& event) noexcept;
 
 // Read-only comparison of two independently produced project-local histories.
 // Both inputs are validated before comparison; neither file is rewritten.

@@ -1,6 +1,7 @@
 #include "frankencore/provenance.hpp"
 
 #include <chrono>
+#include <new>
 #include <stdexcept>
 
 namespace frankencore::provenance {
@@ -61,9 +62,36 @@ Ulid UlidGenerator::generate() {
     return encode(timestamp, last_random_);
 }
 
+UlidResult UlidGenerator::generate_checked() noexcept {
+    try {
+        return {true, generate(), {}};
+    } catch (const std::bad_alloc&) {
+        return {false, {}, "ULID generation exhausted memory"};
+    } catch (const std::exception& error) {
+        (void)error;
+        return {false, {}, "ULID generation failed"};
+    } catch (...) {
+        return {false, {}, "ULID generation failed with unknown non-standard failure"};
+    }
+}
+
 Ulid generate_ulid() {
     static UlidGenerator generator;
     return generator.generate();
+}
+
+UlidResult generate_ulid_checked() noexcept {
+    try {
+        static UlidGenerator generator;
+        return generator.generate_checked();
+    } catch (const std::bad_alloc&) {
+        return {false, {}, "ULID generator initialization exhausted memory"};
+    } catch (const std::exception& error) {
+        (void)error;
+        return {false, {}, "ULID generator initialization failed"};
+    } catch (...) {
+        return {false, {}, "ULID generator initialization failed with unknown non-standard failure"};
+    }
 }
 
 bool is_valid_ulid(const std::string& value) {
