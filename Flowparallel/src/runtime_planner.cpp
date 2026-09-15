@@ -112,18 +112,8 @@ int run(const Options& options) {
     const auto calibration = options.calibration_path.empty() ? std::string{} : read_file(options.calibration_path, "calibration report");
     const auto plan_value = flowcontracts::json::parse(plan);
     const auto& plan_root = flowcontracts::json::object(plan_value);
-    const auto requested = [&](std::string_view field, std::string_view value) {
-        const auto* item = flowcontracts::json::optional(plan_root, field);
-        return item != nullptr && flowcontracts::json::string(*item, "$." + std::string(field)) == value;
-    };
-    if (requested("schedule_policy", "parallel_effectful_v1"))
-        return reject_unsupported("parallel_effectful_v1", "effectful parallel scheduling is not admitted");
-    if (requested("cancellation", "requested"))
-        return reject_unsupported("cancellation", "cancellation is not admitted by this provider");
-    if (requested("async", "requested"))
-        return reject_unsupported("async", "asynchronous execution is not admitted by this provider");
-    if (requested("backpressure", "requested"))
-        return reject_unsupported("backpressure", "backpressure is not admitted by this provider");
+    if (const auto refusal = flowcontracts::scheduling_refusal(plan_root, true))
+        return reject_unsupported(refusal->request, refusal->reason);
     const auto execution = flowcontracts::execution_plan(plan_value);
     if (execution.artifact.status != "ready") {
         std::cout << "{\n  \"format\": \"flowparallel.provider_decision\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n";

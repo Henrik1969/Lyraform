@@ -2597,6 +2597,28 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 exact scheduling-control refusal boundary
+
+- Added one shared Flowcontracts admission decision for schedule policy,
+  cancellation, async execution, backpressure, reentrancy, nesting,
+  distribution, retry, and irreversible effects.
+- Semantic reports admit only `serial`; execution plans may additionally carry
+  the bounded `parallel_independent_v1` policy. Exact `none` is the sole
+  explicit neutral control value; unknown values fail closed and wrong types
+  remain contract failures.
+- Applied the decision at the Flowparallel planner, CPU provider, CUDA provider,
+  runtime planner, semantic/execution artifact validators, and Flowoptimize
+  ingress so unsupported authority cannot be silently downgraded or stripped.
+- Focused GCC and Clang ASan/UBSan gates passed 6/6. Complete suites passed
+  155/155 under GCC in 61.23 seconds and Clang sanitizers in 114.47 seconds.
+  Valgrind 3.22.0 reported zero errors and 100,687 allocations/frees for the
+  central contract test.
+
+State remains CONTINUE. The listed scheduling capabilities are exactly refused,
+not implemented; complete cancellation observation, queue/backpressure,
+effect, ordering, join, retry, commit/abort, and recovery contracts remain
+future work.
+
 ## 2026-09-15 trust and isolation execution admission
 
 - Added a public, non-throwing execution-admission contract that admits the

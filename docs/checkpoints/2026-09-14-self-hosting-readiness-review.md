@@ -112,6 +112,15 @@ signed trust profiles, cross-platform assurance, and general cancellation/
 async/backpressure/effectful parallelism remain explicitly provisional or
 future. Stage 1 remains `not-started`; the safety mission remains `CONTINUE`.
 
+The current semantic-report and execution-plan boundaries subsequently gained
+one shared fail-closed scheduling admission decision. The planner, optimizer,
+CPU/CUDA providers, and runtime planner now refuse every non-admitted schedule
+policy and every non-neutral cancellation, async, backpressure, reentrancy,
+nesting, distribution, retry, or irreversible-effect request; wrong types fail
+contract validation. This satisfies explicit refusal for those current Stage 0
+artifacts, but adds none of the operational semantics. It therefore removes a
+silent-downgrade risk without changing the `not-started` Stage 1 decision.
+
 ## Evidence boundary
 
 This review deliberately records a not-ready decision rather than treating the

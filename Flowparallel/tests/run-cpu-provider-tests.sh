@@ -22,6 +22,9 @@ printf '%s\n' "$parallel" | jq -e '.status == "ready" and .decision == "parallel
 serial=$(printf '%s\n' "$plan" | "$cpu" --observed-speedup 0.5 --minimum-speedup 1.25 --workers 4)
 printf '%s\n' "$serial" | jq -e '.status == "ready" and .decision == "serial" and .provider == "cpu.serial" and .workers == 1' >/dev/null
 
+neutral=$(printf '%s\n' "$plan" | jq '. + {cancellation:"none", async:"none", backpressure:"none", reentrancy:"none", nested:"none", distributed:"none", retry:"none", irreversible:"none"}' | "$cpu" --observed-speedup 0.5 --minimum-speedup 1.25 --workers 4)
+printf '%s\n' "$neutral" | jq -e '.status == "ready" and .decision == "serial" and .provider == "cpu.serial"' >/dev/null
+
 reject_unsupported() {
     request=$1
     payload=$2
@@ -37,11 +40,23 @@ reject_unsupported() {
 reject_unsupported parallel_effectful_v1 \
     '{"format":"flowparallel.execution_plan","version":1,"status":"ready","schedule_policy":"parallel_effectful_v1"}'
 reject_unsupported cancellation \
-    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","cancellation":"requested"}'
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","cancellation":"required"}'
 reject_unsupported async \
     '{"format":"flowparallel.execution_plan","version":1,"status":"ready","async":"requested"}'
 reject_unsupported backpressure \
     '{"format":"flowparallel.execution_plan","version":1,"status":"ready","backpressure":"requested"}'
+reject_unsupported parallel_reentrant_v1 \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","schedule_policy":"parallel_reentrant_v1"}'
+reject_unsupported reentrancy \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","reentrancy":"requested"}'
+reject_unsupported nested \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","nested":"requested"}'
+reject_unsupported distributed \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","distributed":"requested"}'
+reject_unsupported retry \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","retry":"automatic"}'
+reject_unsupported irreversible \
+    '{"format":"flowparallel.execution_plan","version":1,"status":"ready","irreversible":"requested"}'
 
 set +e
 malformed=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"format":"forged","status":"ready"}' | "$cpu" 2>/dev/null)

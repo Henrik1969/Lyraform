@@ -33,13 +33,28 @@ printf '%s\n' '{"format":"frankencore.runtime_capabilities","version":1,"cpu":{"
 unavailable=$("$planner" --plan "$plan" --capabilities "$capabilities" --calibration "$calibration")
 printf '%s\n' "$unavailable" | jq -e '.selection.provider == "cpu.serial" and .evidence.cuda_available == false' >/dev/null
 
-jq '.cancellation = "requested"' "$plan" >"$unsupported_plan"
-set +e
-unsupported=$("$planner" --plan "$unsupported_plan" --capabilities "$capabilities" 2>/dev/null)
-unsupported_rc=$?
-set -e
-test "$unsupported_rc" -eq 2
-printf '%s\n' "$unsupported" | jq -e '.status == "unsupported" and .request == "cancellation" and .fallback.emitted == false' >/dev/null
+reject_unsupported() {
+  request=$1
+  filter=$2
+  jq "$filter" "$plan" >"$unsupported_plan"
+  set +e
+  unsupported=$("$planner" --plan "$unsupported_plan" --capabilities "$capabilities" 2>/dev/null)
+  unsupported_rc=$?
+  set -e
+  test "$unsupported_rc" -eq 2
+  printf '%s\n' "$unsupported" | jq -e --arg request "$request" \
+    '.status == "unsupported" and .request == $request and .fallback.emitted == false' >/dev/null
+}
+reject_unsupported parallel_effectful_v1 '.schedule_policy = "parallel_effectful_v1"'
+reject_unsupported parallel_reentrant_v1 '.schedule_policy = "parallel_reentrant_v1"'
+reject_unsupported cancellation '.cancellation = "required"'
+reject_unsupported async '.async = "requested"'
+reject_unsupported backpressure '.backpressure = "requested"'
+reject_unsupported reentrancy '.reentrancy = "requested"'
+reject_unsupported nested '.nested = "requested"'
+reject_unsupported distributed '.distributed = "requested"'
+reject_unsupported retry '.retry = "automatic"'
+reject_unsupported irreversible '.irreversible = "requested"'
 
 set +e
 printf '%s' '{"format":"wrong"}' | "$planner" --plan /dev/stdin --capabilities "$capabilities" --diagnostics json >"$diagnostic_out" 2>"$diagnostic_err"

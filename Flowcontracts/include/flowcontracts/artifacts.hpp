@@ -1,6 +1,7 @@
 #pragma once
 
 #include <flowcontracts/json.hpp>
+#include <flowcontracts/scheduling.hpp>
 #include <flowcontracts/source_graph.hpp>
 #include <flowcontracts/graph_execution.hpp>
 #include <flowcontracts/binding_evidence.hpp>
@@ -328,6 +329,7 @@ inline SemanticReport semantic_report(const json::Value& value) {
     SemanticReport result; result.artifact = require_header(value, "flowanalyst.semantic_report", 1);
     if (result.artifact.status != "ok") return result;
     const auto& root = json::object(value);
+    validate_scheduling_request(root, false);
     const auto& source = required_object(root, "source");
     result.source_path = json::string(json::required(source, "path", "$.source"), "$.source.path");
     validate_targets(root); result.targets = required_array(root, "targets");
@@ -395,6 +397,7 @@ inline ExecutionPlan execution_plan(const json::Value& value) {
     ExecutionPlan result; result.artifact = require_header(value, "flowparallel.execution_plan", 1);
     if (result.artifact.status != "ready") return result;
     const auto& root = json::object(value);
+    validate_scheduling_request(root, true);
     const auto& source = required_object(root, "source");
     result.source_path = json::string(json::required(source, "path", "$.source"), "$.source.path");
     validate_targets(root); result.targets = required_array(root, "targets");

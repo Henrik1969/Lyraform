@@ -1,5 +1,6 @@
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/diagnostics.hpp>
+#include <flowcontracts/scheduling.hpp>
 
 #include <cstdio>
 #include <cstdlib>
@@ -62,6 +63,25 @@ int main() {
     const auto& root = object(parsed);
     rejects([&] { (void)required(root, "missing"); }, "$.missing");
     rejects([&] { (void)integer(required(root, "a"), "$.a"); }, "$.a");
+
+    const auto neutral_schedule_value = parse(
+        R"({"schedule_policy":"parallel_independent_v1","cancellation":"none","async":"none"})");
+    const auto& neutral_schedule = object(neutral_schedule_value);
+    require(!flowcontracts::scheduling_refusal(neutral_schedule, true),
+            "admitted execution scheduling controls were refused");
+    require(flowcontracts::scheduling_refusal(neutral_schedule, false)->request == "parallel_independent_v1",
+            "planner accepted a requested stronger schedule");
+    const auto required_cancellation_value = parse(R"({"cancellation":"required"})");
+    const auto& required_cancellation = object(required_cancellation_value);
+    require(flowcontracts::scheduling_refusal(required_cancellation, true)->request == "cancellation",
+            "unknown cancellation request was ignored");
+    const auto reentrant_value = parse(R"({"reentrancy":"requested"})");
+    const auto& reentrant = object(reentrant_value);
+    require(flowcontracts::scheduling_refusal(reentrant, true)->request == "reentrancy",
+            "reentrant request was ignored");
+    const auto wrong_control_type_value = parse(R"({"async":true})");
+    const auto& wrong_control_type = object(wrong_control_type_value);
+    rejects([&] { (void)flowcontracts::scheduling_refusal(wrong_control_type, true); }, "$.async");
 
     require(diagnostic_text("quote\" slash\\ newline\n control\x01") ==
                 "quote\\\" slash\\\\ newline\\n control\\u0001",

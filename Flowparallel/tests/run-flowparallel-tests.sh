@@ -95,12 +95,36 @@ reject_unsupported() {
 
 reject_unsupported parallel_effectful_v1 \
     '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","schedule_policy":"parallel_effectful_v1"}'
+reject_unsupported parallel_independent_v1 \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","schedule_policy":"parallel_independent_v1"}'
+reject_unsupported parallel_reentrant_v1 \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","schedule_policy":"parallel_reentrant_v1"}'
 reject_unsupported cancellation \
-    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","cancellation":"requested"}'
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","cancellation":"required"}'
 reject_unsupported async \
     '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","async":"requested"}'
 reject_unsupported backpressure \
     '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","backpressure":"requested"}'
+reject_unsupported reentrancy \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","reentrancy":"requested"}'
+reject_unsupported nested \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","nested":"requested"}'
+reject_unsupported distributed \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","distributed":"requested"}'
+reject_unsupported retry \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","retry":"automatic"}'
+reject_unsupported irreversible \
+    '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","irreversible":"requested"}'
+
+set +e
+printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","async":true}' | \
+    "$bin" --diagnostics json >"$tmpdir/control-type.out" 2>"$tmpdir/control-type.err"
+control_type_rc=$?
+set -e
+test "$control_type_rc" -eq 1
+test ! -s "$tmpdir/control-type.out"
+jq -e '.code == "FLOWPARALLEL_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact"' \
+    "$tmpdir/control-type.err" >/dev/null
 
 echo 'Flowparallel unsupported-scheduling refusal: PASS'
 echo 'Flowparallel tests: PASS'

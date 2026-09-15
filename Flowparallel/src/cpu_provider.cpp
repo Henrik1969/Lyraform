@@ -3,7 +3,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdint>
-#include <flowcontracts/json.hpp>
+#include <flowcontracts/artifacts.hpp>
 #include <flowparallel/bounded_input.hpp>
 #include <flowparallel/diagnostics.hpp>
 #include <fstream>
@@ -98,14 +98,8 @@ int resolve(const std::string& plan, const Options& options) {
         const auto* item = optional(root, field);
         return item != nullptr && string(*item, std::string("$.") + std::string(field)) == value;
     };
-    if (has_field("schedule_policy", "parallel_effectful_v1"))
-        return reject_unsupported_request("parallel_effectful_v1", "effectful parallel scheduling is not admitted");
-    if (has_field("cancellation", "requested"))
-        return reject_unsupported_request("cancellation", "cancellation is not admitted by this provider");
-    if (has_field("async", "requested"))
-        return reject_unsupported_request("async", "asynchronous execution is not admitted by this provider");
-    if (has_field("backpressure", "requested"))
-        return reject_unsupported_request("backpressure", "backpressure is not admitted by this provider");
+    if (const auto refusal = flowcontracts::scheduling_refusal(root, true))
+        return reject_unsupported_request(refusal->request, refusal->reason);
     if (!has_field("status", "ready")) { std::cout << "{\n  \"format\": \"flowparallel.cpu_selection\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n"; return 2; }
     const auto& dependency = object(required(root, "dependency_analysis"), "$.dependency_analysis");
     std::uint64_t candidates = 0;

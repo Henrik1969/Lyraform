@@ -53,6 +53,11 @@ printf '%s' '{"format":"flowparallel.execution_plan","format":"wrong","version":
 if "$optimizer" "$tmpdir/duplicate-key.json" >/dev/null 2>&1; then echo 'duplicate authority unexpectedly accepted' >&2; exit 1; fi
 jq '(.graph_projection.entries[0].row) = .graph_projection.rows' "$tmpdir/plan.json" > "$tmpdir/out-of-range.json"
 if "$optimizer" "$tmpdir/out-of-range.json" >/dev/null 2>&1; then echo 'out-of-range matrix unexpectedly accepted' >&2; exit 1; fi
+jq '.cancellation = "required"' "$tmpdir/plan.json" > "$tmpdir/unsupported-schedule.json"
+if "$optimizer" "$tmpdir/unsupported-schedule.json" >/dev/null 2>&1; then
+    echo 'unsupported scheduling request was stripped by optimization' >&2
+    exit 1
+fi
 
 set +e
 printf '%s' '{"format":"wrong","version":1}' | "$optimizer" --diagnostics json >"$tmpdir/hostile-stdout" 2>"$tmpdir/hostile-stderr"

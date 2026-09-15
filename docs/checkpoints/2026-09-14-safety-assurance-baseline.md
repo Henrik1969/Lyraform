@@ -1796,3 +1796,33 @@ cooperating Linux protocol. Legacy randomized siblings, non-cooperating
 writers, adversarial parent-path replacement, streamed stdout partial delivery,
 other native producers, and cross-platform equivalents remain open. The safety
 state remains `CONTINUE`.
+
+## Exact scheduling-control refusal boundary — 2026-09-15
+
+Flowcontracts now owns one exact scheduling-admission helper used by canonical
+semantic-report and execution-plan validation. A semantic report admits only
+the current `serial` policy; an execution plan may additionally carry the
+already bounded `parallel_independent_v1` policy. Every other schedule-policy
+value is refused. The same helper treats only an absent control or the exact
+string `none` as neutral for cancellation, async execution, backpressure,
+reentrancy, nesting, distribution, retry, and irreversible effects. Every
+other value fails closed, and a non-string value is a contract error.
+
+The Flowparallel plan CLI, CPU provider, CUDA provider, and runtime planner now
+use that shared decision instead of recognizing only selected literal request
+values. Flowoptimize validates the execution plan before transforming it, so a
+stronger request cannot disappear during optimization. Process tests cover
+the stronger and unknown policies, all eight controls, malformed field types,
+no-fallback unsupported results, optimizer refusal, and a provider pass with
+all eight controls explicitly set to `none`.
+
+The six focused gates passed 6/6 under GCC and Clang 18.1.3 ASan/UBSan.
+Complete suites passed 155/155 under GCC in 61.23 seconds and 155/155 under
+Clang sanitizers in 114.47 seconds with the documented leak setting. Valgrind
+3.22.0 reported zero errors, zero live blocks, and 100,687 allocations matched
+by 100,687 frees for the central Flowcontracts unit boundary.
+
+This implements explicit refusal, not cancellation, queueing, retry, effectful
+parallelism, or recovery semantics. New artifact families and graph-specific
+scheduling controls need the same admission review before use. The safety state
+remains `CONTINUE`.

@@ -51,9 +51,12 @@ stable code and `no_artifact` disposition. All launched workers are joined
 before the result is published; no partial success is silently promoted.
 
 The CPU provider refuses stronger scheduling requests rather than silently
-falling back to serial execution. `parallel_effectful_v1`, cancellation,
-asynchronous execution, and backpressure requests produce an explicit
-`unsupported` selection with no fallback artifact. Those capabilities remain
+falling back to serial execution. Effectful or unknown schedule policies plus
+cancellation, asynchronous execution, backpressure, reentrancy, nesting,
+distribution, automatic retry, and irreversible-effect requests produce an
+explicit `unsupported` selection with no fallback artifact. Only an absent
+control or the exact neutral value `none` is neutral; unknown values fail
+closed, and wrong field types are contract errors. Those capabilities remain
 outside the admitted pre-self-hosting contract.
 
 The provider parses and validates the complete execution-plan JSON before
@@ -72,9 +75,9 @@ emits a linear-algebra workload contract for matrix multiplication. It includes
 host/device transfer costs and always requires a CPU fallback. On a host without
 a usable CUDA device it reports `unknown` or `unavailable`; it never claims a
 kernel executed. A future CUDA backend can consume the same contract. It
-refuses `parallel_effectful_v1`, cancellation, asynchronous execution, and
-backpressure before probing the driver, returning an explicit unsupported
-selection without a fallback artifact. `--diagnostics json` translates
+refuses every non-neutral scheduling control listed above before probing the
+driver, returning an explicit unsupported selection without a fallback
+artifact. `--diagnostics json` translates
 argument, input, and provider failures to a machine-readable `no_artifact`
 diagnostic; normal human-readable diagnostics remain available by default.
 The CUDA provider mirrors the CPU provider's condition-specific contract and
@@ -191,11 +194,10 @@ Parsed artifact violations are classified as
 oversized inputs and malformed options are classified as
 `FLOWPARALLEL_RUNTIME_PLANNER_INPUT_INVALID` at stage `input`.
 
-Before provider selection it also refuses execution plans that request
-cancellation, asynchronous execution, backpressure, or effectful parallel
-scheduling. These requests produce an explicit unsupported decision with no
-fallback artifact; the planner never turns an unimplemented capability into a
-serial or CUDA execution choice.
+Before provider selection it also applies the same exact scheduling-control
+admission. Every non-neutral or unknown request produces an explicit
+unsupported decision with no fallback artifact; the planner never turns an
+unimplemented capability into a serial or CUDA execution choice.
 
 `flowparallel_graph_reference` and `flowparallel_graph_cuda` provide the first
 paired graph-algebra operation: Boolean reachability over the

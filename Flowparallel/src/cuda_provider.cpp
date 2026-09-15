@@ -106,18 +106,8 @@ int run(const std::string& plan, const Options& options) {
         throw std::runtime_error("--matrix-size must be between 1 and 4096");
     const auto plan_value = flowcontracts::json::parse(plan);
     const auto& root = flowcontracts::json::object(plan_value);
-    const auto requested = [&](std::string_view field, std::string_view value) {
-        const auto* item = flowcontracts::json::optional(root, field);
-        return item != nullptr && flowcontracts::json::string(*item, "$." + std::string(field)) == value;
-    };
-    if (requested("schedule_policy", "parallel_effectful_v1"))
-        return reject_unsupported("parallel_effectful_v1", "effectful parallel scheduling is not admitted by this provider");
-    if (requested("cancellation", "requested"))
-        return reject_unsupported("cancellation", "cancellation is not admitted by this provider");
-    if (requested("async", "requested"))
-        return reject_unsupported("async", "asynchronous execution is not admitted by this provider");
-    if (requested("backpressure", "requested"))
-        return reject_unsupported("backpressure", "backpressure is not admitted by this provider");
+    if (const auto refusal = flowcontracts::scheduling_refusal(root, true))
+        return reject_unsupported(refusal->request, refusal->reason);
     const auto artifact = flowcontracts::execution_plan(plan_value);
     if (artifact.artifact.status != "ready") { std::cout << "{\n  \"format\": \"flowparallel.cuda_selection\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"execution plan is not ready\"\n}\n"; return 2; }
     const auto cuda = probe();

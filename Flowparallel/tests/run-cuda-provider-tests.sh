@@ -42,16 +42,28 @@ set -e
 test "$overflow_rc" -eq 1
 test -z "$overflow_report"
 jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_INPUT_INVALID" and .stage == "input" and (.message | contains("between 1 and 4096")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
-printf '%s\n' "$plan" | jq '.cancellation = "requested"' >"$unsupported_plan"
-if unsupported=$("$cuda" --plan "$unsupported_plan" 2>/dev/null); then
-  echo 'CUDA provider accepted an unsupported cancellation request' >&2
-  exit 1
-fi
-printf '%s\n' "$unsupported" | jq -e '
-  .status == "unsupported" and
-  .request == "cancellation" and
-  .fallback.emitted == false
-' >/dev/null
+reject_unsupported() {
+  request=$1
+  filter=$2
+  printf '%s\n' "$plan" | jq "$filter" >"$unsupported_plan"
+  set +e
+  unsupported=$("$cuda" --plan "$unsupported_plan" 2>/dev/null)
+  unsupported_rc=$?
+  set -e
+  test "$unsupported_rc" -eq 2
+  printf '%s\n' "$unsupported" | jq -e --arg request "$request" \
+    '.status == "unsupported" and .request == $request and .fallback.emitted == false' >/dev/null
+}
+reject_unsupported parallel_effectful_v1 '.schedule_policy = "parallel_effectful_v1"'
+reject_unsupported parallel_reentrant_v1 '.schedule_policy = "parallel_reentrant_v1"'
+reject_unsupported cancellation '.cancellation = "required"'
+reject_unsupported async '.async = "requested"'
+reject_unsupported backpressure '.backpressure = "requested"'
+reject_unsupported reentrancy '.reentrancy = "requested"'
+reject_unsupported nested '.nested = "requested"'
+reject_unsupported distributed '.distributed = "requested"'
+reject_unsupported retry '.retry = "automatic"'
+reject_unsupported irreversible '.irreversible = "requested"'
 set +e
 printf '%s' '{"format":"wrong"}' | "$cuda" --diagnostics json >"$diagnostic_out" 2>"$diagnostic_err"
 diagnostic_rc=$?
