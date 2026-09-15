@@ -2702,6 +2702,21 @@ injection, isolation, trust, and Stage 1 readiness work remains open.
 State remains CONTINUE. Real-device CUDA assurance, broader native provider/API
 fault injection, isolation, trust, and Stage 1 readiness work remains open.
 
+## 2026-09-15 Flowmini startup allocation boundary
+
+- Moved exact structured-diagnostics recognition ahead of Flowmini policy
+  storage initialization while keeping it inside the top-level protected
+  process boundary.
+- Moved the allocation-fault injection to that startup edge, proving
+  exhaustion before policy setup produces empty stdout and an explicit
+  `FLOW_RESOURCE_EXHAUSTED` runtime no-artifact result.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 4/4. Complete suites
+  passed 149/149 under GCC in 52.02 seconds and Clang sanitizers in 101.73
+  seconds with the documented leak setting.
+
+State remains CONTINUE. Wider Stage 0 exception/API containment, fault
+injection, isolation, trust, and Stage 1 readiness work remains open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -611,12 +612,23 @@ namespace {
 int main(int argc, char** argv) {
 
     flow::PipelineContext ctx;
-    ctx.policies.set("runtime.trace", false);
-
     const flow::LogSink log{std::cerr};
     bool structuredDiagnostics = false;
 
     try {
+        for (int index = 1; index + 1 < argc; ++index) {
+            if (std::strcmp(argv[index], "--diagnostics") == 0 &&
+                std::strcmp(argv[index + 1], "json") == 0) {
+                structuredDiagnostics = true;
+            }
+        }
+
+#ifdef FLOWMINI_TEST_ALLOCATION_FAILURE
+        throw std::bad_alloc();
+#endif
+
+        ctx.policies.set("runtime.trace", false);
+
         std::string sourcePath;
         std::string emitFlowIrPath;
         std::string dumpTokenTreePath;
@@ -704,10 +716,6 @@ int main(int argc, char** argv) {
             printUsage(std::cerr);
             return 2;
         }
-
-#ifdef FLOWMINI_TEST_ALLOCATION_FAILURE
-        throw std::bad_alloc();
-#endif
 
         const bool structuralInspection =
             dumpAst ||

@@ -1456,3 +1456,21 @@ This closes condition-specific process classification for these two public
 CUDA tools only. Real-device assurance, broader native provider/API fault
 injection, isolation, and trust controls remain open. The safety state remains
 `CONTINUE`.
+
+## Flowmini startup allocation boundary — 2026-09-15
+
+The canonical Flowmini frontend now recognizes an exact `--diagnostics json`
+request with allocation-free comparisons inside its top-level protected
+boundary before initializing policy storage. Its allocation-fault build now
+injects exhaustion at that startup point, before policy setup or ordinary
+argument-string construction, and proves an empty stdout plus
+`FLOW_RESOURCE_EXHAUSTED`/`runtime`/`no_artifact` result.
+
+The focused support, structured-diagnostic, UTF-8/source, and allocation-fault
+tests passed 4/4 under both GCC and Clang 18.1.3 ASan/UBSan. Complete suites
+passed 149/149 under GCC in 52.02 seconds and 149/149 under Clang sanitizers in
+101.73 seconds with the documented leak setting.
+
+This closes the identified Flowmini startup-allocation escape only. Wider
+Stage 0 exception/API containment, fault injection, isolation, and trust work
+remain open. The safety state remains `CONTINUE`.
