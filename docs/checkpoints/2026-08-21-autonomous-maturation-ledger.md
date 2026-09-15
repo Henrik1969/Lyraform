@@ -2692,6 +2692,15 @@ remain refused.
 State remains CONTINUE. This closes only the named reference CLI projection
 paths; broader process diagnostic coverage remains open.
 
+## 2026-09-15 reference diagnostic JSON validity hardening
+
+- Corrected the bounded reference diagnostic emitter so truncation never cuts
+  through a multi-byte JSON escape and control bytes are emitted as `\\u00XX`.
+- Full normal and Clang 18.1.3 ASan/UBSan suites passed 149/149 after the
+  correction.
+
+State remains CONTINUE. Broader process diagnostic coverage remains open.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA

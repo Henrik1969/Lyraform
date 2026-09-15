@@ -10,29 +10,49 @@ inline constexpr std::size_t max_diagnostic_bytes = 4096;
 
 inline void write_json_string(std::FILE* output, std::string_view value) noexcept {
     std::size_t emitted = 0;
-    const auto put = [&](const char* text) {
-        for (const char* character = text; *character != '\0'; ++character) {
-            if (emitted >= max_diagnostic_bytes) return false;
-            (void)std::fputc(*character, output);
+    const auto put = [&](const char* text, const std::size_t length) {
+        for (std::size_t index = 0; index < length; ++index) {
+            (void)std::fputc(text[index], output);
             ++emitted;
         }
-        return true;
+    };
+    const auto truncated = [&] {
+        if (emitted <= max_diagnostic_bytes - 3) put("...", 3);
     };
     for (const unsigned char character : value) {
         const char* escaped = nullptr;
+        std::size_t escaped_length = 0;
+        char control_escape[6]{};
         switch (character) {
-        case '\\': escaped = "\\\\"; break;
-        case '"': escaped = "\\\""; break;
-        case '\n': escaped = "\\n"; break;
-        case '\r': escaped = "\\r"; break;
-        case '\t': escaped = "\\t"; break;
+        case '\\': escaped = "\\\\"; escaped_length = 2; break;
+        case '"': escaped = "\\\""; escaped_length = 2; break;
+        case '\n': escaped = "\\n"; escaped_length = 2; break;
+        case '\r': escaped = "\\r"; escaped_length = 2; break;
+        case '\t': escaped = "\\t"; escaped_length = 2; break;
         default:
-            if (emitted >= max_diagnostic_bytes) { (void)put("..."); return; }
-            (void)std::fputc(character, output);
-            ++emitted;
-            continue;
+            if (character < 0x20) {
+                constexpr char hex[] = "0123456789abcdef";
+                control_escape[0] = '\\';
+                control_escape[1] = 'u';
+                control_escape[2] = '0';
+                control_escape[3] = '0';
+                control_escape[4] = hex[(character >> 4) & 0xf];
+                control_escape[5] = hex[character & 0xf];
+                escaped = control_escape;
+                escaped_length = 6;
+            } else {
+                if (emitted >= max_diagnostic_bytes - 3) { truncated(); return; }
+                (void)std::fputc(character, output);
+                ++emitted;
+                continue;
+            }
         }
-        if (!put(escaped)) { (void)std::fputs("...", output); return; }
+        if (emitted > max_diagnostic_bytes - 3 ||
+            escaped_length > max_diagnostic_bytes - 3 - emitted) {
+            truncated();
+            return;
+        }
+        put(escaped, escaped_length);
     }
 }
 
