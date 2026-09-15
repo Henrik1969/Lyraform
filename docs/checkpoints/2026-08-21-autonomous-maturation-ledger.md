@@ -2607,6 +2607,15 @@ fault-injection coverage remain unfinished.
 State remains CONTINUE. This is classification hardening only; provider
 execution, recovery, trust, and arbitrary ABI/FFI remain unadmitted.
 
+## 2026-09-15 Flowbind bounded-report Memcheck
+
+- Direct Valgrind Memcheck of the hostile 1,000-failure report completed with
+  zero errors and zero definite or indirect leaks.
+- A shell-wrapper leak was excluded from executable evidence; the direct
+  Flowbind process freed all heap blocks.
+
+State remains CONTINUE.
+
 ## 2026-09-15 Flowbind blocked-report condition codes
 
 - Added stable `code` and `stage` fields to blocked binding reports.

@@ -377,6 +377,14 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowbind bounded-report Memcheck — 2026-09-15
+
+Direct Valgrind Memcheck coverage of the hostile 1,000-failure Flowbind
+report completed with zero errors and zero definite or indirect leaks. A
+wrapper-level run separately exposed a shell-runtime leak, so it is not
+credited as executable evidence; the direct Flowbind result is the relevant
+boundary proof. The safety state remains `CONTINUE`.
+
 ## Flowbind mixed-failure precedence — 2026-09-15
 
 When one binding request produces multiple failure classes, Flowbind now uses
