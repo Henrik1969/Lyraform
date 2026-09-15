@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <chrono>
+#include <cstring>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -27,28 +28,46 @@ constexpr int device_to_host = 2;
 
 using Library = flowparallel::DynamicLibrary;
 
+class InputError final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowparallel::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowparallel::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowparallel::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
+
+std::string read_bounded_input(std::istream& input) {
+    try {
+        return flowparallel::read_bounded(input, "semantic report");
+    } catch (const std::bad_alloc&) {
+        throw;
+    } catch (const std::exception& error) {
+        throw InputError(error.what());
+    }
+}
+
 void check(error_t value, const char* operation) { if (value != success) throw std::runtime_error(std::string(operation) + " failed: " + std::to_string(value)); }
 
 std::string read_input(int argc, char** argv) {
     if (argc > 2 && !(argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json"))
-        throw std::runtime_error("usage: flowparallel_graph_cuda [semantic-report.json]");
-    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); return flowparallel::read_bounded(file, "semantic report"); }
-    return flowparallel::read_bounded(std::cin, "semantic report");
+        throw InputError("usage: flowparallel_graph_cuda [semantic-report.json]");
+    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw InputError("cannot open semantic report"); return read_bounded_input(file); }
+    return read_bounded_input(std::cin);
 }
 
 std::string quote(std::string_view value) { std::string result = "\""; for (char character : value) { if (character == '\\' || character == '"') result.push_back('\\'); result.push_back(character); } result.push_back('"'); return result; }
 std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
-int run_with_libraries(std::string_view report, Library& runtime, Library& blas) {
-#ifdef FLOWPARALLEL_GRAPH_CUDA_TEST_ALLOCATION_FAILURE
-    (void)report;
-    throw std::bad_alloc();
-#endif
-    const auto semantic = flowcontracts::semantic_report(flowcontracts::json::parse(report));
-    if (semantic.artifact.status != "ok") { std::cout << "{\"format\":\"flowparallel.graph_cuda\",\"version\":1,\"status\":\"blocked\"}\n"; return 2; }
+int run_with_libraries(const flowcontracts::SemanticReport& semantic, Library& runtime, Library& blas) {
     const auto rows = static_cast<std::size_t>(semantic.dependency_matrix.rows);
     const auto columns = static_cast<std::size_t>(semantic.dependency_matrix.columns);
-    if (rows == 0 || rows != columns || rows > 1024) throw std::runtime_error("unsupported graph matrix dimensions");
     const std::size_t elements = rows * columns; std::vector<float> adjacency(elements, 0.0F);
     for (const auto& entry : semantic.dependency_matrix.entries)
         adjacency[static_cast<std::size_t>(entry.column) * rows + static_cast<std::size_t>(entry.row)] = entry.value ? 1.0F : 0.0F;
@@ -94,12 +113,22 @@ int run_with_libraries(std::string_view report, Library& runtime, Library& blas)
 }
 
 int run(std::string_view report) {
+#ifdef FLOWPARALLEL_GRAPH_CUDA_TEST_ALLOCATION_FAILURE
+    (void)report;
+    throw std::bad_alloc();
+#endif
+    const auto semantic = flowcontracts::semantic_report(flowcontracts::json::parse(report));
+    if (semantic.artifact.status != "ok") { std::cout << "{\"format\":\"flowparallel.graph_cuda\",\"version\":1,\"status\":\"blocked\"}\n"; return 2; }
+    const auto rows = static_cast<std::size_t>(semantic.dependency_matrix.rows);
+    const auto columns = static_cast<std::size_t>(semantic.dependency_matrix.columns);
+    if (rows == 0 || rows != columns || rows > 1024)
+        throw flowcontracts::json::Error("$.analysis_graph", "unsupported graph matrix dimensions");
     std::optional<Library> runtime;
     std::optional<Library> blas;
     try {
         runtime.emplace("libcudart.so.12");
         blas.emplace("libcublas.so.12");
-        const int result = run_with_libraries(report, *runtime, *blas);
+        const int result = run_with_libraries(semantic, *runtime, *blas);
         const int runtime_close = runtime->close();
         const int blas_close = blas->close();
         if (runtime_close != 0 || blas_close != 0)
@@ -116,26 +145,33 @@ int run(std::string_view report) {
 }
 
 int main(int argc, char** argv) {
-    const bool structured_diagnostics = argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json";
+    bool structured_diagnostics = false;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_cuda - CUDA Boolean graph reachability\n\nOptions: --diagnostics json\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel computes Boolean graph reachability through CUDA cuBLAS with CPU differential verification.\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << "0.1.0\n"; return 0; }
         return run(read_input(argc, argv));
     } catch (const std::bad_alloc&) {
-        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_CUDA_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         else std::cerr << "flowparallel_graph_cuda error: allocation failed\n";
         return 1;
+    } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_CUDA_CONTRACT_FAILURE", "contract", error.what());
+        else std::cerr << "flowparallel_graph_cuda contract error: " << error.what() << '\n';
+        return 1;
+    } catch (const InputError& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_CUDA_INPUT_INVALID", "input", error.what());
+        else std::cerr << "flowparallel_graph_cuda input error: " << error.what() << '\n';
+        return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) {
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_FAILURE\",\"message\":\"";
-            flowparallel::write_json_string(stderr, error.what());
-            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
-        }
-        else std::cerr << "flowparallel_graph_cuda error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_CUDA_PROVIDER_FAILURE", "provider", error.what());
+        else std::cerr << "flowparallel_graph_cuda provider error: " << error.what() << '\n';
         return 1;
     } catch (...) {
-        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_CUDA_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_CUDA_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
         else std::cerr << "flowparallel_graph_cuda error: unknown non-standard failure\n";
         return 1;
     }

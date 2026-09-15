@@ -1379,3 +1379,32 @@ This closes condition-specific process classification for these two provider
 ingress boundaries only. Broader native provider/API containment, fault
 injection, isolation, and trust controls remain open. The safety state remains
 `CONTINUE`.
+
+## Flowparallel graph-provider validation order — 2026-09-15
+
+The CPU reference and CUDA graph providers now classify malformed semantic
+artifacts as `*_CONTRACT_FAILURE` at stage `contract`, bounded/CLI input
+failures as `*_INPUT_INVALID` at stage `input`, and allocation exhaustion as a
+runtime failure. The CUDA path separately reports discovery, execution, and
+cleanup exceptions as `FLOWPARALLEL_GRAPH_CUDA_PROVIDER_FAILURE` at stage
+`provider`. Structured failure stdout remains empty with `no_artifact`.
+
+The CUDA graph provider now parses and validates the semantic report and graph
+dimensions before opening CUDA Runtime or cuBLAS. This prevents missing or
+failing host libraries from masking an invalid artifact. A valid compiler-chain
+graph on this host reached provider discovery and returned the explicit
+provider failure `cudaGetDeviceCount failed: 100`, with zero stdout bytes and a
+`no_artifact` diagnostic; a malformed report is independently proven to fail
+at the contract stage before discovery.
+
+The focused exception-containment, graph-reference, graph-reference allocation,
+and graph-CUDA allocation tests passed 4/4 under both GCC and Clang 18.1.3
+ASan/UBSan. Complete suites passed 149/149 under GCC in 54.61 seconds and
+149/149 under Clang sanitizers in 99.64 seconds with the documented leak
+setting. The real-device four-shape CUDA firetest was not run in this restricted
+host pass and is not claimed here.
+
+This closes validation order and process classification for the tested graph
+provider ingress only. Real-device execution assurance, broader provider/API
+fault injection, isolation, and trust controls remain open. The safety state
+remains `CONTINUE`.

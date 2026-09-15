@@ -2654,6 +2654,24 @@ isolation, trust, and Stage 1 readiness work remains open.
 State remains CONTINUE. Broader native provider/API containment, fault
 injection, isolation, trust, and Stage 1 readiness work remains open.
 
+## 2026-09-15 Flowparallel graph-provider validation order
+
+- Split CPU-reference and CUDA graph-provider contract, input, exhaustion,
+  provider, and unknown process outcomes into explicit stages.
+- Moved semantic-report and graph-dimension validation ahead of CUDA Runtime
+  and cuBLAS discovery, so host-provider state cannot mask malformed input.
+- A valid compiler-chain graph on this host reached CUDA discovery and returned
+  `FLOWPARALLEL_GRAPH_CUDA_PROVIDER_FAILURE` for `cudaGetDeviceCount failed:
+  100`, with empty stdout and `no_artifact`.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 4/4. Complete suites
+  passed 149/149 under GCC in 54.61 seconds and Clang sanitizers in 99.64
+  seconds with the documented leak setting.
+- The real-device four-shape graph-CUDA firetest was unavailable in this
+  restricted host pass and is not claimed.
+
+State remains CONTINUE. Real-device execution assurance, broader provider/API
+fault injection, isolation, trust, and Stage 1 readiness work remains open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

@@ -29,5 +29,5 @@ printf '%s\n' '{"format":"wrong"}' | "$cuda" --diagnostics json > /dev/null 2>"$
 diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -ne 0
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_CUDA_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_CUDA_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
 echo 'Flowparallel CUDA graph firetest: 4/4 shapes passed'

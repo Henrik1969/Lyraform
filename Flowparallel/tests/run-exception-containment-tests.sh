@@ -60,8 +60,8 @@ check_oversized_stdin() {
 check_stdin plan FLOWPARALLEL_CONTRACT_FAILURE '' "$flowparallel" --diagnostics json
 check_stdin cpu FLOWPARALLEL_CPU_CONTRACT_FAILURE contract "$cpu" --diagnostics json
 check_stdin cuda FLOWPARALLEL_CUDA_CONTRACT_FAILURE contract "$cuda" --diagnostics json
-check_stdin graph_reference FLOWPARALLEL_GRAPH_REFERENCE_FAILURE '' "$graph_reference" --diagnostics json
-check_stdin graph_cuda FLOWPARALLEL_GRAPH_CUDA_FAILURE '' "$graph_cuda" --diagnostics json
+check_stdin graph_reference FLOWPARALLEL_GRAPH_REFERENCE_CONTRACT_FAILURE contract "$graph_reference" --diagnostics json
+check_stdin graph_cuda FLOWPARALLEL_GRAPH_CUDA_CONTRACT_FAILURE contract "$graph_cuda" --diagnostics json
 check_oversized_stdin plan_oversized "$flowparallel"
 check_oversized_stdin cpu_oversized "$cpu"
 check_oversized_stdin cuda_oversized "$cuda"

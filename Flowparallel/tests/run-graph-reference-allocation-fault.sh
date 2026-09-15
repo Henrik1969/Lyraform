@@ -14,6 +14,6 @@ set -e
 
 test "$status" -eq 1
 test ! -s "$tmpdir/stdout"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_REFERENCE_RESOURCE_EXHAUSTED" and .disposition == "no_artifact"' \
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_REFERENCE_RESOURCE_EXHAUSTED" and .stage == "runtime" and .disposition == "no_artifact"' \
   "$tmpdir/stderr" >/dev/null
 echo 'Flowparallel graph-reference allocation-fault containment: PASS'

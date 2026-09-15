@@ -195,6 +195,12 @@ with thresholded Boolean semantics and is accepted only when its reachable-pair
 count matches the CPU reference. Sparse/dense selection and cost policy remain
 the next calibration gate.
 
+Both graph providers validate and classify the semantic artifact before CUDA
+library discovery. Structured contract and input failures use the provider's
+`*_CONTRACT_FAILURE`/`contract` and `*_INPUT_INVALID`/`input` outcomes; graph
+CUDA discovery or execution failures use `FLOWPARALLEL_GRAPH_CUDA_PROVIDER_FAILURE`
+at stage `provider`. Artifact stdout remains empty for these failures.
+
 The Flowparallel execution plan preserves the COO entries in its graph
 projection so downstream optimizer stages can inspect and transform the
 derived view without losing the canonical graph boundary.

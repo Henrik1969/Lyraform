@@ -31,5 +31,12 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -ne 0
 test -z "$diagnostic_out"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_REFERENCE_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_REFERENCE_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+set +e
+diagnostic_out=$("$reference" --diagnostics json extra 2>"$diagnostic_err")
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+test -z "$diagnostic_out"
+jq -e '.code == "FLOWPARALLEL_GRAPH_REFERENCE_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 echo 'Flowparallel graph reference: PASS'

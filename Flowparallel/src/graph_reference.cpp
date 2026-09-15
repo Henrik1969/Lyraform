@@ -3,6 +3,7 @@
 #include <flowparallel/diagnostics.hpp>
 
 #include <cstddef>
+#include <cstring>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -16,11 +17,36 @@
 namespace {
 constexpr std::string_view version = "0.1.0";
 
+class InputError final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowparallel::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowparallel::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowparallel::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
+
+std::string read_bounded_input(std::istream& input) {
+    try {
+        return flowparallel::read_bounded(input, "semantic report");
+    } catch (const std::bad_alloc&) {
+        throw;
+    } catch (const std::exception& error) {
+        throw InputError(error.what());
+    }
+}
+
 std::string read_input(int argc, char** argv) {
     if (argc > 2 && !(argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json"))
-        throw std::runtime_error("usage: flowparallel_graph_reference [semantic-report.json]");
-    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw std::runtime_error("cannot open semantic report"); return flowparallel::read_bounded(file, "semantic report"); }
-    return flowparallel::read_bounded(std::cin, "semantic report");
+        throw InputError("usage: flowparallel_graph_reference [semantic-report.json]");
+    if (argc == 2) { std::ifstream file(argv[1]); if (!file) throw InputError("cannot open semantic report"); return read_bounded_input(file); }
+    return read_bounded_input(std::cin);
 }
 
 std::string quote(std::string_view value) {
@@ -42,7 +68,7 @@ int run(std::string_view report) {
     }
     const auto& matrix = semantic.dependency_matrix;
     if (matrix.rows <= 0 || matrix.rows != matrix.columns || matrix.rows > 4096)
-        throw std::runtime_error("unsupported graph matrix dimensions");
+        throw flowcontracts::json::Error("$.analysis_graph", "unsupported graph matrix dimensions");
     const auto rows = static_cast<std::size_t>(matrix.rows);
     const auto columns = static_cast<std::size_t>(matrix.columns);
     std::vector<unsigned char> reach(rows * columns, 0);
@@ -61,27 +87,33 @@ int run(std::string_view report) {
 }
 
 int main(int argc, char** argv) {
-    const bool structured_diagnostics = argc == 3 && std::string_view(argv[1]) == "--diagnostics" && std::string_view(argv[2]) == "json";
+    bool structured_diagnostics = false;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_reference - CPU reference graph reachability\n\nOptions: -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel computes verified Boolean graph reachability as the CPU reference provider.\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << version << '\n'; return 0; }
         return run(read_input(argc, argv));
     } catch (const std::bad_alloc&) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_REFERENCE_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         else std::cerr << "flowparallel_graph_reference error: allocation failed\n";
         return 1;
+    } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_REFERENCE_CONTRACT_FAILURE", "contract", error.what());
+        else std::cerr << "flowparallel_graph_reference contract error: " << error.what() << '\n';
+        return 1;
+    } catch (const InputError& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_REFERENCE_INPUT_INVALID", "input", error.what());
+        else std::cerr << "flowparallel_graph_reference input error: " << error.what() << '\n';
+        return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) {
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_FAILURE\",\"message\":\"";
-            flowparallel::write_json_string(stderr, error.what());
-            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
-        } else std::cerr << "flowparallel_graph_reference error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_REFERENCE_FAILURE", "runtime", error.what());
+        else std::cerr << "flowparallel_graph_reference runtime error: " << error.what() << '\n';
         return 1;
     } catch (...) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_GRAPH_REFERENCE_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_REFERENCE_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
         else std::cerr << "flowparallel_graph_reference error: unknown non-standard failure\n";
         return 1;
     }
