@@ -377,6 +377,22 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Lyraform compiler-driver diagnostic boundary — 2026-09-15
+
+The current Lyraform compiler driver now emits structured failure records via
+the shared bounded, allocation-free Flowcontracts writer. Its existing
+explicit translation from parser/runtime failures to `DiagnosticError`,
+tagged runtime outcomes, and no-artifact process failure remains unchanged;
+only the second-allocation hazard in JSON escaping was removed.
+
+The focused integration, pipeline, pass-corpus, stdlib, support, UTF-8,
+structured-diagnostic, and allocation-fault gates passed (10/10 selected
+tests) in the normal GCC tree. This closes the current compiler-driver
+diagnostic formatter only; language-runtime allocation and historical
+implementation snapshots remain separately scoped.
+
+The safety state remains `CONTINUE`.
+
 ## Kernel and artifact-validator diagnostic boundary — 2026-09-15
 
 Flowkernel and Flowvalidate now use the bounded Flowcontracts writer when

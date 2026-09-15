@@ -6,6 +6,7 @@
 #include "flowmini_structural.h"
 #include "flowmini_token_tree_bridge.h"
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -584,43 +585,18 @@ namespace {
         flowmini::writeFlowIr(module, out);
     }
 
-    std::string jsonEscape(const std::string& value) {
-        std::string escaped;
-        escaped.reserve(value.size());
-        for (const unsigned char c : value) {
-            switch (c) {
-                case '\\': escaped += "\\\\"; break;
-                case '"': escaped += "\\\""; break;
-                case '\n': escaped += "\\n"; break;
-                case '\r': escaped += "\\r"; break;
-                case '\t': escaped += "\\t"; break;
-                default:
-                    if (c < 0x20) {
-                        escaped += "\\u00";
-                        const char* digits = "0123456789abcdef";
-                        escaped += digits[c >> 4];
-                        escaped += digits[c & 0x0f];
-                    } else {
-                        escaped.push_back(static_cast<char>(c));
-                    }
-            }
-        }
-        return escaped;
-    }
-
     void writeStructuredFailure(
-        std::ostream& out,
-        const std::string& code,
-        const std::string& stage,
-        const std::string& message
-    ) {
-        out << "{\"status\":\"failed\",\"code\":\""
-            << jsonEscape(code)
-            << "\",\"stage\":\""
-            << jsonEscape(stage)
-            << "\",\"message\":\""
-            << jsonEscape(message)
-            << "\",\"disposition\":\"no_artifact\"}\n";
+        std::string_view code,
+        std::string_view stage,
+        std::string_view message
+    ) noexcept {
+        std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+        flowcontracts::write_json_string(stderr, code);
+        std::fputs("\",\"stage\":\"", stderr);
+        flowcontracts::write_json_string(stderr, stage);
+        std::fputs("\",\"message\":\"", stderr);
+        flowcontracts::write_json_string(stderr, message);
+        std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
     }
 
 } // namespace
@@ -821,7 +797,7 @@ int main(int argc, char** argv) {
         const auto runtime = flowmini::runModuleChecked(module, ctx, registry);
         if (!runtime.completed) {
             if (structuredDiagnostics) {
-                writeStructuredFailure(std::cerr, runtime.code, runtime.stage, runtime.message);
+                writeStructuredFailure(runtime.code, runtime.stage, runtime.message);
             } else {
                 std::cerr << "fatal in " << runtime.stage << ": " << runtime.message << '\n';
                 log.write(ctx);
@@ -833,7 +809,7 @@ int main(int argc, char** argv) {
 
     } catch (const flow::DiagnosticError& err) {
         if (structuredDiagnostics) {
-            writeStructuredFailure(std::cerr, err.code(), err.stage(), err.what());
+            writeStructuredFailure(err.code(), err.stage(), err.what());
         } else {
             log.writeFatal(err);
             log.write(ctx);
@@ -841,7 +817,7 @@ int main(int argc, char** argv) {
         return 1;
     } catch (const std::bad_alloc&) {
         if (structuredDiagnostics) {
-            writeStructuredFailure(std::cerr, "FLOW_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
+            writeStructuredFailure("FLOW_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         } else {
             std::cerr << "fatal in runtime: allocation failed\n";
             log.write(ctx);
@@ -849,7 +825,7 @@ int main(int argc, char** argv) {
         return 1;
     } catch (const std::exception& err) {
         if (structuredDiagnostics) {
-            writeStructuredFailure(std::cerr, "FLOW_UNEXPECTED_EXCEPTION", "runtime", err.what());
+            writeStructuredFailure("FLOW_UNEXPECTED_EXCEPTION", "runtime", err.what());
         } else {
             std::cerr << "fatal in unknown: " << err.what() << '\n';
             log.write(ctx);
@@ -857,7 +833,7 @@ int main(int argc, char** argv) {
         return 1;
     } catch (...) {
         if (structuredDiagnostics) {
-            writeStructuredFailure(std::cerr, "FLOW_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
+            writeStructuredFailure("FLOW_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
         } else {
             std::cerr << "fatal in unknown: unknown non-standard failure\n";
             log.write(ctx);

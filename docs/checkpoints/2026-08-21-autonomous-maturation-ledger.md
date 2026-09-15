@@ -2632,6 +2632,18 @@ allocation-fault coverage remain open.
 
 State remains CONTINUE. Broader API/provider fault coverage remains open.
 
+## 2026-09-15 Lyraform compiler-driver diagnostic boundary
+
+- Migrated the current compiler driver’s structured failure formatter to the
+  shared bounded, allocation-free Flowcontracts writer.
+- Preserved explicit `DiagnosticError` translation, runtime outcome handling,
+  and no-artifact failure semantics.
+- Selected compiler integration, frontend, pipeline, structured-diagnostic,
+  and allocation-fault gates passed.
+
+State remains CONTINUE. Runtime allocation coverage and historical snapshots
+remain separately scoped.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance
