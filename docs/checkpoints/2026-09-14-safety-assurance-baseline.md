@@ -377,6 +377,17 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Reference CLI diagnostic allocation boundary — 2026-09-15
+
+The clock and provenance reference CLIs now emit structured failure strings
+through a bounded, allocation-free C stdio writer. Machine-readable catch
+paths cap each encoded field at 4096 bytes, preserve JSON escaping, and retain
+the `no_artifact` disposition without constructing temporary strings.
+The focused clock/revision gate passed 7/7.
+
+This covers the named reference CLIs only; broader process diagnostic and
+platform coverage remains provisional. The safety state remains `CONTINUE`.
+
 ## Flowparallel worker-failure capture bound — 2026-09-15
 
 The independent CPU executor now captures worker exception text into a fixed

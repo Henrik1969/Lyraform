@@ -1,3 +1,5 @@
+#include "../diagnostics.hpp"
+
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
@@ -16,26 +18,12 @@ struct ClockReading {
     std::string name;
 };
 
-std::string json_escape(std::string_view value) {
-    std::string escaped;
-    escaped.reserve(value.size());
-    for (const unsigned char character : value) {
-        if (character == '\\') escaped += "\\\\";
-        else if (character == '"') escaped += "\\\"";
-        else if (character == '\n') escaped += "\\n";
-        else if (character == '\r') escaped += "\\r";
-        else if (character == '\t') escaped += "\\t";
-        else escaped.push_back(static_cast<char>(character));
-    }
-    return escaped;
-}
-
 void write_structured_failure(std::string_view code, std::string_view message) {
-    std::cerr << "{\"status\":\"failed\",\"code\":\""
-              << json_escape(code)
-              << "\",\"message\":\""
-              << json_escape(message)
-              << "\",\"disposition\":\"no_artifact\"}\n";
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowtools::reference::write_json_string(stderr, code);
+    std::fputs("\",\"message\":\"", stderr);
+    flowtools::reference::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
 
 ClockReading select_clock(std::string_view name) {

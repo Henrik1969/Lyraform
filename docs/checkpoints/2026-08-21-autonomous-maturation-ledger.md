@@ -2682,6 +2682,16 @@ remain open.
 State remains CONTINUE. General scheduler, cancellation, and async contracts
 remain refused.
 
+## 2026-09-15 bounded reference CLI diagnostics
+
+- Added a shared reference-tool JSON string emitter that performs escaping
+  directly to C stdio with a 4096-byte field bound and no temporary allocation.
+- Migrated the clock and provenance reference CLI structured catch paths and
+  verified their focused contract/revision gates passed 7/7.
+
+State remains CONTINUE. This closes only the named reference CLI projection
+paths; broader process diagnostic coverage remains open.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA
