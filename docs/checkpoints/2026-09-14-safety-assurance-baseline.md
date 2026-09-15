@@ -1537,3 +1537,26 @@ the documented leak setting.
 This closes ordinary Linux atomic visibility for both retained binary artifact
 formats. Parent-directory crash durability, abrupt-death orphan cleanup, and
 cross-platform equivalents remain open. The safety state remains `CONTINUE`.
+
+## Flowlower atomic LLVM publication — 2026-09-15
+
+Flowlower now renders LLVM IR before creating a private sibling file, then
+writes, flushes, synchronizes, and closes that file before atomically renaming
+it over the requested destination. It recognizes exact structured mode before
+ordinary option allocation and classifies publication failure as
+`FLOWLOWER_OUTPUT_FAILURE` at stage `output` rather than as invalid input.
+
+The new publication gate injects partial write, `fsync`, close, and rename
+failure independently. Every case leaves stdout empty, reports `no_artifact`,
+preserves the prior destination byte-for-byte, and removes the temporary file;
+the normal case publishes executable LLVM IR. The focused backend, pipeline,
+and publication tests passed 3/3 under GCC and Clang 18.1.3 ASan/UBSan. A
+Valgrind 3.22.0 success-path run reported zero errors, zero live blocks, and 207
+allocations matched by 207 frees. Complete suites passed 152/152 under GCC in
+59.81 seconds and 152/152 under Clang sanitizers in 108.33 seconds with the
+documented leak setting.
+
+This proves ordinary Linux process-level LLVM artifact visibility, not
+parent-directory crash durability or abrupt-death orphan cleanup. Flowmini
+auxiliary file outputs and cross-platform equivalents remain separate. The
+safety state remains `CONTINUE`.

@@ -2765,6 +2765,24 @@ work remain open.
 State remains CONTINUE. Parent-directory crash durability, abrupt-death orphan
 cleanup, cross-platform equivalents, and broader trust work remain open.
 
+## 2026-09-15 Flowlower atomic LLVM publication
+
+- Rendered LLVM IR before opening a private sibling and added synchronized,
+  close-checked atomic rename over the requested destination.
+- Classified publication faults as `FLOWLOWER_OUTPUT_FAILURE`/`output` and
+  moved exact structured-mode recognition ahead of allocating option parsing.
+- Added independent partial-write, `fsync`, close, and rename injection; each
+  preserves the previous destination, removes the temporary file, and emits no
+  success report.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 3/3. Valgrind 3.22.0
+  reported a clean success path with 207 allocations and frees.
+- Complete suites passed 152/152 under GCC in 59.81 seconds and Clang
+  sanitizers in 108.33 seconds with the documented leak setting.
+
+State remains CONTINUE. Parent-directory crash durability, abrupt-death orphan
+cleanup, Flowmini auxiliary-output publication, cross-platform equivalents,
+and broader trust work remain open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

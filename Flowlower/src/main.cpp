@@ -1,3 +1,5 @@
+#include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <new>
@@ -5,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unistd.h>
 
 #include <flowcontracts/validate.hpp>
 #include <flowcontracts/bounded_input.hpp>
@@ -17,6 +20,7 @@ namespace {
 constexpr std::string_view VERSION = "0.1.0";
 
 struct Options { std::string optimization_path, binding_path, llvm_path, target_name; bool structured_diagnostics = false; };
+struct OutputError : std::runtime_error { using std::runtime_error::runtime_error; };
 
 Options parse_options(int argc, char** argv) {
     Options options;
@@ -50,6 +54,27 @@ void write_structured_failure(std::string_view code, std::string_view stage, std
     std::fputs("\",\"message\":\"", stderr);
     flowcontracts::write_json_string(stderr, message);
     std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
+
+void write_atomic_file(const std::string& path, std::string_view contents) {
+    std::string temporary = path + ".tmp.XXXXXX";
+    const int descriptor = mkstemp(temporary.data());
+    if (descriptor < 0) throw OutputError("cannot create private LLVM output");
+    FILE* file = fdopen(descriptor, "wb");
+    bool published = false;
+    if (file) {
+        bool complete = std::fwrite(contents.data(), 1, contents.size(), file) == contents.size();
+        if (complete && std::fflush(file) != 0) complete = false;
+        if (complete && fsync(descriptor) != 0) complete = false;
+        if (std::fclose(file) != 0) complete = false;
+        if (complete && std::rename(temporary.c_str(), path.c_str()) == 0) published = true;
+    } else {
+        close(descriptor);
+    }
+    if (!published) {
+        std::remove(temporary.c_str());
+        throw OutputError("cannot publish LLVM output");
+    }
 }
 
 int lower(std::string_view report, const Options& options, std::string_view binding_report) {
@@ -131,9 +156,8 @@ int lower(std::string_view report, const Options& options, std::string_view bind
     if (!options.llvm_path.empty()) {
         const auto llvm_body = emit(report, binding_report);
         if (!llvm_body) throw std::runtime_error("LLVM emission requires a supported typed lowering plan");
-        std::ofstream llvm(options.llvm_path);
-        if (!llvm) throw std::runtime_error("cannot open LLVM output");
-        llvm << "; Flowcore target artifact: " << selected_target << '\n' << *llvm_body;
+        const auto artifact = "; Flowcore target artifact: " + selected_target + '\n' + *llvm_body;
+        write_atomic_file(options.llvm_path, artifact);
     }
 
     const bool native_graph = field(*field(root, "lowering_plan"), "source_graph") != nullptr;
@@ -158,6 +182,9 @@ int lower(std::string_view report, const Options& options, std::string_view bind
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         if (argc == 2) {
             const std::string option = argv[1];
             if (option == "-h" || option == "--help" || option == "-?") {
@@ -187,6 +214,9 @@ int main(int argc, char** argv) {
     } catch (const std::bad_alloc&) {
         if (structured_diagnostics) { write_structured_failure("FLOWLOWER_RESOURCE_EXHAUSTED", "runtime", "allocation failed"); return 1; }
         std::cerr << "flowlower error: allocation failed\n"; return 1;
+    } catch (const OutputError& error) {
+        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_OUTPUT_FAILURE", "output", error.what()); return 1; }
+        std::cerr << "flowlower output error: " << error.what() << '\n'; return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics) { write_structured_failure("FLOWLOWER_INPUT_INVALID", "input", error.what()); return 1; }
         std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"unsupported\","
@@ -194,7 +224,7 @@ int main(int argc, char** argv) {
                   << quote(error.what()) << "}}\n";
         std::cerr << "flowlower error: " << error.what() << '\n'; return 1;
     } catch (...) {
-        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_UNKNOWN_FAILURE", "cli", "unknown non-standard failure"); return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure"); return 1; }
         std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"unsupported\","
                      "\"backend\":\"llvm\",\"diagnostic\":{\"code\":\"FLOWLOWER_UNKNOWN_FAILURE\",\"reason\":\"unknown non-standard failure\"}}\n";
         std::cerr << "flowlower error: unknown non-standard failure\n"; return 1;

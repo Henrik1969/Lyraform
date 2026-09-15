@@ -14,6 +14,14 @@ add_executable(flowlower_allocation_fault src/main.cpp)
 target_compile_definitions(flowlower_allocation_fault PRIVATE FLOWLOWER_TEST_ALLOCATION_FAILURE)
 target_compile_options(flowlower_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowlower_allocation_fault PRIVATE flowcontracts)
+add_executable(flowlower_publication_fault src/main.cpp tests/publication-fault-wrap.cpp)
+target_compile_options(flowlower_publication_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(flowlower_publication_fault PRIVATE flowcontracts)
+target_link_options(flowlower_publication_fault PRIVATE
+    "-Wl,--wrap=fwrite"
+    "-Wl,--wrap=fsync"
+    "-Wl,--wrap=fclose"
+    "-Wl,--wrap=rename")
 add_executable(flowprepare src/prepare.cpp)
 target_compile_options(flowprepare PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowprepare PRIVATE flowcontracts)
@@ -65,6 +73,11 @@ add_test(NAME flowlower_allocation_fault
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWLOWER_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowlower_allocation_fault>
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-flowlower-allocation-fault.sh)
+add_test(NAME flowlower_publication_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWLOWER_PUBLICATION_FAULT_BIN=$<TARGET_FILE:flowlower_publication_fault>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-flowlower-publication-fault.sh)
 if(TARGET flowmini AND TARGET flowanalyst AND TARGET flowparallel AND TARGET flowoptimize AND TARGET flowbind)
     set_tests_properties(flowlower_pipeline PROPERTIES
         ENVIRONMENT "FLOWMINI_BIN=$<TARGET_FILE:flowmini>;FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>;FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>;FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>;FLOWBIND_BIN=$<TARGET_FILE:flowbind>")

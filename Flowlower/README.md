@@ -63,6 +63,12 @@ With `--diagnostics json`, malformed or missing input is reported on stderr as
 `FLOWLOWER_INPUT_INVALID` at the `input` stage, with empty stdout and no
 artifact disposition. This keeps hostile input outside the lowering artifact
 boundary while preserving the human-readable compatibility path.
+LLVM IR is rendered completely before publication, written and synchronized
+through a private sibling file, and atomically renamed over the requested path
+only after a successful close. Write, sync, close, or rename failure preserves
+an existing destination and returns `FLOWLOWER_OUTPUT_FAILURE` at stage
+`output`; parent-directory crash durability and abrupt-death orphan cleanup are
+not claimed.
 
 The companion `flowprepare` and `flowtarget` tools use the same structured
 input boundary. Missing artifacts, incomplete options, unavailable policies,
