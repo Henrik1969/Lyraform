@@ -2597,6 +2597,20 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 Flowbind provider-unavailable admission
+
+- Added an isolated `flowbind_provider` case where policy authorizes a
+  library path that is not present at inspection time.
+- The executable returns exit status 2 and a versioned `binding_report` with
+  `status: blocked`, a `library unavailable` failure, and no ready binding
+  artifact.
+- This records fail-closed absence handling without changing serialized
+  protocol identifiers or admitting arbitrary native ABI/FFI.
+
+State remains CONTINUE. Provider replacement after authorization,
+digest/trust admission, native execution, and broader provider fault coverage
+remain unfinished.
+
 ## 2026-09-15 toolchain diagnostic allocation boundary
 
 - Added a shared bounded, allocation-free JSON diagnostic writer to

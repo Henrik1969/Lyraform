@@ -22,7 +22,8 @@ printf '%s\n' \
   'allow libc.so.6 write c io' \
   'allow libc.so.6 sendfile c io' \
   'allow libc.so.6 close c io' \
-  'allow libc.so.6 flowcore_symbol_that_does_not_exist c pure' > "$policy"
+  'allow libc.so.6 flowcore_symbol_that_does_not_exist c pure' \
+  "allow $tmpdir/provider-that-is-not-present.so exported_symbol c pure" > "$policy"
 
 for hostile in \
   '{"format":"flowanalyst.semantic_report","format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[]}' \
@@ -83,6 +84,13 @@ bad_rc=$?
 set -e
 test "$bad_rc" -eq 2
 printf '%s\n' "$bad" | grep -q 'unavailable'
+
+set +e
+missing_provider=$(printf '%s' "{\"format\":\"flowanalyst.semantic_report\",\"version\":1,\"status\":\"ok\",\"binding_requirements\":[{\"contract\":\"missing-provider\",\"library\":\"$tmpdir/provider-that-is-not-present.so\",\"convention\":\"c\",\"symbol\":\"exported_symbol\",\"effect\":\"pure\",\"parameter_types\":\"\",\"return_type\":\"c_int\"}]}" | "$bin" --policy "$policy")
+missing_provider_rc=$?
+set -e
+test "$missing_provider_rc" -eq 2
+printf '%s\n' "$missing_provider" | jq -e '.status == "blocked" and (.failures | any(contains("library unavailable")))' >/dev/null
 
 set +e
 bad_type=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[{"contract":"bad","library":"libc.so.6","convention":"c","symbol":"abs","effect":"pure","parameter_types":"not_an_abi_type","return_type":"c_int"}]}' | "$bin" --policy "$policy")

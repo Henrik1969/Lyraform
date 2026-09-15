@@ -377,6 +377,20 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowbind provider-unavailable boundary — 2026-09-15
+
+Flowbind now has explicit hostile coverage for a policy-authorized library
+that is absent at inspection. The `flowbind_provider` gate proves that the
+boundary returns a versioned `binding_report` with `status: blocked`, reports
+`library unavailable`, and publishes no ready binding artifact.
+
+The focused test passed in both the normal GCC tree and the Clang 18.1.3
+ASan/UBSan tree. This closes absence-at-inspection only; provider replacement
+after authorization, digest/trust admission, and native execution remain open
+safety work.
+
+The safety state remains `CONTINUE`.
+
 ## Optional ConfigResolve provider evidence boundary — 2026-09-15
 
 The canonical Lyraform build reports `ConfigResolve adapter disabled` because
