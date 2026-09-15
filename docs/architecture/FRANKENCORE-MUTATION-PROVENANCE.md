@@ -65,6 +65,12 @@ does not force the future runtime storage model. Its contract is checked by
 The promoted core currently lives at `Frankencore/Core/Provenance` and is
 exposed to CMake consumers as `Frankencore::Provenance`.
 
+Boundary consumers should use `validate_checked(const MutationRecord&)` for
+non-throwing validation. It preserves the canonical validation rules and
+returns an invalid `ValidationResult` for allocation, standard, or unknown
+failures. The throwing-compatible `validate()` remains available for legacy
+Stage 0 callers; it is not a Lyraform language failure mechanism.
+
 The intended durable history is a generated file kept inside the project. It
 must follow the project and must not silently pollute a global user or system
 store. Its canonical visible path is

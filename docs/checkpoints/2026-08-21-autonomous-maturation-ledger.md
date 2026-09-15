@@ -2614,6 +2614,17 @@ State remains CONTINUE. This closes one direct Frankencore validation boundary;
 broader allocation-fault coverage and the remaining Stage 0 safety gates stay
 open.
 
+## 2026-09-15 safety-case inventory reconciliation
+
+- Reconciled the authoritative safety-case inventory and mutation-provenance
+  contract with the published `validate_checked()` boundary.
+- The inventory continues to classify the overall exception-containment row as
+  provisional: checked boundaries are evidenced for named surfaces, while
+  broader provider/API containment and complete fault injection remain open.
+
+State remains CONTINUE. No language exception semantics, certification claim,
+FlowLFS content, or `master` history was changed.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA
