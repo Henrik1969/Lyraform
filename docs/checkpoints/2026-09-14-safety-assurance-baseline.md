@@ -383,7 +383,9 @@ The Flowcontracts diagnostic writer now has direct adversarial unit coverage:
 JSON quotes, slashes, newlines, and control bytes are escaped correctly; a
 10,000-byte hostile value is capped at 4096 bytes with an atomic `...`
 truncation marker; and the bounded output remains valid JSON string content.
-The `flowcontracts_json` test passed in the normal GCC tree.
+The `flowcontracts_json` test passed in the normal GCC tree and under
+Valgrind 3.22.0 Memcheck with zero errors and zero bytes still allocated at
+exit.
 
 This proves the shared primitive’s local contract, not complete end-to-end
 log retention or provider fault coverage. The safety state remains

@@ -2662,6 +2662,8 @@ scoped.
   valid JSON content, and 10,000-byte hostile diagnostic truncation.
 - The writer remains capped at 4096 bytes and emits a complete truncation
   marker without splitting an escape token.
+- Valgrind 3.22.0 Memcheck reported zero errors and zero bytes still allocated
+  at exit for the direct test.
 
 State remains CONTINUE. End-to-end log retention and provider fault coverage
 remain open.
