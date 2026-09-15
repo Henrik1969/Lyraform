@@ -15,5 +15,6 @@ target_compile_features(frankencore_core_packages_fault PUBLIC cxx_std_20)
 target_compile_options(frankencore_core_packages_fault PRIVATE -Wall -Wextra -Wpedantic)
 target_compile_definitions(frankencore_core_packages_fault PRIVATE
     FRANKENCORE_PACKAGES_TEST_ALLOCATION_FAILURE
-    FRANKENCORE_PACKAGES_TEST_READ_ALLOCATION_FAILURE)
+    FRANKENCORE_PACKAGES_TEST_READ_ALLOCATION_FAILURE
+    FRANKENCORE_PACKAGES_TEST_APT_INDEX_ALLOCATION_FAILURE)
 add_library(Frankencore::PackagesFault ALIAS frankencore_core_packages_fault)

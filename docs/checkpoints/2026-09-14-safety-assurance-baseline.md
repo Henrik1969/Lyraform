@@ -377,6 +377,18 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore apt-provider pipe cleanup — 2026-09-15
+
+The native `apt-indextargets` package reader now owns its `popen()` stream with
+a scoped `pclose()` guard. Allocation or parser failure after process launch
+therefore cannot bypass pipe cleanup; normal completion still observes the
+provider exit status. The fault variant injects allocation exhaustion after
+`popen()` and the checked boundary admits no partial inventory.
+
+The focused package probe and allocation-fault tests passed 2/2 in the normal
+tree. This closes one provider cleanup path and does not claim complete native
+cleanup or cancellation coverage. The safety state remains `CONTINUE`.
+
 ## CUDA execution dynamic-library cleanup — 2026-09-15
 
 The CUDA execution provider now uses the shared `DynamicLibrary` owner. Its

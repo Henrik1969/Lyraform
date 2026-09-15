@@ -21,6 +21,19 @@ constexpr std::size_t MAX_APT_DIRECTORY_ENTRIES = 100000U;
 constexpr std::size_t MAX_APT_SOURCES = 100000U;
 constexpr std::size_t MAX_APT_INDEX_TARGETS = 100000U;
 
+struct ScopedPipe {
+    FILE* value = nullptr;
+
+    ~ScopedPipe() { (void)close(); }
+
+    int close() noexcept {
+        if (value == nullptr) return 0;
+        const int status = pclose(value);
+        value = nullptr;
+        return status;
+    }
+};
+
 std::string json_escape(const std::string& value) {
     std::string result;
     result.reserve(value.size() + 2);
@@ -435,6 +448,10 @@ Inventory read_apt_index_targets(const std::string& apt_get_path) {
                        "unable to invoke native apt-get indextargets", 0);
         return inventory;
     }
+    ScopedPipe stream_guard{stream};
+#ifdef FRANKENCORE_PACKAGES_TEST_APT_INDEX_ALLOCATION_FAILURE
+    throw std::bad_alloc();
+#endif
     char buffer[4096];
     std::size_t line_number = 0;
     bool target_limit_reported = false;
@@ -460,7 +477,7 @@ Inventory read_apt_index_targets(const std::string& apt_get_path) {
             target_limit_reported = true;
         }
     }
-    const int status = pclose(stream);
+    const int status = stream_guard.close();
     if (status == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         add_diagnostic(inventory, "native-provider-failed",
                        "apt-get indextargets failed", 0);

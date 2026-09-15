@@ -2625,6 +2625,18 @@ open.
 State remains CONTINUE. No language exception semantics, certification claim,
 FlowLFS content, or `master` history was changed.
 
+## 2026-09-15 apt provider pipe cleanup
+
+- Replaced the normal-only `pclose()` path in the native apt-indextargets
+  reader with scoped pipe ownership, covering allocation and parser failures
+  after `popen()`.
+- Added a test-only post-`popen` allocation fault and verified the checked
+  reader returns an invalid result without partial inventory. The focused
+  package probe/fault gate passed 2/2.
+
+State remains CONTINUE. Broader native cleanup and cancellation coverage remain
+open; FlowLFS and `master` remain untouched.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA
