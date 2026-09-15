@@ -2611,6 +2611,16 @@ State remains CONTINUE. Provider replacement after authorization,
 digest/trust admission, native execution, and broader provider fault coverage
 remain unfinished.
 
+## 2026-09-15 generated-provider replacement evidence recheck
+
+- Re-ran `native_binding_generation` in the normal GCC and Clang 18.1.3
+  ASan/UBSan trees.
+- Both gates passed, including the generated digest-bound provider replacement
+  refusal. This remains a narrow inspection-time control, not a post-binding
+  replacement protocol or native execution authorization.
+
+State remains CONTINUE.
+
 ## 2026-09-15 toolchain diagnostic allocation boundary
 
 - Added a shared bounded, allocation-free JSON diagnostic writer to

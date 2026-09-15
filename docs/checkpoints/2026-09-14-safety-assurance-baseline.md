@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Generated-provider replacement evidence recheck — 2026-09-15
+
+The existing `native_binding_generation` gate was re-run in the normal GCC
+tree and the Clang 18.1.3 ASan/UBSan tree. It passed in both trees, including
+the digest-bound replacement-provider refusal. This confirms the narrow
+replacement evidence credited in the safety matrix; it does not admit
+post-binding provider replacement or native invocation.
+
+The safety state remains `CONTINUE`.
+
 ## Flowbind provider-unavailable boundary — 2026-09-15
 
 Flowbind now has explicit hostile coverage for a policy-authorized library
