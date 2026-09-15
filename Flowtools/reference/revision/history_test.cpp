@@ -20,6 +20,7 @@ bool fail_close = false;
 bool fail_directory_close = false;
 bool fail_truncate = false;
 bool crash_on_file_fsync = false;
+bool crash_on_parent_fsync = false;
 bool crash_on_partial_write = false;
 
 extern "C" int __real_ftruncate(int, off_t);
@@ -46,6 +47,10 @@ extern "C" int __wrap_close(int descriptor) {
 extern "C" int __real_fsync(int);
 extern "C" int __wrap_fsync(int descriptor) {
     if (crash_on_file_fsync) ::_exit(137);
+    if (crash_on_parent_fsync) {
+        struct stat details{};
+        if (::fstat(descriptor, &details) == 0 && S_ISDIR(details.st_mode)) ::_exit(139);
+    }
     if (fail_fsync) {
         errno = EIO;
         return -1;
@@ -345,6 +350,27 @@ int main() {
     const auto partial_crash_repair = partial_crash_history.repair_incomplete_tail();
     assert(partial_crash_repair.valid && partial_crash_repair.status == "repaired");
     assert(partial_crash_history.inspect().valid && partial_crash_history.inspect().records == 1);
+
+    const auto parent_fsync_crash_path = base / "parent-fsync-crash.jsonl";
+    ErrorStateHistory parent_fsync_crash_history(parent_fsync_crash_path.string());
+    const auto parent_fsync_crash_opened = event("opened");
+    assert(parent_fsync_crash_history.append(parent_fsync_crash_opened).status == "appended");
+    const auto parent_fsync_crash_pid = ::fork();
+    assert(parent_fsync_crash_pid >= 0);
+    if (parent_fsync_crash_pid == 0) {
+        crash_on_parent_fsync = true;
+        auto parent_fsync_crash_diagnosed = parent_fsync_crash_opened;
+        parent_fsync_crash_diagnosed.event_id = generate_ulid();
+        parent_fsync_crash_diagnosed.status = "diagnosed";
+        (void)parent_fsync_crash_history.append(parent_fsync_crash_diagnosed);
+        ::_exit(126);
+    }
+    int parent_fsync_crash_status = 0;
+    assert(::waitpid(parent_fsync_crash_pid, &parent_fsync_crash_status, 0) == parent_fsync_crash_pid);
+    assert(WIFEXITED(parent_fsync_crash_status) && WEXITSTATUS(parent_fsync_crash_status) == 139);
+    crash_on_parent_fsync = false;
+    const auto parent_fsync_crash_inspection = parent_fsync_crash_history.inspect();
+    assert(parent_fsync_crash_inspection.valid && parent_fsync_crash_inspection.records == 2);
 
     const auto left_path = base / "branch-left.jsonl";
     const auto right_path = base / "branch-right.jsonl";

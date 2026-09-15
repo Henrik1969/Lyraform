@@ -390,6 +390,19 @@ zero errors and zero definite/indirect leaks across the forked test.
 This strengthens crash-depth evidence but does not close retention or all
 possible kernel/filesystem crash points. The safety state remains `CONTINUE`.
 
+## Durable-history parent-directory crash boundary — 2026-09-15
+
+The history fault matrix now also kills a child after the complete record file
+has been synchronized but before the parent-directory synchronization barrier
+returns. The parent observes both complete records as valid; no torn record is
+promoted and no silent retry is introduced. The history test passes in GCC and
+Clang 18.1.3 ASan/UBSan; Valgrind 3.22.0 reports zero errors and zero
+definite/indirect leaks. Directory durability remains an explicit filesystem
+boundary rather than an inferred guarantee.
+
+Retention and additional kernel/filesystem crash points remain open. The
+safety state remains `CONTINUE`.
+
 ## Shared diagnostic-writer adversarial contract — 2026-09-15
 
 The Flowcontracts diagnostic writer now has direct adversarial unit coverage:

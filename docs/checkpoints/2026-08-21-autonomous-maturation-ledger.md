@@ -2679,6 +2679,16 @@ remain open.
 State remains CONTINUE. Retention and deeper filesystem crash points remain
 open.
 
+## 2026-09-15 durable-history parent-directory crash boundary
+
+- Added a child-process crash after file `fsync()` and before parent-directory
+  `fsync()` completion.
+- Verified that complete records remain valid and no torn record is promoted.
+- GCC, ASan/UBSan, and Valgrind focused gates pass.
+
+State remains CONTINUE. Directory durability is kept as an explicit
+filesystem boundary; retention and further crash points remain open.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance
