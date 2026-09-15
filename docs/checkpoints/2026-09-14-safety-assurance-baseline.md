@@ -1496,3 +1496,25 @@ The underlying v2 writer still opens the destination directly. A write or
 close failure can therefore leave a partial or truncated destination visible;
 atomic artifact publication and injected write/close faults remain open. The
 safety state remains `CONTINUE`.
+
+## TinyVM v2 atomic artifact publication — 2026-09-15
+
+The TinyVM v2 writer now completes validation and encoding before creating a
+private sibling file. It writes, flushes, synchronizes, and closes that file,
+then atomically renames it over the destination. Ordinary failure removes the
+temporary file and does not replace an existing destination.
+
+The new `tinyvm_artifact_v2_publication_fault` gate injects partial write,
+`fsync`, close, and rename failures independently. Every case preserves the
+prior destination byte-for-byte and leaves no sibling temporary file; the
+success case publishes an independently readable artifact. The focused v2
+artifact/lowering set passed 6/6 under GCC and Clang 18.1.3 ASan/UBSan.
+Valgrind 3.22.0 reported zero errors, zero live blocks, and 4,969 allocations
+matched by 4,969 frees. Complete suites passed 150/150 under GCC in 57.82
+seconds and 150/150 under Clang sanitizers in 105.34 seconds with the documented
+leak setting.
+
+This proves ordinary Linux process-level atomic visibility, not persistence of
+the rename across a host crash. Parent-directory synchronization, abrupt-death
+orphan cleanup, v1 atomic publication, and cross-platform equivalents remain
+open. The safety state remains `CONTINUE`.

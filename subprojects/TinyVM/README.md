@@ -104,6 +104,12 @@ output publication failure, resource exhaustion, runtime failure, and unknown
 non-standard failure as distinct staged `no_artifact` records on standard
 error. Successful and explicitly unsupported lowering results remain on
 standard output.
+Version 2 artifacts are encoded before publication, written and synchronized
+through a private sibling file, and atomically renamed over the destination
+only after a successful close. Publication failure preserves any previous
+destination and removes the temporary file during ordinary failure handling;
+parent-directory crash durability and abrupt-death orphan cleanup are not
+claimed.
 
 The current Gate 6 slice additionally admits executable source graphs with one
 authorized startup provider and serial fresh receiver activations. Receiver

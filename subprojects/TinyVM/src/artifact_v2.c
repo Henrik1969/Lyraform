@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef TINYVM_ARTIFACT_V2_TEST_ALLOCATION_FAILURE
 static void *tinyvm_artifact_v2_fault_malloc(size_t size){(void)size;return NULL;}
@@ -98,11 +99,32 @@ static void encode_sections(const TinyvmArtifactV2 *a,uint8_t *b,const Section *
     }
 }
 
+static bool publish_atomic(const char *path,const uint8_t *bytes,size_t size){
+    static const char suffix[]=".tmp.XXXXXX";
+    size_t path_size=strlen(path);
+    if(path_size>SIZE_MAX-sizeof(suffix))return false;
+    char *temporary=malloc(path_size+sizeof(suffix));
+    if(!temporary)return false;
+    memcpy(temporary,path,path_size);memcpy(temporary+path_size,suffix,sizeof(suffix));
+    int descriptor=mkstemp(temporary);
+    if(descriptor<0){free(temporary);return false;}
+    FILE *file=fdopen(descriptor,"wb");
+    bool ok=false;
+    if(file){
+        ok=fwrite(bytes,1,size,file)==size;
+        if(ok&&fflush(file)!=0)ok=false;
+        if(ok&&fsync(descriptor)!=0)ok=false;
+        if(fclose(file)!=0)ok=false;
+    }else close(descriptor);
+    if(ok&&rename(temporary,path)==0){free(temporary);return true;}
+    unlink(temporary);free(temporary);return false;
+}
+
 bool tinyvm_artifact_v2_write(const char *path,TinyvmArtifactV2 *a,char *d,size_t cap){
     if(!tinyvm_artifact_v2_validate(a,d,cap))return false;
     Section s[7];size_t n=sections_for(a,s,d,cap);if(!n)return false;size_t size=s[n-1].offset+s[n-1].size;uint8_t *b=malloc(size);if(!b){diag(d,cap,"allocation failed");return false;}
     encode_header(a,b,size,s,n);encode_sections(a,b,s,n);SHA256(b,size,b+384);memcpy(a->digest,b+384,32);
-    FILE *f=fopen(path,"wb");bool ok=false;if(f){ok=fwrite(b,1,size,f)==size;if(fclose(f))ok=false;}free(b);diag(d,cap,ok?"valid":"artifact write failed");return ok;
+    bool ok=publish_atomic(path,b,size);free(b);diag(d,cap,ok?"valid":"artifact write failed");return ok;
 }
 
 static bool parse_directory(const uint8_t *b,size_t size,Section s[7],size_t *count,char *d,size_t cap){

@@ -99,6 +99,13 @@ target_link_libraries(flowtinyv2_allocation_fault PRIVATE tinyvm_recovered_artif
 add_executable(tinyvm_runtime_provider_allocation_fault tests/runtime-provider-allocation-fault.c tests/runtime-provider-realloc-wrap.c)
 target_link_libraries(tinyvm_runtime_provider_allocation_fault PRIVATE tinyvm_recovered)
 target_link_options(tinyvm_runtime_provider_allocation_fault PRIVATE "-Wl,--wrap=malloc" "-Wl,--wrap=calloc" "-Wl,--wrap=realloc" "-Wl,--wrap=dlclose")
+add_executable(tinyvm_artifact_v2_publication_fault tests/artifact-v2-publication-fault.c)
+target_link_libraries(tinyvm_artifact_v2_publication_fault PRIVATE tinyvm_recovered)
+target_link_options(tinyvm_artifact_v2_publication_fault PRIVATE
+    "-Wl,--wrap=fwrite"
+    "-Wl,--wrap=fsync"
+    "-Wl,--wrap=fclose"
+    "-Wl,--wrap=rename")
 endif()
 
 if(BUILD_TESTING)
@@ -140,6 +147,9 @@ if(BUILD_TESTING)
         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/artifact-v2-allocation-fault.sh
                 $<TARGET_FILE:flowtinyv2-roundtrip>
                 $<TARGET_FILE:flowtinyv2_allocation_fault>
+                ${CMAKE_CURRENT_BINARY_DIR})
+    add_test(NAME tinyvm_artifact_v2_publication_fault
+        COMMAND $<TARGET_FILE:tinyvm_artifact_v2_publication_fault>
                 ${CMAKE_CURRENT_BINARY_DIR})
     add_test(NAME tinyvm_artifact_v1_allocation_fault
         COMMAND $<TARGET_FILE:flowtinyv1_allocation_fault>

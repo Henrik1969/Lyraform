@@ -2734,6 +2734,22 @@ State remains CONTINUE. TinyVM v2 output still writes directly to the final
 destination; atomic publication and write/close fault injection remain open,
 along with wider Stage 0 containment and trust work.
 
+## 2026-09-15 TinyVM v2 atomic artifact publication
+
+- Changed v2 publication to encode first, then write, flush, synchronize, and
+  close a private sibling before atomically renaming it over the destination.
+- Added independent partial-write, `fsync`, close, and rename fault injection;
+  every failure preserves the prior destination and removes the ordinary
+  temporary file, while success publishes a readable artifact.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 6/6. Valgrind 3.22.0
+  reported zero errors and no leaks, with 4,969 allocations and frees.
+- Complete suites passed 150/150 under GCC in 57.82 seconds and Clang
+  sanitizers in 105.34 seconds with the documented leak setting.
+
+State remains CONTINUE. Parent-directory crash durability, abrupt-death orphan
+cleanup, v1 atomic publication, cross-platform equivalents, and broader trust
+work remain open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as
