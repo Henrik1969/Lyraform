@@ -1,5 +1,7 @@
 #include <flowcontracts/json.hpp>
+#include <flowcontracts/diagnostics.hpp>
 
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -17,6 +19,19 @@ template <class Callable> void rejects(Callable callable, std::string_view path)
 template <class Callable> void rejects_any(Callable callable) {
     try { callable(); } catch (const flowcontracts::json::Error&) { return; }
     require(false, "bounded JSON hostile input was accepted");
+}
+
+std::string diagnostic_text(std::string_view value) {
+    std::FILE* file = std::tmpfile();
+    require(file != nullptr, "temporary diagnostic file unavailable");
+    flowcontracts::write_json_string(file, value);
+    require(std::fflush(file) == 0, "diagnostic flush failed");
+    require(std::fseek(file, 0, SEEK_SET) == 0, "diagnostic rewind failed");
+    std::string result;
+    for (int character = std::fgetc(file); character != EOF; character = std::fgetc(file))
+        result.push_back(static_cast<char>(character));
+    std::fclose(file);
+    return result;
 }
 }
 
@@ -47,5 +62,16 @@ int main() {
     const auto& root = object(parsed);
     rejects([&] { (void)required(root, "missing"); }, "$.missing");
     rejects([&] { (void)integer(required(root, "a"), "$.a"); }, "$.a");
+
+    require(diagnostic_text("quote\" slash\\ newline\n control\x01") ==
+                "quote\\\" slash\\\\ newline\\n control\\u0001",
+            "diagnostic escaping mismatch");
+    std::string oversized(10000, 'x');
+    const auto bounded = diagnostic_text(oversized);
+    require(bounded.size() <= flowcontracts::max_diagnostic_bytes, "diagnostic bound exceeded");
+    require(bounded.size() == flowcontracts::max_diagnostic_bytes && bounded.ends_with("..."),
+            "diagnostic truncation mismatch");
+    try { (void)parse('"' + bounded + '"'); }
+    catch (const Error&) { require(false, "bounded diagnostic is not valid JSON string content"); }
     return 0;
 }

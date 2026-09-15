@@ -2656,6 +2656,16 @@ State remains CONTINUE. The remaining native graph CUDA formatter helper is
 used only by non-structured compatibility output and remains separately
 scoped.
 
+## 2026-09-15 shared diagnostic-writer adversarial contract
+
+- Added direct `flowcontracts_json` coverage for escaping, control bytes,
+  valid JSON content, and 10,000-byte hostile diagnostic truncation.
+- The writer remains capped at 4096 bytes and emits a complete truncation
+  marker without splitting an escape token.
+
+State remains CONTINUE. End-to-end log retention and provider fault coverage
+remain open.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance

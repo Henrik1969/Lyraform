@@ -377,6 +377,18 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Shared diagnostic-writer adversarial contract — 2026-09-15
+
+The Flowcontracts diagnostic writer now has direct adversarial unit coverage:
+JSON quotes, slashes, newlines, and control bytes are escaped correctly; a
+10,000-byte hostile value is capped at 4096 bytes with an atomic `...`
+truncation marker; and the bounded output remains valid JSON string content.
+The `flowcontracts_json` test passed in the normal GCC tree.
+
+This proves the shared primitive’s local contract, not complete end-to-end
+log retention or provider fault coverage. The safety state remains
+`CONTINUE`.
+
 ## Graph-planner diagnostic boundary correction — 2026-09-15
 
 The Flowparallel graph planner’s structured exception path now uses the
