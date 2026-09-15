@@ -34,14 +34,14 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -eq 1
 test -z "$diagnostic_report"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_FAILURE" and (.message | contains("complete non-negative integer")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_INPUT_INVALID" and .stage == "input" and (.message | contains("complete non-negative integer")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 set +e
 overflow_report=$(printf '%s\n' "$plan" | "$cuda" --matrix-size 4294967295 --diagnostics json 2>"$diagnostic_err")
 overflow_rc=$?
 set -e
 test "$overflow_rc" -eq 1
 test -z "$overflow_report"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_FAILURE" and (.message | contains("between 1 and 4096")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_INPUT_INVALID" and .stage == "input" and (.message | contains("between 1 and 4096")) and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 printf '%s\n' "$plan" | jq '.cancellation = "requested"' >"$unsupported_plan"
 if unsupported=$("$cuda" --plan "$unsupported_plan" 2>/dev/null); then
   echo 'CUDA provider accepted an unsupported cancellation request' >&2
@@ -58,7 +58,14 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -eq 1
 test ! -s "$diagnostic_out"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CUDA_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+set +e
+"$cuda" --plan "${unsupported_plan}.missing" --diagnostics json >"$diagnostic_out" 2>"$diagnostic_err"
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+test ! -s "$diagnostic_out"
+jq -e '.code == "FLOWPARALLEL_CUDA_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 if printf '%s' '{"format":"flowparallel.execution_plan","format":"flowparallel.execution_plan","version":1,"status":"ready"}' | "$cuda" >/dev/null 2>&1; then
   echo 'CUDA provider accepted duplicate execution-plan authority' >&2
   exit 1

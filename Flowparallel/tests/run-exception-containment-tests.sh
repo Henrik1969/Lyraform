@@ -20,14 +20,15 @@ printf '%s\n' '{"format":"frankencore.runtime_capabilities","version":1,"cpu":{"
 check_stdin() {
     name=$1
     expected_code=$2
-    shift 2
+    expected_stage=$3
+    shift 3
     set +e
     output=$(cat "$tmpdir/malformed.json" | "$@" 2>"$tmpdir/$name.err")
     status=$?
     set -e
     test "$status" -eq 1
     test -z "$output"
-    jq -e --arg code "$expected_code" '.status == "failed" and .code == $code and .disposition == "no_artifact" and (.message | length > 0)' "$tmpdir/$name.err" >/dev/null
+    jq -e --arg code "$expected_code" --arg stage "$expected_stage" '.status == "failed" and .code == $code and ($stage == "" or .stage == $stage) and .disposition == "no_artifact" and (.message | length > 0)' "$tmpdir/$name.err" >/dev/null
 }
 
 check_file() {
@@ -56,11 +57,11 @@ check_oversized_stdin() {
     jq -e '.status == "failed" and .disposition == "no_artifact" and (.message | contains("16 MiB input limit"))' "$tmpdir/$name.err" >/dev/null
 }
 
-check_stdin plan FLOWPARALLEL_CONTRACT_FAILURE "$flowparallel" --diagnostics json
-check_stdin cpu FLOWPARALLEL_CPU_FAILURE "$cpu" --diagnostics json
-check_stdin cuda FLOWPARALLEL_CUDA_FAILURE "$cuda" --diagnostics json
-check_stdin graph_reference FLOWPARALLEL_GRAPH_REFERENCE_FAILURE "$graph_reference" --diagnostics json
-check_stdin graph_cuda FLOWPARALLEL_GRAPH_CUDA_FAILURE "$graph_cuda" --diagnostics json
+check_stdin plan FLOWPARALLEL_CONTRACT_FAILURE '' "$flowparallel" --diagnostics json
+check_stdin cpu FLOWPARALLEL_CPU_CONTRACT_FAILURE contract "$cpu" --diagnostics json
+check_stdin cuda FLOWPARALLEL_CUDA_CONTRACT_FAILURE contract "$cuda" --diagnostics json
+check_stdin graph_reference FLOWPARALLEL_GRAPH_REFERENCE_FAILURE '' "$graph_reference" --diagnostics json
+check_stdin graph_cuda FLOWPARALLEL_GRAPH_CUDA_FAILURE '' "$graph_cuda" --diagnostics json
 check_oversized_stdin plan_oversized "$flowparallel"
 check_oversized_stdin cpu_oversized "$cpu"
 check_oversized_stdin cuda_oversized "$cuda"

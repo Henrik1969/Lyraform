@@ -1352,3 +1352,30 @@ This closes condition-specific process classification for these two planner
 ingress boundaries only. The safety inventory remains provisional because
 other provider and Frankencore APIs, broader fault injection, isolation, and
 trust controls remain open. The safety state remains `CONTINUE`.
+
+## Flowparallel CPU/CUDA provider failure classification — 2026-09-15
+
+The CPU and CUDA selection providers now distinguish parsed execution-plan
+violations from CLI and input failures. Malformed, duplicate-authority,
+wrong-version, and wrong-type plan cases produce `FLOWPARALLEL_CPU_CONTRACT_FAILURE`
+or `FLOWPARALLEL_CUDA_CONTRACT_FAILURE` at stage `contract`. Invalid numeric
+options, missing plan files, and oversized input produce the corresponding
+`*_INPUT_INVALID` result at stage `input`. Allocation exhaustion and unknown
+non-standard failures remain distinct runtime outcomes; all tested failures
+leave stdout empty with `no_artifact`.
+
+Both providers now detect exact structured-diagnostics mode inside their
+top-level protected boundary using allocation-free comparisons. This removes
+the previous `std::string` allocation before `try` without changing CPU
+selection, CUDA discovery, refusal, fallback, or execution policy.
+
+The focused exception-containment, CPU provider/allocation, and CUDA
+provider/allocation tests passed 5/5 under both GCC and Clang 18.1.3
+ASan/UBSan. Complete suites passed 149/149 under GCC in 52.11 seconds and
+149/149 under Clang sanitizers in 99.89 seconds with the documented leak
+setting.
+
+This closes condition-specific process classification for these two provider
+ingress boundaries only. Broader native provider/API containment, fault
+injection, isolation, and trust controls remain open. The safety state remains
+`CONTINUE`.

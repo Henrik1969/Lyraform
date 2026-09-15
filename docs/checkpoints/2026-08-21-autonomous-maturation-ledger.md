@@ -2636,6 +2636,24 @@ readiness claim.
 State remains CONTINUE. Other provider/API containment, fault injection,
 isolation, trust, and Stage 1 readiness work remains open.
 
+## 2026-09-15 Flowparallel CPU/CUDA provider failure classification
+
+- Split CPU and CUDA selection-provider failures into stable parsed-contract
+  and untrusted-input outcomes with `contract` and `input` stages.
+- Preserved resource exhaustion and unknown failures as distinct runtime
+  outcomes; failure stdout remains empty and dispositions remain
+  `no_artifact`.
+- Removed allocating structured-mode detection before the top-level protected
+  boundary in both providers.
+- Added missing-file evidence and tightened malformed-plan and numeric-option
+  assertions. The focused exception/provider/allocation set passed 5/5 under
+  both GCC and Clang 18.1.3 ASan/UBSan.
+- Complete suites passed 149/149 under GCC in 52.11 seconds and Clang
+  sanitizers in 99.89 seconds with the documented leak setting.
+
+State remains CONTINUE. Broader native provider/API containment, fault
+injection, isolation, trust, and Stage 1 readiness work remains open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

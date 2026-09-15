@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <charconv>
+#include <cstring>
 #include <cstdlib>
 #include <cstdint>
 #include <flowcontracts/json.hpp>
@@ -18,6 +19,16 @@
 namespace {
 
 constexpr std::string_view VERSION = "0.1.0";
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowparallel::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowparallel::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowparallel::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
 
 struct Options { std::string plan_path; double observed_speedup = 0.0; double minimum_speedup = 1.25; unsigned requested_workers = 0; bool structured_diagnostics = false; };
 
@@ -80,9 +91,9 @@ int resolve(const std::string& plan, const Options& options) {
     using namespace flowcontracts::json;
     const auto root = object(flowcontracts::json::parse(plan));
     if (string(required(root, "format"), "$.format") != "flowparallel.execution_plan")
-        throw std::runtime_error("input is not a Flowparallel execution plan");
+        throw Error("$.format", "input is not a Flowparallel execution plan");
     if (integer(required(root, "version"), "$.version") != 1)
-        throw std::runtime_error("unsupported Flowparallel execution plan version");
+        throw Error("$.version", "unsupported Flowparallel execution plan version");
     const auto has_field = [&](std::string_view field, std::string_view value) {
         const auto* item = optional(root, field);
         return item != nullptr && string(*item, std::string("$.") + std::string(field)) == value;
@@ -100,7 +111,7 @@ int resolve(const std::string& plan, const Options& options) {
     std::uint64_t candidates = 0;
     if (const auto* item = optional(dependency, "parallel_candidates"); item != nullptr) {
         const auto value = integer(*item, "$.dependency_analysis.parallel_candidates");
-        if (value < 0) throw std::runtime_error("parallel_candidates must not be negative");
+        if (value < 0) throw Error("$.dependency_analysis.parallel_candidates", "must not be negative");
         candidates = static_cast<std::uint64_t>(value);
     }
     const long local_processors = sysconf(_SC_NPROCESSORS_ONLN);
@@ -126,26 +137,26 @@ int resolve(const std::string& plan, const Options& options) {
 
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
-    for (int index = 1; index + 1 < argc; ++index)
-        if (std::string(argv[index]) == "--diagnostics" && std::string(argv[index + 1]) == "json") structured_diagnostics = true;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         const auto options = parse(argc, argv);
         return resolve(read_input(options), options);
     } catch (const std::bad_alloc&) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CPU_RESOURCE_EXHAUSTED\",\"stage\":\"runtime\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CPU_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         else std::cerr << "flowparallel_cpu error: allocation failed\n";
         return 1;
+    } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CPU_CONTRACT_FAILURE", "contract", error.what());
+        else std::cerr << "flowparallel_cpu contract error: " << error.what() << '\n';
+        return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) {
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CPU_FAILURE\",\"message\":\"";
-            flowparallel::write_json_string(stderr, error.what());
-            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
-        } else std::cerr << "flowparallel_cpu error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CPU_INPUT_INVALID", "input", error.what());
+        else std::cerr << "flowparallel_cpu input error: " << error.what() << '\n';
         return 1;
     } catch (...) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CPU_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CPU_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
         else std::cerr << "flowparallel_cpu error: unknown non-standard failure\n";
         return 1;
     }

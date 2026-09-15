@@ -70,7 +70,7 @@ numeric_hostile_rc=$?
 set -e
 test "$numeric_hostile_rc" -eq 1
 test -z "$numeric_hostile"
-jq -e '.code == "FLOWPARALLEL_CPU_FAILURE" and (.message | contains("complete non-negative integer"))' "$diagnostic_err" >/dev/null
+jq -e '.code == "FLOWPARALLEL_CPU_INPUT_INVALID" and .stage == "input" and (.message | contains("complete non-negative integer"))' "$diagnostic_err" >/dev/null
 
 set +e
 diagnostic_out=$(printf '%s' '{"format":"wrong"}' | "$cpu" --diagnostics json 2>"$diagnostic_err")
@@ -78,7 +78,15 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -ne 0
 test -z "$diagnostic_out"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_CPU_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CPU_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+
+set +e
+diagnostic_out=$("$cpu" --plan "${diagnostic_err}.missing" --diagnostics json 2>"$diagnostic_err")
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+test -z "$diagnostic_out"
+jq -e '.code == "FLOWPARALLEL_CPU_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 
 set +e
 nested=$(printf '%s' '{"format":"flowparallel.execution_plan","version":1,"status":"ready","dependency_analysis":{"parallel_candidates":0},"metadata":{"cancellation":"requested"}}' | "$cpu")

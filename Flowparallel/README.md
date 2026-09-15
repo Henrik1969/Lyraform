@@ -60,6 +60,9 @@ and nested lookalike fields cannot alter the top-level scheduling policy.
 failures as structured `no_artifact` diagnostics; the default remains a
 human-readable error. Numeric worker and speedup policy arguments must be
 complete finite tokens; malformed suffixes are rejected before selection.
+Parsed plan violations use `FLOWPARALLEL_CPU_CONTRACT_FAILURE` at stage
+`contract`; malformed options and missing or oversized plan input use
+`FLOWPARALLEL_CPU_INPUT_INVALID` at stage `input`.
 
 The optional `flowparallel_cuda` provider currently probes the CUDA driver and
 emits a linear-algebra workload contract for matrix multiplication. It includes
@@ -71,6 +74,9 @@ backpressure before probing the driver, returning an explicit unsupported
 selection without a fallback artifact. `--diagnostics json` translates
 argument, input, and provider failures to a machine-readable `no_artifact`
 diagnostic; normal human-readable diagnostics remain available by default.
+The CUDA provider mirrors the CPU provider's condition-specific contract and
+input classification with `FLOWPARALLEL_CUDA_CONTRACT_FAILURE` and
+`FLOWPARALLEL_CUDA_INPUT_INVALID`.
 
 ## Parallel smoke test
 
