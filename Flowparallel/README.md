@@ -149,6 +149,9 @@ lowering from a Flowparallel plan remain separate capabilities.
 `--diagnostics json` translates argument, provider, and cleanup failures into
 a stable `no_artifact` record on stderr; normal human-readable diagnostics
 remain the default.
+Invalid execution options use `FLOWPARALLEL_CUDA_EXECUTE_INPUT_INVALID` at
+stage `input`; CUDA discovery, execution, and cleanup failures use
+`FLOWPARALLEL_CUDA_EXECUTE_PROVIDER_FAILURE` at stage `provider`.
 
 `flowparallel_matrix_benchmark` compares an optimized single-thread CPU
 baseline with cuBLAS and reports both compute-only and end-to-end timings. Its
@@ -159,6 +162,9 @@ The benchmark uses the same explicit device-resource owner as the execution
 paths. Allocation, transfer, warm-up, timed execution, verification, and
 cleanup failures are checked; `--diagnostics json` produces a stable
 `no_artifact` failure record without presenting calibration as execution proof.
+Benchmark option failures use `FLOWPARALLEL_MATRIX_BENCHMARK_INPUT_INVALID` at
+stage `input`; CUDA provider failures use
+`FLOWPARALLEL_MATRIX_BENCHMARK_PROVIDER_FAILURE` at stage `provider`.
 
 ## Runtime provider planner
 

@@ -2685,6 +2685,23 @@ fault injection, isolation, trust, and Stage 1 readiness work remains open.
 State remains CONTINUE. Other native execution/provider APIs, broader fault
 injection, isolation, trust, and Stage 1 readiness work remains open.
 
+## 2026-09-15 Flowparallel CUDA execution and calibration failure classification
+
+- Split CUDA execution and matrix calibration option, allocation, provider,
+  and unknown process failures into explicit input, runtime, and provider
+  stages.
+- Moved exact diagnostics-mode recognition inside both protected process
+  boundaries and preserved empty stdout with `no_artifact` for failures.
+- Valid host invocations reached CUDA discovery and returned explicit provider
+  failures (`cudaGetDeviceCount` error 100 and `cudaMalloc(A)` error 100); this
+  is containment evidence, not successful real-device execution evidence.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 4/4. Complete suites
+  passed 149/149 under GCC in 53.22 seconds and Clang sanitizers in 102.21
+  seconds with the documented leak setting.
+
+State remains CONTINUE. Real-device CUDA assurance, broader native provider/API
+fault injection, isolation, trust, and Stage 1 readiness work remains open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

@@ -7,6 +7,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 #include <cstdint>
 #include <cstdlib>
 #include <iomanip>
@@ -30,6 +31,21 @@ constexpr int cublas_op_n = 0;
 
 using Library = flowparallel::DynamicLibrary;
 
+class InputError final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowparallel::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowparallel::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowparallel::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
+
 void require_cuda(cuda_error_t status, const char* operation) {
     if (status != cuda_success) throw std::runtime_error(std::string(operation) + " failed with CUDA error " + std::to_string(status));
 }
@@ -44,7 +60,7 @@ int parse_integer(std::string_view text, const char* option) {
     int value = 0;
     const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
     if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size())
-        throw std::runtime_error(std::string(option) + " requires a complete integer");
+        throw InputError(std::string(option) + " requires a complete integer");
     return value;
 }
 
@@ -53,11 +69,11 @@ Options parse(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--size") {
-            if (++i >= argc) throw std::runtime_error("--size requires a value");
+            if (++i >= argc) throw InputError("--size requires a value");
             options.size = parse_integer(argv[i], "--size");
-            if (options.size < 2 || options.size > 4096) throw std::runtime_error("--size must be between 2 and 4096");
+            if (options.size < 2 || options.size > 4096) throw InputError("--size must be between 2 and 4096");
         } else if (arg == "--diagnostics") {
-            if (++i >= argc || std::string(argv[i]) != "json") throw std::runtime_error("--diagnostics requires json");
+            if (++i >= argc || std::string(argv[i]) != "json") throw InputError("--diagnostics requires json");
             options.structured_diagnostics = true;
         } else if (arg == "-h" || arg == "-?" || arg == "--help") {
             std::cout << "flowparallel_cuda_execute - verified CUDA matrix multiplication\n\n"
@@ -73,7 +89,7 @@ Options parse(int argc, char** argv) {
             std::cout << "0.1.0\n";
             std::exit(0);
         } else {
-            throw std::runtime_error("unknown option '" + arg + "'");
+            throw InputError("unknown option '" + arg + "'");
         }
     }
     return options;
@@ -188,26 +204,26 @@ int run(const Options& options) {
 
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
-    for (int i = 1; i + 1 < argc; ++i)
-        if (std::string(argv[i]) == "--diagnostics" && std::string(argv[i + 1]) == "json") structured_diagnostics = true;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         const auto options = parse(argc, argv);
         return run(options);
     } catch (const std::bad_alloc&) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_EXECUTE_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CUDA_EXECUTE_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         else std::cerr << "flowparallel_cuda_execute error: allocation failed\n";
         return 1;
+    } catch (const InputError& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CUDA_EXECUTE_INPUT_INVALID", "input", error.what());
+        else std::cerr << "flowparallel_cuda_execute input error: " << error.what() << '\n';
+        return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) {
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_EXECUTE_FAILURE\",\"message\":\"";
-            flowparallel::write_json_string(stderr, error.what());
-            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
-        } else std::cerr << "flowparallel_cuda_execute error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CUDA_EXECUTE_PROVIDER_FAILURE", "provider", error.what());
+        else std::cerr << "flowparallel_cuda_execute provider error: " << error.what() << '\n';
         return 1;
     } catch (...) {
-        if (structured_diagnostics)
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_CUDA_EXECUTE_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_CUDA_EXECUTE_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
         else std::cerr << "flowparallel_cuda_execute error: unknown non-standard failure\n";
         return 1;
     }

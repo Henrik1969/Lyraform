@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
@@ -26,27 +27,42 @@ constexpr int device_to_host = 2;
 
 using Library = flowparallel::DynamicLibrary;
 
+class InputError final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowparallel::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowparallel::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowparallel::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+}
+
 void check(error_t value, const char* operation) { if (value != success) throw std::runtime_error(std::string(operation) + " failed: " + std::to_string(value)); }
 struct Options { int size = 512; int iterations = 5; bool structured_diagnostics = false; };
 
-int parse_integer(std::string_view text, const char* option) { int value = 0; const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value); if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size()) throw std::runtime_error(std::string(option) + " requires a complete integer"); return value; }
+int parse_integer(std::string_view text, const char* option) { int value = 0; const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value); if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size()) throw InputError(std::string(option) + " requires a complete integer"); return value; }
 
 Options parse(int argc, char** argv) {
     Options options;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--size" || arg == "--iterations") {
-            if (++i >= argc) throw std::runtime_error(arg + " requires a value");
+            if (++i >= argc) throw InputError(arg + " requires a value");
             int value = parse_integer(argv[i], arg.c_str());
             if (arg == "--size") options.size = value; else options.iterations = value;
         } else if (arg == "-h" || arg == "-?" || arg == "--help") {
             std::cout << "flowparallel_matrix_benchmark - CPU/CUDA matrix benchmark\n\nOptions: --size N --iterations N --diagnostics json\n         -h, -?, --help  show help\n         -a, --about    show about information\n         -v, --version  print the raw version number\n"; std::exit(0);
         } else if (arg == "-a" || arg == "--about") { std::cout << "Flowparallel compares a single-thread CPU matrix baseline with CUDA cuBLAS.\n"; std::exit(0); }
         else if (arg == "-v" || arg == "--version") { std::cout << "0.1.0\n"; std::exit(0); }
-        else if (arg == "--diagnostics") { if (++i >= argc || std::string(argv[i]) != "json") throw std::runtime_error("--diagnostics requires json"); options.structured_diagnostics = true; }
-        else throw std::runtime_error("unknown option '" + arg + "'");
+        else if (arg == "--diagnostics") { if (++i >= argc || std::string(argv[i]) != "json") throw InputError("--diagnostics requires json"); options.structured_diagnostics = true; }
+        else throw InputError("unknown option '" + arg + "'");
     }
-    if (options.size < 32 || options.size > 2048 || options.iterations < 2 || options.iterations > 100) throw std::runtime_error("benchmark dimensions are outside safe bounds");
+    if (options.size < 32 || options.size > 2048 || options.iterations < 2 || options.iterations > 100) throw InputError("benchmark dimensions are outside safe bounds");
     return options;
 }
 
@@ -138,22 +154,26 @@ int run(const Options& options) {
 
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
-    for (int i = 1; i + 1 < argc; ++i)
-        if (std::string(argv[i]) == "--diagnostics" && std::string(argv[i + 1]) == "json") structured_diagnostics = true;
-    try { return run(parse(argc, argv)); }
+    try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
+        return run(parse(argc, argv));
+    }
     catch (const std::bad_alloc&) {
-        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_RESOURCE_EXHAUSTED\",\"message\":\"allocation failed\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_MATRIX_BENCHMARK_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         else std::cerr << "flowparallel_matrix_benchmark error: allocation failed\n";
         return 1;
+    } catch (const InputError& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_MATRIX_BENCHMARK_INPUT_INVALID", "input", error.what());
+        else std::cerr << "flowparallel_matrix_benchmark input error: " << error.what() << '\n';
+        return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) {
-            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_FAILURE\",\"message\":\"";
-            flowparallel::write_json_string(stderr, error.what());
-            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
-        } else std::cerr << "flowparallel_matrix_benchmark error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_MATRIX_BENCHMARK_PROVIDER_FAILURE", "provider", error.what());
+        else std::cerr << "flowparallel_matrix_benchmark provider error: " << error.what() << '\n';
         return 1;
     } catch (...) {
-        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_MATRIX_BENCHMARK_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
         else std::cerr << "flowparallel_matrix_benchmark error: unknown non-standard failure\n";
         return 1;
     }

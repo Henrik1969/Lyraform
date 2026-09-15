@@ -1429,3 +1429,30 @@ This closes condition-specific process classification for the tested central
 Flowparallel ingress only. Other native execution/provider APIs, broader fault
 injection, isolation, and trust controls remain open. The safety state remains
 `CONTINUE`.
+
+## Flowparallel CUDA execution and calibration failure classification — 2026-09-15
+
+The CUDA execution tool and matrix calibration benchmark now report invalid
+options as `*_INPUT_INVALID` at stage `input`, CUDA discovery/execution/cleanup
+failures as `*_PROVIDER_FAILURE` at stage `provider`, allocation exhaustion at
+stage `runtime`, and unknown non-standard failures separately. Structured
+failures leave stdout empty with `no_artifact`.
+
+Both tools now recognize exact structured-diagnostics mode inside their
+top-level protected boundary using allocation-free comparisons. The focused
+exception-containment, matrix-diagnostic, matrix-allocation, and CUDA-execution
+allocation tests passed 4/4 under both GCC and Clang 18.1.3 ASan/UBSan. Complete
+suites passed 149/149 under GCC in 53.22 seconds and 149/149 under Clang
+sanitizers in 102.21 seconds with the documented leak setting.
+
+Valid host invocations reached CUDA provider discovery: CUDA execution returned
+`FLOWPARALLEL_CUDA_EXECUTE_PROVIDER_FAILURE` for `cudaGetDeviceCount failed with
+CUDA error 100`, and calibration returned
+`FLOWPARALLEL_MATRIX_BENCHMARK_PROVIDER_FAILURE` for `cudaMalloc(A) failed:
+100`; both had zero stdout bytes and `no_artifact`. This host evidence proves
+failure containment, not successful real-device execution or calibration.
+
+This closes condition-specific process classification for these two public
+CUDA tools only. Real-device assurance, broader native provider/API fault
+injection, isolation, and trust controls remain open. The safety state remains
+`CONTINUE`.

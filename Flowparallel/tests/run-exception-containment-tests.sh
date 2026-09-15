@@ -71,7 +71,7 @@ check_file runtime_planner FLOWPARALLEL_RUNTIME_PLANNER_CONTRACT_FAILURE contrac
 check_file graph_planner FLOWPARALLEL_GRAPH_PLANNER_CONTRACT_FAILURE contract "$graph_planner" --graph "$tmpdir/malformed.json" --capabilities "$tmpdir/capabilities.json" --diagnostics json
 check_file runtime_planner_oversized FLOWPARALLEL_RUNTIME_PLANNER_INPUT_INVALID input "$runtime_planner" --plan "$tmpdir/oversized.json" --capabilities "$tmpdir/capabilities.json" --diagnostics json
 check_file graph_planner_oversized FLOWPARALLEL_GRAPH_PLANNER_INPUT_INVALID input "$graph_planner" --graph "$tmpdir/oversized.json" --capabilities "$tmpdir/capabilities.json" --diagnostics json
-check_file cuda_execute FLOWPARALLEL_CUDA_EXECUTE_FAILURE '' "$cuda_execute" --size 1 --diagnostics json
-check_file benchmark FLOWPARALLEL_MATRIX_BENCHMARK_FAILURE '' "$benchmark" --size 1 --diagnostics json
+check_file cuda_execute FLOWPARALLEL_CUDA_EXECUTE_INPUT_INVALID input "$cuda_execute" --size 1 --diagnostics json
+check_file benchmark FLOWPARALLEL_MATRIX_BENCHMARK_INPUT_INVALID input "$benchmark" --size 1 --diagnostics json
 
 echo 'Flowparallel exception containment: 16/16 boundaries PASS'

@@ -13,6 +13,6 @@ set -e
 
 test "$status" -eq 1
 test ! -s "$tmpdir/stdout"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_MATRIX_BENCHMARK_RESOURCE_EXHAUSTED" and .disposition == "no_artifact"' \
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_MATRIX_BENCHMARK_RESOURCE_EXHAUSTED" and .stage == "runtime" and .disposition == "no_artifact"' \
   "$tmpdir/stderr" >/dev/null
 echo 'Flowparallel matrix-benchmark allocation-fault containment: PASS'
