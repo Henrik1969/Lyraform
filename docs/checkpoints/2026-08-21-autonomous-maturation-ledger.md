@@ -2635,6 +2635,23 @@ State remains CONTINUE. Current graph artifacts now share the refusal boundary;
 operational cancellation, async/backpressure, retry, effectful, reentrant,
 nested, distributed, and irreversible scheduling remain unimplemented.
 
+## 2026-09-15 scheduling-admission inventory gate
+
+- Added `scheduling_admission_inventory` to fail when production code creates a
+  second literal control authority, adds an unreviewed schedule-policy site, or
+  disconnects a current compiler/graph consumer from centralized validation.
+- The gate records one control-authority header and five legitimate policy
+  sites across the current production source roots; tests and excluded
+  experiments do not contribute authority.
+- Focused GCC and Clang ASan/UBSan sets passed 8/8. Complete suites passed
+  156/156 under GCC in 62.72 seconds and Clang sanitizers in 115.30 seconds.
+  The structural shell gate has no meaningful separate Valgrind target; its
+  guarded contract logic retains the clean 100,695-allocation Memcheck result.
+
+State remains CONTINUE. The current refusal boundary is now guarded against
+source-level drift, while operational scheduling semantics remain outside the
+admitted surface.
+
 ## 2026-09-15 trust and isolation execution admission
 
 - Added a public, non-throwing execution-admission contract that admits the

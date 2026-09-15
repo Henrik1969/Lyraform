@@ -84,6 +84,9 @@ add_test(NAME native_binding_inventory
 add_test(NAME native_file_producer_inventory
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-native-file-producers.sh)
 
+add_test(NAME scheduling_admission_inventory
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-scheduling-admission.sh)
+
 add_test(NAME stage0_seed_capture
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}

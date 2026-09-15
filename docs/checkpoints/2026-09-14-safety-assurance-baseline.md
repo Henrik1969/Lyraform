@@ -1852,3 +1852,26 @@ The bounded serial and independent graph schedules are unchanged. No
 cancellation, async queue, retry, effectful, reentrant, nested, distributed, or
 irreversible execution semantics were added. Future artifact families still
 require an explicit admission review. The safety state remains `CONTINUE`.
+
+## Scheduling-admission inventory gate — 2026-09-15
+
+The canonical CTest graph now includes an executable production-source
+inventory for scheduling authority. It requires the eight named stronger
+controls to have exactly one definition site in the shared Flowcontracts
+header, fixes the five legitimate `schedule_policy` production/consumption
+sites, and verifies that semantic/execution artifacts, source graphs,
+graph-provider maps, Flowanalyst, Flowoptimize, graph scheduling, and all four
+Flowparallel planning/provider ingresses reach the centralized admission
+decision. A new site or a second literal control authority fails the gate and
+requires explicit review.
+
+The focused inventory and scheduling set passed 8/8 under GCC and Clang 18.1.3
+ASan/UBSan. Complete suites passed 156/156 under GCC in 62.72 seconds and
+156/156 under Clang sanitizers in 115.30 seconds with the documented leak
+setting. The inventory is a shell/`rg` structural gate, so a separate Valgrind
+run is not meaningful; the guarded contract logic retains its clean expanded
+100,695-allocation Memcheck result.
+
+This prevents unreviewed authority drift in the current production source
+graph. It does not make future controls safe automatically, and it adds no
+operational scheduling semantics. The safety state remains `CONTINUE`.
