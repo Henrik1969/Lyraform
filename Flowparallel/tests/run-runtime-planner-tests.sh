@@ -47,13 +47,21 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -eq 1
 test ! -s "$diagnostic_out"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_RUNTIME_PLANNER_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_RUNTIME_PLANNER_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
 set +e
 "$planner" --plan "$plan" --capabilities "$capabilities" --min-speedup 1.2junk --diagnostics json >"$diagnostic_out" 2>"$diagnostic_err"
 diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -eq 1
 test ! -s "$diagnostic_out"
-jq -e '.code == "FLOWPARALLEL_RUNTIME_PLANNER_FAILURE" and (.message | contains("complete finite number"))' "$diagnostic_err" >/dev/null
+jq -e '.code == "FLOWPARALLEL_RUNTIME_PLANNER_INPUT_INVALID" and .stage == "input" and (.message | contains("complete finite number"))' "$diagnostic_err" >/dev/null
+
+set +e
+"$planner" --plan "${plan}.missing" --capabilities "$capabilities" --diagnostics json >"$diagnostic_out" 2>"$diagnostic_err"
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+test ! -s "$diagnostic_out"
+jq -e '.code == "FLOWPARALLEL_RUNTIME_PLANNER_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 
 echo 'Flowparallel runtime planner: PASS'

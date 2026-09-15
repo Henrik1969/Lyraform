@@ -28,7 +28,7 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -ne 0
 test -z "$diagnostic_out"
-jq -e '.code == "FLOWPARALLEL_GRAPH_PLANNER_FAILURE" and (.message | contains("complete finite number"))' "$diagnostic_err" >/dev/null
+jq -e '.code == "FLOWPARALLEL_GRAPH_PLANNER_INPUT_INVALID" and .stage == "input" and (.message | contains("complete finite number"))' "$diagnostic_err" >/dev/null
 printf '%s\n' '{"format":"wrong"}' > "$graph"
 set +e
 diagnostic_out=$("$planner" --graph "$graph" --capabilities "$capabilities" --diagnostics json 2>"$diagnostic_err")
@@ -36,5 +36,12 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -ne 0
 test -z "$diagnostic_out"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_PLANNER_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_GRAPH_PLANNER_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact" and (.message | length > 0)' "$diagnostic_err" >/dev/null
+set +e
+diagnostic_out=$("$planner" --graph "${graph}.missing" --capabilities "$capabilities" --diagnostics json 2>"$diagnostic_err")
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -ne 0
+test -z "$diagnostic_out"
+jq -e '.code == "FLOWPARALLEL_GRAPH_PLANNER_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$diagnostic_err" >/dev/null
 echo 'Flowparallel graph planner: PASS'

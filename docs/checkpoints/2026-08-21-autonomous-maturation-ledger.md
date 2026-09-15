@@ -2619,6 +2619,23 @@ State remains CONTINUE. This is stable process-input classification, not
 complete exception safety, provider containment, isolation, or a Stage 1
 readiness claim.
 
+## 2026-09-15 Flowparallel planner failure classification
+
+- Split runtime-provider and graph-provider planner failures into stable
+  `*_CONTRACT_FAILURE`/`contract` and `*_INPUT_INVALID`/`input` outcomes.
+- Preserved resource exhaustion and unknown non-standard failures as distinct
+  runtime outcomes, with empty stdout and `no_artifact` throughout.
+- Moved exact `--diagnostics json` recognition inside the protected process
+  boundary and removed its pre-`try` allocating string comparisons.
+- Extended malformed contract, oversized input, invalid numeric policy,
+  missing-file, and allocation-fault checks. The focused set passed 5/5 under
+  GCC and Clang 18.1.3 ASan/UBSan.
+- Complete suites passed 149/149 under GCC in 54.78 seconds and Clang
+  ASan/UBSan in 102.51 seconds with the documented leak setting.
+
+State remains CONTINUE. Other provider/API containment, fault injection,
+isolation, trust, and Stage 1 readiness work remains open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

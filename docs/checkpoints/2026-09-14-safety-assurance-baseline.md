@@ -1326,3 +1326,29 @@ This closes stable input classification only for the tested Flowprepare and
 Flowtarget process cases. Deeper parser/provider fault injection, complete
 native API containment, isolation, and trust work remain open. The safety state
 remains `CONTINUE`.
+
+## Flowparallel planner failure classification — 2026-09-15
+
+The runtime-provider and graph-provider planners now expose separate structured
+contract and input results. Parsed plan, capability, calibration, and graph
+violations produce `*_CONTRACT_FAILURE` at stage `contract`; missing or
+oversized files and malformed policy or CLI options produce `*_INPUT_INVALID`
+at stage `input`. Allocation exhaustion remains `*_RESOURCE_EXHAUSTED` at
+stage `runtime`, and non-standard failures remain separately named. Every
+tested failure leaves stdout empty and reports `no_artifact`.
+
+Both planners now recognize the exact `--diagnostics json` pair inside their
+top-level protected boundary with allocation-free comparisons. This removes
+the prior diagnostic-mode `std::string` construction before `try`, where an
+allocation failure could escape the process classification contract.
+
+The focused exception-containment, runtime-planner, runtime-planner allocation,
+graph-planner, and graph-planner allocation tests passed 5/5 under both GCC and
+Clang 18.1.3 ASan/UBSan. The complete canonical GCC suite passed 149/149 in
+54.78 seconds, and the complete Clang sanitizer suite passed 149/149 in 102.51
+seconds with the documented leak setting.
+
+This closes condition-specific process classification for these two planner
+ingress boundaries only. The safety inventory remains provisional because
+other provider and Frankencore APIs, broader fault injection, isolation, and
+trust controls remain open. The safety state remains `CONTINUE`.

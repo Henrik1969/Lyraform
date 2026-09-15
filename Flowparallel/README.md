@@ -171,6 +171,10 @@ Malformed plans, capability snapshots, calibration reports, and argument
 failures do not produce a provider selection. `flowparallel_runtime_planner
 --diagnostics json` exposes those failures as stable machine-readable
 `no_artifact` diagnostics; human-readable errors remain the default.
+Parsed artifact violations are classified as
+`FLOWPARALLEL_RUNTIME_PLANNER_CONTRACT_FAILURE` at stage `contract`; missing or
+oversized inputs and malformed options are classified as
+`FLOWPARALLEL_RUNTIME_PLANNER_INPUT_INVALID` at stage `input`.
 
 Before provider selection it also refuses execution plans that request
 cancellation, asynchronous execution, backpressure, or effectful parallel
@@ -201,6 +205,12 @@ reason, and mandatory CPU fallback.
 Policy thresholds must be complete finite numeric tokens. Values such as
 `0.2junk` are rejected before a provider decision is emitted, including in
 structured diagnostic mode.
+
+The graph planner uses the corresponding
+`FLOWPARALLEL_GRAPH_PLANNER_CONTRACT_FAILURE` and
+`FLOWPARALLEL_GRAPH_PLANNER_INPUT_INVALID` codes and the same `contract` and
+`input` stages. Both planner boundaries keep artifact stdout empty on these
+failures.
 
 The CUDA provider likewise requires `--matrix-size` to be a complete integer
 in the bounded range 1..4096 before reading a plan or probing the CUDA driver.

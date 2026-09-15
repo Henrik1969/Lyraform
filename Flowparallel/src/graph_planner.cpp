@@ -3,6 +3,7 @@
 #include <flowparallel/diagnostics.hpp>
 
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <new>
@@ -15,9 +16,11 @@ namespace {
 constexpr std::string_view version = "0.1.0";
 std::string read_file(const std::string& path) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open " + path); return flowparallel::read_bounded(file, "graph planner input"); }
 std::string quote(std::string_view value) { std::string result = "\""; for (const char c : value) { if (c == '\\' || c == '"') result.push_back('\\'); result.push_back(c); } result.push_back('"'); return result; }
-void write_structured_failure(std::string_view code, std::string_view message) noexcept {
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
     std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
     flowparallel::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowparallel::write_json_string(stderr, stage);
     std::fputs("\",\"message\":\"", stderr);
     flowparallel::write_json_string(stderr, message);
     std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
@@ -32,9 +35,9 @@ int run(const Options& o) {
     throw std::bad_alloc();
 #endif
     const auto semantic = flowcontracts::semantic_report(flowcontracts::json::parse(read_file(o.graph)));
-    if (semantic.artifact.status != "ok") throw std::runtime_error("graph is not an accepted semantic report");
+    if (semantic.artifact.status != "ok") throw flowcontracts::json::Error("$.status", "graph is not an accepted semantic report");
     const auto rows = semantic.dependency_matrix.rows, columns = semantic.dependency_matrix.columns;
-    if (rows == 0 || rows != columns) throw std::runtime_error("unsupported graph dimensions");
+    if (rows == 0 || rows != columns) throw flowcontracts::json::Error("$.analysis_graph", "unsupported graph dimensions");
     const auto edges = semantic.dependency_matrix.entries.size();
     const double density = static_cast<double>(edges) / static_cast<double>(rows * columns);
 
@@ -70,9 +73,10 @@ int run(const Options& o) {
 }
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
-    for (int i = 1; i < argc; ++i)
-        if (std::string(argv[i]) == "--diagnostics" && i + 1 < argc && std::string(argv[i + 1]) == "json") structured_diagnostics = true;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "-?" || std::string(argv[1]) == "--help")) { std::cout << "flowparallel_graph_planner - choose graph representation and provider\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-a" || std::string(argv[1]) == "--about")) { std::cout << "Flowparallel applies explicit sparse/dense and runtime-provider policy to graph projections.\n"; return 0; }
         if (argc == 2 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) { std::cout << version << '\n'; return 0; }
@@ -80,15 +84,19 @@ int main(int argc, char** argv) {
         structured_diagnostics = options.structured_diagnostics;
         return run(options);
     } catch (const std::bad_alloc&) {
-        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_RESOURCE_EXHAUSTED", "allocation failed");
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         else std::cerr << "flowparallel_graph_planner error: allocation failed\n";
         return 1;
+    } catch (const flowcontracts::json::Error& error) {
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_CONTRACT_FAILURE", "contract", error.what());
+        else std::cerr << "flowparallel_graph_planner contract error: " << error.what() << '\n';
+        return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_FAILURE", error.what());
-        else std::cerr << "flowparallel_graph_planner error: " << error.what() << '\n';
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_INPUT_INVALID", "input", error.what());
+        else std::cerr << "flowparallel_graph_planner input error: " << error.what() << '\n';
         return 1;
     } catch (...) {
-        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_UNKNOWN_FAILURE", "unknown non-standard failure");
+        if (structured_diagnostics) write_structured_failure("FLOWPARALLEL_GRAPH_PLANNER_UNKNOWN_FAILURE", "runtime", "unknown non-standard failure");
         else std::cerr << "flowparallel_graph_planner error: unknown non-standard failure\n";
         return 1;
     }
