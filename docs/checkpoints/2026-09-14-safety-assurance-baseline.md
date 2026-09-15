@@ -392,6 +392,10 @@ The follow-up slice extends the bounded writer to the CUDA provider, CUDA
 execution, runtime planner, and graph-reference process boundaries; their
 focused normal provider/allocation gates passed 8/8.
 
+Matrix-benchmark now uses the same bounded writer for its structured exception
+diagnostic; its normal and allocation-fault gates passed 2/2. Graph-planner
+remains a separately tracked compact-handler residual.
+
 ## Reference CLI diagnostic allocation boundary — 2026-09-15
 
 The clock and provenance reference CLIs now emit structured failure strings

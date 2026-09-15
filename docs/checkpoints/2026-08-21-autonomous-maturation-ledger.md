@@ -2712,6 +2712,15 @@ the same boundary audit.
 State remains CONTINUE. Matrix-benchmark and graph-planner catch paths remain
 the next compact-handler audit targets.
 
+## 2026-09-15 matrix-benchmark bounded diagnostics
+
+- Migrated the matrix-benchmark structured exception path to the shared bounded
+  allocation-free JSON writer.
+- Focused matrix-benchmark diagnostics and allocation-fault tests passed 2/2.
+
+State remains CONTINUE. The graph-planner compact handler remains an explicit
+next audit target.
+
 ## 2026-09-15 reference diagnostic JSON validity hardening
 
 - Corrected the bounded reference diagnostic emitter so truncation never cuts

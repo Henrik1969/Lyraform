@@ -1,6 +1,7 @@
 #include <dlfcn.h>
 #include <flowparallel/cuda_resources.hpp>
 #include <flowparallel/dynamic_library.hpp>
+#include <flowparallel/diagnostics.hpp>
 
 #include <algorithm>
 #include <charconv>
@@ -27,8 +28,6 @@ using Library = flowparallel::DynamicLibrary;
 
 void check(error_t value, const char* operation) { if (value != success) throw std::runtime_error(std::string(operation) + " failed: " + std::to_string(value)); }
 struct Options { int size = 512; int iterations = 5; bool structured_diagnostics = false; };
-
-std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
 int parse_integer(std::string_view text, const char* option) { int value = 0; const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value); if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size()) throw std::runtime_error(std::string(option) + " requires a complete integer"); return value; }
 
@@ -147,8 +146,11 @@ int main(int argc, char** argv) {
         else std::cerr << "flowparallel_matrix_benchmark error: allocation failed\n";
         return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_FAILURE\",\"message\":\"" << json_escape(error.what()) << "\",\"disposition\":\"no_artifact\"}\n";
-        else std::cerr << "flowparallel_matrix_benchmark error: " << error.what() << '\n';
+        if (structured_diagnostics) {
+            std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_FAILURE\",\"message\":\"";
+            flowparallel::write_json_string(stderr, error.what());
+            std::cerr << "\",\"disposition\":\"no_artifact\"}\n";
+        } else std::cerr << "flowparallel_matrix_benchmark error: " << error.what() << '\n';
         return 1;
     } catch (...) {
         if (structured_diagnostics) std::cerr << "{\"status\":\"failed\",\"code\":\"FLOWPARALLEL_MATRIX_BENCHMARK_UNKNOWN_FAILURE\",\"message\":\"unknown non-standard failure\",\"disposition\":\"no_artifact\"}\n";
