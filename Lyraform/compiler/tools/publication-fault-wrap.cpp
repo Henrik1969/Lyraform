@@ -33,6 +33,14 @@ extern "C" int __wrap_fsync(int descriptor) {
     return __real_fsync(descriptor);
 }
 
+extern "C" int __real_close(int);
+extern "C" int __wrap_close(int descriptor) {
+    struct stat status {};
+    const bool directory = fstat(descriptor, &status) == 0 && S_ISDIR(status.st_mode);
+    const int result = __real_close(descriptor);
+    return descriptor > STDERR_FILENO && directory && selected("directory-close") ? -1 : result;
+}
+
 extern "C" int __real_fclose(FILE*);
 extern "C" int __wrap_fclose(FILE* file) {
     const bool fail = private_file(file) && selected("close");

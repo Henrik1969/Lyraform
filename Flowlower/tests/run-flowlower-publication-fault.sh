@@ -28,26 +28,29 @@ do
     fi
 done
 
-printf 'previous\n' >"$output"
-set +e
-FLOWLOWER_PUBLICATION_FAULT=directory-sync "$fault_bin" --diagnostics json \
-    --emit-llvm "$output" "$fixture" >"$tmpdir/directory-sync.stdout" 2>"$tmpdir/directory-sync.stderr"
-status=$?
-set -e
-test "$status" -eq 1
-test ! -s "$tmpdir/directory-sync.stdout"
-jq -e '
-  .status == "failed" and
-  .code == "FLOWLOWER_OUTPUT_DURABILITY_UNCERTAIN" and
-  .stage == "output" and
-  .disposition == "artifact_published_durability_uncertain" and
-  (.message | contains("parent directory durability is uncertain"))
-' "$tmpdir/directory-sync.stderr" >/dev/null
-grep -q 'define i32 @main()' "$output"
-if find "$tmpdir" -maxdepth 1 -name 'output.ll.tmp.*' | grep -q .; then
-    echo "temporary LLVM output remained after directory-sync failure" >&2
-    exit 1
-fi
+for mode in directory-sync directory-close
+do
+    printf 'previous\n' >"$output"
+    set +e
+    FLOWLOWER_PUBLICATION_FAULT=$mode "$fault_bin" --diagnostics json \
+        --emit-llvm "$output" "$fixture" >"$tmpdir/$mode.stdout" 2>"$tmpdir/$mode.stderr"
+    status=$?
+    set -e
+    test "$status" -eq 1
+    test ! -s "$tmpdir/$mode.stdout"
+    jq -e '
+      .status == "failed" and
+      .code == "FLOWLOWER_OUTPUT_DURABILITY_UNCERTAIN" and
+      .stage == "output" and
+      .disposition == "artifact_published_durability_uncertain" and
+      (.message | contains("parent directory durability is uncertain"))
+    ' "$tmpdir/$mode.stderr" >/dev/null
+    grep -q 'define i32 @main()' "$output"
+    if find "$tmpdir" -maxdepth 1 -name 'output.ll.tmp.*' | grep -q .; then
+        echo "temporary LLVM output remained after $mode failure" >&2
+        exit 1
+    fi
+done
 
 "$lower" --emit-llvm "$output" "$fixture" >"$tmpdir/success.json"
 grep -q 'define i32 @main()' "$output"

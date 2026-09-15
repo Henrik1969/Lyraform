@@ -2686,6 +2686,22 @@ publishers now carry the ordinary Linux directory barrier/result distinction;
 abrupt-death cleanup, adversarial directory replacement, streamed stdout
 delivery, other native producers, and cross-platform durability remain open.
 
+## 2026-09-15 compiler parent-directory close-failure evidence
+
+- Added exact post-rename parent-directory close-fault injection for Flowmini,
+  Flowlower, TinyVM v1/v2, and the TinyVM lowerer process projection.
+- Each path refuses success while retaining a visible valid artifact, removing
+  the private sibling, and reporting
+  `artifact_published_durability_uncertain`; pre-rename behavior is unchanged.
+- Focused GCC and Clang 18.1.3 ASan/UBSan gates passed 5/5. Valgrind reported
+  zero errors/leaks for TinyVM v1 (5,009/5,009 allocations/frees), TinyVM v2
+  (5,012/5,012), and the process lowerer path (5,063/5,063). Full suites passed
+  154/154 in 62.39 seconds under GCC and 114.47 seconds under Clang sanitizers.
+
+State remains CONTINUE. Abrupt-death cleanup, adversarial directory
+replacement, streamed stdout delivery, other native producers, and
+cross-platform durability remain open.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,

@@ -57,13 +57,13 @@ if(TARGET flowcontracts)
     target_compile_options(flowtinylower_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
     target_link_libraries(flowtinylower_allocation_fault PRIVATE tinyvm_recovered flowcontracts)
     if(BUILD_TESTING)
-        add_executable(flowtinylower_directory_sync_fault
+        add_executable(flowtinylower_publication_fault
             tools/lower.cpp
-            tests/directory-sync-wrap.c)
-        target_compile_features(flowtinylower_directory_sync_fault PRIVATE cxx_std_20)
-        target_compile_options(flowtinylower_directory_sync_fault PRIVATE -Wall -Wextra -Wpedantic)
-        target_link_libraries(flowtinylower_directory_sync_fault PRIVATE tinyvm_recovered flowcontracts)
-        target_link_options(flowtinylower_directory_sync_fault PRIVATE "-Wl,--wrap=fsync")
+            tests/publication-uncertain-wrap.c)
+        target_compile_features(flowtinylower_publication_fault PRIVATE cxx_std_20)
+        target_compile_options(flowtinylower_publication_fault PRIVATE -Wall -Wextra -Wpedantic)
+        target_link_libraries(flowtinylower_publication_fault PRIVATE tinyvm_recovered flowcontracts)
+        target_link_options(flowtinylower_publication_fault PRIVATE "-Wl,--wrap=fsync" "-Wl,--wrap=close")
     endif()
 endif()
 
@@ -113,6 +113,7 @@ target_link_libraries(tinyvm_artifact_v2_publication_fault PRIVATE tinyvm_recove
 target_link_options(tinyvm_artifact_v2_publication_fault PRIVATE
     "-Wl,--wrap=fwrite"
     "-Wl,--wrap=fsync"
+    "-Wl,--wrap=close"
     "-Wl,--wrap=fclose"
     "-Wl,--wrap=rename")
 add_executable(tinyvm_artifact_v1_publication_fault tests/artifact-v1-publication-fault.c)
@@ -120,6 +121,7 @@ target_link_libraries(tinyvm_artifact_v1_publication_fault PRIVATE tinyvm_recove
 target_link_options(tinyvm_artifact_v1_publication_fault PRIVATE
     "-Wl,--wrap=fwrite"
     "-Wl,--wrap=fsync"
+    "-Wl,--wrap=close"
     "-Wl,--wrap=fclose"
     "-Wl,--wrap=rename")
 endif()
@@ -198,7 +200,7 @@ if(BUILD_TESTING)
                     $<TARGET_FILE:flowtinylower_allocation_fault>)
         add_test(NAME tinyvm_backend_lowering_publication_uncertain
             COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/backend-lowering-publication-uncertain.sh
-                    $<TARGET_FILE:flowtinylower_directory_sync_fault>
+                    $<TARGET_FILE:flowtinylower_publication_fault>
                     $<TARGET_FILE:flowtinyvalidate>
                     ${CMAKE_SOURCE_DIR}/Flowlower/tests/captured-empty-lowering.json
                     ${CMAKE_CURRENT_BINARY_DIR})

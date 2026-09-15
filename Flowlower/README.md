@@ -67,8 +67,9 @@ LLVM IR is rendered completely before publication, written and synchronized
 through a private sibling file, and atomically renamed over the requested path
 only after a successful close. Write, sync, close, or rename failure preserves
 an existing destination and returns `FLOWLOWER_OUTPUT_FAILURE` at stage
-`output`. The parent directory is opened before publication and synchronized
-after rename. Failure of that final barrier returns
+`output`. The parent directory is opened before publication, synchronized after
+rename, and closed before success is reported. Failure of synchronization or
+descriptor close returns
 `FLOWLOWER_OUTPUT_DURABILITY_UNCERTAIN` with disposition
 `artifact_published_durability_uncertain`, because the new LLVM artifact is
 already visible. Abrupt-death orphan cleanup, adversarial directory replacement,

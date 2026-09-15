@@ -1716,3 +1716,26 @@ the ordinary Linux parent-directory barrier and explicit uncertainty result.
 Abrupt-death orphan cleanup, adversarial directory replacement, streamed
 stdout partial delivery, other native producers, and cross-platform durability
 remain open. The safety state remains `CONTINUE`.
+
+## Compiler parent-directory close-failure evidence — 2026-09-15
+
+The publication fault gates now exercise the post-rename parent-directory
+descriptor-close branch for Flowmini, Flowlower, TinyVM v1, TinyVM v2, and the
+TinyVM lowerer process projection. Each injected close failure occurs after a
+successful directory synchronization, refuses success, leaves a visible valid
+replacement with no private sibling, and reports the same explicit
+published-but-durability-uncertain result as directory-sync failure. The
+pre-rename no-artifact cases remain unchanged.
+
+The five focused gates passed 5/5 under GCC and Clang 18.1.3 ASan/UBSan.
+Valgrind 3.22.0 reported zero errors and zero live blocks for the expanded
+TinyVM v1 artifact gate (5,009 allocations/frees), TinyVM v2 artifact gate
+(5,012 allocations/frees), and process-level TinyVM lowerer close-failure path
+(5,063 allocations/frees). Complete suites passed 154/154 under GCC in 62.39
+seconds and 154/154 under Clang sanitizers in 114.47 seconds with the documented
+leak setting.
+
+This closes ordinary close-failure evidence for the covered Linux compiler
+publishers; it does not close abrupt-death orphan cleanup, adversarial directory
+replacement, streamed stdout partial delivery, other native producers, or
+cross-platform durability. The safety state remains `CONTINUE`.

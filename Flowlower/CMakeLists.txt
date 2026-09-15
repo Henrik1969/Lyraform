@@ -20,6 +20,7 @@ target_link_libraries(flowlower_publication_fault PRIVATE flowcontracts)
 target_link_options(flowlower_publication_fault PRIVATE
     "-Wl,--wrap=fwrite"
     "-Wl,--wrap=fsync"
+    "-Wl,--wrap=close"
     "-Wl,--wrap=fclose"
     "-Wl,--wrap=rename")
 add_executable(flowprepare src/prepare.cpp)

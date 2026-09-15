@@ -6,7 +6,15 @@
 #include <string.h>
 #include <sys/stat.h>
 
-enum FaultMode { FAULT_NONE, FAULT_WRITE, FAULT_SYNC, FAULT_CLOSE, FAULT_RENAME, FAULT_DIRECTORY_SYNC };
+enum FaultMode {
+    FAULT_NONE,
+    FAULT_WRITE,
+    FAULT_SYNC,
+    FAULT_CLOSE,
+    FAULT_RENAME,
+    FAULT_DIRECTORY_SYNC,
+    FAULT_DIRECTORY_CLOSE
+};
 static enum FaultMode fault_mode = FAULT_NONE;
 
 extern size_t __real_fwrite(const void *, size_t, size_t, FILE *);
@@ -25,6 +33,14 @@ int __wrap_fsync(int descriptor) {
     if ((fault_mode == FAULT_SYNC && !is_directory) ||
         (fault_mode == FAULT_DIRECTORY_SYNC && is_directory)) return -1;
     return __real_fsync(descriptor);
+}
+
+extern int __real_close(int);
+int __wrap_close(int descriptor) {
+    struct stat status;
+    const int is_directory = fstat(descriptor, &status) == 0 && S_ISDIR(status.st_mode);
+    const int result = __real_close(descriptor);
+    return fault_mode == FAULT_DIRECTORY_CLOSE && is_directory ? -1 : result;
 }
 
 extern int __real_fclose(FILE *);
@@ -114,20 +130,23 @@ int main(int argc, char **argv) {
         require_no_temporary(argv[1]);
     }
 
-    write_previous(path);
-    fault_mode = FAULT_DIRECTORY_SYNC;
-    require(tinyvm_artifact_v2_write_result(path, &artifact, diagnostic, sizeof diagnostic) ==
-                TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN,
-            "directory synchronization fault did not produce an uncertain result");
-    fault_mode = FAULT_NONE;
-    require(strcmp(diagnostic, "artifact published but parent directory durability is uncertain") == 0,
-            "directory synchronization diagnostic changed");
-    TinyvmArtifactV2 uncertain;
-    tinyvm_artifact_v2_init(&uncertain);
-    require(tinyvm_artifact_v2_read(path, &uncertain, diagnostic, sizeof diagnostic),
-            "uncertain published artifact is not visible and valid");
-    tinyvm_artifact_v2_destroy(&uncertain);
-    require_no_temporary(argv[1]);
+    const enum FaultMode uncertain_failures[] = {FAULT_DIRECTORY_SYNC, FAULT_DIRECTORY_CLOSE};
+    for (size_t index = 0; index < sizeof uncertain_failures / sizeof uncertain_failures[0]; ++index) {
+        write_previous(path);
+        fault_mode = uncertain_failures[index];
+        require(tinyvm_artifact_v2_write_result(path, &artifact, diagnostic, sizeof diagnostic) ==
+                    TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN,
+                "directory finalization fault did not produce an uncertain result");
+        fault_mode = FAULT_NONE;
+        require(strcmp(diagnostic, "artifact published but parent directory durability is uncertain") == 0,
+                "directory finalization diagnostic changed");
+        TinyvmArtifactV2 uncertain;
+        tinyvm_artifact_v2_init(&uncertain);
+        require(tinyvm_artifact_v2_read(path, &uncertain, diagnostic, sizeof diagnostic),
+                "uncertain published artifact is not visible and valid");
+        tinyvm_artifact_v2_destroy(&uncertain);
+        require_no_temporary(argv[1]);
+    }
 
     require(tinyvm_artifact_v2_write(path, &artifact, diagnostic, sizeof diagnostic),
             "successful atomic publication failed");

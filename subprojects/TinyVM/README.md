@@ -109,9 +109,10 @@ unsupported lowering results remain on standard output.
 Version 2 artifacts are encoded before publication, written and synchronized
 through a private sibling file, and atomically renamed over the destination
 only after a successful close. The parent directory is opened before
-publication and synchronized after rename. Pre-rename failure preserves any
-previous destination and removes the temporary file during ordinary failure
-handling; post-rename directory synchronization failure returns the explicit
+publication, synchronized after rename, and closed before success is reported.
+Pre-rename failure preserves any previous destination and removes the temporary
+file during ordinary failure handling; post-rename directory synchronization
+or descriptor-close failure returns the explicit
 `TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN` result. Abrupt-death orphan
 cleanup, adversarial parent-directory replacement, and cross-platform
 durability are not claimed.

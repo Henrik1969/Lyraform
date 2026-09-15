@@ -132,6 +132,7 @@ target_link_libraries(flowmini_publication_fault PRIVATE
 target_link_options(flowmini_publication_fault PRIVATE
         "-Wl,--wrap=fwrite"
         "-Wl,--wrap=fsync"
+        "-Wl,--wrap=close"
         "-Wl,--wrap=fclose"
         "-Wl,--wrap=rename"
 )
