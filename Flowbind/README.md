@@ -75,3 +75,11 @@ and the file owning the resolved symbol. Its `provider_evidence` array records
 the loaded path, hash and `loaded-bytes-verified` status. This requires the Linux
 loader interface and OpenSSL Crypto. It does not pin a provider against changes
 after binding, or independently prove its C prototype.
+
+If an exact policy grant names a provider that is absent during inspection,
+Flowbind returns a blocked `flowbind.binding_report` with a `library
+unavailable` failure and no ready binding artifact. The generated-binding
+acceptance test also replaces a digest-bound provider and proves that the old
+evidence is rejected. These are inspection-time controls; provider replacement
+or degradation after binding and native invocation remain outside the admitted
+surface.
