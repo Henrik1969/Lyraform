@@ -2617,6 +2617,16 @@ execution, recovery, trust, and arbitrary ABI/FFI remain unadmitted.
 State remains CONTINUE. This bounds reporting only and does not broaden
 provider execution, recovery, trust, or ABI/FFI semantics.
 
+## 2026-09-15 Flowanalyst structured input classification
+
+- Classified non-allocation frontend-bundle failures as
+  `FLOWANALYST_INPUT_INVALID` at the `analysis` stage.
+- Preserved empty stdout and `no_artifact`; allocation and unknown failures
+  remain separate machine-readable outcomes.
+- The focused Flowanalyst gate passes in GCC and Clang 18.1.3 ASan/UBSan.
+
+State remains CONTINUE.
+
 ## 2026-09-15 Flowbind bounded-report Memcheck
 
 - Direct Valgrind Memcheck of the hostile 1,000-failure report completed with

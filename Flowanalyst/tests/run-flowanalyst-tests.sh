@@ -143,7 +143,7 @@ hostile_rc=$?
 set -e
 test "$hostile_rc" -eq 1
 test ! -s "$tmpdir/hostile-stdout"
-jq -e '.status == "failed" and .code == "FLOWANALYST_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWANALYST_INPUT_INVALID" and .stage == "analysis" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
 for hostile in \
   '{"format":"flowmini.frontend_bundle","format":"flowmini.frontend_bundle","version":2}' \
   '{"decoy":{"format":"flowmini.frontend_bundle","version":2}}' \
@@ -165,5 +165,5 @@ status=$?
 set -e
 test "$status" -eq 1
 test ! -s "$tmpdir/oversized-stdout"
-jq -e '.status == "failed" and .code == "FLOWANALYST_FAILURE" and .disposition == "no_artifact" and (.message | contains("16 MiB input limit"))' "$tmpdir/oversized-stderr" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWANALYST_INPUT_INVALID" and .stage == "analysis" and .disposition == "no_artifact" and (.message | contains("16 MiB input limit"))' "$tmpdir/oversized-stderr" >/dev/null
 echo 'Flowanalyst tests: PASS'

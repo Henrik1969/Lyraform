@@ -56,6 +56,10 @@ void write_structured_failure(std::string_view code, std::string_view stage, std
     flowcontracts::write_json_string(stderr, message);
     std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
+struct FailureClassification { std::string_view code, stage; };
+FailureClassification classify_failure(std::string_view) noexcept {
+    return {"FLOWANALYST_INPUT_INVALID", "analysis"};
+}
 struct Diagnostic { std::string code, severity, message, ast_path, region, source; int symbol = -1, line = -1, column = -1; };
 struct Target { int symbol = -1, mains = 0; std::string name; };
 struct BindingRequirement { std::string contract, library, convention, symbol, effect, parameter_types, return_type, evidence; };
@@ -1503,7 +1507,10 @@ int main(int argc, char** argv) {
         return 1;
     }
     catch (const std::exception& error) {
-        if (structured_diagnostics) write_structured_failure("FLOWANALYST_FAILURE", "cli", error.what());
+        if (structured_diagnostics) {
+            const auto classification = classify_failure(error.what());
+            write_structured_failure(classification.code, classification.stage, error.what());
+        }
         else std::cerr << "flowanalyst error: " << error.what() << '\n';
         return 1;
     } catch (...) {

@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowanalyst structured input classification — 2026-09-15
+
+Flowanalyst now classifies non-allocation failures while consuming or
+projecting a frontend bundle as `FLOWANALYST_INPUT_INVALID` at the `analysis`
+stage. The structured path keeps stdout empty and preserves
+`disposition: no_artifact`; allocation and unknown failures remain distinct.
+The focused gate passes in GCC and Clang 18.1.3 ASan/UBSan trees.
+
+The safety state remains `CONTINUE`.
+
 ## Flowbind per-failure diagnostic bound — 2026-09-15
 
 Blocked binding reports now cap each retained failure at 1,024 bytes and append

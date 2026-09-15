@@ -48,6 +48,11 @@ external effects, and unsupported forms remain `unknown`.
 
 The independent consumer boundary is specified in
 [`docs/flowanalyst/v0.1-consumer-contract.md`](../docs/flowanalyst/v0.1-consumer-contract.md).
+
+With `--diagnostics json`, an invalid or unprocessable frontend bundle emits
+`FLOWANALYST_INPUT_INVALID` at the `analysis` stage on stderr, keeps stdout
+empty, and marks the attempt `no_artifact`. Allocation exhaustion and unknown
+non-standard failures retain their separate machine-readable dispositions.
 It defines version negotiation, provenance navigation, diagnostic identity,
 partial-result handling, and exit semantics for IDEs, debuggers, AI tools, and
 other consumers.
