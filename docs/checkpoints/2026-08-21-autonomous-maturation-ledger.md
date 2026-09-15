@@ -2725,6 +2725,23 @@ State remains CONTINUE. Legacy randomized siblings, non-cooperating writers,
 adversarial parent-path replacement, streamed stdout delivery, other native
 producers, and cross-platform durability remain open.
 
+## 2026-09-15 canonical native file-producer inventory gate
+
+- Added `native_file_producer_inventory`, admitting exactly six canonical
+  production C/C++ source files with direct write authority: four compiler
+  publishers, Frankencore provenance/history, and Flowkernel's scoped tempfs
+  probe.
+- The gate checks each file family for its defining publication, durability,
+  or cleanup markers and fails if the source inventory changes without review.
+- The focused gate passed 1/1. Full suites passed 155/155 in 60.52 seconds under
+  GCC and 115.00 seconds under Clang 18.1.3 ASan/UBSan. Valgrind is not
+  applicable to this source-only gate; the admitted writers retain their
+  preceding memory evidence.
+
+State remains CONTINUE. Script generators, test fixtures, historical sources,
+new source roots, streamed stdout behavior, and cross-platform controls remain
+separate review surfaces.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,

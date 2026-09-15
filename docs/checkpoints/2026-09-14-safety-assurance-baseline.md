@@ -699,6 +699,28 @@ This closes the previously untestable CUDA close-classification case without
 claiming CUDA hardware availability or broader platform assurance. The safety
 state remains `CONTINUE`.
 
+## Canonical native file-producer inventory gate — 2026-09-15
+
+The new `native_file_producer_inventory` gate scans the canonical production
+C/C++ source roots and admits exactly six files with direct file-write
+authority: Flowmini and Flowlower, TinyVM v1 and v2 artifact writers,
+Frankencore provenance/history, and Flowkernel's isolated temporary-filesystem
+probe. It validates the defining compiler publication markers, durable-history
+append and parent-sync markers, and the probe's scoped create/unlink/remove
+lifecycle. An unclassified writer or missing control marker fails the test.
+
+The focused inventory passed 1/1. Complete suites passed 155/155 under GCC in
+60.52 seconds and 155/155 under Clang 18.1.3 ASan/UBSan in 115.00 seconds with
+the documented leak setting. Valgrind is not applicable to the source-only
+inventory script; the controlled native writers retain their preceding memory
+evidence.
+
+This closes the unknown-current-native-producer residual for the present
+canonical C/C++ graph. Script-language generators, test-fixture constructors,
+historical snapshots, newly added source roots, streamed stdout, and
+cross-platform behavior remain separately classified. The safety state remains
+`CONTINUE`.
+
 ## Frankencore apt-provider pipe cleanup — 2026-09-15
 
 The native `apt-indextargets` package reader now owns its `popen()` stream with
