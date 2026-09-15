@@ -554,8 +554,8 @@ JsonResult to_json_checked(const Inventory& inventory) noexcept {
         return {true, to_json(inventory), {}};
     } catch (const std::bad_alloc&) {
         return {false, {}, "package inventory serialization exhausted memory"};
-    } catch (const std::exception& error) {
-        return {false, {}, error.what()};
+    } catch (const std::exception&) {
+        return {false, {}, "package inventory serialization failed"};
     } catch (...) {
         return {false, {}, "unknown non-standard package inventory serialization failure"};
     }
