@@ -44,12 +44,6 @@ typedef struct {
     TinyvmGraphActivation *graph_activations; size_t graph_activation_count;
 } TinyvmArtifactV2;
 
-typedef enum {
-    TINYVM_ARTIFACT_WRITE_FAILED = 0,
-    TINYVM_ARTIFACT_WRITE_PUBLISHED = 1,
-    TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN = 2
-} TinyvmArtifactWriteResult;
-
 void tinyvm_artifact_v2_init(TinyvmArtifactV2 *artifact);
 void tinyvm_artifact_v2_destroy(TinyvmArtifactV2 *artifact);
 bool tinyvm_artifact_v2_validate(const TinyvmArtifactV2 *artifact,

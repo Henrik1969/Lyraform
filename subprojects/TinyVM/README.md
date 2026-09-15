@@ -115,9 +115,10 @@ handling; post-rename directory synchronization failure returns the explicit
 `TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN` result. Abrupt-death orphan
 cleanup, adversarial parent-directory replacement, and cross-platform
 durability are not claimed.
-The retained recovered-VM v1 compatibility writer uses the same publication
-sequence through rename, but does not yet expose the v2 parent-directory
-durability result.
+The retained recovered-VM v1 compatibility writer exposes the same publication
+sequence and three-state parent-directory durability result through
+`tinyvm_artifact_write_result`; its boolean entry point likewise reports
+success only after the directory barrier.
 
 The current Gate 6 slice additionally admits executable source graphs with one
 authorized startup provider and serial fresh receiver activations. Receiver

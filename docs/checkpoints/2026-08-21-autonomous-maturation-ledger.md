@@ -2635,6 +2635,21 @@ State remains CONTINUE. TinyVM v1, Flowmini, and Flowlower still need the same
 post-rename result distinction; abrupt-death cleanup, adversarial directory
 replacement, and cross-platform durability remain open.
 
+## 2026-09-15 TinyVM v1 parent-directory durability result
+
+- Moved the three-state artifact-write result to the shared TinyVM artifact
+  contract and exposed it through the retained v1 writer.
+- Added the v1 parent-directory barrier and fault evidence: injected
+  post-rename synchronization failure leaves a valid visible artifact and
+  reports durability uncertainty; pre-rename faults preserve the old artifact.
+- Focused v1/v2 GCC and Clang ASan/UBSan gates passed 2/2; v1 Valgrind reported
+  zero errors and leaks with 4,991/4,991 allocations/frees; full suites passed
+  154/154 in 54.26 seconds under GCC and 111.39 seconds under Clang sanitizers.
+
+State remains CONTINUE. Flowmini and Flowlower still need the same result
+distinction, and abrupt-death cleanup, adversarial directory replacement, and
+cross-platform durability remain open.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,

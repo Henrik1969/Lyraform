@@ -1636,3 +1636,29 @@ This closes the ordinary Linux parent-directory barrier and uncertain-result
 classification for TinyVM v2 only. The retained v1 writer, Flowmini,
 Flowlower, adversarial directory replacement, abrupt-death orphan cleanup, and
 cross-platform durability remain open. The safety state remains `CONTINUE`.
+
+## TinyVM v1 parent-directory durability result — 2026-09-15
+
+The retained recovered-VM v1 compatibility writer now uses the shared
+three-state artifact-write vocabulary and the same parent-directory lifecycle
+as v2: open before sibling creation, retain through rename, synchronize after
+rename, and report success through the compatibility boolean API only after
+the directory barrier completes.
+
+Its publication fault gate now distinguishes file synchronization from parent
+directory synchronization. The injected directory barrier failure returns
+`TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN`; the replacement is already
+visible, independently readable, and valid, while no private sibling remains.
+Pre-rename write, file-sync, close, and rename faults retain the previous
+destination.
+
+The focused v1/v2 publication gates passed 2/2 under GCC and Clang 18.1.3
+ASan/UBSan. Valgrind 3.22.0 reported zero errors, zero live blocks, and 4,991
+allocations matched by 4,991 frees for the v1 gate. Complete suites passed
+154/154 under GCC in 54.26 seconds and 154/154 under Clang sanitizers in 111.39
+seconds with the documented leak setting.
+
+This gives both TinyVM artifact formats the same ordinary Linux durability
+result. Flowmini, Flowlower, adversarial directory replacement, abrupt-death
+orphan cleanup, and cross-platform durability remain open. The safety state
+remains `CONTINUE`.

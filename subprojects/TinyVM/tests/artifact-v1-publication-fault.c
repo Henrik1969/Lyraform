@@ -4,8 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
-enum FaultMode { FAULT_NONE, FAULT_WRITE, FAULT_SYNC, FAULT_CLOSE, FAULT_RENAME };
+enum FaultMode { FAULT_NONE, FAULT_WRITE, FAULT_SYNC, FAULT_CLOSE, FAULT_RENAME, FAULT_DIRECTORY_SYNC };
 static enum FaultMode fault_mode = FAULT_NONE;
 
 extern size_t __real_fwrite(const void *, size_t, size_t, FILE *);
@@ -19,7 +20,10 @@ size_t __wrap_fwrite(const void *data, size_t width, size_t count, FILE *file) {
 
 extern int __real_fsync(int);
 int __wrap_fsync(int descriptor) {
-    if (fault_mode == FAULT_SYNC) return -1;
+    struct stat status;
+    const int is_directory = fstat(descriptor, &status) == 0 && S_ISDIR(status.st_mode);
+    if ((fault_mode == FAULT_SYNC && !is_directory) ||
+        (fault_mode == FAULT_DIRECTORY_SYNC && is_directory)) return -1;
     return __real_fsync(descriptor);
 }
 
@@ -99,6 +103,21 @@ int main(int argc, char **argv) {
         require_previous(path);
         require_no_temporary(argv[1]);
     }
+
+    write_previous(path);
+    fault_mode = FAULT_DIRECTORY_SYNC;
+    require(tinyvm_artifact_write_result(path, &artifact, diagnostic, sizeof diagnostic) ==
+                TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN,
+            "directory synchronization fault did not produce an uncertain result");
+    fault_mode = FAULT_NONE;
+    require(strcmp(diagnostic, "artifact published but parent directory durability is uncertain") == 0,
+            "directory synchronization diagnostic changed");
+    TinyvmArtifact uncertain;
+    tinyvm_artifact_init(&uncertain);
+    require(tinyvm_artifact_read(path, &uncertain, diagnostic, sizeof diagnostic),
+            "uncertain published artifact is not visible and valid");
+    tinyvm_artifact_destroy(&uncertain);
+    require_no_temporary(argv[1]);
 
     require(tinyvm_artifact_write(path, &artifact, diagnostic, sizeof diagnostic),
             "successful atomic publication failed");

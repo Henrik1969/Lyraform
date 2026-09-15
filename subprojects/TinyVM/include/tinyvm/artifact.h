@@ -26,12 +26,21 @@ typedef struct {
     size_t code_count;
 } TinyvmArtifact;
 
+typedef enum {
+    TINYVM_ARTIFACT_WRITE_FAILED = 0,
+    TINYVM_ARTIFACT_WRITE_PUBLISHED = 1,
+    TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN = 2
+} TinyvmArtifactWriteResult;
+
 void tinyvm_artifact_init(TinyvmArtifact *artifact);
 void tinyvm_artifact_destroy(TinyvmArtifact *artifact);
 bool tinyvm_artifact_validate(const TinyvmArtifact *artifact,
                               char *diagnostic, size_t capacity);
 bool tinyvm_artifact_write(const char *path, TinyvmArtifact *artifact,
                            char *diagnostic, size_t capacity);
+TinyvmArtifactWriteResult tinyvm_artifact_write_result(
+    const char *path, TinyvmArtifact *artifact,
+    char *diagnostic, size_t capacity);
 bool tinyvm_artifact_read(const char *path, TinyvmArtifact *artifact,
                           char *diagnostic, size_t capacity);
 bool tinyvm_validate_recovered_code(const InstrWord *code, size_t code_count,
