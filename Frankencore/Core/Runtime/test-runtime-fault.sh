@@ -11,5 +11,5 @@ status=$?
 set -e
 test "$status" -eq 1
 test ! -s "$tmpdir/stdout"
-grep -Fq 'injected runtime capability discovery failure' "$tmpdir/stderr"
+grep -Fq 'runtime capability discovery failed' "$tmpdir/stderr"
 echo 'Frankencore runtime discovery fault containment: PASS'

@@ -72,6 +72,10 @@ exit distinction.
   dpkg, APT-list, APT-source, and apt-indextargets providers. Provider
   allocation, standard, and unknown failures become an explicit invalid
   `InventoryResult` with no partially collected inventory admitted.
+- Runtime capability discovery now provides `discover_checked()` as a
+  non-throwing boundary, so injected or unexpected discovery failures produce
+  an explicit unresolved result rather than relying on CLI-level exception
+  containment.
 - The Clock and Revision reference CLIs still use exception-based argument
   parsing internally, but their public failure boundary now supports
   `--diagnostics json` with stable failure codes, empty artifact stdout, and a

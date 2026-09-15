@@ -377,6 +377,15 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Runtime capability discovery boundary — 2026-09-15
+
+Runtime capability discovery now exposes `discover_checked()` as an explicit
+`noexcept` API. Allocation, standard, and unknown discovery failures become an
+invalid result with no capability snapshot admitted; the reference probe then
+serializes only a valid snapshot through its checked JSON boundary. Normal,
+fault-injected, sanitizer, and memory-focused runtime tests pass. Broader
+platform assurance remains future work. The safety state remains `CONTINUE`.
+
 ## Requirements and language-map non-throwing boundaries — 2026-09-15
 
 The existing structured-result APIs for version requirements and language-map

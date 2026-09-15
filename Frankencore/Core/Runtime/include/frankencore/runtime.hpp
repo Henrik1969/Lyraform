@@ -23,6 +23,12 @@ struct Capabilities {
     CudaFacts cuda;
 };
 
+struct DiscoveryResult {
+    bool valid = false;
+    Capabilities capabilities;
+    std::string error;
+};
+
 struct JsonResult {
     bool valid = false;
     std::string json;
@@ -32,6 +38,10 @@ struct JsonResult {
 // Read-only discovery. It does not enable providers, allocate workers, or
 // resolve policy. Those decisions belong to a later runtime planner.
 Capabilities discover();
+
+// Non-throwing capability-discovery boundary. Invalid results contain no
+// admitted capability snapshot.
+DiscoveryResult discover_checked() noexcept;
 
 // JSON is an inspectable projection; the C++ structure remains canonical.
 std::string to_json(const Capabilities& capabilities);

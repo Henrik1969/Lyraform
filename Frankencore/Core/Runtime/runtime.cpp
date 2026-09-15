@@ -108,6 +108,18 @@ Capabilities discover() {
     return result;
 }
 
+DiscoveryResult discover_checked() noexcept {
+    try {
+        return {true, discover(), {}};
+    } catch (const std::bad_alloc&) {
+        return {false, {}, "runtime capability discovery exhausted memory"};
+    } catch (const std::exception&) {
+        return {false, {}, "runtime capability discovery failed"};
+    } catch (...) {
+        return {false, {}, "runtime capability discovery failed with unknown non-standard failure"};
+    }
+}
+
 std::string to_json(const Capabilities& capabilities) {
     return "{\n"
            "  \"format\": " + quote(capabilities.format) + ",\n"
@@ -127,8 +139,8 @@ JsonResult to_json_checked(const Capabilities& capabilities) noexcept {
         return {true, to_json(capabilities), {}};
     } catch (const std::bad_alloc&) {
         return {false, {}, "runtime capability serialization exhausted memory"};
-    } catch (const std::exception& error) {
-        return {false, {}, error.what()};
+    } catch (const std::exception&) {
+        return {false, {}, "runtime capability serialization failed"};
     } catch (...) {
         return {false, {}, "unknown non-standard runtime capability serialization failure"};
     }
