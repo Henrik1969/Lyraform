@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-15",
     "branch": "main",
-    "commit": "df1a948fe8e7a856bebec718f5376c7c758fdc08"
+    "commit": "f14a860025802a1646b89bc30e79e48879f51549"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
@@ -37,17 +37,17 @@
     "Fail-closed trust admission that prevents isolation claim text from authorizing execution without an admitted enforcement provider",
     "Canonical Flowmini, TinyVM v1/v2, and LLVM file-artifact publication with parent-directory synchronization, explicit published-but-durability-uncertain results, and next-run cleanup after abrupt process death",
     "Executable inventory of all six canonical native production source files with direct file-write authority",
-    "Exact fail-closed scheduling admission across semantic/execution/source-graph artifacts, graph-provider maps, optimizer ingress, and Flowparallel planning/provider boundaries"
+    "Exact fail-closed scheduling admission across semantic/execution/source-graph artifacts, graph-provider maps, optimizer ingress, and Flowparallel planning/provider boundaries, guarded by an executable authority inventory"
   ],
   "verification": {
     "gcc_superbuild": "pass",
     "canonical_ctest": {
-      "passed": 155,
-      "total": 155
+      "passed": 156,
+      "total": 156
     },
     "callable_artifact_deterministic": true,
     "callable_observable_result": "LLVM = TinyVM switch = TinyVM computed = 1",
-    "clang_superbuild": "fresh Clang 18.1.3 ASan/UBSan pass (155/155) with detect_leaks=0 ptrace exclusion",
+    "clang_superbuild": "fresh Clang 18.1.3 ASan/UBSan pass (156/156) with detect_leaks=0 ptrace exclusion",
     "gcc_asan_ubsan": "not run as a coherent matrix",
     "valgrind": "57/57 native-chain negative/support boundary cases pass",
     "native_pass_corpus": 97,
