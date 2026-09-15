@@ -377,6 +377,18 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Optional ConfigResolve provider evidence boundary — 2026-09-15
+
+The canonical Lyraform build reports `ConfigResolve adapter disabled` because
+no ConfigResolve dependency is configured. The adapter source does expose a
+checked `noexcept` fail-closed decision boundary with cleanup on standard and
+non-standard failures, but no provider-specific runtime, allocation, or
+cleanup test is claimed by this baseline. That evidence must be produced in a
+dependency-enabled isolated build before the adapter can influence an
+admitted policy decision.
+
+The safety state remains `CONTINUE`.
+
 ## Durable-history partial-write crash boundary — 2026-09-15
 
 The history fault matrix now includes a child process that crashes immediately

@@ -2689,6 +2689,18 @@ open.
 State remains CONTINUE. Directory durability is kept as an explicit
 filesystem boundary; retention and further crash points remain open.
 
+## 2026-09-15 optional ConfigResolve provider evidence boundary
+
+- Audited the optional ConfigResolve adapter and confirmed the canonical build
+  disables it because no dependency root is configured.
+- Recorded its `noexcept` fail-closed cleanup behavior as implementation
+  context only, not as provider evidence.
+- Kept provider-specific allocation, runtime, and cleanup testing unclaimed
+  until a dependency-enabled isolated build exists.
+
+State remains CONTINUE. Optional-provider evidence is not inferred from the
+disabled canonical build.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance
