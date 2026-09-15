@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-09-15",
     "branch": "main",
-    "commit": "95636a6b6b49607523b78b7f42ad642c40075594"
+    "commit": "df1a948fe8e7a856bebec718f5376c7c758fdc08"
   },
   "current_milestone": {
     "name": "Reusable native Flow compiler chain",
@@ -37,7 +37,7 @@
     "Fail-closed trust admission that prevents isolation claim text from authorizing execution without an admitted enforcement provider",
     "Canonical Flowmini, TinyVM v1/v2, and LLVM file-artifact publication with parent-directory synchronization, explicit published-but-durability-uncertain results, and next-run cleanup after abrupt process death",
     "Executable inventory of all six canonical native production source files with direct file-write authority",
-    "Exact fail-closed scheduling admission across semantic/execution artifacts, optimizer ingress, and Flowparallel planning/provider boundaries"
+    "Exact fail-closed scheduling admission across semantic/execution/source-graph artifacts, graph-provider maps, optimizer ingress, and Flowparallel planning/provider boundaries"
   ],
   "verification": {
     "gcc_superbuild": "pass",
