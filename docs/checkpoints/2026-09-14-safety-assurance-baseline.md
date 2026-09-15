@@ -856,6 +856,18 @@ other Frankencore APIs still require independent fault-injection evidence.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore package reader boundaries — 2026-09-15
+
+The package provider now exposes checked reader results for dpkg status,
+APT-list metadata, APT-source configuration, and apt-indextargets discovery.
+Provider allocation, standard, and unknown failures produce an invalid
+`InventoryResult` and admit no partial inventory. The test-only package fault
+library injects provider allocation exhaustion; the focused normal and
+ASan/UBSan package tests pass. The existing readers remain compatibility APIs,
+and their broader parser/provider fault matrix remains a future expansion.
+
+The safety state remains `CONTINUE`.
+
 ## Flowoptimize allocation-fault boundary — 2026-09-15
 
 Flowoptimize now has a test-only fault-injected executable that raises

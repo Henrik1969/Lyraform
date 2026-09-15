@@ -70,6 +70,12 @@ struct JsonResult {
     std::string error;
 };
 
+struct InventoryResult {
+    bool valid = false;
+    Inventory inventory;
+    std::string error;
+};
+
 // Read-only projection of the native dpkg status database. Individual
 // paragraphs are bounded to 1 MiB; oversized provider records are skipped and
 // reported as diagnostics rather than accumulated without limit.
@@ -87,6 +93,14 @@ Inventory read_apt_sources(const std::string& directory);
 
 // Delegate read-only target discovery to the native apt-get interface.
 Inventory read_apt_index_targets(const std::string& apt_get_path = "/usr/bin/apt-get");
+
+// Non-throwing provider boundaries. On failure, no partially collected
+// inventory is admitted to the consumer.
+InventoryResult read_dpkg_status_checked(const std::string& path) noexcept;
+InventoryResult read_apt_lists_checked(const std::string& directory) noexcept;
+InventoryResult read_apt_sources_checked(const std::string& directory) noexcept;
+InventoryResult read_apt_index_targets_checked(
+    const std::string& apt_get_path = "/usr/bin/apt-get") noexcept;
 
 // JSON is an inspectable projection, not the canonical C++ representation.
 std::string to_json(const Inventory& inventory);

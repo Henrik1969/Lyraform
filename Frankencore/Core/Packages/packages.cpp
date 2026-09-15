@@ -465,6 +465,44 @@ Inventory read_apt_index_targets(const std::string& apt_get_path) {
     return inventory;
 }
 
+namespace {
+
+template <typename Reader>
+InventoryResult checked_read(Reader&& reader) noexcept {
+    try {
+#ifdef FRANKENCORE_PACKAGES_TEST_READ_ALLOCATION_FAILURE
+        (void)reader;
+        throw std::bad_alloc();
+#else
+        return {true, reader(), {}};
+#endif
+    } catch (const std::bad_alloc&) {
+        return {false, {}, "package inventory provider exhausted memory"};
+    } catch (const std::exception&) {
+        return {false, {}, "package inventory provider failed"};
+    } catch (...) {
+        return {false, {}, "package inventory provider failed with unknown non-standard failure"};
+    }
+}
+
+} // namespace
+
+InventoryResult read_dpkg_status_checked(const std::string& path) noexcept {
+    return checked_read([&] { return read_dpkg_status(path); });
+}
+
+InventoryResult read_apt_lists_checked(const std::string& directory) noexcept {
+    return checked_read([&] { return read_apt_lists(directory); });
+}
+
+InventoryResult read_apt_sources_checked(const std::string& directory) noexcept {
+    return checked_read([&] { return read_apt_sources(directory); });
+}
+
+InventoryResult read_apt_index_targets_checked(const std::string& apt_get_path) noexcept {
+    return checked_read([&] { return read_apt_index_targets(apt_get_path); });
+}
+
 std::string to_json(const Inventory& inventory) {
     std::ostringstream output;
     output << "{\"format\":\"" << json_escape(inventory.format)

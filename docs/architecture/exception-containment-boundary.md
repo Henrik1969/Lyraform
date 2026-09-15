@@ -68,6 +68,10 @@ exit distinction.
   their existing structured-result boundaries `noexcept`; their catch paths
   use fixed diagnostics so failure translation does not allocate while
   handling an exception.
+- Frankencore package discovery now provides checked reader results for the
+  dpkg, APT-list, APT-source, and apt-indextargets providers. Provider
+  allocation, standard, and unknown failures become an explicit invalid
+  `InventoryResult` with no partially collected inventory admitted.
 - The Clock and Revision reference CLIs still use exception-based argument
   parsing internally, but their public failure boundary now supports
   `--diagnostics json` with stable failure codes, empty artifact stdout, and a
