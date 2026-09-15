@@ -14,6 +14,9 @@ runtime capability snapshot, and always declares a serial CPU fallback.
 Contract and input failures can be requested as machine-readable
 `--diagnostics json` records with a `no_artifact` disposition; human-readable
 diagnostics remain the default.
+The plan-producing CLI reports parsed semantic-artifact violations as
+`FLOWPARALLEL_CONTRACT_FAILURE` at stage `contract` and bounded-input or usage
+failures as `FLOWPARALLEL_INPUT_INVALID` at stage `input`.
 
 It emits only runtime-deferred candidates whose current proof includes pure
 callee behavior, disjoint inputs, and distinct outputs. Dependency structure

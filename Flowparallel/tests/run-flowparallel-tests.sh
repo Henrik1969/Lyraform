@@ -71,7 +71,15 @@ diagnostic_rc=$?
 set -e
 test "$diagnostic_rc" -ne 0
 test ! -s "$tmpdir/diagnostic.out"
-jq -e '.status == "failed" and .code == "FLOWPARALLEL_CONTRACT_FAILURE" and .disposition == "no_artifact" and (.message | length > 0)' "$tmpdir/diagnostic.err" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWPARALLEL_CONTRACT_FAILURE" and .stage == "contract" and .disposition == "no_artifact" and (.message | length > 0)' "$tmpdir/diagnostic.err" >/dev/null
+
+set +e
+"$bin" --diagnostics json extra >"$tmpdir/diagnostic.out" 2>"$tmpdir/diagnostic.err"
+diagnostic_rc=$?
+set -e
+test "$diagnostic_rc" -eq 1
+test ! -s "$tmpdir/diagnostic.out"
+jq -e '.code == "FLOWPARALLEL_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$tmpdir/diagnostic.err" >/dev/null
 
 reject_unsupported() {
     request=$1

@@ -2672,6 +2672,19 @@ injection, isolation, trust, and Stage 1 readiness work remains open.
 State remains CONTINUE. Real-device execution assurance, broader provider/API
 fault injection, isolation, trust, and Stage 1 readiness work remains open.
 
+## 2026-09-15 Flowparallel plan-ingress failure classification
+
+- Split the central plan-producing CLI's semantic-contract, bounded-input,
+  allocation, runtime, and unknown process outcomes into explicit stages.
+- Moved exact diagnostics-mode recognition inside the protected boundary and
+  classified bounded reader failures as input failures.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 3/3. Complete suites
+  passed 149/149 under GCC in 53.38 seconds and Clang sanitizers in 103.14
+  seconds with the documented leak setting.
+
+State remains CONTINUE. Other native execution/provider APIs, broader fault
+injection, isolation, trust, and Stage 1 readiness work remains open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

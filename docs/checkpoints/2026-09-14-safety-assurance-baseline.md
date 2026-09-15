@@ -1408,3 +1408,24 @@ This closes validation order and process classification for the tested graph
 provider ingress only. Real-device execution assurance, broader provider/API
 fault injection, isolation, and trust controls remain open. The safety state
 remains `CONTINUE`.
+
+## Flowparallel plan-ingress failure classification — 2026-09-15
+
+The central plan-producing Flowparallel CLI now reports parsed semantic-report
+violations as `FLOWPARALLEL_CONTRACT_FAILURE` at stage `contract`, bounded
+input and invalid invocation as `FLOWPARALLEL_INPUT_INVALID` at stage `input`,
+allocation exhaustion as `FLOWPARALLEL_RESOURCE_EXHAUSTED` at stage `runtime`,
+and other runtime or non-standard failures separately. All structured failures
+leave stdout empty with `no_artifact`.
+
+The CLI now recognizes exact structured mode inside its protected boundary and
+wraps bounded reader failures as input outcomes. The focused pipeline,
+exception-containment, and allocation-fault tests passed 3/3 under both GCC and
+Clang 18.1.3 ASan/UBSan. Complete suites passed 149/149 under GCC in 53.38
+seconds and under Clang sanitizers in 103.14 seconds with the documented leak
+setting.
+
+This closes condition-specific process classification for the tested central
+Flowparallel ingress only. Other native execution/provider APIs, broader fault
+injection, isolation, and trust controls remain open. The safety state remains
+`CONTINUE`.

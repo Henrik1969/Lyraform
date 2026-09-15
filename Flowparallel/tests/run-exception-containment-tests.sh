@@ -57,7 +57,7 @@ check_oversized_stdin() {
     jq -e '.status == "failed" and .disposition == "no_artifact" and (.message | contains("16 MiB input limit"))' "$tmpdir/$name.err" >/dev/null
 }
 
-check_stdin plan FLOWPARALLEL_CONTRACT_FAILURE '' "$flowparallel" --diagnostics json
+check_stdin plan FLOWPARALLEL_CONTRACT_FAILURE contract "$flowparallel" --diagnostics json
 check_stdin cpu FLOWPARALLEL_CPU_CONTRACT_FAILURE contract "$cpu" --diagnostics json
 check_stdin cuda FLOWPARALLEL_CUDA_CONTRACT_FAILURE contract "$cuda" --diagnostics json
 check_stdin graph_reference FLOWPARALLEL_GRAPH_REFERENCE_CONTRACT_FAILURE contract "$graph_reference" --diagnostics json
