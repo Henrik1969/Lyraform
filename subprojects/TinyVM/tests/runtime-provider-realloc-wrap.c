@@ -16,3 +16,8 @@ void *__wrap_realloc(void *pointer,size_t size){
     (void)size;
     return NULL;
 }
+
+int __wrap_dlclose(void *handle){
+    (void)handle;
+    return -1;
+}

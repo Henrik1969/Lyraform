@@ -79,6 +79,6 @@ bool tinyvm_runtime_provider_resolve(void *user,const TinyvmArtifactV2 *a,const 
     else if(aggregate_import(x)&&!strcmp(x->parameters,"none")&&count==0){void *function=dlsym(library,x->symbol);if(function){*out=(TinyvmValue){TINYVM_CARRIER_I64,aggregate_return_call(function),true};ok=true;}}
     else if(aggregate_import(x)&&count==1&&args[0].carrier==TINYVM_CARRIER_I64&&!strcmp(x->result,"c_int")){void *function=dlsym(library,x->symbol);if(function){*out=(TinyvmValue){TINYVM_CARRIER_I32,(uint64_t)(int64_t)aggregate_parameter_call(function,args[0].bits),true};ok=true;}}
     if(!ok&&!exact_failure&&(!fault||!*fault))*fault="no exact typed runtime thunk for import";
-    dlclose(library);
+    if(dlclose(library)!=0&&!*fault){ok=false;*out=(TinyvmValue){0};*fault="runtime provider library cleanup failed";exact_failure=true;}
     return ok;
 }

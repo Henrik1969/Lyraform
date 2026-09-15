@@ -440,6 +440,20 @@ this boundary.
 
 The safety state remains `CONTINUE`.
 
+## TinyVM runtime-provider cleanup failure — 2026-09-15
+
+The TinyVM runtime provider now treats a failed dynamic-library release as an
+explicit `runtime provider library cleanup failed` result and clears any
+computed value before returning failure. The injected cleanup test confirms
+that teardown failure cannot be accepted as successful provider execution;
+the descriptor and allocation cases in the same test retain no partial
+ownership.
+
+The focused test passed under normal GCC, Clang 18.1.3 ASan/UBSan, and
+Valgrind 3.22.0 Memcheck with zero errors and zero leaks. The complete
+canonical suites passed 147/147 under both normal GCC and Clang 18.1.3
+ASan/UBSan. The safety state remains `CONTINUE`.
+
 The subsequent complete canonical runs passed 147/147 under normal GCC and
 147/147 under Clang 18.1.3 ASan/UBSan with leak detection disabled.
 

@@ -115,6 +115,24 @@ int main(int argc,char **argv){
         tinyvm_runtime_provider_destroy(&provider);
         return 1;
     }
+    memset(&import,0,sizeof import);
+    import.id=1;
+    snprintf(import.contract,64,"libc");
+    snprintf(import.library,64,"libc.so.6");
+    snprintf(import.convention,64,"c");
+    snprintf(import.symbol,64,"abs");
+    snprintf(import.effect,64,"pure");
+    snprintf(import.parameters,64,"c_int");
+    snprintf(import.result,64,"c_int");
+    snprintf(import.evidence,64,"runtime-provider-cleanup-fault");
+    TinyvmValue abs_args[]={{TINYVM_CARRIER_I32,(uint64_t)(int64_t)-7,true}};
+    result=(TinyvmValue){0};
+    fault=NULL;
+    if(tinyvm_runtime_provider_resolve(&provider,&artifact,&import,abs_args,1,&result,&fault)||!fault||strcmp(fault,"runtime provider library cleanup failed")||result.initialized){
+        fprintf(stderr,"unexpected cleanup result: fault=%s initialized=%d\n",fault?fault:"<null>",result.initialized);
+        tinyvm_runtime_provider_destroy(&provider);
+        return 1;
+    }
     tinyvm_runtime_provider_destroy(&provider);
     puts("TinyVM runtime provider allocation faults refused with no outcome");
     return 0;
