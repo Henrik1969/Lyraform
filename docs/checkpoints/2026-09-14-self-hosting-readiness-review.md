@@ -93,6 +93,25 @@ memory checks, not a claim that the complete sanitizer matrix is clean.
 Until those checks pass, Stage 1 remains `not-started` and the safety mission
 state remains `CONTINUE`.
 
+## Safety-assurance reconciliation — 2026-09-15
+
+Since this review was opened, the safety mission has added and regression-tested
+bounded allocation-free structured diagnostics across the current compiler,
+artifact, lowering, provider, graph, and kernel process boundaries. The shared
+diagnostic primitive has direct hostile escaping/truncation and Memcheck
+evidence. Durable error-state history now also covers child-process death after
+partial write and after file synchronization but before directory
+synchronization; incomplete tails remain refused and require explicit repair.
+
+These closures strengthen the Stage 0 evidence boundary but do not alter the
+Gate 9 decision. The first self-hosted slice still lacks a Flow-written
+producer/consumer proof and the bootstrap closures listed above. The optional
+ConfigResolve adapter is disabled in the canonical build and contributes no
+provider evidence. Retention, deeper filesystem crash semantics, isolation,
+signed trust profiles, cross-platform assurance, and general cancellation/
+async/backpressure/effectful parallelism remain explicitly provisional or
+future. Stage 1 remains `not-started`; the safety mission remains `CONTINUE`.
+
 ## Evidence boundary
 
 This review deliberately records a not-ready decision rather than treating the
