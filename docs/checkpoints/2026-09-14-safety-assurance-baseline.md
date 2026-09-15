@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## CUDA dynamic-library cleanup residual — 2026-09-15
+
+The Gate 3 provider audit identified that the CUDA graph and matrix benchmark
+`Library` wrappers ignore nonzero `dlclose` results. This is now explicitly
+unclaimed in the safety case; it is not equivalent to the separately tested
+device/cuBLAS handle cleanup contract. A future hardware-independent wrapper
+test and an explicit close-failure artifact policy are required before those
+dynamic-library paths can be considered cleanup-complete. The safety state
+remains `CONTINUE`.
+
 ## Optional ConfigResolve adapter containment — 2026-09-15
 
 The optional ConfigResolve policy adapter now declares its public resolution
