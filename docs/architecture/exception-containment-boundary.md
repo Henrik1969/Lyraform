@@ -75,7 +75,9 @@ exit distinction.
 - Runtime capability discovery now provides `discover_checked()` as a
   non-throwing boundary, so injected or unexpected discovery failures produce
   an explicit unresolved result rather than relying on CLI-level exception
-  containment.
+  containment. Its CUDA driver probe also classifies a dynamic-library close
+  failure as unknown capability evidence rather than silently accepting the
+  probe result.
 - The optional ConfigResolve adapter now declares its policy-resolution
   boundary `noexcept` and owns its provider context across exceptional C++
   paths. It translates allocation, standard, and unknown failures into an

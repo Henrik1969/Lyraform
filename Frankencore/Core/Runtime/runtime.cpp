@@ -68,29 +68,35 @@ CudaFacts discover_cuda() {
     using count_fn = int (*)(int*);
     const auto init = reinterpret_cast<init_fn>(dlsym(library, "cuInit"));
     const auto count = reinterpret_cast<count_fn>(dlsym(library, "cuDeviceGetCount"));
+    const auto close_library = [&] {
+        if (dlclose(library) != 0) {
+            result.status = "unknown";
+            result.diagnostic = "CUDA driver library cleanup failed";
+        }
+    };
     if (!init || !count) {
         result.status = "unknown";
         result.diagnostic = "CUDA driver symbols were incomplete";
-        dlclose(library);
+        close_library();
         return result;
     }
     if (init(0) != 0) {
         result.status = "unknown";
         result.diagnostic = "CUDA driver initialization failed";
-        dlclose(library);
+        close_library();
         return result;
     }
     int devices = 0;
     if (count(&devices) != 0) {
         result.status = "unknown";
         result.diagnostic = "CUDA device enumeration failed";
-        dlclose(library);
+        close_library();
         return result;
     }
     result.status = devices > 0 ? "available" : "unavailable";
     result.device_count = devices > 0 ? static_cast<std::uint64_t>(devices) : 0;
     if (devices == 0) result.diagnostic = "CUDA driver loaded but no devices were reported";
-    dlclose(library);
+    close_library();
     return result;
 }
 

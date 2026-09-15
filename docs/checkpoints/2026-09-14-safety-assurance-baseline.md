@@ -421,6 +421,10 @@ serializes only a valid snapshot through its checked JSON boundary. Normal,
 fault-injected, sanitizer, and memory-focused runtime tests pass. Broader
 platform assurance remains future work. The safety state remains `CONTINUE`.
 
+The runtime CUDA probe also now checks `dlclose` and downgrades the capability
+evidence to `unknown` if driver-library cleanup fails. Hardware-independent
+close-fault injection remains open.
+
 ## Requirements and language-map non-throwing boundaries — 2026-09-15
 
 The existing structured-result APIs for version requirements and language-map
