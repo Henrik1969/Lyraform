@@ -1,7 +1,7 @@
 # Lyraform safety-case inventory v1
 
 **Status:** baseline inventory, active safety mission
-**Date:** 2026-09-14
+**Date:** 2026-09-15
 **Authority:** current executable gates and admitted architecture contracts
 
 This is an assurance inventory, not a certification. A passing test supports
@@ -61,6 +61,7 @@ not-claimed       no safety claim is made
 | Hazard | Control/enforcement point | Evidence | Status | Residual risk |
 |---|---|---|---|---|
 | Unknown provider is treated as trusted | Verification evidence rejects `allowed` without trusted key, matched integrity, and authenticated/attested identity; weaker outcomes remain explicit | Contracts validation test; verification ADRs | implemented for narrow providers | General signed profile and trust-store implementation is future |
+| Optional ConfigResolve provider is mistaken for exercised policy assurance | Canonical build disables the adapter when no ConfigResolve dependency root is configured; its source-level `noexcept` fail-closed path is not admitted as provider evidence | Canonical CMake configure output; optional-provider evidence boundary in the safety baseline | not-claimed | Dependency-enabled runtime, allocation, cleanup, and policy-integration tests are required before admission |
 | Local override masquerades as authentication | Override remains policy evidence with diagnostic and provenance | verification contract and policy tests | implemented in contract | Broader admission policy integration remains incomplete |
 | Isolation label exceeds actual enforcement | `IsolationClaim` validates assurance/enforcement compatibility, requires `none` to remain self-report-only, and requires explicit resource, identity, filesystem, network, privilege, teardown, provider, and verification fields | Contracts validation test; isolation ADRs | provisional | Provider execution and independent verifier remain incomplete; no production isolation claim |
 | Trust or isolation evidence exhausts contract consumers | Verification evidence and isolation-claim text fields are capped at 4096 bytes; evidence collections are capped at 100000 entries and oversized values fail validation | `frankencore_conformance` hostile evidence/claim cases | implemented for the contract boundary | Provider execution and independently verified isolation remain incomplete |
