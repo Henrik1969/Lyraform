@@ -1,5 +1,6 @@
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 #include <flowcontracts/graph_provider_map.hpp>
 #include <flowcontracts/source_graph.hpp>
 #include <cctype>
@@ -46,31 +47,14 @@ int integer(const Json* value, int fallback = -1) {
 }
 const Array& list(const Json* value) { static const Array empty; return value && std::holds_alternative<Array>(*value) ? std::get<Array>(*value) : empty; }
 std::string quote(std::string_view value) { std::ostringstream out; out << '"'; for (char c : value) { if (c == '"' || c == '\\') out << '\\'; if (c == '\n') out << "\\n"; else if (c == '\r') out << "\\r"; else if (c != '\n') out << c; } return out.str() + '"'; }
-std::string json_escape(std::string_view value) {
-    std::string escaped;
-    for (const unsigned char c : value) {
-        switch (c) {
-            case '"': escaped += "\\\""; break;
-            case '\\': escaped += "\\\\"; break;
-            case '\n': escaped += "\\n"; break;
-            case '\r': escaped += "\\r"; break;
-            case '\t': escaped += "\\t"; break;
-            default:
-                if (c < 0x20) {
-                    const char* digits = "0123456789abcdef";
-                    escaped += "\\u00";
-                    escaped += digits[c >> 4];
-                    escaped += digits[c & 0x0f];
-                } else escaped.push_back(static_cast<char>(c));
-        }
-    }
-    return escaped;
-}
-void write_structured_failure(const std::string& code, const std::string& stage, const std::string& message) {
-    std::cerr << "{\"status\":\"failed\",\"code\":\"" << json_escape(code)
-              << "\",\"stage\":\"" << json_escape(stage)
-              << "\",\"message\":\"" << json_escape(message)
-              << "\",\"disposition\":\"no_artifact\"}\n";
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowcontracts::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowcontracts::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowcontracts::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
 struct Diagnostic { std::string code, severity, message, ast_path, region, source; int symbol = -1, line = -1, column = -1; };
 struct Target { int symbol = -1, mains = 0; std::string name; };

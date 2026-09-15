@@ -5,6 +5,7 @@
 #include <memory>
 #include <flowcontracts/artifacts.hpp>
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
@@ -140,11 +141,14 @@ std::string json_string(const std::string& text) {
     return flowcontracts::json::serialize(Json{text});
 }
 
-void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) {
-    std::cerr << "{\"status\":\"failed\",\"code\":" << json_string(std::string(code))
-              << ",\"stage\":" << json_string(std::string(stage))
-              << ",\"message\":" << json_string(std::string(message))
-              << ",\"disposition\":\"no_artifact\"}\n";
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowcontracts::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowcontracts::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowcontracts::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
 
 std::string provider_digest(const std::string& path) {

@@ -377,6 +377,24 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Toolchain diagnostic allocation boundary — 2026-09-15
+
+Flowanalyst, Flowoptimize, and Flowbind now emit structured failure JSON with
+the shared bounded, allocation-free Flowcontracts diagnostic writer. Their
+catch paths no longer construct temporary escaped strings or temporary
+`std::string` values before reporting a failure. Escape tokens are emitted
+atomically within the 4096-byte diagnostic bound, including control-byte and
+truncation cases; normal artifact JSON serialization remains unchanged.
+
+The focused `flowanalyst_pipeline`, `flowanalyst_allocation_fault`,
+`flowoptimize_pipeline`, `flowoptimize_allocation_fault`,
+`flowbind_provider`, `flowbind_fuzz`, and `flowbind_allocation_fault` tests
+passed in the normal GCC tree. This closes only these three executable
+process boundaries; Flowlower, Flowprepare, Flowtarget, and broader
+Frankencore/provider APIs remain open Gate 8 work.
+
+The safety state remains `CONTINUE`.
+
 ## Flowparallel process diagnostic allocation boundary — 2026-09-15
 
 The primary Flowparallel CLI and CPU provider now emit exception messages in

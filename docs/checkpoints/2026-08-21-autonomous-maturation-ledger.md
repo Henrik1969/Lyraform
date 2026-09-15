@@ -2597,6 +2597,20 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 toolchain diagnostic allocation boundary
+
+- Added a shared bounded, allocation-free JSON diagnostic writer to
+  Flowcontracts.
+- Migrated Flowanalyst, Flowoptimize, and Flowbind structured catch paths so
+  hostile exception text cannot trigger a second allocation while reporting
+  failure; bounded escaping preserves valid JSON and emits a deterministic
+  truncation marker.
+- Focused pipeline, fuzz, and allocation-fault tests passed for all three
+  executables.
+
+State remains CONTINUE. Flowlower, Flowprepare, Flowtarget, and broader
+Frankencore/provider exception containment remain open.
+
 ## 2026-09-15 Frankencore mutation validation boundary
 
 - Added `validate_checked(const MutationRecord&) noexcept` to the provenance

@@ -1,5 +1,6 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowcontracts/bounded_input.hpp>
+#include <flowcontracts/diagnostics.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -27,24 +28,14 @@ Options parse_options(int argc, char** argv) {
     }
     return options;
 }
-std::string json_escape(std::string_view value) {
-    std::string escaped;
-    for (const unsigned char c : value) {
-        if (c == '"') escaped += "\\\"";
-        else if (c == '\\') escaped += "\\\\";
-        else if (c == '\n') escaped += "\\n";
-        else if (c == '\r') escaped += "\\r";
-        else if (c == '\t') escaped += "\\t";
-        else if (c < 0x20) { const char* digits = "0123456789abcdef"; escaped += "\\u00"; escaped += digits[c >> 4]; escaped += digits[c & 0x0f]; }
-        else escaped.push_back(static_cast<char>(c));
-    }
-    return escaped;
-}
-void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) {
-    std::cerr << "{\"status\":\"failed\",\"code\":\"" << json_escape(code)
-              << "\",\"stage\":\"" << json_escape(stage)
-              << "\",\"message\":\"" << json_escape(message)
-              << "\",\"disposition\":\"no_artifact\"}\n";
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+    std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
+    flowcontracts::write_json_string(stderr, code);
+    std::fputs("\",\"stage\":\"", stderr);
+    flowcontracts::write_json_string(stderr, stage);
+    std::fputs("\",\"message\":\"", stderr);
+    flowcontracts::write_json_string(stderr, message);
+    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
 }
 std::string read_path_or_stdin(const std::string& path) {
     if (!path.empty()) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open artifact: " + path); return flowcontracts::read_bounded(file, "artifact"); }
