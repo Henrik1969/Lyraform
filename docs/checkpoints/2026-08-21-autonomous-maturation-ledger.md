@@ -2702,6 +2702,29 @@ State remains CONTINUE. Abrupt-death cleanup, adversarial directory
 replacement, streamed stdout delivery, other native producers, and
 cross-platform durability remain open.
 
+## 2026-09-15 compiler abrupt-death publication recovery
+
+- Replaced randomized compiler siblings with one versioned, protocol-owned
+  sibling per destination under an exclusive opened-directory lock.
+- Creation, cleanup, and rename now use the retained directory descriptor;
+  abrupt process death releases the lock, and the next cooperating publication
+  removes only that exact stale sibling before writing.
+- Injected exit 86 from the file-write boundary for Flowmini, Flowlower,
+  TinyVM v1/v2, and the TinyVM lowerer projection. Every path preserves the old
+  destination, exposes the expected orphan, then recovers to a valid artifact
+  with no sibling left.
+- Focused GCC and Clang 18.1.3 ASan/UBSan gates passed 5/5; full suites passed
+  154/154 in 63.08 seconds under GCC and 115.43 seconds under Clang sanitizers.
+  Valgrind normal parent/producer paths were clean at TinyVM v1 5,013/5,013,
+  TinyVM v2 5,016/5,016, TinyVM lowerer 5,072/5,072, Flowlower 208/208, and
+  Flowmini 684/684 allocations/frees. Deliberately killed children had no
+  definite, indirect, or possible loss; OS-reclaimed reachable state is
+  expected because teardown is bypassed.
+
+State remains CONTINUE. Legacy randomized siblings, non-cooperating writers,
+adversarial parent-path replacement, streamed stdout delivery, other native
+producers, and cross-platform durability remain open.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,

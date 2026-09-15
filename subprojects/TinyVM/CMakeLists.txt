@@ -63,7 +63,10 @@ if(TARGET flowcontracts)
         target_compile_features(flowtinylower_publication_fault PRIVATE cxx_std_20)
         target_compile_options(flowtinylower_publication_fault PRIVATE -Wall -Wextra -Wpedantic)
         target_link_libraries(flowtinylower_publication_fault PRIVATE tinyvm_recovered flowcontracts)
-        target_link_options(flowtinylower_publication_fault PRIVATE "-Wl,--wrap=fsync" "-Wl,--wrap=close")
+        target_link_options(flowtinylower_publication_fault PRIVATE
+            "-Wl,--wrap=fwrite"
+            "-Wl,--wrap=fsync"
+            "-Wl,--wrap=close")
     endif()
 endif()
 
@@ -115,7 +118,7 @@ target_link_options(tinyvm_artifact_v2_publication_fault PRIVATE
     "-Wl,--wrap=fsync"
     "-Wl,--wrap=close"
     "-Wl,--wrap=fclose"
-    "-Wl,--wrap=rename")
+    "-Wl,--wrap=renameat")
 add_executable(tinyvm_artifact_v1_publication_fault tests/artifact-v1-publication-fault.c)
 target_link_libraries(tinyvm_artifact_v1_publication_fault PRIVATE tinyvm_recovered)
 target_link_options(tinyvm_artifact_v1_publication_fault PRIVATE
@@ -123,7 +126,7 @@ target_link_options(tinyvm_artifact_v1_publication_fault PRIVATE
     "-Wl,--wrap=fsync"
     "-Wl,--wrap=close"
     "-Wl,--wrap=fclose"
-    "-Wl,--wrap=rename")
+    "-Wl,--wrap=renameat")
 endif()
 
 if(BUILD_TESTING)

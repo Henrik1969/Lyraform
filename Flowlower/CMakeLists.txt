@@ -22,7 +22,7 @@ target_link_options(flowlower_publication_fault PRIVATE
     "-Wl,--wrap=fsync"
     "-Wl,--wrap=close"
     "-Wl,--wrap=fclose"
-    "-Wl,--wrap=rename")
+    "-Wl,--wrap=renameat")
 add_executable(flowprepare src/prepare.cpp)
 target_compile_options(flowprepare PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowprepare PRIVATE flowcontracts)

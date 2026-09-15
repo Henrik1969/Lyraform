@@ -9,6 +9,7 @@
 #include <flowcontracts/diagnostics.hpp>
 
 #include <algorithm>
+#include <cerrno>
 #include <cctype>
 #include <cstring>
 #include <fcntl.h>
@@ -20,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <sys/file.h>
 #include <unistd.h>
 #include <vector>
 
@@ -582,10 +584,21 @@ namespace {
         const auto slash = path.find_last_of('/');
         const std::string parent = slash == std::string::npos ? "." :
                                    slash == 0 ? "/" : path.substr(0, slash);
+        const std::string leaf = slash == std::string::npos ? path : path.substr(slash + 1);
+        if (leaf.empty()) throw OutputError{"output path has no file name"};
+        const std::string temporary = leaf + ".tmp.lyraform-v1";
         const int directory = open(parent.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
         if (directory < 0) throw OutputError{"cannot open output directory"};
-        std::string temporary = path + ".tmp.XXXXXX";
-        const int descriptor = mkstemp(temporary.data());
+        if (flock(directory, LOCK_EX) != 0) {
+            close(directory);
+            throw OutputError{"cannot lock output directory"};
+        }
+        if (unlinkat(directory, temporary.c_str(), 0) != 0 && errno != ENOENT) {
+            close(directory);
+            throw OutputError{"cannot remove stale private output file"};
+        }
+        const int descriptor = openat(directory, temporary.c_str(),
+                                      O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
         if (descriptor < 0) {
             close(directory);
             throw OutputError{"cannot create private output file"};
@@ -597,12 +610,12 @@ namespace {
             if (complete && std::fflush(file) != 0) complete = false;
             if (complete && fsync(descriptor) != 0) complete = false;
             if (std::fclose(file) != 0) complete = false;
-            if (complete && std::rename(temporary.c_str(), path.c_str()) == 0) published = true;
+            if (complete && renameat(directory, temporary.c_str(), directory, leaf.c_str()) == 0) published = true;
         } else {
             close(descriptor);
         }
         if (!published) {
-            std::remove(temporary.c_str());
+            unlinkat(directory, temporary.c_str(), 0);
             close(directory);
             throw OutputError{"cannot publish output file"};
         }

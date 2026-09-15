@@ -113,9 +113,12 @@ publication, synchronized after rename, and closed before success is reported.
 Pre-rename failure preserves any previous destination and removes the temporary
 file during ordinary failure handling; post-rename directory synchronization
 or descriptor-close failure returns the explicit
-`TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN` result. Abrupt-death orphan
-cleanup, adversarial parent-directory replacement, and cross-platform
-durability are not claimed.
+`TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN` result. Cooperating Linux
+publishers serialize on the opened directory and use one versioned private
+sibling per destination; after abrupt process death, the next publication
+removes that exact protocol-owned sibling before writing. Legacy random
+siblings, non-cooperating writers, adversarial parent-directory replacement,
+and cross-platform durability are not claimed.
 The retained recovered-VM v1 compatibility writer exposes the same publication
 sequence and three-state parent-directory durability result through
 `tinyvm_artifact_write_result`; its boolean entry point likewise reports

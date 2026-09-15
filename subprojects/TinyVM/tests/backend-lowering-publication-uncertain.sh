@@ -30,5 +30,20 @@ do
     test -z "$(find "$build" -maxdepth 1 -name 'backend-publication-uncertain.tvm.tmp.*' -print -quit)"
 done
 
+printf 'previous\n' >"$artifact"
+set +e
+TINYVM_TEST_PUBLICATION_FAULT=abrupt-write "$lower" --diagnostics json "$fixture" "$artifact" >"$stdout" 2>"$stderr"
+status=$?
+set -e
+test "$status" -eq 86
+test ! -s "$stdout"
+printf 'previous\n' | cmp -s - "$artifact"
+test -e "$artifact.tmp.lyraform-v1"
+
+"$lower" --diagnostics json "$fixture" "$artifact" >"$stdout" 2>"$stderr"
+test ! -s "$stderr"
+test ! -e "$artifact.tmp.lyraform-v1"
+"$validate" "$artifact" | grep -q '"status":"valid"'
+
 rm -f "$artifact" "$stdout" "$stderr"
 echo 'TinyVM backend publication uncertainty: PASS'

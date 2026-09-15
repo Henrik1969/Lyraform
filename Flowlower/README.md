@@ -72,8 +72,11 @@ rename, and closed before success is reported. Failure of synchronization or
 descriptor close returns
 `FLOWLOWER_OUTPUT_DURABILITY_UNCERTAIN` with disposition
 `artifact_published_durability_uncertain`, because the new LLVM artifact is
-already visible. Abrupt-death orphan cleanup, adversarial directory replacement,
-and cross-platform durability are not claimed.
+already visible. Cooperating Linux publishers serialize on the opened
+directory and use one versioned private sibling per destination; after abrupt
+process death, the next publication removes that exact protocol-owned sibling
+before writing. Legacy random siblings, non-cooperating writers, adversarial
+directory replacement, and cross-platform durability are not claimed.
 
 The companion `flowprepare` and `flowtarget` tools use the same structured
 input boundary. Missing artifacts, incomplete options, unavailable policies,

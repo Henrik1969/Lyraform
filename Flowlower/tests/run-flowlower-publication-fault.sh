@@ -52,7 +52,19 @@ do
     fi
 done
 
+printf 'previous\n' >"$output"
+set +e
+FLOWLOWER_PUBLICATION_FAULT=abrupt-write "$fault_bin" --diagnostics json \
+    --emit-llvm "$output" "$fixture" >"$tmpdir/abrupt-write.stdout" 2>"$tmpdir/abrupt-write.stderr"
+status=$?
+set -e
+test "$status" -eq 86
+test ! -s "$tmpdir/abrupt-write.stdout"
+printf 'previous\n' | cmp -s - "$output"
+test -e "$output.tmp.lyraform-v1"
+
 "$lower" --emit-llvm "$output" "$fixture" >"$tmpdir/success.json"
 grep -q 'define i32 @main()' "$output"
+test ! -e "$output.tmp.lyraform-v1"
 jq -e '.status == "ready" and .artifact.status == "emitted"' "$tmpdir/success.json" >/dev/null
 echo 'Flowlower atomic publication faults: PASS'

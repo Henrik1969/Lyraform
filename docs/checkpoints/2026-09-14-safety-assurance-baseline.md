@@ -1739,3 +1739,38 @@ This closes ordinary close-failure evidence for the covered Linux compiler
 publishers; it does not close abrupt-death orphan cleanup, adversarial directory
 replacement, streamed stdout partial delivery, other native producers, or
 cross-platform durability. The safety state remains `CONTINUE`.
+
+## Compiler abrupt-death publication recovery — 2026-09-15
+
+Flowmini, Flowlower, and both TinyVM artifact writers now use the same bounded
+Linux publication protocol. A writer opens and exclusively locks the parent
+directory, removes only the exact versioned sibling owned by this protocol for
+that destination, creates the sibling with `openat`, and publishes it with
+`renameat` relative to the retained directory descriptor. The lock is released
+by the kernel on process death. A subsequent cooperating publication can then
+remove the one protocol-owned orphan without scanning, pattern deletion, PID
+guessing, or touching another cooperating live writer.
+
+Each publication gate now kills a writer from its file-write boundary with
+exit status 86. Flowmini, Flowlower, TinyVM v1, TinyVM v2, and the TinyVM
+lowerer process projection all preserve the previous destination, expose the
+expected versioned private sibling after death, and remove it during the next
+successful publication. The recovered artifacts independently validate and no
+private sibling remains.
+
+The five focused gates passed 5/5 under GCC and Clang 18.1.3 ASan/UBSan.
+Complete suites passed 154/154 under GCC in 63.08 seconds and 154/154 under
+Clang sanitizers in 115.43 seconds with the documented leak setting. Valgrind
+3.22.0 reported zero errors and zero live blocks on the normal TinyVM v1 parent
+(5,013 allocations/frees), TinyVM v2 parent (5,016 allocations/frees), TinyVM
+lowerer (5,072 allocations/frees), Flowlower (208 allocations/frees), and
+Flowmini (684 allocations/frees). The intentionally killed children terminate
+before language/library teardown; Valgrind reports zero definite, indirect, or
+possible loss there, while the kernel reclaims their still-reachable process
+state.
+
+This closes next-run cleanup only for private siblings created by the new
+cooperating Linux protocol. Legacy randomized siblings, non-cooperating
+writers, adversarial parent-path replacement, streamed stdout partial delivery,
+other native producers, and cross-platform equivalents remain open. The safety
+state remains `CONTINUE`.

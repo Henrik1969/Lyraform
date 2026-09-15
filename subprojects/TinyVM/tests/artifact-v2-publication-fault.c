@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 enum FaultMode {
     FAULT_NONE,
@@ -13,12 +15,14 @@ enum FaultMode {
     FAULT_CLOSE,
     FAULT_RENAME,
     FAULT_DIRECTORY_SYNC,
-    FAULT_DIRECTORY_CLOSE
+    FAULT_DIRECTORY_CLOSE,
+    FAULT_ABRUPT_WRITE
 };
 static enum FaultMode fault_mode = FAULT_NONE;
 
 extern size_t __real_fwrite(const void *, size_t, size_t, FILE *);
 size_t __wrap_fwrite(const void *data, size_t width, size_t count, FILE *file) {
+    if (fault_mode == FAULT_ABRUPT_WRITE) _exit(86);
     if (fault_mode == FAULT_WRITE && width && count) {
         const size_t bytes = width * count;
         return __real_fwrite(data, 1, bytes > 1 ? bytes / 2 : 0, file);
@@ -49,10 +53,11 @@ int __wrap_fclose(FILE *file) {
     return fault_mode == FAULT_CLOSE ? EOF : result;
 }
 
-extern int __real_rename(const char *, const char *);
-int __wrap_rename(const char *source, const char *destination) {
+extern int __real_renameat(int, const char *, int, const char *);
+int __wrap_renameat(int source_directory, const char *source,
+                    int destination_directory, const char *destination) {
     if (fault_mode == FAULT_RENAME) return -1;
-    return __real_rename(source, destination);
+    return __real_renameat(source_directory, source, destination_directory, destination);
 }
 
 static void set_id(char output[64], const char *value) { snprintf(output, 64, "%s", value); }
@@ -85,6 +90,13 @@ static void require_no_temporary(const char *directory) {
         require(strncmp(entry->d_name, "publication.tvm.tmp.", 20) != 0,
                 "temporary artifact remained after failure");
     require(closedir(entries) == 0, "cannot close temporary directory");
+}
+
+static void require_protocol_temporary(const char *directory) {
+    char path[1024];
+    const int length = snprintf(path, sizeof path, "%s/publication.tvm.tmp.lyraform-v1", directory);
+    require(length > 0 && (size_t)length < sizeof path, "cannot construct private artifact path");
+    require(access(path, F_OK) == 0, "abrupt exit did not leave the protocol-owned private artifact");
 }
 
 int main(int argc, char **argv) {
@@ -147,6 +159,21 @@ int main(int argc, char **argv) {
         tinyvm_artifact_v2_destroy(&uncertain);
         require_no_temporary(argv[1]);
     }
+
+    write_previous(path);
+    const pid_t child = fork();
+    require(child >= 0, "cannot fork abrupt-exit writer");
+    if (child == 0) {
+        fault_mode = FAULT_ABRUPT_WRITE;
+        (void)tinyvm_artifact_v2_write_result(path, &artifact, diagnostic, sizeof diagnostic);
+        _exit(87);
+    }
+    int child_status = 0;
+    require(waitpid(child, &child_status, 0) == child, "cannot wait for abrupt-exit writer");
+    require(WIFEXITED(child_status) && WEXITSTATUS(child_status) == 86,
+            "writer did not exit at the injected publication point");
+    require_previous(path);
+    require_protocol_temporary(argv[1]);
 
     require(tinyvm_artifact_v2_write(path, &artifact, diagnostic, sizeof diagnostic),
             "successful atomic publication failed");

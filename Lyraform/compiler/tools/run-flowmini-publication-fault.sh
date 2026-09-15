@@ -52,6 +52,18 @@ do
     fi
 done
 
+printf 'previous\n' >"$output"
+set +e
+FLOWMINI_PUBLICATION_FAULT=abrupt-write "$fault_bin" --diagnostics json \
+    --emit-flowir "$output" "$source_file" >"$tmpdir/abrupt-write.stdout" 2>"$tmpdir/abrupt-write.stderr"
+status=$?
+set -e
+test "$status" -eq 86
+test ! -s "$tmpdir/abrupt-write.stdout"
+printf 'previous\n' | cmp -s - "$output"
+test -e "$output.tmp.lyraform-v1"
+
 "$compiler" --emit-flowir "$output" "$source_file"
 test -s "$output"
+test ! -e "$output.tmp.lyraform-v1"
 echo 'Flowmini atomic publication faults: PASS'

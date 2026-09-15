@@ -17,6 +17,7 @@ bool private_file(FILE* file) { return fileno(file) > STDERR_FILENO; }
 
 extern "C" size_t __real_fwrite(const void*, size_t, size_t, FILE*);
 extern "C" size_t __wrap_fwrite(const void* data, size_t width, size_t count, FILE* file) {
+    if (private_file(file) && selected("abrupt-write")) _exit(86);
     if (private_file(file) && selected("write") && width && count) {
         const size_t bytes = width * count;
         return __real_fwrite(data, 1, bytes > 1 ? bytes / 2 : 0, file);
@@ -48,8 +49,9 @@ extern "C" int __wrap_fclose(FILE* file) {
     return fail ? EOF : result;
 }
 
-extern "C" int __real_rename(const char*, const char*);
-extern "C" int __wrap_rename(const char* source, const char* destination) {
+extern "C" int __real_renameat(int, const char*, int, const char*);
+extern "C" int __wrap_renameat(int source_directory, const char* source,
+                               int destination_directory, const char* destination) {
     if (selected("rename")) return -1;
-    return __real_rename(source, destination);
+    return __real_renameat(source_directory, source, destination_directory, destination);
 }

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <unistd.h>
 
 #ifdef TINYVM_ARTIFACT_V1_TEST_ALLOCATION_FAILURE
@@ -157,17 +158,21 @@ static char *parent_directory(const char *path){
 }
 
 static TinyvmArtifactWriteResult publish_atomic(const char *path,const uint8_t *bytes,size_t size){
-    static const char suffix[]=".tmp.XXXXXX";
-    size_t path_size=strlen(path);
-    if(path_size>SIZE_MAX-sizeof(suffix))return TINYVM_ARTIFACT_WRITE_FAILED;
+    static const char suffix[]=".tmp.lyraform-v1";
+    const char *slash=strrchr(path,'/');
+    const char *leaf=slash?slash+1:path;
+    size_t leaf_size=strlen(leaf);
+    if(leaf_size==0||leaf_size>SIZE_MAX-sizeof(suffix))return TINYVM_ARTIFACT_WRITE_FAILED;
     char *parent=parent_directory(path);
     if(!parent)return TINYVM_ARTIFACT_WRITE_FAILED;
+    char *temporary=malloc(leaf_size+sizeof(suffix));
+    if(!temporary){free(parent);return TINYVM_ARTIFACT_WRITE_FAILED;}
+    memcpy(temporary,leaf,leaf_size);memcpy(temporary+leaf_size,suffix,sizeof(suffix));
     int directory=open(parent,O_RDONLY|O_DIRECTORY|O_CLOEXEC);free(parent);
-    if(directory<0)return TINYVM_ARTIFACT_WRITE_FAILED;
-    char *temporary=malloc(path_size+sizeof(suffix));
-    if(!temporary){close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
-    memcpy(temporary,path,path_size);memcpy(temporary+path_size,suffix,sizeof(suffix));
-    int descriptor=mkstemp(temporary);
+    if(directory<0){free(temporary);return TINYVM_ARTIFACT_WRITE_FAILED;}
+    if(flock(directory,LOCK_EX)!=0){free(temporary);close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
+    if(unlinkat(directory,temporary,0)!=0&&errno!=ENOENT){free(temporary);close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
+    int descriptor=openat(directory,temporary,O_WRONLY|O_CREAT|O_EXCL|O_CLOEXEC|O_NOFOLLOW,0600);
     if(descriptor<0){free(temporary);close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
     FILE *file=fdopen(descriptor,"wb");
     bool ok=false;
@@ -177,7 +182,7 @@ static TinyvmArtifactWriteResult publish_atomic(const char *path,const uint8_t *
         if(ok&&fsync(descriptor)!=0)ok=false;
         if(fclose(file)!=0)ok=false;
     }else close(descriptor);
-    if(!ok||rename(temporary,path)!=0){unlink(temporary);free(temporary);close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
+    if(!ok||renameat(directory,temporary,directory,leaf)!=0){unlinkat(directory,temporary,0);free(temporary);close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
     free(temporary);
     bool durable=fsync(directory)==0;
     if(close(directory)!=0)durable=false;

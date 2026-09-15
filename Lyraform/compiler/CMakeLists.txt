@@ -134,7 +134,7 @@ target_link_options(flowmini_publication_fault PRIVATE
         "-Wl,--wrap=fsync"
         "-Wl,--wrap=close"
         "-Wl,--wrap=fclose"
-        "-Wl,--wrap=rename"
+        "-Wl,--wrap=renameat"
 )
 
 find_library(DL_LIBRARY dl)
