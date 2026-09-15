@@ -2718,8 +2718,18 @@ the next compact-handler audit targets.
   allocation-free JSON writer.
 - Focused matrix-benchmark diagnostics and allocation-fault tests passed 2/2.
 
-State remains CONTINUE. The graph-planner compact handler remains an explicit
-next audit target.
+State remains CONTINUE. The graph-planner compact handler is now covered; the
+wider process diagnostic audit remains open.
+
+## 2026-09-15 graph-planner bounded diagnostics
+
+- Replaced the graph-planner allocating escape result with a non-owning view
+  that delegates to the shared bounded JSON writer, preserving its compact
+  command structure.
+- Focused graph-planner normal and allocation-fault tests passed 2/2.
+
+State remains CONTINUE. Broader process diagnostics and fault injection remain
+open.
 
 ## 2026-09-15 reference diagnostic JSON validity hardening
 

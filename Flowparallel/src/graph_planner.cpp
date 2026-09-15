@@ -1,5 +1,6 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowparallel/bounded_input.hpp>
+#include <flowparallel/diagnostics.hpp>
 
 #include <cmath>
 #include <fstream>
@@ -14,7 +15,12 @@ namespace {
 constexpr std::string_view version = "0.1.0";
 std::string read_file(const std::string& path) { std::ifstream file(path); if (!file) throw std::runtime_error("cannot open " + path); return flowparallel::read_bounded(file, "graph planner input"); }
 std::string quote(std::string_view value) { std::string result = "\""; for (const char c : value) { if (c == '\\' || c == '"') result.push_back('\\'); result.push_back(c); } result.push_back('"'); return result; }
-std::string json_escape(std::string_view value) { std::string escaped; for (const char c : value) { if (c == '\\' || c == '"') escaped.push_back('\\'); if (c == '\n') escaped += "\\n"; else if (c == '\r') escaped += "\\r"; else if (c == '\t') escaped += "\\t"; else escaped.push_back(c); } return escaped; }
+struct JsonEscaped { std::string_view value; };
+JsonEscaped json_escape(std::string_view value) { return {value}; }
+std::ostream& operator<<(std::ostream& output, const JsonEscaped escaped) {
+    flowparallel::write_json_string(stderr, escaped.value);
+    return output;
+}
 double parse_number(std::string_view text, const char* option) { std::size_t consumed = 0; double value = 0.0; try { value = std::stod(std::string(text), &consumed); } catch (...) { throw std::runtime_error(std::string(option) + " requires a complete finite number"); } if (consumed != text.size() || !std::isfinite(value)) throw std::runtime_error(std::string(option) + " requires a complete finite number"); return value; }
 struct Options { std::string graph, capabilities, calibration; double density = 0.25; double min_speedup = 1.25; bool structured_diagnostics = false; };
 Options parse(int argc, char** argv) { Options o; for (int i = 1; i < argc; ++i) { const std::string arg = argv[i]; auto req = [&](const char* name) { if (++i >= argc) throw std::runtime_error(std::string(name) + " requires a value"); return std::string(argv[i]); }; if (arg == "--graph") o.graph = req("--graph"); else if (arg == "--capabilities") o.capabilities = req("--capabilities"); else if (arg == "--calibration") o.calibration = req("--calibration"); else if (arg == "--density-threshold") o.density = parse_number(req("--density-threshold"), "--density-threshold"); else if (arg == "--min-speedup") o.min_speedup = parse_number(req("--min-speedup"), "--min-speedup"); else if (arg == "--diagnostics") { if (req("--diagnostics") != "json") throw std::runtime_error("--diagnostics requires json"); o.structured_diagnostics = true; } else throw std::runtime_error("unknown option: " + arg); } if (o.graph.empty() || o.capabilities.empty()) throw std::runtime_error("--graph and --capabilities are required"); if (o.density < 0.0 || o.density > 1.0 || o.min_speedup <= 0.0) throw std::runtime_error("invalid policy threshold"); return o; }

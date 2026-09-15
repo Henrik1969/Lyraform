@@ -394,7 +394,10 @@ focused normal provider/allocation gates passed 8/8.
 
 Matrix-benchmark now uses the same bounded writer for its structured exception
 diagnostic; its normal and allocation-fault gates passed 2/2. Graph-planner
-remains a separately tracked compact-handler residual.
+now uses a bounded non-owning diagnostic view backed by the same writer; its
+normal and allocation-fault gates passed 2/2. The current named Flowparallel
+catch-path set is covered, while broader process diagnostics remain
+provisional.
 
 ## Reference CLI diagnostic allocation boundary — 2026-09-15
 
