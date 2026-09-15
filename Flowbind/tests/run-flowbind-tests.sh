@@ -83,7 +83,7 @@ bad=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":
 bad_rc=$?
 set -e
 test "$bad_rc" -eq 2
-printf '%s\n' "$bad" | grep -q 'unavailable'
+printf '%s\n' "$bad" | jq -e '.code == "FLOWBIND_PROVIDER_FAILURE" and .stage == "provider" and any(.failures[]; contains("symbol") and contains("unavailable"))' >/dev/null
 
 set +e
 missing_provider=$(printf '%s' "{\"format\":\"flowanalyst.semantic_report\",\"version\":1,\"status\":\"ok\",\"binding_requirements\":[{\"contract\":\"missing-provider\",\"library\":\"$tmpdir/provider-that-is-not-present.so\",\"convention\":\"c\",\"symbol\":\"exported_symbol\",\"effect\":\"pure\",\"parameter_types\":\"\",\"return_type\":\"c_int\"}]}" | "$bin" --policy "$policy")
@@ -92,6 +92,8 @@ set -e
 test "$missing_provider_rc" -eq 2
 printf '%s\n' "$missing_provider" | jq -e '
   .status == "blocked" and
+  .code == "FLOWBIND_PROVIDER_FAILURE" and
+  .stage == "provider" and
   any(.failures[]; contains("library unavailable")) and
   (has("symbols") | not) and
   (has("execution") | not)
@@ -102,7 +104,7 @@ bad_type=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"sta
 bad_type_rc=$?
 set -e
 test "$bad_type_rc" -eq 2
-printf '%s\n' "$bad_type" | grep -q 'unsupported parameter ABI type'
+printf '%s\n' "$bad_type" | jq -e '.code == "FLOWBIND_ABI_FAILURE" and .stage == "abi" and any(.failures[]; contains("unsupported parameter ABI type"))' >/dev/null
 
 set +e
 bad_return=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[{"contract":"bad","library":"libc.so.6","convention":"c","symbol":"abs","effect":"pure","parameter_types":"c_int","return_type":"native_struct"}]}' | "$bin" --policy "$policy")
@@ -123,7 +125,7 @@ denied=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"statu
 denied_rc=$?
 set -e
 test "$denied_rc" -eq 2
-printf '%s\n' "$denied" | grep -q 'denied by capability policy'
+printf '%s\n' "$denied" | jq -e '.code == "FLOWBIND_POLICY_FAILURE" and .stage == "policy" and any(.failures[]; contains("denied by capability policy"))' >/dev/null
 
 set +e
 printf '%s' '{"format":"wrong","version":1}' | "$bin" --diagnostics json >"$tmpdir/hostile-stdout" 2>"$tmpdir/hostile-stderr"

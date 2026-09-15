@@ -391,6 +391,17 @@ This is a current inspection-boundary control; it does not create recovery,
 replacement, trust-store, or native-execution semantics. The safety state
 remains `CONTINUE`.
 
+## Flowbind blocked-report condition codes — 2026-09-15
+
+Blocked binding reports now include stable `code` and `stage` fields. Provider
+loss, policy denial, and ABI refusal are machine-distinguishable while the
+existing failure text remains available for operators. The focused provider
+gate passes in the normal GCC and Clang 18.1.3 ASan/UBSan trees.
+
+This improves classification only; it does not grant execution permission or
+admit post-binding replacement, recovery, trust-store, or arbitrary ABI/FFI.
+The safety state remains `CONTINUE`.
+
 ## Generated-provider replacement evidence recheck — 2026-09-15
 
 The existing `native_binding_generation` gate was re-run in the normal GCC

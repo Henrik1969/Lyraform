@@ -168,6 +168,14 @@ FailureClassification classify_failure(std::string_view message) noexcept {
     return {"FLOWBIND_INPUT_INVALID", "input"};
 }
 
+FailureClassification classify_blocked(const std::vector<std::string>& failures) noexcept {
+    for (const auto& failure : failures) {
+        const auto classification = classify_failure(failure);
+        if (classification.stage != "input") return classification;
+    }
+    return {"FLOWBIND_BINDING_REJECTED", "binding"};
+}
+
 std::string provider_digest(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) throw std::runtime_error("cannot read loaded provider bytes: " + path);
@@ -575,7 +583,10 @@ int verify(const std::string& report, const std::string& policy_path, const std:
         }
     }
     if (!failures.empty()) {
-        std::cout << "{\n  \"format\": \"flowbind.binding_report\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"provider\": \"dlopen+dlsym\",\n  \"failures\": [";
+        const auto classification = classify_blocked(failures);
+        std::cout << "{\n  \"format\": \"flowbind.binding_report\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"code\": " << json_string(std::string{classification.code})
+                  << ",\n  \"stage\": " << json_string(std::string{classification.stage})
+                  << ",\n  \"provider\": \"dlopen+dlsym\",\n  \"failures\": [";
         for (std::size_t i = 0; i < failures.size(); ++i) { if (i) std::cout << ','; std::cout << json_string(failures[i]); }
         std::cout << "]";
         if (aggregate_manifest_verified) std::cout << ",\n  \"aggregate_abi\": \"verified\"";

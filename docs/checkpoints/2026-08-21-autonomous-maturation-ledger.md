@@ -2597,6 +2597,18 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 Flowbind blocked-report condition codes
+
+- Added stable `code` and `stage` fields to blocked binding reports.
+- Provider loss, policy denial, and ABI refusal are now machine-distinguishable
+  without parsing the diagnostic prose; exceptional CLI failures retain the
+  `no_artifact` disposition.
+- The focused provider gate passes in GCC and Clang 18.1.3 ASan/UBSan.
+
+State remains CONTINUE. This improves classification only; execution,
+post-binding replacement, recovery, trust-store, and arbitrary ABI/FFI remain
+unadmitted.
+
 ## 2026-09-15 Flowbind stable failure categories
 
 - Added an explicit structured-CLI classification boundary for input, policy,
