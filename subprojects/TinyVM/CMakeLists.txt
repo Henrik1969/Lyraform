@@ -56,6 +56,15 @@ if(TARGET flowcontracts)
     target_compile_features(flowtinylower_allocation_fault PRIVATE cxx_std_20)
     target_compile_options(flowtinylower_allocation_fault PRIVATE -Wall -Wextra -Wpedantic)
     target_link_libraries(flowtinylower_allocation_fault PRIVATE tinyvm_recovered flowcontracts)
+    if(BUILD_TESTING)
+        add_executable(flowtinylower_directory_sync_fault
+            tools/lower.cpp
+            tests/directory-sync-wrap.c)
+        target_compile_features(flowtinylower_directory_sync_fault PRIVATE cxx_std_20)
+        target_compile_options(flowtinylower_directory_sync_fault PRIVATE -Wall -Wextra -Wpedantic)
+        target_link_libraries(flowtinylower_directory_sync_fault PRIVATE tinyvm_recovered flowcontracts)
+        target_link_options(flowtinylower_directory_sync_fault PRIVATE "-Wl,--wrap=fsync")
+    endif()
 endif()
 
 if(BUILD_TESTING)
@@ -187,5 +196,11 @@ if(BUILD_TESTING)
         add_test(NAME tinyvm_backend_lowering_allocation_fault
             COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/backend-lowering-allocation-fault.sh
                     $<TARGET_FILE:flowtinylower_allocation_fault>)
+        add_test(NAME tinyvm_backend_lowering_publication_uncertain
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/backend-lowering-publication-uncertain.sh
+                    $<TARGET_FILE:flowtinylower_directory_sync_fault>
+                    $<TARGET_FILE:flowtinyvalidate>
+                    ${CMAKE_SOURCE_DIR}/Flowlower/tests/captured-empty-lowering.json
+                    ${CMAKE_CURRENT_BINARY_DIR})
     endif()
 endif()

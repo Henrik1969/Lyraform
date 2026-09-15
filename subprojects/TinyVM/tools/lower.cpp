@@ -27,16 +27,20 @@ using namespace flowcontracts::json;
 
 struct InputError : std::runtime_error { using std::runtime_error::runtime_error; };
 struct OutputError : std::runtime_error { using std::runtime_error::runtime_error; };
+struct OutputUncertain : std::runtime_error { using std::runtime_error::runtime_error; };
 struct Unsupported : std::runtime_error { using std::runtime_error::runtime_error; };
 
-void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message,
+                              std::string_view disposition = "no_artifact") noexcept {
     std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
     flowcontracts::write_json_string(stderr, code);
     std::fputs("\",\"stage\":\"", stderr);
     flowcontracts::write_json_string(stderr, stage);
     std::fputs("\",\"message\":\"", stderr);
     flowcontracts::write_json_string(stderr, message);
-    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+    std::fputs("\",\"disposition\":\"", stderr);
+    flowcontracts::write_json_string(stderr, disposition);
+    std::fputs("\"}\n", stderr);
 }
 
 std::string read(const char* path) {
@@ -809,7 +813,11 @@ int lower(const char* input_path, const char* output_path) {
     artifact.provenance = compiler.provenance.data(); artifact.provenance_count = compiler.provenance.size();
     artifact.graph_activations = compiler.graph_activations.data(); artifact.graph_activation_count = compiler.graph_activations.size();
     char diagnostic[256];
-    if (!tinyvm_artifact_v2_write(output_path, &artifact, diagnostic, sizeof diagnostic))
+    const auto write_result = tinyvm_artifact_v2_write_result(
+        output_path, &artifact, diagnostic, sizeof diagnostic);
+    if (write_result == TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN)
+        throw OutputUncertain(std::string("TinyVM artifact publication durability is uncertain: ") + diagnostic);
+    if (write_result != TINYVM_ARTIFACT_WRITE_PUBLISHED)
         throw OutputError(std::string("cannot emit TinyVM artifact: ") + diagnostic);
     std::cout << serialize(Object{{"artifact_id", std::string(artifact.artifact_id)}, {"backend", "tinyvm"},
                                  {"format", "flowtiny.lowering_result"}, {"isa_version", Integer{compiler.isa_version()}},
@@ -857,6 +865,12 @@ int main(int argc, char** argv) {
     } catch (const OutputError& error) {
         if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_OUTPUT_FAILURE", "output", error.what());
         else std::cerr << "flowtinylower output error: " << error.what() << '\n';
+        return 1;
+    } catch (const OutputUncertain& error) {
+        if (structured_diagnostics)
+            write_structured_failure("FLOWTINYLOWER_OUTPUT_DURABILITY_UNCERTAIN", "output", error.what(),
+                                     "artifact_published_durability_uncertain");
+        else std::cerr << "flowtinylower output durability uncertain: " << error.what() << '\n';
         return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics) write_structured_failure("FLOWTINYLOWER_RUNTIME_FAILURE", "runtime", error.what());

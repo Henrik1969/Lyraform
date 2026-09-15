@@ -102,16 +102,22 @@ a structured unsupported result until their lowering rules land.
 `--diagnostics json` reports malformed contracts, invalid or unavailable input,
 output publication failure, resource exhaustion, runtime failure, and unknown
 non-standard failure as distinct staged `no_artifact` records on standard
-error. Successful and explicitly unsupported lowering results remain on
-standard output.
+error. A failure of the post-rename parent-directory durability barrier instead
+reports `artifact_published_durability_uncertain`, because the new artifact is
+already visible and must not be described as absent. Successful and explicitly
+unsupported lowering results remain on standard output.
 Version 2 artifacts are encoded before publication, written and synchronized
 through a private sibling file, and atomically renamed over the destination
-only after a successful close. Publication failure preserves any previous
-destination and removes the temporary file during ordinary failure handling;
-parent-directory crash durability and abrupt-death orphan cleanup are not
-claimed.
+only after a successful close. The parent directory is opened before
+publication and synchronized after rename. Pre-rename failure preserves any
+previous destination and removes the temporary file during ordinary failure
+handling; post-rename directory synchronization failure returns the explicit
+`TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN` result. Abrupt-death orphan
+cleanup, adversarial parent-directory replacement, and cross-platform
+durability are not claimed.
 The retained recovered-VM v1 compatibility writer uses the same publication
-sequence and limitations.
+sequence through rename, but does not yet expose the v2 parent-directory
+durability result.
 
 The current Gate 6 slice additionally admits executable source graphs with one
 authorized startup provider and serial fresh receiver activations. Receiver

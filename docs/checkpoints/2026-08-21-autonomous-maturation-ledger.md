@@ -2617,6 +2617,24 @@ State remains CONTINUE. This prevents claim text from becoming authority but
 does not implement isolation, provider identity binding, or consumer-wide
 execution admission.
 
+## 2026-09-15 TinyVM v2 parent-directory durability result
+
+- Added a three-state v2 artifact publication result: failed before
+  publication, durably published, or published with parent-directory
+  durability uncertain.
+- Opened the parent directory before sibling creation, synchronized it after
+  rename, and retained the existing pre-rename preservation and cleanup rules.
+- Added artifact-level directory-sync fault injection and a process-level
+  lowerer gate proving a valid visible artifact plus
+  `artifact_published_durability_uncertain`, never `no_artifact`.
+- Focused GCC and Clang ASan/UBSan checks passed 3/3; Valgrind 3.22.0 reported
+  zero errors and leaks with 4,993/4,993 allocations/frees; full suites passed
+  154/154 in 57.51 seconds under GCC and 110.24 seconds under Clang sanitizers.
+
+State remains CONTINUE. TinyVM v1, Flowmini, and Flowlower still need the same
+post-rename result distinction; abrupt-death cleanup, adversarial directory
+replacement, and cross-platform durability remain open.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,

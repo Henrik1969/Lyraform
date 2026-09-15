@@ -1608,3 +1608,31 @@ This is a contract-level refusal boundary, not an isolation implementation.
 An independently verified Linux provider, provider-to-claim identity binding,
 and adoption by execution consumers remain open. The safety state remains
 `CONTINUE`.
+
+## TinyVM v2 parent-directory durability result — 2026-09-15
+
+The TinyVM v2 publisher now opens the destination's parent directory before
+creating its private sibling, retains that descriptor through rename, and
+`fsync`s the directory before reporting durable publication. Its new result API
+separates pre-rename failure, durable publication, and publication whose
+post-rename directory durability is uncertain. The compatibility boolean API
+returns success only for the durable result.
+
+An injected file-write, file-sync, file-close, or rename failure still
+preserves the previous destination and removes the sibling. An injected
+directory-sync failure instead proves that the replacement is visible and
+independently validates while the API reports
+`TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN`. `flowtinylower --diagnostics
+json` maps that state to `FLOWTINYLOWER_OUTPUT_DURABILITY_UNCERTAIN` with
+`artifact_published_durability_uncertain`, never `no_artifact`.
+
+The focused artifact, lowerer, and process-projection gates passed 3/3 under
+GCC and Clang 18.1.3 ASan/UBSan. Valgrind 3.22.0 reported zero errors, zero live
+blocks, and 4,993 allocations matched by 4,993 frees. Complete suites passed
+154/154 under GCC in 57.51 seconds and 154/154 under Clang sanitizers in 110.24
+seconds with the documented leak setting.
+
+This closes the ordinary Linux parent-directory barrier and uncertain-result
+classification for TinyVM v2 only. The retained v1 writer, Flowmini,
+Flowlower, adversarial directory replacement, abrupt-death orphan cleanup, and
+cross-platform durability remain open. The safety state remains `CONTINUE`.

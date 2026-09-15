@@ -3,6 +3,7 @@
 
 #include <openssl/sha.h>
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,15 +100,26 @@ static void encode_sections(const TinyvmArtifactV2 *a,uint8_t *b,const Section *
     }
 }
 
-static bool publish_atomic(const char *path,const uint8_t *bytes,size_t size){
+static char *parent_directory(const char *path){
+    const char *slash=strrchr(path,'/');size_t length;
+    if(!slash){path=".";length=1;}else{length=slash==path?1:(size_t)(slash-path);}
+    char *parent=malloc(length+1);if(!parent)return NULL;
+    memcpy(parent,path,length);parent[length]=0;return parent;
+}
+
+static TinyvmArtifactWriteResult publish_atomic(const char *path,const uint8_t *bytes,size_t size){
     static const char suffix[]=".tmp.XXXXXX";
     size_t path_size=strlen(path);
-    if(path_size>SIZE_MAX-sizeof(suffix))return false;
+    if(path_size>SIZE_MAX-sizeof(suffix))return TINYVM_ARTIFACT_WRITE_FAILED;
+    char *parent=parent_directory(path);
+    if(!parent)return TINYVM_ARTIFACT_WRITE_FAILED;
+    int directory=open(parent,O_RDONLY|O_DIRECTORY|O_CLOEXEC);free(parent);
+    if(directory<0)return TINYVM_ARTIFACT_WRITE_FAILED;
     char *temporary=malloc(path_size+sizeof(suffix));
-    if(!temporary)return false;
+    if(!temporary){close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
     memcpy(temporary,path,path_size);memcpy(temporary+path_size,suffix,sizeof(suffix));
     int descriptor=mkstemp(temporary);
-    if(descriptor<0){free(temporary);return false;}
+    if(descriptor<0){free(temporary);close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
     FILE *file=fdopen(descriptor,"wb");
     bool ok=false;
     if(file){
@@ -116,15 +128,26 @@ static bool publish_atomic(const char *path,const uint8_t *bytes,size_t size){
         if(ok&&fsync(descriptor)!=0)ok=false;
         if(fclose(file)!=0)ok=false;
     }else close(descriptor);
-    if(ok&&rename(temporary,path)==0){free(temporary);return true;}
-    unlink(temporary);free(temporary);return false;
+    if(!ok||rename(temporary,path)!=0){unlink(temporary);free(temporary);close(directory);return TINYVM_ARTIFACT_WRITE_FAILED;}
+    free(temporary);
+    bool durable=fsync(directory)==0;
+    if(close(directory)!=0)durable=false;
+    return durable?TINYVM_ARTIFACT_WRITE_PUBLISHED:TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN;
+}
+
+TinyvmArtifactWriteResult tinyvm_artifact_v2_write_result(const char *path,TinyvmArtifactV2 *a,char *d,size_t cap){
+    if(!tinyvm_artifact_v2_validate(a,d,cap))return TINYVM_ARTIFACT_WRITE_FAILED;
+    Section s[7];size_t n=sections_for(a,s,d,cap);if(!n)return TINYVM_ARTIFACT_WRITE_FAILED;size_t size=s[n-1].offset+s[n-1].size;uint8_t *b=malloc(size);if(!b){diag(d,cap,"allocation failed");return TINYVM_ARTIFACT_WRITE_FAILED;}
+    encode_header(a,b,size,s,n);encode_sections(a,b,s,n);SHA256(b,size,b+384);memcpy(a->digest,b+384,32);
+    TinyvmArtifactWriteResult result=publish_atomic(path,b,size);free(b);
+    diag(d,cap,result==TINYVM_ARTIFACT_WRITE_PUBLISHED?"valid":
+        result==TINYVM_ARTIFACT_WRITE_DURABILITY_UNCERTAIN?
+        "artifact published but parent directory durability is uncertain":"artifact write failed");
+    return result;
 }
 
 bool tinyvm_artifact_v2_write(const char *path,TinyvmArtifactV2 *a,char *d,size_t cap){
-    if(!tinyvm_artifact_v2_validate(a,d,cap))return false;
-    Section s[7];size_t n=sections_for(a,s,d,cap);if(!n)return false;size_t size=s[n-1].offset+s[n-1].size;uint8_t *b=malloc(size);if(!b){diag(d,cap,"allocation failed");return false;}
-    encode_header(a,b,size,s,n);encode_sections(a,b,s,n);SHA256(b,size,b+384);memcpy(a->digest,b+384,32);
-    bool ok=publish_atomic(path,b,size);free(b);diag(d,cap,ok?"valid":"artifact write failed");return ok;
+    return tinyvm_artifact_v2_write_result(path,a,d,cap)==TINYVM_ARTIFACT_WRITE_PUBLISHED;
 }
 
 static bool parse_directory(const uint8_t *b,size_t size,Section s[7],size_t *count,char *d,size_t cap){
