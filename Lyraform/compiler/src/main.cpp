@@ -19,6 +19,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unistd.h>
 #include <vector>
 
 #include "flowmini_ast_builder.h"
@@ -26,6 +27,8 @@
 #include "flowmini_symbol_projection.h"
 
 namespace {
+
+    struct OutputError : std::runtime_error { using std::runtime_error::runtime_error; };
 
     [[nodiscard]] std::string readFile(const std::string& path) {
         std::ifstream input{path};
@@ -573,17 +576,36 @@ namespace {
             << "  policy <node>.<key> = <string|int|bool>\n";
     }
 
-    void writeOutputFile(const std::string& path, const flowmini::ModuleSpec& module) {
+    void writeAtomicFile(const std::string& path, std::string_view contents) {
+        std::string temporary = path + ".tmp.XXXXXX";
+        const int descriptor = mkstemp(temporary.data());
+        if (descriptor < 0) throw OutputError{"cannot create private output file"};
+        FILE* file = fdopen(descriptor, "wb");
+        bool published = false;
+        if (file) {
+            bool complete = std::fwrite(contents.data(), 1, contents.size(), file) == contents.size();
+            if (complete && std::fflush(file) != 0) complete = false;
+            if (complete && fsync(descriptor) != 0) complete = false;
+            if (std::fclose(file) != 0) complete = false;
+            if (complete && std::rename(temporary.c_str(), path.c_str()) == 0) published = true;
+        } else {
+            close(descriptor);
+        }
+        if (!published) {
+            std::remove(temporary.c_str());
+            throw OutputError{"cannot publish output file"};
+        }
+    }
+
+    template <typename Writer>
+    void writeOutputFile(const std::string& path, Writer&& writer) {
         if (path == "-") {
-            flowmini::writeFlowIr(module, std::cout);
+            writer(std::cout);
             return;
         }
-
-        std::ofstream out{path};
-        if (!out) {
-            throw flow::DiagnosticError{"cli", "could not open output file: " + path};
-        }
-        flowmini::writeFlowIr(module, out);
+        std::ostringstream rendered;
+        writer(rendered);
+        writeAtomicFile(path, rendered.str());
     }
 
     void writeStructuredFailure(
@@ -755,26 +777,12 @@ int main(int argc, char** argv) {
         if (!dumpAstSymbolsPath.empty()) {
             const auto module = flowmini::ast::build_source_header_ast(tokens);
             auto table = flowmini::ast::build_symbol_table_projection(module);
-            if (dumpAstSymbolsPath == "-") {
-                table.dump(std::cout);
-            } else {
-                std::ofstream out{dumpAstSymbolsPath};
-                if (!out) {
-                    throw flow::DiagnosticError{"cli", "could not open AST symbol dump output file: " + dumpAstSymbolsPath};
-                }
-                table.dump(out);
-            }
+            writeOutputFile(dumpAstSymbolsPath, [&](std::ostream& out) { table.dump(out); });
             return 0;
         }
 
         if (!dumpTokenTreePath.empty()) {
-            if (dumpTokenTreePath == "-") {
-                flowmini::writeTokenTreeDump(tokens, std::cout);
-            } else {
-                std::ofstream out{dumpTokenTreePath};
-                if (!out) { throw flow::DiagnosticError{"cli", "could not open token tree output file: " + dumpTokenTreePath}; }
-                flowmini::writeTokenTreeDump(tokens, out);
-            }
+            writeOutputFile(dumpTokenTreePath, [&](std::ostream& out) { flowmini::writeTokenTreeDump(tokens, out); });
             return 0;
         }
 
@@ -786,18 +794,12 @@ int main(int argc, char** argv) {
         const auto module = flowmini::parseModule(tokens);
 
         if (!dumpSymbolsPath.empty()) {
-            if (dumpSymbolsPath == "-") {
-                flowmini::writeFlowIrSymbolTableDump(module, std::cout);
-            } else {
-                std::ofstream out{dumpSymbolsPath};
-                if (!out) { throw flow::DiagnosticError{"cli", "could not open symbol dump output file: " + dumpSymbolsPath}; }
-                flowmini::writeFlowIrSymbolTableDump(module, out);
-            }
+            writeOutputFile(dumpSymbolsPath, [&](std::ostream& out) { flowmini::writeFlowIrSymbolTableDump(module, out); });
             return 0;
         }
 
         if (!emitFlowIrPath.empty()) {
-            writeOutputFile(emitFlowIrPath, module);
+            writeOutputFile(emitFlowIrPath, [&](std::ostream& out) { flowmini::writeFlowIr(module, out); });
             return 0;
         }
 
@@ -828,6 +830,14 @@ int main(int argc, char** argv) {
             writeStructuredFailure("FLOW_RESOURCE_EXHAUSTED", "runtime", "allocation failed");
         } else {
             std::cerr << "fatal in runtime: allocation failed\n";
+            log.write(ctx);
+        }
+        return 1;
+    } catch (const OutputError& err) {
+        if (structuredDiagnostics) {
+            writeStructuredFailure("FLOW_OUTPUT_FAILURE", "output", err.what());
+        } else {
+            std::cerr << "fatal in output: " << err.what() << '\n';
             log.write(ctx);
         }
         return 1;

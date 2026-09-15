@@ -2783,6 +2783,22 @@ State remains CONTINUE. Parent-directory crash durability, abrupt-death orphan
 cleanup, Flowmini auxiliary-output publication, cross-platform equivalents,
 and broader trust work remain open.
 
+## 2026-09-15 Flowmini atomic auxiliary artifact publication
+
+- Routed FlowIR, AST-symbol, token-tree, and FlowIR-symbol file outputs through
+  one render-first, synchronized private-sibling publisher with atomic rename.
+- Added `FLOW_OUTPUT_FAILURE`/`output` classification and independent partial-
+  write, `fsync`, close, and rename injection through the FlowIR path.
+- Every injected failure preserves the previous destination, removes the
+  temporary file, leaves stdout empty, and reports `no_artifact`.
+- Focused GCC and Clang 18.1.3 ASan/UBSan checks passed 4/4. Complete suites
+  passed 153/153 under GCC in 56.97 seconds and Clang sanitizers in 107.27
+  seconds with the documented leak setting.
+
+State remains CONTINUE. Parent-directory crash durability, abrupt-death orphan
+cleanup, streamed stdout partial delivery, other native file producers,
+cross-platform equivalents, and broader trust work remain open.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

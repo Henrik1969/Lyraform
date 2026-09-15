@@ -37,6 +37,14 @@ boundary is covered by the `flowmini_utf8_source_boundary` CTest. This is a
 Stage 0 ingress guarantee, not yet the Flow-written source reader required for
 self-hosting.
 
+FlowIR, AST-symbol, token-tree, and FlowIR-symbol file outputs are rendered
+before publication, written and synchronized through a private sibling file,
+and atomically renamed over the requested destination after a successful close.
+Write, sync, close, or rename failure preserves an existing destination and
+returns `FLOW_OUTPUT_FAILURE` at stage `output` in structured mode.
+Parent-directory crash durability and abrupt-death orphan cleanup are not
+claimed; stdout dump modes remain streaming outputs rather than file artifacts.
+
 ## Build
 
 From this directory:

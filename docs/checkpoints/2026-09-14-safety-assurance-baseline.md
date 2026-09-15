@@ -1560,3 +1560,25 @@ This proves ordinary Linux process-level LLVM artifact visibility, not
 parent-directory crash durability or abrupt-death orphan cleanup. Flowmini
 auxiliary file outputs and cross-platform equivalents remain separate. The
 safety state remains `CONTINUE`.
+
+## Flowmini atomic auxiliary artifact publication — 2026-09-15
+
+Flowmini now renders FlowIR, AST-symbol, token-tree, and FlowIR-symbol file
+outputs before creating a private sibling, then writes, flushes, synchronizes,
+and closes the sibling before atomically renaming it over the destination.
+Stdout dump modes remain streaming and unchanged. Structured publication
+failure is `FLOW_OUTPUT_FAILURE` at stage `output`.
+
+The new publication gate injects partial write, `fsync`, close, and rename
+failure through the FlowIR path. Every case leaves stdout empty, reports
+`no_artifact`, preserves the prior destination byte-for-byte, and removes the
+temporary file; all named file-output modes use the same publisher. The focused
+support, structured-diagnostic, UTF-8/source, and publication tests passed 4/4
+under GCC and Clang 18.1.3 ASan/UBSan. Complete suites passed 153/153 under GCC
+in 56.97 seconds and 153/153 under Clang sanitizers in 107.27 seconds with the
+documented leak setting.
+
+This proves ordinary Linux process-level publication behavior for the covered
+frontend file artifacts. Parent-directory crash durability, abrupt-death orphan
+cleanup, streamed stdout partial delivery, other native file producers, and
+cross-platform equivalents remain open. The safety state remains `CONTINUE`.

@@ -67,12 +67,33 @@ add_executable(flowmini_allocation_fault
 )
 target_compile_definitions(flowmini_allocation_fault PRIVATE FLOWMINI_TEST_ALLOCATION_FAILURE)
 
+add_executable(flowmini_publication_fault
+        src/flow_common.cpp
+        src/flowmini_payload.cpp
+        src/flowmini_lexer.cpp
+        src/flowmini_parser.cpp
+        src/flowmini_runtime.cpp
+        src/flowmini_structural.cpp
+        src/flowmini_token_tree_bridge.cpp
+        src/flowmini_ast.cpp
+        src/flowmini_ast_builder.cpp
+        src/flowmini_symbol_projection.cpp
+        src/flowmini_frontend_bundle.cpp
+        src/main.cpp
+        tools/publication-fault-wrap.cpp
+)
+
 target_include_directories(flowmini PRIVATE
         include
         subprojects/testabi/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../../Flowcontracts/include
 )
 target_include_directories(flowmini_allocation_fault PRIVATE
+        include
+        subprojects/testabi/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../Flowcontracts/include
+)
+target_include_directories(flowmini_publication_fault PRIVATE
         include
         subprojects/testabi/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../../Flowcontracts/include
@@ -88,6 +109,11 @@ target_compile_options(flowmini_allocation_fault PRIVATE
         -Wextra
         -pedantic
 )
+target_compile_options(flowmini_publication_fault PRIVATE
+        -Wall
+        -Wextra
+        -pedantic
+)
 
 # We link static because we do not want these internal libraries as dynamic
 # runtime dependencies for Flowmini itself right now.
@@ -99,16 +125,28 @@ target_link_libraries(flowmini_allocation_fault PRIVATE
         TokenTree_static
         SymbolTable::static
 )
+target_link_libraries(flowmini_publication_fault PRIVATE
+        TokenTree_static
+        SymbolTable::static
+)
+target_link_options(flowmini_publication_fault PRIVATE
+        "-Wl,--wrap=fwrite"
+        "-Wl,--wrap=fsync"
+        "-Wl,--wrap=fclose"
+        "-Wl,--wrap=rename"
+)
 
 find_library(DL_LIBRARY dl)
 if(DL_LIBRARY)
     target_link_libraries(flowmini PRIVATE ${DL_LIBRARY})
     target_link_libraries(flowmini_allocation_fault PRIVATE ${DL_LIBRARY})
+    target_link_libraries(flowmini_publication_fault PRIVATE ${DL_LIBRARY})
 endif()
 
 # Ensure the ABI test provider is built when Flowmini is built.
 add_dependencies(flowmini flowmini_testabi)
 add_dependencies(flowmini_allocation_fault flowmini_testabi)
+add_dependencies(flowmini_publication_fault flowmini_testabi)
 
 # ------------------------------------------------
 # Internal test prerequisite preparation
@@ -264,3 +302,8 @@ add_test(NAME flowmini_allocation_fault
         COMMAND ${CMAKE_COMMAND} -E env
         FLOWMINI_ALLOCATION_FAULT_BIN=$<TARGET_FILE:flowmini_allocation_fault>
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/run-flowmini-allocation-fault.sh)
+add_test(NAME flowmini_publication_fault
+        COMMAND ${CMAKE_COMMAND} -E env
+        FLOWMINI_PUBLICATION_FAULT_BIN=$<TARGET_FILE:flowmini_publication_fault>
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/run-flowmini-publication-fault.sh)
