@@ -1662,3 +1662,28 @@ This gives both TinyVM artifact formats the same ordinary Linux durability
 result. Flowmini, Flowlower, adversarial directory replacement, abrupt-death
 orphan cleanup, and cross-platform durability remain open. The safety state
 remains `CONTINUE`.
+
+## Flowlower parent-directory durability result — 2026-09-15
+
+Flowlower now opens the LLVM destination's parent directory before creating its
+private sibling, retains the descriptor through atomic rename, and
+synchronizes the directory before reporting successful emission. Pre-rename
+write, file-sync, close, and rename faults retain the previous destination and
+continue to report `FLOWLOWER_OUTPUT_FAILURE` with `no_artifact`.
+
+The publication fault gate now injects failure at the post-rename directory
+barrier. The replacement LLVM IR is visible and contains the expected `main`
+definition, stdout remains empty, and structured stderr reports
+`FLOWLOWER_OUTPUT_DURABILITY_UNCERTAIN` with disposition
+`artifact_published_durability_uncertain`. No private sibling remains.
+
+The focused backend, pipeline, and publication gates passed 3/3 under GCC and
+Clang 18.1.3 ASan/UBSan. A Valgrind 3.22.0 normal-publication run reported zero
+errors, zero live blocks, and 208 allocations matched by 208 frees. Complete
+suites passed 154/154 under GCC in 61.50 seconds and 154/154 under Clang
+sanitizers in 113.26 seconds with the documented leak setting.
+
+This closes the ordinary Linux parent-directory barrier and uncertainty
+projection for LLVM artifacts. Flowmini, adversarial directory replacement,
+abrupt-death orphan cleanup, and cross-platform durability remain open. The
+safety state remains `CONTINUE`.

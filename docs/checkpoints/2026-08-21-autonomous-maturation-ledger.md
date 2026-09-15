@@ -2650,6 +2650,23 @@ State remains CONTINUE. Flowmini and Flowlower still need the same result
 distinction, and abrupt-death cleanup, adversarial directory replacement, and
 cross-platform durability remain open.
 
+## 2026-09-15 Flowlower parent-directory durability result
+
+- Opened the LLVM artifact's parent directory before sibling publication,
+  retained it through rename, and synchronized it before reporting success.
+- Extended publication fault evidence so post-rename directory-sync failure
+  produces a visible LLVM artifact plus
+  `artifact_published_durability_uncertain`, while pre-rename faults still
+  preserve the old destination and report `no_artifact`.
+- Focused GCC and Clang ASan/UBSan gates passed 3/3; the normal publication path
+  passed Valgrind with zero errors/leaks and 208/208 allocations/frees; full
+  suites passed 154/154 in 61.50 seconds under GCC and 113.26 seconds under
+  Clang sanitizers.
+
+State remains CONTINUE. Flowmini still needs the same result distinction, and
+abrupt-death cleanup, adversarial directory replacement, and cross-platform
+durability remain open.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,

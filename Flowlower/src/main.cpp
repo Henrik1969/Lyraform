@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <iostream>
 #include <new>
@@ -21,6 +22,7 @@ constexpr std::string_view VERSION = "0.1.0";
 
 struct Options { std::string optimization_path, binding_path, llvm_path, target_name; bool structured_diagnostics = false; };
 struct OutputError : std::runtime_error { using std::runtime_error::runtime_error; };
+struct OutputUncertain : std::runtime_error { using std::runtime_error::runtime_error; };
 
 Options parse_options(int argc, char** argv) {
     Options options;
@@ -46,20 +48,31 @@ std::string quote(std::string_view value) {
     return flowcontracts::json::serialize(std::string(value));
 }
 
-void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message) noexcept {
+void write_structured_failure(std::string_view code, std::string_view stage, std::string_view message,
+                              std::string_view disposition = "no_artifact") noexcept {
     std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
     flowcontracts::write_json_string(stderr, code);
     std::fputs("\",\"stage\":\"", stderr);
     flowcontracts::write_json_string(stderr, stage);
     std::fputs("\",\"message\":\"", stderr);
     flowcontracts::write_json_string(stderr, message);
-    std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+    std::fputs("\",\"disposition\":\"", stderr);
+    flowcontracts::write_json_string(stderr, disposition);
+    std::fputs("\"}\n", stderr);
 }
 
 void write_atomic_file(const std::string& path, std::string_view contents) {
+    const auto slash = path.find_last_of('/');
+    const std::string parent = slash == std::string::npos ? "." :
+                               slash == 0 ? "/" : path.substr(0, slash);
+    const int directory = open(parent.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (directory < 0) throw OutputError("cannot open LLVM output directory");
     std::string temporary = path + ".tmp.XXXXXX";
     const int descriptor = mkstemp(temporary.data());
-    if (descriptor < 0) throw OutputError("cannot create private LLVM output");
+    if (descriptor < 0) {
+        close(directory);
+        throw OutputError("cannot create private LLVM output");
+    }
     FILE* file = fdopen(descriptor, "wb");
     bool published = false;
     if (file) {
@@ -73,8 +86,13 @@ void write_atomic_file(const std::string& path, std::string_view contents) {
     }
     if (!published) {
         std::remove(temporary.c_str());
+        close(directory);
         throw OutputError("cannot publish LLVM output");
     }
+    bool durable = fsync(directory) == 0;
+    if (close(directory) != 0) durable = false;
+    if (!durable)
+        throw OutputUncertain("LLVM output is published but parent directory durability is uncertain");
 }
 
 int lower(std::string_view report, const Options& options, std::string_view binding_report) {
@@ -217,6 +235,13 @@ int main(int argc, char** argv) {
     } catch (const OutputError& error) {
         if (structured_diagnostics) { write_structured_failure("FLOWLOWER_OUTPUT_FAILURE", "output", error.what()); return 1; }
         std::cerr << "flowlower output error: " << error.what() << '\n'; return 1;
+    } catch (const OutputUncertain& error) {
+        if (structured_diagnostics) {
+            write_structured_failure("FLOWLOWER_OUTPUT_DURABILITY_UNCERTAIN", "output", error.what(),
+                                     "artifact_published_durability_uncertain");
+            return 1;
+        }
+        std::cerr << "flowlower output durability uncertain: " << error.what() << '\n'; return 1;
     } catch (const std::exception& error) {
         if (structured_diagnostics) { write_structured_failure("FLOWLOWER_INPUT_INVALID", "input", error.what()); return 1; }
         std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"unsupported\","

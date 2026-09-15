@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace {
@@ -25,7 +26,10 @@ extern "C" size_t __wrap_fwrite(const void* data, size_t width, size_t count, FI
 
 extern "C" int __real_fsync(int);
 extern "C" int __wrap_fsync(int descriptor) {
-    if (descriptor > STDERR_FILENO && selected("sync")) return -1;
+    struct stat status {};
+    const bool directory = fstat(descriptor, &status) == 0 && S_ISDIR(status.st_mode);
+    if (descriptor > STDERR_FILENO &&
+        ((selected("sync") && !directory) || (selected("directory-sync") && directory))) return -1;
     return __real_fsync(descriptor);
 }
 
