@@ -1,5 +1,6 @@
 #include <dlfcn.h>
 #include <flowparallel/cuda_resources.hpp>
+#include <flowparallel/dynamic_library.hpp>
 
 #include <algorithm>
 #include <charconv>
@@ -10,6 +11,7 @@
 #include <iomanip>
 #include <iostream>
 #include <new>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,22 +27,7 @@ constexpr int cuda_memcpy_host_to_device = 1;
 constexpr int cuda_memcpy_device_to_host = 2;
 constexpr int cublas_op_n = 0;
 
-struct Library {
-    void* handle = nullptr;
-    explicit Library(const char* name) : handle(dlopen(name, RTLD_NOW | RTLD_LOCAL)) {
-        if (!handle) throw std::runtime_error(std::string("cannot load ") + name);
-    }
-    ~Library() { if (handle) dlclose(handle); }
-    Library(const Library&) = delete;
-    Library& operator=(const Library&) = delete;
-
-    template <typename Function>
-    Function symbol(const char* name) const {
-        auto* value = dlsym(handle, name);
-        if (!value) throw std::runtime_error(std::string("missing CUDA symbol: ") + name);
-        return reinterpret_cast<Function>(value);
-    }
-};
+using Library = flowparallel::DynamicLibrary;
 
 void require_cuda(cuda_error_t status, const char* operation) {
     if (status != cuda_success) throw std::runtime_error(std::string(operation) + " failed with CUDA error " + std::to_string(status));
@@ -103,14 +90,11 @@ Options parse(int argc, char** argv) {
     return options;
 }
 
-int run(const Options& options) {
+int run_with_libraries(const Options& options, Library& runtime, Library& blas) {
 #ifdef FLOWPARALLEL_CUDA_EXECUTE_TEST_ALLOCATION_FAILURE
     (void)options;
     throw std::bad_alloc();
 #endif
-    Library runtime("libcudart.so.12");
-    Library blas("libcublas.so.12");
-
     using get_device_count_fn = cuda_error_t (*)(int*);
     using malloc_fn = cuda_error_t (*)(void**, std::size_t);
     using memcpy_fn = cuda_error_t (*)(void*, const void*, std::size_t, int);
@@ -188,6 +172,27 @@ int run(const Options& options) {
                  "  \"device_count\": " << device_count << "\n"
                  "}\n";
     return verified ? 0 : 2;
+}
+
+int run(const Options& options) {
+    std::optional<Library> runtime;
+    std::optional<Library> blas;
+    try {
+        runtime.emplace("libcudart.so.12");
+        blas.emplace("libcublas.so.12");
+        const int result = run_with_libraries(options, *runtime, *blas);
+        const int runtime_close = runtime->close();
+        const int blas_close = blas->close();
+        if (runtime_close != 0 || blas_close != 0)
+            throw std::runtime_error("CUDA dynamic-library cleanup failed");
+        return result;
+    } catch (...) {
+        const int runtime_close = runtime ? runtime->close() : 0;
+        const int blas_close = blas ? blas->close() : 0;
+        if (runtime_close != 0 || blas_close != 0)
+            throw std::runtime_error("CUDA operation and dynamic-library cleanup failed");
+        throw;
+    }
 }
 
 } // namespace

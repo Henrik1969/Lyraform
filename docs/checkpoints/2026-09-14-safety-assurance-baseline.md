@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## CUDA execution dynamic-library cleanup — 2026-09-15
+
+The CUDA execution provider now uses the shared `DynamicLibrary` owner. Its
+explicit `close()` result is checked after normal execution and on exception
+paths; a nonzero or throwing close callback cannot become a successful
+provider result. The hardware-independent cleanup test injects a close
+failure and verifies idempotent handle clearing; the CUDA allocation-fault
+boundary remains green. Graph and matrix benchmark loaders still require the
+same migration. The safety state remains `CONTINUE`.
+
 ## CUDA dynamic-library cleanup residual — 2026-09-15
 
 The Gate 3 provider audit identified that the CUDA graph and matrix benchmark
