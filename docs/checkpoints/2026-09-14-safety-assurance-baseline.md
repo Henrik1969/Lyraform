@@ -377,6 +377,19 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore contract validation boundary — 2026-09-15
+
+Frankencore now exposes `validate_checked()` for verification evidence,
+isolation claims, language maps, chain policies, and facade invocations. Each
+checked overload is explicitly `noexcept` and converts allocation, standard,
+and unknown failures into an invalid structured result. The existing
+`validate()` overloads remain available as Stage 0 compatibility helpers; they
+are not the Lyraform failure model.
+
+The conformance test asserts the checked contract and validates a normal
+evidence record through it. Full normal and sanitizer gates remain required
+after this slice. The safety state remains `CONTINUE`.
+
 ## Provenance checked-boundary verification — 2026-09-15
 
 The provenance checked-boundary slice rebuilt successfully and passed the

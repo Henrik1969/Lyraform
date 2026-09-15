@@ -60,6 +60,10 @@ exit distinction.
   allocation, and unknown failures into an explicit `UlidResult`. Boundary
   consumers must use the checked APIs; the throwing helpers remain a Stage 0
   compatibility surface and are not the language failure model.
+- Frankencore contract validation now also exposes `validate_checked()` for
+  every public contract type. It converts allocation, standard, and unknown
+  failures into an explicit invalid result; the original `validate()` helpers
+  remain the Stage 0 compatibility surface.
 - The Clock and Revision reference CLIs still use exception-based argument
   parsing internally, but their public failure boundary now supports
   `--diagnostics json` with stable failure codes, empty artifact stdout, and a

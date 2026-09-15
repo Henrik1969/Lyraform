@@ -114,4 +114,11 @@ ValidationResult validate(const LanguageMap& map);
 ValidationResult validate(const ChainPolicy& policy);
 ValidationResult validate(const FacadeInvocation& invocation);
 
+// Non-throwing public validation boundary for language/runtime consumers.
+ValidationResult validate_checked(const VerificationEvidence& evidence) noexcept;
+ValidationResult validate_checked(const IsolationClaim& claim) noexcept;
+ValidationResult validate_checked(const LanguageMap& map) noexcept;
+ValidationResult validate_checked(const ChainPolicy& policy) noexcept;
+ValidationResult validate_checked(const FacadeInvocation& invocation) noexcept;
+
 } // namespace frankencore::contracts

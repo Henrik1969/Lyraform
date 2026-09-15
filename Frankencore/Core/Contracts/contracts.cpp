@@ -1,5 +1,7 @@
 #include "frankencore/contracts.hpp"
 
+#include <new>
+
 namespace frankencore::contracts {
 namespace {
 
@@ -189,6 +191,43 @@ ValidationResult validate(const FacadeInvocation& invocation) {
         return invalid("facade collection exceeds the 100000-entry limit");
     if (!nonempty(invocation.facade) || !nonempty(invocation.backend)) return invalid("facade and backend are required");
     return valid();
+}
+
+namespace {
+
+template <typename Value>
+ValidationResult checked_validate(const Value& value) noexcept {
+    try {
+        return validate(value);
+    } catch (const std::bad_alloc&) {
+        return {false, "contract validation exhausted memory"};
+    } catch (const std::exception&) {
+        return {false, "contract validation failed"};
+    } catch (...) {
+        return {false, "contract validation failed with unknown non-standard failure"};
+    }
+}
+
+} // namespace
+
+ValidationResult validate_checked(const VerificationEvidence& evidence) noexcept {
+    return checked_validate(evidence);
+}
+
+ValidationResult validate_checked(const IsolationClaim& claim) noexcept {
+    return checked_validate(claim);
+}
+
+ValidationResult validate_checked(const LanguageMap& map) noexcept {
+    return checked_validate(map);
+}
+
+ValidationResult validate_checked(const ChainPolicy& policy) noexcept {
+    return checked_validate(policy);
+}
+
+ValidationResult validate_checked(const FacadeInvocation& invocation) noexcept {
+    return checked_validate(invocation);
 }
 
 } // namespace frankencore::contracts

@@ -1,9 +1,13 @@
 #include <frankencore/contracts.hpp>
 
 #include <cassert>
+#include <type_traits>
 #include <string>
+#include <utility>
 
 int main() {
+    static_assert(noexcept(frankencore::contracts::validate_checked(
+        std::declval<const frankencore::contracts::VerificationEvidence&>())));
     using namespace frankencore::contracts;
 
     VerificationEvidence evidence{
@@ -12,6 +16,7 @@ int main() {
         "matched", "supplier_authenticated", false, {}, {},
         PolicyOutcome::allowed};
     assert(validate(evidence).valid);
+    assert(validate_checked(evidence).valid);
     evidence.key_state = "unknown";
     assert(!validate(evidence).valid);
     evidence.key_state = "trusted";
