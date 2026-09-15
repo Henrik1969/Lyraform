@@ -407,6 +407,11 @@ canonical result remains 147/147 under normal GCC and 147/147 under Clang
 18.1.3 ASan/UBSan; the focused Valgrind run reports zero errors and zero
 leaks.
 
+The storage-classification precision pass also confirms that invalid handles
+remain bounds failures rather than being mislabeled as exhaustion. The
+complete normal and sanitized suites remain 147/147, and the focused provider
+Valgrind run remains clean with zero errors and zero leaks.
+
 ## TinyVM runtime-provider descriptor ownership exhaustion — 2026-09-15
 
 The TinyVM runtime provider now classifies failure to grow its owned-file-
