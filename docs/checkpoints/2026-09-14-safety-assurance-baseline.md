@@ -885,6 +885,10 @@ library injects provider allocation exhaustion; the focused normal and
 ASan/UBSan package tests pass. The existing readers remain compatibility APIs,
 and their broader parser/provider fault matrix remains a future expansion.
 
+The fault-injected evidence was tightened so the allocation failure is raised
+inside the dpkg reader implementation itself, then translated by the checked
+reader boundary. Normal, ASan/UBSan, and Valgrind focused runs remain green.
+
 The safety state remains `CONTINUE`.
 
 ## Flowoptimize allocation-fault boundary — 2026-09-15

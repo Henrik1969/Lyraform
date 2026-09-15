@@ -197,6 +197,9 @@ std::optional<RepositoryFact> repository_from_metadata(
 } // namespace
 
 Inventory read_dpkg_status(const std::string& path) {
+#ifdef FRANKENCORE_PACKAGES_TEST_READ_ALLOCATION_FAILURE
+    throw std::bad_alloc();
+#endif
     Inventory inventory;
     inventory.source_path = path;
 
@@ -470,12 +473,7 @@ namespace {
 template <typename Reader>
 InventoryResult checked_read(Reader&& reader) noexcept {
     try {
-#ifdef FRANKENCORE_PACKAGES_TEST_READ_ALLOCATION_FAILURE
-        (void)reader;
-        throw std::bad_alloc();
-#else
         return {true, reader(), {}};
-#endif
     } catch (const std::bad_alloc&) {
         return {false, {}, "package inventory provider exhausted memory"};
     } catch (const std::exception&) {
