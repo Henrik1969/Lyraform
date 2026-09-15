@@ -2,8 +2,14 @@
 
 #include <cassert>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 int main() {
+    static_assert(noexcept(frankencore::requirements::validate_version(
+        std::declval<const std::string&>())));
+    static_assert(noexcept(frankencore::requirements::satisfies(
+        std::declval<const std::string&>(), std::declval<const std::string&>())));
     using namespace frankencore::requirements;
     assert(validate_version("2.8.3").valid);
     assert(!validate_version("v2").valid);

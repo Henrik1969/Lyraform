@@ -64,6 +64,10 @@ exit distinction.
   every public contract type. It converts allocation, standard, and unknown
   failures into an explicit invalid result; the original `validate()` helpers
   remain the Stage 0 compatibility surface.
+- Frankencore requirement parsing and language-map resolution now declare
+  their existing structured-result boundaries `noexcept`; their catch paths
+  use fixed diagnostics so failure translation does not allocate while
+  handling an exception.
 - The Clock and Revision reference CLIs still use exception-based argument
   parsing internally, but their public failure boundary now supports
   `--diagnostics json` with stable failure codes, empty artifact stdout, and a

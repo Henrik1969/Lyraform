@@ -15,6 +15,6 @@ struct Resolution {
 
 // Resolve a local moniker against one already validated language map.
 Resolution resolve_moniker(const contracts::LanguageMap& map,
-                           const std::string& input);
+                           const std::string& input) noexcept;
 
 } // namespace frankencore::language

@@ -2,8 +2,13 @@
 
 #include <cassert>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 int main() {
+    static_assert(noexcept(frankencore::language::resolve_moniker(
+        std::declval<const frankencore::contracts::LanguageMap&>(),
+        std::declval<const std::string&>())));
     frankencore::contracts::LanguageMap map;
     map.id = "Danish";
     map.revision = "Danish.v1";

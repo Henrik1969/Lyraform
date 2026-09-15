@@ -6,7 +6,7 @@
 namespace frankencore::language {
 
 Resolution resolve_moniker(const contracts::LanguageMap& map,
-                           const std::string& input) {
+                           const std::string& input) noexcept {
     try {
 #ifdef FRANKENCORE_LANGUAGE_TEST_ALLOCATION_FAILURE
         throw std::bad_alloc();
@@ -48,9 +48,9 @@ Resolution resolve_moniker(const contracts::LanguageMap& map,
         }
         result.resolved = true;
         return result;
-    } catch (const std::exception& error) {
+    } catch (const std::exception&) {
         Resolution result;
-        result.diagnostic = std::string{"moniker resolution failed: "} + error.what();
+        result.diagnostic = "moniker resolution failed";
         return result;
     } catch (...) {
         Resolution result;

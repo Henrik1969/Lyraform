@@ -377,6 +377,16 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Requirements and language-map non-throwing boundaries — 2026-09-15
+
+The existing structured-result APIs for version requirements and language-map
+moniker resolution now declare `noexcept`. Their standard and unknown
+exception paths use fixed diagnostics, avoiding secondary allocation while
+translating a failure. Reference probes assert both contracts at compile time.
+The focused normal and ASan/UBSan tests passed, including the existing
+allocation-fault cases. Full-suite verification is recorded with this
+checkpoint before publication. The safety state remains `CONTINUE`.
+
 ## Frankencore contract validation boundary — 2026-09-15
 
 Frankencore now exposes `validate_checked()` for verification evidence,

@@ -56,7 +56,7 @@ bool operator_matches(const int comparison, const std::string& operation) {
 
 } // namespace
 
-VersionResult validate_version(const std::string& version) {
+VersionResult validate_version(const std::string& version) noexcept {
     try {
 #ifdef FRANKENCORE_REQUIREMENTS_TEST_ALLOCATION_FAILURE
         throw std::bad_alloc();
@@ -64,14 +64,14 @@ VersionResult validate_version(const std::string& version) {
         ParsedVersion parsed;
         if (!parse(version, parsed)) return {false, "version must be dotted non-negative integers"};
         return {true, {}};
-    } catch (const std::exception& error) {
-        return {false, std::string{"version validation failed: "} + error.what()};
+    } catch (const std::exception&) {
+        return {false, "version validation failed"};
     } catch (...) {
         return {false, "version validation failed with an unknown internal error"};
     }
 }
 
-MatchResult satisfies(const std::string& version, const std::string& expression) {
+MatchResult satisfies(const std::string& version, const std::string& expression) noexcept {
     try {
 #ifdef FRANKENCORE_REQUIREMENTS_TEST_ALLOCATION_FAILURE
         throw std::bad_alloc();
@@ -101,8 +101,8 @@ MatchResult satisfies(const std::string& version, const std::string& expression)
         }
         if (!found) return {false, false, "empty version range"};
         return {true, true, {}};
-    } catch (const std::exception& error) {
-        return {false, false, std::string{"version range evaluation failed: "} + error.what()};
+    } catch (const std::exception&) {
+        return {false, false, "version range evaluation failed"};
     } catch (...) {
         return {false, false, "version range evaluation failed with an unknown internal error"};
     }
