@@ -2619,6 +2619,22 @@ not implemented; complete cancellation observation, queue/backpressure,
 effect, ordering, join, retry, commit/abort, and recovery contracts remain
 future work.
 
+## 2026-09-15 source-graph scheduling-control admission
+
+- Applied the shared exact scheduling admission while validating source graphs
+  and each graph-provider-map entry, closing ignored stronger controls at both
+  independent artifact boundaries.
+- Preserved the bounded serial and `parallel_independent_v1` graph policies and
+  added exact-neutral, stronger-value, wrong-type, and nested-path evidence.
+- Focused GCC and Clang ASan/UBSan gates passed 8/8. Complete suites passed
+  155/155 under GCC in 62.70 seconds and Clang sanitizers in 110.85 seconds.
+  Valgrind 3.22.0 reported zero errors and 100,695 allocations/frees for the
+  expanded central contract test.
+
+State remains CONTINUE. Current graph artifacts now share the refusal boundary;
+operational cancellation, async/backpressure, retry, effectful, reentrant,
+nested, distributed, and irreversible scheduling remain unimplemented.
+
 ## 2026-09-15 trust and isolation execution admission
 
 - Added a public, non-throwing execution-admission contract that admits the

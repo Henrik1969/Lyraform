@@ -1,6 +1,7 @@
 #pragma once
 
 #include <flowcontracts/json.hpp>
+#include <flowcontracts/scheduling.hpp>
 #include <set>
 
 namespace flowcontracts {
@@ -24,6 +25,7 @@ inline std::vector<GraphProviderSelection> graph_provider_map(const json::Value&
     for (const auto& value : array(required(root, "providers"), "$.providers")) {
         const auto path = "$.providers[" + std::to_string(result.size()) + "]";
         const auto& item = object(value, path);
+        validate_scheduling_request(item, true, path);
         GraphProviderSelection selection;
         selection.implementation = string(required(item, "implementation", path), path + ".implementation");
         selection.activation = string(required(item, "activation", path), path + ".activation");

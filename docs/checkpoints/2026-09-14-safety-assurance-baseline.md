@@ -1826,3 +1826,29 @@ This implements explicit refusal, not cancellation, queueing, retry, effectful
 parallelism, or recovery semantics. New artifact families and graph-specific
 scheduling controls need the same admission review before use. The safety state
 remains `CONTINUE`.
+
+## Source-graph scheduling-control admission — 2026-09-15
+
+The shared fail-closed scheduling decision now also runs while independently
+validating `flowcore.source_graph` and every provider entry in
+`flowcore.graph_provider_map`. This closes the remaining current graph-artifact
+bypass where an otherwise valid graph or provider selection could carry an
+ignored cancellation, retry, backpressure, or other stronger control beside
+its known schedule policy.
+
+The source-graph gate admits explicit `none` values at both artifact levels and
+rejects stronger top-level and provider-local controls plus wrong field types.
+The helper now accepts an artifact path, so nested type diagnostics identify
+the actual provider entry rather than incorrectly reporting a root field.
+
+Eight focused graph, contract, middle-stage, lowering, and TinyVM gates passed
+8/8 under GCC and Clang 18.1.3 ASan/UBSan. Complete suites passed 155/155 under
+GCC in 62.70 seconds and 155/155 under Clang sanitizers in 110.85 seconds with
+the documented leak setting. Valgrind 3.22.0 reported zero errors, zero live
+blocks, and 100,695 allocations matched by 100,695 frees for the expanded
+central contract test.
+
+The bounded serial and independent graph schedules are unchanged. No
+cancellation, async queue, retry, effectful, reentrant, nested, distributed, or
+irreversible execution semantics were added. Future artifact families still
+require an explicit admission review. The safety state remains `CONTINUE`.

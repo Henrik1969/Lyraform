@@ -82,6 +82,8 @@ int main() {
     const auto wrong_control_type_value = parse(R"({"async":true})");
     const auto& wrong_control_type = object(wrong_control_type_value);
     rejects([&] { (void)flowcontracts::scheduling_refusal(wrong_control_type, true); }, "$.async");
+    rejects([&] { (void)flowcontracts::scheduling_refusal(wrong_control_type, true, "$.providers[0]"); },
+            "$.providers[0].async");
 
     require(diagnostic_text("quote\" slash\\ newline\n control\x01") ==
                 "quote\\\" slash\\\\ newline\\n control\\u0001",

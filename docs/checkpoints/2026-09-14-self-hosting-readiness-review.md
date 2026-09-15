@@ -120,6 +120,9 @@ nesting, distribution, retry, or irreversible-effect request; wrong types fail
 contract validation. This satisfies explicit refusal for those current Stage 0
 artifacts, but adds none of the operational semantics. It therefore removes a
 silent-downgrade risk without changing the `not-started` Stage 1 decision.
+Source graphs and graph-provider maps now apply the same decision during
+independent validation, including provider-local controls; this closes the
+current graph-artifact bypass without adding scheduling behavior.
 
 ## Evidence boundary
 

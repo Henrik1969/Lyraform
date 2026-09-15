@@ -119,6 +119,12 @@ projection as metadata in the execution plan. The graph remains canonical;
 the Boolean COO view is an acceleration projection. Runtime policy decides
 whether CPU or CUDA is appropriate.
 
+Source-graph artifacts and their graph-provider maps apply the same exact
+scheduling-control admission as execution plans. The bounded
+`parallel_independent_v1` policy is admitted where the graph contract version
+supports it; stronger or unknown controls are rejected during independent
+artifact validation and cannot be hidden inside a provider selection.
+
 ## Host GPU execution gate
 
 `flowparallel_cuda_execute` is the first execution projection. It dynamically

@@ -18,10 +18,14 @@ struct SchedulingRefusal {
 
 inline std::optional<SchedulingRefusal> scheduling_refusal(
     const json::Object& root,
-    bool allow_parallel_independent
+    bool allow_parallel_independent,
+    std::string_view path = "$"
 ) {
+    const auto field_path = [path](std::string_view field) {
+        return std::string(path) + "." + std::string(field);
+    };
     if (const auto* item = json::optional(root, "schedule_policy")) {
-        const auto value = json::string(*item, "$.schedule_policy");
+        const auto value = json::string(*item, field_path("schedule_policy"));
         if (value != "serial" && (!allow_parallel_independent || value != "parallel_independent_v1"))
             return SchedulingRefusal{"schedule_policy", value,
                                      "schedule policy '" + value + "' is not admitted at this boundary"};
@@ -39,7 +43,7 @@ inline std::optional<SchedulingRefusal> scheduling_refusal(
     }};
     for (const auto& [field, description] : controls) {
         if (const auto* item = json::optional(root, field)) {
-            const auto value = json::string(*item, "$." + std::string(field));
+            const auto value = json::string(*item, field_path(field));
             if (value != "none")
                 return SchedulingRefusal{std::string(field), std::string(field),
                                          std::string(description) + " is not admitted at this boundary"};
@@ -48,9 +52,13 @@ inline std::optional<SchedulingRefusal> scheduling_refusal(
     return std::nullopt;
 }
 
-inline void validate_scheduling_request(const json::Object& root, bool allow_parallel_independent) {
-    if (const auto refusal = scheduling_refusal(root, allow_parallel_independent))
-        throw json::Error("$." + refusal->field, refusal->reason);
+inline void validate_scheduling_request(
+    const json::Object& root,
+    bool allow_parallel_independent,
+    std::string_view path = "$"
+) {
+    if (const auto refusal = scheduling_refusal(root, allow_parallel_independent, path))
+        throw json::Error(std::string(path) + "." + refusal->field, refusal->reason);
 }
 
 } // namespace flowcontracts

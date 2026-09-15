@@ -27,6 +27,9 @@ jq -e --slurpfile front "$tmpdir/frontend.json" '.syntax == $front[0].graph_synt
     .syntax.policies[0].provenance.line == 5 and .receivers[0].node_id == "receiver"' "$tmpdir/graph.json" >/dev/null
 # Each invocation reads a captured artifact after the producer has exited.
 "$FLOWVALIDATE_BIN" "$tmpdir/graph.json" | jq -e '.classification == "valid"' >/dev/null
+jq '. + {cancellation:"none", async:"none", backpressure:"none", reentrancy:"none", nested:"none", distributed:"none", retry:"none", irreversible:"none"}' \
+    "$tmpdir/graph.json" > "$tmpdir/neutral.graph.json"
+"$FLOWVALIDATE_BIN" "$tmpdir/neutral.graph.json" | jq -e '.classification == "valid"' >/dev/null
 "$FLOWVALIDATE_BIN" --canonical "$tmpdir/graph.json" > "$tmpdir/canonical.json"
 "$FLOWVALIDATE_BIN" --canonical "$tmpdir/canonical.json" | cmp -s - "$tmpdir/canonical.json"
 for mutation in \
@@ -43,6 +46,8 @@ for mutation in \
     '.syntax.policies[1].value_text = "9223372036854775808"' \
     '.syntax.policies[2].value_text = "1"' \
     'del(.syntax.policies)' \
+    '.retry = "automatic"' \
+    '.async = true' \
     '.receivers[0].function_symbol_id = -1' \
     '.receivers[0].activation_contract = "persistent"' \
     '.receivers = []'
@@ -113,6 +118,9 @@ fn identity(value : c_int): c_int { return value }
 main { return 0 }
 FLOW
 "$FLOWVALIDATE_BIN" "$tmpdir/providers.json" | jq -e '.classification == "valid"' >/dev/null
+jq '.providers[0] += {cancellation:"none", async:"none", backpressure:"none", reentrancy:"none", nested:"none", distributed:"none", retry:"none", irreversible:"none"}' \
+    "$tmpdir/providers.json" > "$tmpdir/neutral-providers.json"
+"$FLOWVALIDATE_BIN" "$tmpdir/neutral-providers.json" | jq -e '.classification == "valid"' >/dev/null
 "$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/producer.flow" > "$tmpdir/producer.frontend.json"
 if "$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/producer.frontend.json" > "$tmpdir/producer.semantic.json"; then
     echo 'producer selection became execution authority' >&2; exit 1
@@ -121,7 +129,7 @@ fi
 jq '.lowering_plan.source_graph' "$tmpdir/producer.native.semantic.json" > "$tmpdir/producer.graph.json"
 jq -e '.providers[0] | .node_id == "source" and .source_callable == "host.selected" and .output_type == "c_int" and .provider.symbol == "getpid" and .function_symbol_id >= 0' "$tmpdir/producer.graph.json" >/dev/null
 "$FLOWVALIDATE_BIN" "$tmpdir/producer.graph.json" | jq -e '.classification == "valid"' >/dev/null
-for mutation in '.version = 3' '.providers += [.providers[0]]' '.providers[0].activation = "stream"' '.providers[0].source_callable = ""'; do
+for mutation in '.version = 3' '.providers += [.providers[0]]' '.providers[0].activation = "stream"' '.providers[0].source_callable = ""' '.providers[0].cancellation = "required"' '.providers[0].backpressure = true'; do
     jq "$mutation" "$tmpdir/providers.json" > "$tmpdir/bad-providers.json"
     if "$FLOWVALIDATE_BIN" "$tmpdir/bad-providers.json" >/dev/null; then
         echo "invalid provider map accepted: $mutation" >&2; exit 1

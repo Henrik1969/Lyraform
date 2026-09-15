@@ -3,6 +3,7 @@
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/binding_evidence.hpp>
 #include <flowcontracts/graph_provider_map.hpp>
+#include <flowcontracts/scheduling.hpp>
 #include <set>
 
 namespace flowcontracts {
@@ -46,6 +47,7 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
         throw Error(path, "unsupported source graph contract");
     if (str(root, "status", path) != (version == 2 ? "ready" : "non_executable"))
         throw Error(path + ".status", "source graph execution is not admitted");
+    validate_scheduling_request(root, true, path);
     const auto syntax_path = path + ".syntax";
     const auto& syntax = object(required(root, "syntax", path), syntax_path);
     if (str(syntax, "format", syntax_path) != "flowmini.graph_syntax" || integer(required(syntax, "version", syntax_path), syntax_path + ".version") != 1)
