@@ -377,6 +377,20 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowlower structured input classification — 2026-09-15
+
+Flowlower now classifies generic malformed or missing input failures at its
+structured process boundary as `FLOWLOWER_INPUT_INVALID` with stage `input`.
+The hostile malformed-stdin and missing-report cases both keep stdout empty
+and identify `disposition: no_artifact` on stderr. The focused
+`flowlower_pipeline` test passed after a fresh GCC build and in the Clang
+18.1.3 ASan/UBSan tree; the complete canonical suite passed 149/149 in both
+trees (GCC 55.76s; ASan/UBSan 103.24s).
+
+This closes the current Flowlower input-classification gap. It does not claim
+that all native exceptions, provider failures, or later self-hosting stages
+are fully contained. The safety state remains `CONTINUE`.
+
 ## Flowoptimize structured input classification — 2026-09-15
 
 Flowoptimize now classifies non-contract exceptions while consuming an input

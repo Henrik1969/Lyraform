@@ -2597,6 +2597,17 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 Flowlower input classification
+
+- Classified structured malformed and missing Flowlower input as
+  `FLOWLOWER_INPUT_INVALID` at stage `input`.
+- The focused pipeline test proves empty stdout and `no_artifact` for hostile
+  input; the fresh GCC and Clang 18.1.3 ASan/UBSan canonical suites each pass
+  149/149.
+
+State remains CONTINUE. Broader native fault coverage and the documented
+self-hosting bootstrap gaps remain open.
+
 ## 2026-09-15 Flowbind mixed-failure precedence
 
 - Mixed blocked requests now use deterministic summary precedence: provider,

@@ -58,3 +58,8 @@ identity. They cannot bypass those checks by omitting `--emit-llvm`. Contract
 failures return a structured `FLOWLOWER_CONTRACT` diagnostic with a JSON artifact
 path; emission/CLI refusals return `FLOWLOWER_REFUSAL`. A ready report without
 an emitted artifact is still boundary validation, not native execution evidence.
+
+With `--diagnostics json`, malformed or missing input is reported on stderr as
+`FLOWLOWER_INPUT_INVALID` at the `input` stage, with empty stdout and no
+artifact disposition. This keeps hostile input outside the lowering artifact
+boundary while preserving the human-readable compatibility path.

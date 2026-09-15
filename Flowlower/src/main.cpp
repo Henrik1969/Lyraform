@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
         if (structured_diagnostics) { write_structured_failure("FLOWLOWER_RESOURCE_EXHAUSTED", "runtime", "allocation failed"); return 1; }
         std::cerr << "flowlower error: allocation failed\n"; return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_FAILURE", "cli", error.what()); return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWLOWER_INPUT_INVALID", "input", error.what()); return 1; }
         std::cout << "{\"format\":\"flowlower.lowering_report\",\"version\":1,\"status\":\"unsupported\","
                      "\"backend\":\"llvm\",\"diagnostic\":{\"code\":\"FLOWLOWER_REFUSAL\",\"reason\":"
                   << quote(error.what()) << "}}\n";

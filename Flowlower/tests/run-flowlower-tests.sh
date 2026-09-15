@@ -525,5 +525,13 @@ hostile_rc=$?
 set -e
 test "$hostile_rc" -eq 1
 test ! -s "$tmpdir/hostile-stdout"
-jq -e '.status == "failed" and .code == "FLOWLOWER_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWLOWER_INPUT_INVALID" and .stage == "input" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
+
+set +e
+"$lowerer" --diagnostics json "$tmpdir/missing-report.json" >"$tmpdir/missing-stdout" 2>"$tmpdir/missing-stderr"
+missing_rc=$?
+set -e
+test "$missing_rc" -eq 1
+test ! -s "$tmpdir/missing-stdout"
+jq -e '.status == "failed" and .code == "FLOWLOWER_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$tmpdir/missing-stderr" >/dev/null
 echo 'Flowlower tests: PASS'
