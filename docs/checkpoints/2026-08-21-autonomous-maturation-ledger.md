@@ -2609,6 +2609,17 @@ State remains CONTINUE. This improves classification only; execution,
 post-binding replacement, recovery, trust-store, and arbitrary ABI/FFI remain
 unadmitted.
 
+## 2026-09-15 Flowbind bounded blocked reports
+
+- Bounded retained blocked-report failures to 256 entries.
+- Added `failure_count` and `failures_truncated` so truncation is explicit and
+  operators retain the total observed failure count.
+- A hostile 1,000-failure report passes the focused GCC and Clang 18.1.3
+  ASan/UBSan provider gates.
+
+State remains CONTINUE. This bounds reporting only and does not broaden ABI,
+provider execution, recovery, or trust semantics.
+
 ## 2026-09-15 Flowbind stable failure categories
 
 - Added an explicit structured-CLI classification boundary for input, policy,

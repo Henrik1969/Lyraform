@@ -84,3 +84,7 @@ acceptance test also replaces a digest-bound provider and proves that the old
 evidence is rejected. These are inspection-time controls; provider replacement
 or degradation after binding and native invocation remain outside the admitted
 surface.
+
+Blocked reports retain at most 256 failure entries. When more failures are
+detected, `failure_count` preserves the total and `failures_truncated` is set;
+the report does not grow without bound in response to hostile input.

@@ -94,6 +94,8 @@ printf '%s\n' "$missing_provider" | jq -e '
   .status == "blocked" and
   .code == "FLOWBIND_PROVIDER_FAILURE" and
   .stage == "provider" and
+  .failure_count == 1 and
+  .failures_truncated == false and
   any(.failures[]; contains("library unavailable")) and
   (has("symbols") | not) and
   (has("execution") | not)
@@ -142,6 +144,13 @@ set -e
 test "$oversized_rc" -eq 1
 test ! -s "$tmpdir/oversized-stdout"
 jq -e '.status == "failed" and .code == "FLOWBIND_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact" and (.message | contains("100000-entry limit"))' "$tmpdir/oversized-stderr" >/dev/null
+
+set +e
+many_failures=$(jq -nc '{format:"flowanalyst.semantic_report",version:1,status:"ok",binding_requirements:[range(0;1000)|{contract:"test",library:"libc.so.6",convention:"c",symbol:("missing_" + tostring),effect:"pure",parameter_types:"c_int",return_type:"c_int"}]}' | "$bin" --policy "$policy")
+many_failures_rc=$?
+set -e
+test "$many_failures_rc" -eq 2
+printf '%s\n' "$many_failures" | jq -e ' .status == "blocked" and .failure_count == 1000 and .failures_truncated == true and (.failures | length) == 256' >/dev/null
 
 printf '%s\n' 'deny malformed-policy-line' > "$tmpdir/invalid-policy"
 set +e

@@ -377,6 +377,18 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Flowbind bounded blocked-report output — 2026-09-15
+
+Flowbind now bounds retained failures in a blocked binding report to 256
+entries, while preserving `failure_count` and setting `failures_truncated` when
+additional failures exist. A hostile 1,000-failure report proves the bounded
+shape and deterministic blocked disposition in both GCC and Clang 18.1.3
+ASan/UBSan trees.
+
+This bounds report output only; input, provider hashing, execution, and broader
+artifact collection limits remain separately scoped. The safety state remains
+`CONTINUE`.
+
 ## Flowbind structured failure classification — 2026-09-15
 
 Flowbind now classifies exceptional structured-CLI failures with stable

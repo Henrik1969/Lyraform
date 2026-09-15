@@ -535,32 +535,40 @@ int verify(const std::string& report, const std::string& policy_path, const std:
     }
     using LibraryHandle = std::unique_ptr<void, int (*)(void*)>;
     std::map<std::string, LibraryHandle> handles;
+    constexpr std::size_t max_report_failures = 256;
     std::vector<std::string> failures;
+    std::size_t failure_count = 0;
+    bool failures_truncated = false;
+    const auto record_failure = [&](std::string failure) {
+        ++failure_count;
+        if (failures.size() < max_report_failures) failures.push_back(std::move(failure));
+        else failures_truncated = true;
+    };
     std::map<std::string, std::pair<std::string, std::string>> verified_providers;
     for (const auto& item : needed) {
-        if (!granted(grants, item)) failures.push_back(item.library + ": symbol '" + item.symbol + "' denied by capability policy");
-        if (item.convention != "c") failures.push_back(item.symbol + ": unsupported calling convention '" + item.convention + "'");
+        if (!granted(grants, item)) record_failure(item.library + ": symbol '" + item.symbol + "' denied by capability policy");
+        if (item.convention != "c") record_failure(item.symbol + ": unsupported calling convention '" + item.convention + "'");
         if (item.return_type == "TextOutcome" &&
             !(item.contract == "text_runtime" && item.library == "libflowtext.so" &&
               item.symbol == "flow_text_concat_value" && item.parameter_types == "Text,Text"))
-            failures.push_back(item.symbol + ": TextOutcome is reserved for the atomic text provider contract");
+            record_failure(item.symbol + ": TextOutcome is reserved for the atomic text provider contract");
         if (!supported_type(item.return_type) && (!verified_aggregate_names.count(item.return_type) || !graph_aggregate_names.count(item.return_type)))
-            failures.push_back(item.symbol + ": unsupported return ABI type '" + item.return_type + "'");
+            record_failure(item.symbol + ": unsupported return ABI type '" + item.return_type + "'");
         std::size_t start = 0;
         while (start < item.parameter_types.size()) {
             const auto end = item.parameter_types.find(',', start);
             const auto type = item.parameter_types.substr(start, end == std::string::npos ? std::string::npos : end - start);
             if (!supported_type(type) && (!verified_aggregate_names.count(type) || !graph_aggregate_names.count(type)))
-                failures.push_back(item.symbol + ": " + (verified_aggregate_names.count(type) ? "aggregate ABI manifest verified; aggregate call lowering is not implemented" : "unsupported parameter ABI type '" + type + "'"));
+                record_failure(item.symbol + ": " + (verified_aggregate_names.count(type) ? "aggregate ABI manifest verified; aggregate call lowering is not implemented" : "unsupported parameter ABI type '" + type + "'"));
             if (end == std::string::npos) break;
             start = end + 1;
         }
         if (!granted(grants, item)) continue;
         if (!handles.count(item.library))
             handles.emplace(item.library, LibraryHandle{dlopen(item.library.c_str(), RTLD_LAZY | RTLD_LOCAL), &dlclose});
-        if (!handles.at(item.library)) { failures.push_back(item.library + ": library unavailable"); continue; }
+        if (!handles.at(item.library)) { record_failure(item.library + ": library unavailable"); continue; }
         void* symbol_address = dlsym(handles.at(item.library).get(), item.symbol.c_str());
-        if (!symbol_address) { failures.push_back(item.library + ": symbol '" + item.symbol + "' unavailable"); continue; }
+        if (!symbol_address) { record_failure(item.library + ": symbol '" + item.symbol + "' unavailable"); continue; }
         if (!item.evidence.empty()) {
             try {
                 const auto expected = item.evidence.substr(item.evidence.size() - 64);
@@ -578,7 +586,7 @@ int verify(const std::string& report, const std::string& policy_path, const std:
                     provider_digest(symbol_provider.dli_fname) != expected)
                     throw std::runtime_error("resolved symbol is outside the authorized provider evidence");
             } catch (const std::exception& error) {
-                failures.push_back(item.library + ": " + error.what());
+                record_failure(item.library + ": " + error.what());
             }
         }
     }
@@ -586,7 +594,9 @@ int verify(const std::string& report, const std::string& policy_path, const std:
         const auto classification = classify_blocked(failures);
         std::cout << "{\n  \"format\": \"flowbind.binding_report\",\n  \"version\": 1,\n  \"status\": \"blocked\",\n  \"code\": " << json_string(std::string{classification.code})
                   << ",\n  \"stage\": " << json_string(std::string{classification.stage})
-                  << ",\n  \"provider\": \"dlopen+dlsym\",\n  \"failures\": [";
+                  << ",\n  \"provider\": \"dlopen+dlsym\",\n  \"failure_count\": " << failure_count
+                  << ",\n  \"failures_truncated\": " << (failures_truncated ? "true" : "false")
+                  << ",\n  \"failures\": [";
         for (std::size_t i = 0; i < failures.size(); ++i) { if (i) std::cout << ','; std::cout << json_string(failures[i]); }
         std::cout << "]";
         if (aggregate_manifest_verified) std::cout << ",\n  \"aggregate_abi\": \"verified\"";
