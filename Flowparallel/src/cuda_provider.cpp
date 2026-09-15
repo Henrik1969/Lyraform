@@ -2,6 +2,7 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowcontracts/json.hpp>
 #include <flowparallel/bounded_input.hpp>
+#include <flowparallel/dynamic_library.hpp>
 
 #include <charconv>
 #include <cstdint>
@@ -59,21 +60,28 @@ struct CudaProbe { std::string status = "unknown"; std::string diagnostic; unsig
 
 CudaProbe probe() {
     CudaProbe result;
-    void* library = dlopen("libcuda.so.1", RTLD_LAZY | RTLD_LOCAL);
-    if (!library) { result.status = "unavailable"; result.diagnostic = "libcuda.so.1 was not available"; return result; }
+    void* raw_library = dlopen("libcuda.so.1", RTLD_LAZY | RTLD_LOCAL);
+    if (!raw_library) { result.status = "unavailable"; result.diagnostic = "libcuda.so.1 was not available"; return result; }
+    flowparallel::DynamicLibrary library{raw_library, ::dlclose};
+    const auto finish = [&] {
+        if (library.close() != 0) {
+            result.status = "unknown";
+            result.diagnostic = "CUDA driver library cleanup failed";
+        }
+        return result;
+    };
     using init_fn = int (*)(unsigned int);
     using count_fn = int (*)(int*);
-    const auto init = reinterpret_cast<init_fn>(dlsym(library, "cuInit"));
-    const auto count = reinterpret_cast<count_fn>(dlsym(library, "cuDeviceGetCount"));
-    if (!init || !count) { result.diagnostic = "CUDA driver symbols were incomplete"; dlclose(library); return result; }
-    if (init(0) != 0) { result.diagnostic = "CUDA driver initialization failed"; dlclose(library); return result; }
+    const auto init = reinterpret_cast<init_fn>(dlsym(library.handle(), "cuInit"));
+    const auto count = reinterpret_cast<count_fn>(dlsym(library.handle(), "cuDeviceGetCount"));
+    if (!init || !count) { result.diagnostic = "CUDA driver symbols were incomplete"; return finish(); }
+    if (init(0) != 0) { result.diagnostic = "CUDA driver initialization failed"; return finish(); }
     int devices = 0;
-    if (count(&devices) != 0) { result.diagnostic = "CUDA device enumeration failed"; dlclose(library); return result; }
+    if (count(&devices) != 0) { result.diagnostic = "CUDA device enumeration failed"; return finish(); }
     result.devices = devices > 0 ? static_cast<unsigned>(devices) : 0;
     result.status = devices > 0 ? "available" : "unavailable";
     result.diagnostic = devices > 0 ? "CUDA device discovered; kernel execution remains provider-deferred" : "CUDA driver loaded but no devices were reported";
-    dlclose(library);
-    return result;
+    return finish();
 }
 
 Options parse(int argc, char** argv) {

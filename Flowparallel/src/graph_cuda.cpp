@@ -2,6 +2,7 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowparallel/bounded_input.hpp>
 #include <flowparallel/cuda_resources.hpp>
+#include <flowparallel/dynamic_library.hpp>
 
 #include <cstddef>
 #include <chrono>
@@ -9,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <new>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -22,12 +24,7 @@ constexpr int success = 0;
 constexpr int host_to_device = 1;
 constexpr int device_to_host = 2;
 
-struct Library {
-    void* handle;
-    explicit Library(const char* name) : handle(dlopen(name, RTLD_NOW | RTLD_LOCAL)) { if (!handle) throw std::runtime_error(std::string("cannot load ") + name); }
-    ~Library() { dlclose(handle); }
-    template <typename Function> Function get(const char* name) const { auto* symbol = dlsym(handle, name); if (!symbol) throw std::runtime_error(std::string("missing CUDA symbol: ") + name); return reinterpret_cast<Function>(symbol); }
-};
+using Library = flowparallel::DynamicLibrary;
 
 void check(error_t value, const char* operation) { if (value != success) throw std::runtime_error(std::string(operation) + " failed: " + std::to_string(value)); }
 
@@ -41,7 +38,7 @@ std::string read_input(int argc, char** argv) {
 std::string quote(std::string_view value) { std::string result = "\""; for (char character : value) { if (character == '\\' || character == '"') result.push_back('\\'); result.push_back(character); } result.push_back('"'); return result; }
 std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
-int run(std::string_view report) {
+int run_with_libraries(std::string_view report, Library& runtime, Library& blas) {
 #ifdef FLOWPARALLEL_GRAPH_CUDA_TEST_ALLOCATION_FAILURE
     (void)report;
     throw std::bad_alloc();
@@ -64,13 +61,12 @@ int run(std::string_view report) {
                     cpu_reach[column * rows + row] = static_cast<unsigned char>(cpu_reach[column * rows + row] || cpu_reach[column * rows + pivot]);
     const double cpu_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cpu_start).count();
     const auto cuda_start = std::chrono::steady_clock::now();
-    Library runtime("libcudart.so.12"); Library blas("libcublas.so.12");
     using count_fn = error_t (*)(int*); using malloc_fn = error_t (*)(void**, std::size_t); using memcpy_fn = error_t (*)(void*, const void*, std::size_t, int); using sync_fn = error_t (*)();
     using create_fn = error_t (*)(handle_t*); using gemm_fn = error_t (*)(handle_t, int, int, int, int, int, const float*, const float*, int, const float*, int, const float*, float*, int);
-    const auto count = runtime.get<count_fn>("cudaGetDeviceCount"); int devices = 0; check(count(&devices), "cudaGetDeviceCount");
+    const auto count = runtime.symbol<count_fn>("cudaGetDeviceCount"); int devices = 0; check(count(&devices), "cudaGetDeviceCount");
     if (devices < 1) { std::cout << "{\"format\":\"flowparallel.graph_cuda\",\"version\":1,\"status\":\"unavailable\",\"provider\":\"cuda.cublas\",\"device_count\":0}\n"; return 2; }
-    const auto cuda_malloc = runtime.get<malloc_fn>("cudaMalloc"); const auto cuda_free = runtime.get<flowparallel::CudaFree>("cudaFree"); const auto cuda_memcpy = runtime.get<memcpy_fn>("cudaMemcpy"); const auto cuda_sync = runtime.get<sync_fn>("cudaDeviceSynchronize");
-    const auto create = blas.get<create_fn>("cublasCreate_v2"); const auto destroy = blas.get<flowparallel::CublasDestroy>("cublasDestroy_v2"); const auto gemm = blas.get<gemm_fn>("cublasSgemm_v2");
+    const auto cuda_malloc = runtime.symbol<malloc_fn>("cudaMalloc"); const auto cuda_free = runtime.symbol<flowparallel::CudaFree>("cudaFree"); const auto cuda_memcpy = runtime.symbol<memcpy_fn>("cudaMemcpy"); const auto cuda_sync = runtime.symbol<sync_fn>("cudaDeviceSynchronize");
+    const auto create = blas.symbol<create_fn>("cublasCreate_v2"); const auto destroy = blas.symbol<flowparallel::CublasDestroy>("cublasDestroy_v2"); const auto gemm = blas.symbol<gemm_fn>("cublasSgemm_v2");
     std::vector<float> power = adjacency, next(elements), reach = adjacency; const std::size_t bytes = elements * sizeof(float);
     flowparallel::CudaDeviceResources resources{cuda_free, destroy};
     try {
@@ -94,6 +90,27 @@ int run(std::string_view report) {
     std::size_t cpu_reachable_pairs = 0; for (unsigned char value : cpu_reach) cpu_reachable_pairs += value != 0;
     std::cout << "{\n  \"format\": \"flowparallel.graph_cuda\",\n  \"version\": 1,\n  \"status\": \"verified\",\n  \"source\": {\"path\": " << quote(semantic.source_path) << "},\n  \"operation\": \"reachability\",\n  \"semiring\": \"boolean\",\n  \"reachable_pairs\": " << reachable_pairs << ",\n  \"cpu_reachable_pairs\": " << cpu_reachable_pairs << ",\n  \"cpu_reference_ms\": " << cpu_ms << ",\n  \"cuda_end_to_end_ms\": " << cuda_ms << ",\n  \"end_to_end_speedup\": " << cpu_ms / cuda_ms << ",\n  \"provider\": \"cuda.cublas.boolean_threshold\",\n  \"device_count\": " << devices << "\n}\n";
     return 0;
+}
+
+int run(std::string_view report) {
+    std::optional<Library> runtime;
+    std::optional<Library> blas;
+    try {
+        runtime.emplace("libcudart.so.12");
+        blas.emplace("libcublas.so.12");
+        const int result = run_with_libraries(report, *runtime, *blas);
+        const int runtime_close = runtime->close();
+        const int blas_close = blas->close();
+        if (runtime_close != 0 || blas_close != 0)
+            throw std::runtime_error("CUDA dynamic-library cleanup failed");
+        return result;
+    } catch (...) {
+        const int runtime_close = runtime ? runtime->close() : 0;
+        const int blas_close = blas ? blas->close() : 0;
+        if (runtime_close != 0 || blas_close != 0)
+            throw std::runtime_error("CUDA graph operation and dynamic-library cleanup failed");
+        throw;
+    }
 }
 }
 

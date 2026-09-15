@@ -82,14 +82,10 @@ exit distinction.
   unresolved `Decision`; this adapter is disabled in the authoritative build,
   so compiled-provider evidence remains pending an enabled ConfigResolve
   configuration.
-- CUDA graph and matrix benchmark dynamic-library wrappers still ignore a
-  nonzero `dlclose` result on their hardware-dependent paths. Those paths are
-  not claimed as cleanup-complete; a future slice must define how a
-  library-close failure is represented when the surrounding operation has
-  already produced or withheld an artifact. The CUDA execution provider now
-  uses the checked `DynamicLibrary` owner and refuses success when either
-  library close fails. Device and cuBLAS handle cleanup remains covered
-  separately by `CudaDeviceResources`.
+- CUDA graph, matrix benchmark, execution, and provider-probe dynamic-library
+  paths now use the checked `DynamicLibrary` owner and refuse a successful
+  result when an explicit library close fails. Device and cuBLAS handle
+  cleanup remains covered separately by `CudaDeviceResources`.
 - The Clock and Revision reference CLIs still use exception-based argument
   parsing internally, but their public failure boundary now supports
   `--diagnostics json` with stable failure codes, empty artifact stdout, and a

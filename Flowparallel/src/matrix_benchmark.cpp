@@ -1,5 +1,6 @@
 #include <dlfcn.h>
 #include <flowparallel/cuda_resources.hpp>
+#include <flowparallel/dynamic_library.hpp>
 
 #include <algorithm>
 #include <charconv>
@@ -10,6 +11,7 @@
 #include <iomanip>
 #include <iostream>
 #include <new>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -21,16 +23,7 @@ constexpr int success = 0;
 constexpr int host_to_device = 1;
 constexpr int device_to_host = 2;
 
-struct Library {
-    void* handle;
-    explicit Library(const char* name) : handle(dlopen(name, RTLD_NOW | RTLD_LOCAL)) { if (!handle) throw std::runtime_error(std::string("cannot load ") + name); }
-    ~Library() { dlclose(handle); }
-    template <typename Function> Function get(const char* name) const {
-        auto* symbol = dlsym(handle, name);
-        if (!symbol) throw std::runtime_error(std::string("missing symbol: ") + name);
-        return reinterpret_cast<Function>(symbol);
-    }
-};
+using Library = flowparallel::DynamicLibrary;
 
 void check(error_t value, const char* operation) { if (value != success) throw std::runtime_error(std::string(operation) + " failed: " + std::to_string(value)); }
 struct Options { int size = 512; int iterations = 5; bool structured_diagnostics = false; };
@@ -60,7 +53,7 @@ Options parse(int argc, char** argv) {
 
 double checksum(const std::vector<float>& values) { double result = 0.0; for (float value : values) result += value; return result; }
 
-int run(const Options& options) {
+int run_with_libraries(const Options& options, Library& runtime, Library& blas) {
 #ifdef FLOWPARALLEL_MATRIX_BENCHMARK_TEST_ALLOCATION_FAILURE
     (void)options;
     throw std::bad_alloc();
@@ -84,12 +77,10 @@ int run(const Options& options) {
     }
     const double cpu_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cpu_start).count() / options.iterations;
 
-    Library runtime("libcudart.so.12");
-    Library blas("libcublas.so.12");
     using malloc_fn = error_t (*)(void**, std::size_t); using free_fn = error_t (*)(void*); using memcpy_fn = error_t (*)(void*, const void*, std::size_t, int); using sync_fn = error_t (*)();
     using create_fn = error_t (*)(handle_t*); using destroy_fn = error_t (*)(handle_t); using gemm_fn = error_t (*)(handle_t, int, int, int, int, int, const float*, const float*, int, const float*, int, const float*, float*, int);
-    const auto cuda_malloc = runtime.get<malloc_fn>("cudaMalloc"); const auto cuda_free = runtime.get<free_fn>("cudaFree"); const auto cuda_memcpy = runtime.get<memcpy_fn>("cudaMemcpy"); const auto cuda_sync = runtime.get<sync_fn>("cudaDeviceSynchronize");
-    const auto create = blas.get<create_fn>("cublasCreate_v2"); const auto destroy = blas.get<destroy_fn>("cublasDestroy_v2"); const auto gemm = blas.get<gemm_fn>("cublasSgemm_v2");
+    const auto cuda_malloc = runtime.symbol<malloc_fn>("cudaMalloc"); const auto cuda_free = runtime.symbol<free_fn>("cudaFree"); const auto cuda_memcpy = runtime.symbol<memcpy_fn>("cudaMemcpy"); const auto cuda_sync = runtime.symbol<sync_fn>("cudaDeviceSynchronize");
+    const auto create = blas.symbol<create_fn>("cublasCreate_v2"); const auto destroy = blas.symbol<destroy_fn>("cublasDestroy_v2"); const auto gemm = blas.symbol<gemm_fn>("cublasSgemm_v2");
     flowparallel::CudaDeviceResources resources{cuda_free, destroy};
     double gpu_compute_ms = 0.0;
     double end_to_end_ms = 0.0;
@@ -122,6 +113,27 @@ int run(const Options& options) {
     double max_error = 0.0; for (std::size_t i = 0; i < elements; ++i) max_error = std::max(max_error, std::fabs(static_cast<double>(cpu[i]) - gpu[i]));
     std::cout << std::setprecision(10) << "{\n  \"format\": \"flowparallel.matrix_benchmark\",\n  \"status\": \"verified\",\n  \"matrix_size\": " << n << ",\n  \"iterations\": " << options.iterations << ",\n  \"cpu_single_thread_ms\": " << cpu_ms << ",\n  \"cuda_cublas_compute_ms\": " << gpu_compute_ms << ",\n  \"cuda_end_to_end_ms\": " << end_to_end_ms << ",\n  \"compute_speedup\": " << cpu_ms / gpu_compute_ms << ",\n  \"end_to_end_speedup\": " << cpu_ms / end_to_end_ms << ",\n  \"max_error\": " << max_error << ",\n  \"cpu_checksum\": " << checksum(cpu) << ",\n  \"cuda_checksum\": " << checksum(gpu) << "\n}\n";
     return max_error < 0.001 ? 0 : 2;
+}
+
+int run(const Options& options) {
+    std::optional<Library> runtime;
+    std::optional<Library> blas;
+    try {
+        runtime.emplace("libcudart.so.12");
+        blas.emplace("libcublas.so.12");
+        const int result = run_with_libraries(options, *runtime, *blas);
+        const int runtime_close = runtime->close();
+        const int blas_close = blas->close();
+        if (runtime_close != 0 || blas_close != 0)
+            throw std::runtime_error("CUDA dynamic-library cleanup failed");
+        return result;
+    } catch (...) {
+        const int runtime_close = runtime ? runtime->close() : 0;
+        const int blas_close = blas ? blas->close() : 0;
+        if (runtime_close != 0 || blas_close != 0)
+            throw std::runtime_error("CUDA benchmark and dynamic-library cleanup failed");
+        throw;
+    }
 }
 }
 

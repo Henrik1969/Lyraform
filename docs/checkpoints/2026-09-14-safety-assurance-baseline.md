@@ -384,10 +384,15 @@ explicit `close()` result is checked after normal execution and on exception
 paths; a nonzero or throwing close callback cannot become a successful
 provider result. The hardware-independent cleanup test injects a close
 failure and verifies idempotent handle clearing; the CUDA allocation-fault
-boundary remains green. Graph and matrix benchmark loaders still require the
-same migration. The safety state remains `CONTINUE`.
+boundary remains green. Graph, matrix benchmark, and provider-probe loaders
+now use the same checked dynamic-library owner and explicit close-result
+handling. The safety state remains `CONTINUE`.
 
 ## CUDA dynamic-library cleanup residual — 2026-09-15
+
+This residual was superseded by the later provider-probe, graph, and matrix
+loader migration recorded above; the paragraph below is retained as the audit
+trail showing the originally identified gap.
 
 The Gate 3 provider audit identified that the CUDA graph and matrix benchmark
 `Library` wrappers ignore nonzero `dlclose` results. This is now explicitly
