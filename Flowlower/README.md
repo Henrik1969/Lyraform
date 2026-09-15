@@ -63,3 +63,10 @@ With `--diagnostics json`, malformed or missing input is reported on stderr as
 `FLOWLOWER_INPUT_INVALID` at the `input` stage, with empty stdout and no
 artifact disposition. This keeps hostile input outside the lowering artifact
 boundary while preserving the human-readable compatibility path.
+
+The companion `flowprepare` and `flowtarget` tools use the same structured
+input boundary. Missing artifacts, incomplete options, unavailable policies,
+and invalid target names return `FLOWPREPARE_INPUT_INVALID` or
+`FLOWTARGET_INPUT_INVALID` at stage `input`, with empty stdout and
+`disposition: no_artifact`. Validly parsed artifacts that violate their
+versioned contract remain separately classified as `*_CONTRACT_FAILURE`.

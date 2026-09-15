@@ -1296,3 +1296,33 @@ boundary. It does not claim complete allocation-fault coverage for every
 parser, provider, or Frankencore API; those remain open Gate 8 work.
 
 The safety state remains `CONTINUE`.
+
+## Flowprepare and Flowtarget input classification — 2026-09-15
+
+The two lowering companion tools now distinguish untrusted CLI and filesystem
+input failures from parsed artifact-contract failures in structured mode.
+`flowprepare` reports missing optimization artifacts and incomplete options as
+`FLOWPREPARE_INPUT_INVALID` at stage `input`; `flowtarget` reports unavailable
+policies and invalid policy names as `FLOWTARGET_INPUT_INVALID` at the same
+stage. Both dispositions remain `no_artifact`, stdout remains empty, and JSON
+contract failures retain the existing `*_CONTRACT_FAILURE` classification.
+
+The diagnostics-mode pre-scan uses exact option/value comparisons before
+normal option parsing, so an incomplete option that follows
+`--diagnostics json` still receives the structured input result. The focused
+GCC checks passed 2/2, and the same checks passed 2/2 in a fresh Clang 18.1.3
+ASan/UBSan tree after all declared helper executables were built. The complete
+canonical GCC suite passed 149/149 in 52.41 seconds; the complete fresh Clang
+18.1.3 ASan/UBSan suite passed 149/149 in 102.55 seconds with
+`detect_leaks=0` for the documented ptrace exclusion.
+
+The initial focused sanitizer wrapper invocation found that only
+`flowprepare` and `flowtarget` had been built while its declared `flowvalidate`
+and `flowlower` helpers were absent. Building those declared dependencies made
+the same focused tests pass; this was build-tree preparation, not a compiler
+defect.
+
+This closes stable input classification only for the tested Flowprepare and
+Flowtarget process cases. Deeper parser/provider fault injection, complete
+native API containment, isolation, and trust work remain open. The safety state
+remains `CONTINUE`.

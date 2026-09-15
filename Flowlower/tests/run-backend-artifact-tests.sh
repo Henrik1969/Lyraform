@@ -16,6 +16,22 @@ test "$hostile_rc" -eq 1
 test ! -s "$tmpdir/hostile-stdout"
 jq -e '.status == "failed" and .code == "FLOWPREPARE_CONTRACT_FAILURE" and .stage == "contract" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/hostile-stderr" >/dev/null
 
+set +e
+"$prepare" --diagnostics json "$tmpdir/missing-optimization.json" >"$tmpdir/missing-stdout" 2>"$tmpdir/missing-stderr"
+missing_rc=$?
+set -e
+test "$missing_rc" -eq 1
+test ! -s "$tmpdir/missing-stdout"
+jq -e '.status == "failed" and .code == "FLOWPREPARE_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$tmpdir/missing-stderr" >/dev/null
+
+set +e
+"$prepare" --diagnostics json --target >"$tmpdir/option-stdout" 2>"$tmpdir/option-stderr"
+option_rc=$?
+set -e
+test "$option_rc" -eq 1
+test ! -s "$tmpdir/option-stdout"
+jq -e '.status == "failed" and .code == "FLOWPREPARE_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$tmpdir/option-stderr" >/dev/null
+
 "$prepare" "$fixture_dir/captured-empty-optimization.json" > "$tmpdir/prepared.json"
 cmp -s "$fixture_dir/captured-empty-lowering.json" "$tmpdir/prepared.json"
 "$validate" --canonical "$tmpdir/prepared.json" > "$tmpdir/canonical.json"

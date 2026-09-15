@@ -31,11 +31,18 @@ missing_rc=$?
 set -e
 test "$missing_rc" -eq 1
 test ! -s "$tmpdir/missing.stdout"
-jq -e '.status == "failed" and .code == "FLOWTARGET_FAILURE" and .stage == "cli" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/missing.json" >/dev/null
+jq -e '.status == "failed" and .code == "FLOWTARGET_INPUT_INVALID" and .stage == "input" and (.message | length > 0) and .disposition == "no_artifact"' "$tmpdir/missing.json" >/dev/null
 if "$target" --policy-root "$root" ../llvm-host >/dev/null 2>"$tmpdir/name.err"; then
     echo 'flowtarget accepted a path-like target name' >&2; exit 1
 fi
 grep -q 'invalid target policy name' "$tmpdir/name.err"
+set +e
+"$target" --policy-root "$root" ../llvm-host --diagnostics json >"$tmpdir/name.stdout" 2>"$tmpdir/name.json"
+name_rc=$?
+set -e
+test "$name_rc" -eq 1
+test ! -s "$tmpdir/name.stdout"
+jq -e '.status == "failed" and .code == "FLOWTARGET_INPUT_INVALID" and .stage == "input" and .disposition == "no_artifact"' "$tmpdir/name.json" >/dev/null
 
 jq '.name = "wrong-name"' "$root/llvm-host.json" > "$tmpdir/mismatch.json"
 mkdir "$tmpdir/policies"

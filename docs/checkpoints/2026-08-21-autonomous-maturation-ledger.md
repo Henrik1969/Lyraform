@@ -2597,6 +2597,28 @@ containment audit before Gate 2 can close.
 State remains CONTINUE. The broader Stage 0 provider/API containment audit and
 fault-injection coverage remain unfinished.
 
+## 2026-09-15 Flowprepare and Flowtarget input classification
+
+- Reclassified structured missing-file, incomplete-option, unavailable-policy,
+  and invalid-policy-name failures as `FLOWPREPARE_INPUT_INVALID` or
+  `FLOWTARGET_INPUT_INVALID` at stage `input`.
+- Preserved parsed JSON/artifact failures as `*_CONTRACT_FAILURE`, allocation
+  exhaustion as `*_RESOURCE_EXHAUSTED`, and empty stdout with
+  `no_artifact` disposition.
+- Added exact diagnostics-mode recognition before normal option parsing so a
+  later malformed option still receives the requested structured result.
+- Focused GCC and fresh Clang 18.1.3 ASan/UBSan checks passed 2/2. The complete
+  GCC suite passed 149/149 in 52.41 seconds; the complete fresh Clang sanitizer
+  suite passed 149/149 in 102.55 seconds with the documented leak setting.
+- The first focused sanitizer invocation was incomplete because the new tree
+  had not yet built the tests' declared `flowvalidate` and `flowlower` helper
+  executables. After building those dependencies, the same checks passed; no
+  product failure was found.
+
+State remains CONTINUE. This is stable process-input classification, not
+complete exception safety, provider containment, isolation, or a Stage 1
+readiness claim.
+
 ## 2026-09-15 Flowlower input classification
 
 - Classified structured malformed and missing Flowlower input as

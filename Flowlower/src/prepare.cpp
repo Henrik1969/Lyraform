@@ -2,6 +2,7 @@
 #include <flowcontracts/bounded_input.hpp>
 #include <flowcontracts/diagnostics.hpp>
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <new>
@@ -138,6 +139,9 @@ void write_structured_failure(std::string_view code, std::string_view stage, std
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         if (argc == 2 && std::string(argv[1]) == "--version") { std::cout << "0.1.0\n"; return 0; }
         const auto parsed = options(argc, argv);
         structured_diagnostics = parsed.structured_diagnostics;
@@ -149,7 +153,7 @@ int main(int argc, char** argv) {
         if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_CONTRACT_FAILURE", "contract", error.what()); return 1; }
         std::cerr << "flowprepare contract error: " << error.what() << '\n'; return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_FAILURE", "cli", error.what()); return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_INPUT_INVALID", "input", error.what()); return 1; }
         std::cerr << "flowprepare error: " << error.what() << '\n'; return 1;
     } catch (...) {
         if (structured_diagnostics) { write_structured_failure("FLOWPREPARE_UNKNOWN_FAILURE", "cli", "unknown non-standard failure"); return 1; }

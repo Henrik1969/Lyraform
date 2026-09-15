@@ -2,6 +2,7 @@
 #include <flowcontracts/bounded_input.hpp>
 #include <flowcontracts/diagnostics.hpp>
 
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -41,6 +42,9 @@ void write_structured_failure(std::string_view code, std::string_view stage, std
 int main(int argc, char** argv) {
     bool structured_diagnostics = false;
     try {
+        for (int index = 1; index + 1 < argc; ++index)
+            if (std::strcmp(argv[index], "--diagnostics") == 0 && std::strcmp(argv[index + 1], "json") == 0)
+                structured_diagnostics = true;
         std::vector<std::string> arguments;
         for (int index = 1; index < argc; ++index) {
             if (std::string(argv[index]) == "--diagnostics") {
@@ -70,7 +74,7 @@ int main(int argc, char** argv) {
         if (structured_diagnostics) { write_structured_failure("FLOWTARGET_CONTRACT_FAILURE", "contract", error.what()); return 1; }
         std::cerr << "flowtarget contract error: " << error.what() << '\n'; return 1;
     } catch (const std::exception& error) {
-        if (structured_diagnostics) { write_structured_failure("FLOWTARGET_FAILURE", "cli", error.what()); return 1; }
+        if (structured_diagnostics) { write_structured_failure("FLOWTARGET_INPUT_INVALID", "input", error.what()); return 1; }
         std::cerr << "flowtarget error: " << error.what() << '\n'; return 1;
     } catch (...) {
         if (structured_diagnostics) { write_structured_failure("FLOWTARGET_UNKNOWN_FAILURE", "cli", "unknown non-standard failure"); return 1; }
