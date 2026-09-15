@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -29,6 +30,7 @@
 namespace {
 
     struct OutputError : std::runtime_error { using std::runtime_error::runtime_error; };
+    struct OutputUncertain : std::runtime_error { using std::runtime_error::runtime_error; };
 
     [[nodiscard]] std::string readFile(const std::string& path) {
         std::ifstream input{path};
@@ -577,9 +579,17 @@ namespace {
     }
 
     void writeAtomicFile(const std::string& path, std::string_view contents) {
+        const auto slash = path.find_last_of('/');
+        const std::string parent = slash == std::string::npos ? "." :
+                                   slash == 0 ? "/" : path.substr(0, slash);
+        const int directory = open(parent.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+        if (directory < 0) throw OutputError{"cannot open output directory"};
         std::string temporary = path + ".tmp.XXXXXX";
         const int descriptor = mkstemp(temporary.data());
-        if (descriptor < 0) throw OutputError{"cannot create private output file"};
+        if (descriptor < 0) {
+            close(directory);
+            throw OutputError{"cannot create private output file"};
+        }
         FILE* file = fdopen(descriptor, "wb");
         bool published = false;
         if (file) {
@@ -593,8 +603,13 @@ namespace {
         }
         if (!published) {
             std::remove(temporary.c_str());
+            close(directory);
             throw OutputError{"cannot publish output file"};
         }
+        bool durable = fsync(directory) == 0;
+        if (close(directory) != 0) durable = false;
+        if (!durable)
+            throw OutputUncertain{"output file is published but parent directory durability is uncertain"};
     }
 
     template <typename Writer>
@@ -611,7 +626,8 @@ namespace {
     void writeStructuredFailure(
         std::string_view code,
         std::string_view stage,
-        std::string_view message
+        std::string_view message,
+        std::string_view disposition = "no_artifact"
     ) noexcept {
         std::fputs("{\"status\":\"failed\",\"code\":\"", stderr);
         flowcontracts::write_json_string(stderr, code);
@@ -619,7 +635,9 @@ namespace {
         flowcontracts::write_json_string(stderr, stage);
         std::fputs("\",\"message\":\"", stderr);
         flowcontracts::write_json_string(stderr, message);
-        std::fputs("\",\"disposition\":\"no_artifact\"}\n", stderr);
+        std::fputs("\",\"disposition\":\"", stderr);
+        flowcontracts::write_json_string(stderr, disposition);
+        std::fputs("\"}\n", stderr);
     }
 
 } // namespace
@@ -836,6 +854,15 @@ int main(int argc, char** argv) {
     } catch (const OutputError& err) {
         if (structuredDiagnostics) {
             writeStructuredFailure("FLOW_OUTPUT_FAILURE", "output", err.what());
+        } else {
+            std::cerr << "fatal in output: " << err.what() << '\n';
+            log.write(ctx);
+        }
+        return 1;
+    } catch (const OutputUncertain& err) {
+        if (structuredDiagnostics) {
+            writeStructuredFailure("FLOW_OUTPUT_DURABILITY_UNCERTAIN", "output", err.what(),
+                                   "artifact_published_durability_uncertain");
         } else {
             std::cerr << "fatal in output: " << err.what() << '\n';
             log.write(ctx);

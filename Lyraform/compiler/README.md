@@ -42,8 +42,13 @@ before publication, written and synchronized through a private sibling file,
 and atomically renamed over the requested destination after a successful close.
 Write, sync, close, or rename failure preserves an existing destination and
 returns `FLOW_OUTPUT_FAILURE` at stage `output` in structured mode.
-Parent-directory crash durability and abrupt-death orphan cleanup are not
-claimed; stdout dump modes remain streaming outputs rather than file artifacts.
+The parent directory is opened before publication and synchronized after
+rename. Failure of that final barrier returns
+`FLOW_OUTPUT_DURABILITY_UNCERTAIN` with disposition
+`artifact_published_durability_uncertain`, because the new output is already
+visible. Abrupt-death orphan cleanup, adversarial directory replacement, and
+cross-platform durability are not claimed; stdout dump modes remain streaming
+outputs rather than file artifacts.
 
 ## Build
 

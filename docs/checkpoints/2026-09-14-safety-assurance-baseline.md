@@ -1687,3 +1687,32 @@ This closes the ordinary Linux parent-directory barrier and uncertainty
 projection for LLVM artifacts. Flowmini, adversarial directory replacement,
 abrupt-death orphan cleanup, and cross-platform durability remain open. The
 safety state remains `CONTINUE`.
+
+## Flowmini parent-directory durability result — 2026-09-15
+
+Flowmini now opens the requested artifact's parent directory before creating
+its private sibling, retains the descriptor through atomic rename, and
+synchronizes the directory before reporting successful publication. This
+applies uniformly to FlowIR, AST-symbol, token-tree, and FlowIR-symbol file
+outputs. Pre-rename write, file-sync, file-close, and rename faults retain the
+previous destination, remove the private sibling, and report
+`FLOW_OUTPUT_FAILURE` with `no_artifact`.
+
+The publication fault gate now independently injects post-rename directory
+synchronization failure. The replacement FlowIR remains visible and starts
+with its expected module declaration, stdout remains empty, no private sibling
+remains, and structured stderr reports
+`FLOW_OUTPUT_DURABILITY_UNCERTAIN` at stage `output` with disposition
+`artifact_published_durability_uncertain`.
+
+The focused frontend, support-boundary, UTF-8, and publication gates passed
+4/4 under GCC and Clang 18.1.3 ASan/UBSan. A Valgrind 3.22.0 normal-publication
+run reported zero errors, zero live blocks, and 684 allocations matched by 684
+frees. Complete suites passed 154/154 under GCC in 59.76 seconds and 154/154
+under Clang sanitizers in 114.03 seconds with the documented leak setting.
+
+This gives every currently covered canonical compiler file-artifact publisher
+the ordinary Linux parent-directory barrier and explicit uncertainty result.
+Abrupt-death orphan cleanup, adversarial directory replacement, streamed
+stdout partial delivery, other native producers, and cross-platform durability
+remain open. The safety state remains `CONTINUE`.

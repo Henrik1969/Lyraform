@@ -2667,6 +2667,25 @@ State remains CONTINUE. Flowmini still needs the same result distinction, and
 abrupt-death cleanup, adversarial directory replacement, and cross-platform
 durability remain open.
 
+## 2026-09-15 Flowmini parent-directory durability result
+
+- Opened each requested compiler artifact's parent directory before sibling
+  publication, retained it through rename, and synchronized it before
+  reporting success.
+- Extended publication fault evidence so post-rename directory-sync failure
+  produces a visible FlowIR artifact plus
+  `artifact_published_durability_uncertain`, while pre-rename faults preserve
+  the old destination, remove the sibling, and report `no_artifact`.
+- Focused GCC and Clang 18.1.3 ASan/UBSan gates passed 4/4; the normal
+  publication path passed Valgrind with zero errors/leaks and 684/684
+  allocations/frees; full suites passed 154/154 in 59.76 seconds under GCC and
+  114.03 seconds under Clang sanitizers.
+
+State remains CONTINUE. All currently covered canonical compiler file-artifact
+publishers now carry the ordinary Linux directory barrier/result distinction;
+abrupt-death cleanup, adversarial directory replacement, streamed stdout
+delivery, other native producers, and cross-platform durability remain open.
+
 ## 2026-09-15 Flowprepare and Flowtarget input classification
 
 - Reclassified structured missing-file, incomplete-option, unavailable-policy,
