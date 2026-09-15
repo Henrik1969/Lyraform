@@ -2649,6 +2649,17 @@ open; FlowLFS and `master` remain untouched.
 State remains CONTINUE. No cleanup failure is converted into success, but
 broader native fault injection and cancellation cleanup remain open.
 
+## 2026-09-15 runtime CUDA cleanup fault evidence
+
+- Added a hardware-independent runtime test variant that opens libc, performs
+  the actual dynamic-library close, and injects a reported close failure.
+- Verified that capability discovery remains structurally valid while CUDA is
+  downgraded to `unknown` with an explicit cleanup diagnostic.
+- The focused normal runtime gate passed 2/2; no CUDA hardware was assumed.
+
+State remains CONTINUE. Runtime refresh and broader platform assurance remain
+open; arbitrary FFI and unsupported scheduling remain refused.
+
 ## 2026-09-14 Flowparallel bounded ingress boundary
 
 - Replaced unbounded `rdbuf()` ingestion at the plan-producing CLI, CPU/CUDA

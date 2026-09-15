@@ -24,6 +24,21 @@ target_link_libraries(frankencore_runtime_probe_fault PRIVATE frankencore_core_r
 target_compile_features(frankencore_runtime_probe_fault PRIVATE cxx_std_20)
 target_compile_options(frankencore_runtime_probe_fault PRIVATE -Wall -Wextra -Wpedantic)
 
+# Test-only hardware-independent cleanup fault: use a ubiquitous libc handle,
+# perform the real dlclose, then force the observed close result to fail.
+add_library(frankencore_core_runtime_close_fault STATIC runtime.cpp)
+target_include_directories(frankencore_core_runtime_close_fault PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+target_compile_features(frankencore_core_runtime_close_fault PUBLIC cxx_std_20)
+target_compile_options(frankencore_core_runtime_close_fault PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_definitions(frankencore_core_runtime_close_fault PRIVATE
+    FRANKENCORE_RUNTIME_CUDA_CLOSE_FAULT)
+target_link_libraries(frankencore_core_runtime_close_fault PUBLIC ${CMAKE_DL_LIBS})
+
+add_executable(frankencore_runtime_probe_close_fault probe.cpp)
+target_link_libraries(frankencore_runtime_probe_close_fault PRIVATE frankencore_core_runtime_close_fault)
+target_compile_features(frankencore_runtime_probe_close_fault PRIVATE cxx_std_20)
+target_compile_options(frankencore_runtime_probe_close_fault PRIVATE -Wall -Wextra -Wpedantic)
+
 add_executable(frankencore_runtime_memory_test runtime-memory-test.cpp)
 target_include_directories(frankencore_runtime_memory_test PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_compile_features(frankencore_runtime_memory_test PRIVATE cxx_std_20)
@@ -39,6 +54,11 @@ add_test(NAME frankencore_runtime_probe_fault
     COMMAND ${CMAKE_COMMAND} -E env
         RUNTIME_FAULT_BIN=$<TARGET_FILE:frankencore_runtime_probe_fault>
         ${CMAKE_CURRENT_LIST_DIR}/test-runtime-fault.sh)
+
+add_test(NAME frankencore_runtime_probe_close_fault
+    COMMAND ${CMAKE_COMMAND} -E env
+        RUNTIME_CLOSE_FAULT_BIN=$<TARGET_FILE:frankencore_runtime_probe_close_fault>
+        ${CMAKE_CURRENT_LIST_DIR}/test-runtime-close-fault.sh)
 
 add_test(NAME frankencore_runtime_memory
     COMMAND frankencore_runtime_memory_test)

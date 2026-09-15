@@ -58,7 +58,13 @@ MemoryFacts read_memory() {
 
 CudaFacts discover_cuda() {
     CudaFacts result;
-    void* library = dlopen("libcuda.so.1", RTLD_LAZY | RTLD_LOCAL);
+    void* library = dlopen(
+#ifdef FRANKENCORE_RUNTIME_CUDA_CLOSE_FAULT
+        "libc.so.6",
+#else
+        "libcuda.so.1",
+#endif
+        RTLD_LAZY | RTLD_LOCAL);
     if (!library) {
         result.status = "unavailable";
         result.diagnostic = "libcuda.so.1 was not available";
@@ -69,7 +75,14 @@ CudaFacts discover_cuda() {
     const auto init = reinterpret_cast<init_fn>(dlsym(library, "cuInit"));
     const auto count = reinterpret_cast<count_fn>(dlsym(library, "cuDeviceGetCount"));
     const auto close_library = [&] {
-        if (dlclose(library) != 0) {
+        const int close_status = dlclose(library);
+#ifdef FRANKENCORE_RUNTIME_CUDA_CLOSE_FAULT
+        (void)close_status;
+        const int reported_status = -1;
+#else
+        const int reported_status = close_status;
+#endif
+        if (reported_status != 0) {
             result.status = "unknown";
             result.diagnostic = "CUDA driver library cleanup failed";
         }

@@ -377,6 +377,19 @@ Those broader fault-injection cases remain an open Gate 8 item.
 
 The safety state remains `CONTINUE`.
 
+## Frankencore runtime CUDA close-fault evidence — 2026-09-15
+
+Runtime capability discovery now has a hardware-independent cleanup-fault
+variant. The test-only build opens a ubiquitous libc handle, executes the real
+`dlclose()` path, and forces the reported close result to fail; the resulting
+capability snapshot downgrades CUDA evidence to `unknown` with an explicit
+diagnostic and emits no stderr failure. `frankencore_runtime_probe_close_fault`
+passed alongside the normal runtime probe (2/2 focused tests).
+
+This closes the previously untestable CUDA close-classification case without
+claiming CUDA hardware availability or broader platform assurance. The safety
+state remains `CONTINUE`.
+
 ## Frankencore apt-provider pipe cleanup — 2026-09-15
 
 The native `apt-indextargets` package reader now owns its `popen()` stream with
