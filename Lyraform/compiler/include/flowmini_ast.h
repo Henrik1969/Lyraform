@@ -539,7 +539,16 @@ struct GraphStateSyntax {
     SourceLocation location;
 };
 
+struct ParseValidity {
+    std::string state = "outside_scope";
+    std::string scope = "compatibility";
+    std::string coverage = "unassessed";
+    bool recovery = false;
+    std::string message;
+};
+
 struct AstModule {
+    ParseValidity parse_validity;
     SourceUnit source_unit;
     std::vector<TopLevelDecl> declaration_pool;
     std::vector<Expression> expression_pool;

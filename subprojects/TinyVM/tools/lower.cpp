@@ -74,6 +74,7 @@ public:
         : root_(root), source_(std::move(source)), derivation_(std::move(derivation)) {}
 
     void compile() {
+        flowcontracts::require_executable_targets(required(root_, "lowering_plan"));
         const auto& plan = required_object(root_, "lowering_plan");
         if (const auto* layouts = optional(root_, "aggregate_abi_layouts")) {
             const auto& layout_values = array(*layouts, "$.aggregate_abi_layouts");

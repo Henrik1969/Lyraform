@@ -33,6 +33,7 @@ inline void validate_identity_array(const json::Object& parent, std::string_view
 }
 
 inline void validate_lowering_plan(const json::Value& value, std::string_view path = "$") {
+    validate_scalar_facts(value, path);
     const auto& plan = json::object(value, path);
     if (json::string(json::required(plan, "format", path), std::string(path) + ".format") != "flowcore.lowering_plan")
         throw json::Error(std::string(path) + ".format", "unsupported lowering plan format");
@@ -95,6 +96,8 @@ inline void validate_binding_report(const json::Value& value) {
     const auto artifact = require_header(value, "flowbind.binding_report", 1);
     if (artifact.status != "ready") return;
     const auto& root = json::object(value);
+    if (const auto* targets = json::optional(root, "target_facts"))
+        for (const auto& target : json::array(*targets, "$.target_facts")) validate_target_fact(target);
     if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) validate_aggregate_abi_layouts(json::array(*layouts, "$.aggregate_abi_layouts"));
     const auto& capabilities = required_array(root, "capabilities");
     for (std::size_t index = 0; index < capabilities.size(); ++index) {

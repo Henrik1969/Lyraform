@@ -3,6 +3,10 @@
 #include <flowcontracts/diagnostics.hpp>
 #include <flowcontracts/graph_provider_map.hpp>
 #include <flowcontracts/source_graph.hpp>
+#include <flowcontracts/scalar_facts.hpp>
+#include <flowcontracts/parse_validity.hpp>
+#include "scalar_analysis.hpp"
+#include "target_analysis.hpp"
 #include <cctype>
 #include <fstream>
 #include <functional>
@@ -156,6 +160,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
         diagnostics.push_back(std::move(item));
     };
+    if (const auto* validity = field(bundle, "parse_validity")) {
+        if (!flowcontracts::parse_validity_admits(*validity, ast))
+            add_diagnostic("FLOWMINI_PARSE_NOT_EXECUTABLE", text(field(validity, "message")), -1);
+    }
     for (const auto& entry : list(field(bundle, "diagnostics"))) {
         add_diagnostic(text(field(entry, "code"), "FLOWMINI_FRONTEND_DIAGNOSTIC"), text(field(entry, "message"), "FlowMini frontend diagnostic"), -1);
         if (const auto* provenance = field(entry, "provenance")) {
@@ -550,7 +558,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         const auto* expression = expressions[expression_id]; if (text(field(*expression, "kind")) == "identifier") {
             const auto name = text(field(field(*expression, "payload"), "name")); int current = scope_id, found = -1; bool ambiguous = false;
             while (current >= 0 && scopes.count(current) && found < 0) {
-                for (const auto& candidate : list(field(*scopes[current], "symbol_ids"))) { int candidate_id = integer(&candidate); if (symbols.count(candidate_id) && text(field(*symbols[candidate_id], "name")) == name) { found = candidate_id; break; } }
+                found = flowanalyst::scalar::symbol_in_scope(scopes, symbols, current, name);
                 if (found < 0) {
                     std::vector<int> contract_matches;
                     for (const auto& child : list(field(*scopes[current], "child_scope_ids"))) {
@@ -830,15 +838,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         for (const auto& child : list(field(*expression, "child_expressions"))) collect_reads(integer(&child), reads);
     };
     auto visible_symbol = [&](int scope_id, const std::string& name) {
-        int current = scope_id;
-        while (current >= 0 && scopes.count(current)) {
-            for (const auto& symbol_id : list(field(*scopes.at(current), "symbol_ids"))) {
-                const int candidate = integer(&symbol_id);
-                if (symbols.count(candidate) && text(field(*symbols.at(candidate), "name")) == name) return candidate;
-            }
-            current = integer(field(*scopes.at(current), "parent_id"));
-        }
-        return -1;
+        return flowanalyst::scalar::visible_symbol(scopes, symbols, scope_id, name);
     };
     std::vector<CallSite> call_sites;
     for (const auto& [expression_id, expression] : expressions) {
@@ -1098,6 +1098,68 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (operation.expression >= 0) operation.arguments.push_back(operation.expression);
         lowering_operations.push_back(std::move(operation));
     }
+    std::map<int, int> initialized_local_declarations;
+    std::set<int> uninitialized_local_declarations;
+    for (const auto& [statement_id, statement] : statements) {
+        if (text(field(*statement, "kind")) != "let") continue;
+        const int scope_id = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
+        const int symbol = visible_symbol(scope_id, text(field(*statement, "name")));
+        if (symbol < 0 || !symbols.count(symbol) || text(field(*symbols.at(symbol), "kind")) != "Variable") continue;
+        if (integer(field(field(*statement, "payload"), "initializer_expression")) >= 0)
+            initialized_local_declarations.emplace(symbol, statement_id);
+        else uninitialized_local_declarations.insert(symbol);
+    }
+    const auto scalar_facts = flowanalyst::scalar::analyze(bundle, statements, expressions,
+        statement_scopes, resolved_expression_symbols, symbol_types, visible_symbol);
+    for (const auto& [statement_id, fact] : scalar_facts) if (!fact.admitted()) {
+        add_diagnostic("FLOWANALYST_SCALAR_FLOW_REFUSED",
+            "scalar flow requires an established destination of the same type (source " +
+                std::string(lyraform::scalar::name(fact.source_type)) + ", destination " +
+                std::string(lyraform::scalar::name(fact.destination_type)) + ")",
+            static_cast<int>(fact.destination), "scope:" + std::to_string(statement_scopes.at(statement_id)));
+        auto& diagnostic = diagnostics.back();
+        diagnostic.ast_path = fact.origin.ast_path;
+        diagnostic.source = fact.origin.source;
+        diagnostic.line = static_cast<int>(fact.origin.line);
+        diagnostic.column = static_cast<int>(fact.origin.column);
+    }
+    const auto target_catalog = flowanalyst::target::catalog(symbols, scopes, origins);
+    std::map<int, flowanalyst::target::Result> target_facts;
+    for (std::size_t operation_id = 0; operation_id < lowering_operations.size(); ++operation_id) {
+        const auto& operation = lowering_operations[operation_id];
+        if (!statements.count(operation.statement) || text(field(*statements.at(operation.statement), "kind")) != "placement") continue;
+        const auto* target = field(field(*statements.at(operation.statement), "payload"), "target");
+        const auto kind = text(field(target, "kind"));
+        const int base = visible_symbol(operation.scope, text(field(target, kind == "identifier" ? "name" : "base_identifier")));
+        const std::string base_type = symbol_types.count(base) ? symbol_types.at(base) : std::string{};
+        std::string destination_type;
+        if (kind == "identifier" && scalar_facts.count(operation.statement))
+            destination_type = std::string(lyraform::scalar::name(scalar_facts.at(operation.statement).destination_type));
+        auto source_type = lyraform::scalar::Type::outside_slice;
+        if (kind == "field_path") source_type = lyraform::scalar::frontend::infer_expression_type(
+            operation.statement, operation.expression, statements, expressions,
+            resolved_expression_symbols, symbol_types, initialized_local_declarations,
+            uninitialized_local_declarations);
+        int root_declaration = -1;
+        if (const auto found = initialized_local_declarations.find(base);
+            found != initialized_local_declarations.end() && statements.count(found->second) &&
+            lyraform::scalar::frontend::position(statements.at(found->second)) <
+                lyraform::scalar::frontend::position(statements.at(operation.statement)))
+            root_declaration = found->second;
+        auto result = flowanalyst::target::resolve(bundle, *target, operation.statement,
+            static_cast<int>(operation_id), base, base_type, destination_type, target_catalog,
+            operation.expression, source_type, root_declaration);
+        if (!result.admitted) {
+            add_diagnostic(result.code, result.message, base, "scope:" + std::to_string(operation.scope));
+            const auto& origin = flowcontracts::json::object(flowcontracts::json::required(
+                flowcontracts::json::object(result.evidence), "provenance"));
+            diagnostics.back().ast_path = flowcontracts::json::string(flowcontracts::json::required(origin, "ast_path"), "$.target_fact.provenance.ast_path");
+            diagnostics.back().source = flowcontracts::json::string(flowcontracts::json::required(origin, "source"), "$.target_fact.provenance.source");
+            diagnostics.back().line = static_cast<int>(flowcontracts::json::integer(flowcontracts::json::required(origin, "line"), "$.target_fact.provenance.line"));
+            diagnostics.back().column = static_cast<int>(flowcontracts::json::integer(flowcontracts::json::required(origin, "column"), "$.target_fact.provenance.column"));
+        }
+        target_facts.emplace(static_cast<int>(operation_id), std::move(result));
+    }
     std::vector<Region> regions;
     for (const auto& [id, scope] : scopes) regions.push_back({"scope:" + std::to_string(id), "scope", "sane", {}});
     for (const auto& [id, symbol] : symbols) {
@@ -1154,6 +1216,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     std::cout << "],\n  \"graph_analysis\":{\"format\":\"flowanalyst.graph_analysis\",\"version\":1,\"status\":\"" << (graph_native ? "ready" : "non_executable") << "\",\"receivers\":"
               << flowcontracts::json::serialize(graph_receivers) << "},\n  \"lowering_plan\": {\"format\":\"flowcore.lowering_plan\",\"version\":" << lowering_plan_version << ",\"status\":\""
               << (diagnostics.empty() ? "ready" : "blocked") << "\"";
+    if (const auto* validity = field(bundle, "parse_validity"))
+        std::cout << ",\"parse_validity\":" << flowcontracts::json::serialize(*validity);
     if (!std::holds_alternative<std::nullptr_t>(graph_model))
         std::cout << ",\"source_graph\":" << flowcontracts::json::serialize(graph_model);
     if (lowering_plan_version == 2) {
@@ -1331,7 +1395,9 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             std::cout << operation.arguments[argument];
         }
         std::cout << "],\"operands\":[";
-        for (std::size_t argument = 0; argument < operation.arguments.size(); ++argument) {
+        const bool scalar_refused = (operation.kind == "value_definition" || operation.kind == "assignment") &&
+            scalar_facts.count(operation.statement) && !scalar_facts.at(operation.statement).admitted();
+        for (std::size_t argument = 0; !scalar_refused && argument < operation.arguments.size(); ++argument) {
             if (argument) std::cout << ',';
             auto declared_type = (operation.kind == "value_definition" || operation.kind == "assignment") && operation.result_symbol >= 0 && symbol_types.count(operation.result_symbol)
                 ? symbol_types.at(operation.result_symbol) : std::string{};
@@ -1348,6 +1414,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
         std::cout << "]";
         if (operation.result_symbol >= 0) std::cout << ",\"result_symbol_id\":" << operation.result_symbol;
+        if (target_facts.count(static_cast<int>(i)))
+            std::cout << ",\"target_fact\":" << flowcontracts::json::serialize(target_facts.at(static_cast<int>(i)).evidence);
+        if ((operation.kind == "value_definition" || operation.kind == "assignment") && scalar_facts.count(operation.statement))
+            std::cout << ",\"scalar_fact\":" << flowcontracts::json::serialize(flowcontracts::scalar_fact(scalar_facts.at(operation.statement)));
         if (operation.kind == "branch") std::cout << ",\"then_block_id\":" << operation.then_block << ",\"else_block_id\":" << operation.else_block;
         if (operation.kind == "loop") std::cout << ",\"body_block_id\":" << operation.body_block;
         if (operation.kind == "external_call" || operation.kind == "text_outcome") {

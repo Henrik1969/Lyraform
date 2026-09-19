@@ -233,6 +233,7 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
     const Json root = JsonParser{report}.parse();
     const Json* plan = json_field(root, "lowering_plan");
     if (plan == nullptr) return;
+    flowcontracts::validate_scalar_facts(*plan, "$.lowering_plan");
     if (const auto* graph = json_field(*plan, "source_graph")) {
         const auto model = flowcontracts::source_graph(*graph, "$.lowering_plan.source_graph");
         if (!model.executable) throw std::runtime_error("source graph execution is not admitted");
@@ -644,6 +645,10 @@ int verify(const std::string& report, const std::string& policy_path, const std:
                   << ",\"status\":\"loaded-bytes-verified\"}";
     }
     std::size_t generic_operation_count = 0;
+    flowcontracts::json::Array target_facts;
+    if (const auto* plan = json_field(semantic_root, "lowering_plan"))
+        for (const auto& operation : json_array(json_field(*plan, "operations"), "lowering_plan.operations"))
+            if (const auto* target = json_field(operation, "target_fact")) target_facts.push_back(*target);
     try {
         const Json semantic_root = JsonParser{report}.parse();
         if (const auto* plan = json_field(semantic_root, "lowering_plan")) {
@@ -653,6 +658,7 @@ int verify(const std::string& report, const std::string& policy_path, const std:
         generic_operation_count = 0;
     }
     std::cout << "],\n  \"aggregate_abi_layouts\": " << flowcontracts::json::serialize(verified_layouts)
+              << ",\n  \"target_facts\":" << flowcontracts::json::serialize(target_facts)
               << ",\n  \"lowering_plan\": {\"kind\": \"generic\""
               << ",\"contract\":\"flowcore.lowering_plan\",\"operation_count\":" << generic_operation_count;
     std::cout << "},\n  \"policy\": {\"status\": \"authorized\", \"grants\": " << grants.size() << "},\n  \"abi\": {\"convention\": \"c\", \"carrier_types_supported\": true, \"provider_signature_evidence\": \"not-provided\", \"sizeof_int\": " << sizeof(int) << ", \"sizeof_long\": " << sizeof(long) << ", \"sizeof_size_t\": " << sizeof(std::size_t) << ", \"sizeof_pointer\": " << sizeof(void*) << "},\n  \"execution\": \"not-performed\"\n}\n";

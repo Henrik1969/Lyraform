@@ -28,6 +28,7 @@
 #include "flowmini_ast_builder.h"
 #include "flowmini_frontend_bundle.h"
 #include "flowmini_symbol_projection.h"
+#include "flowmini_scalar_source.h"
 
 namespace {
 
@@ -689,12 +690,21 @@ int main(int argc, char** argv) {
         bool dumpTokenTreeBridge = false;
         bool dumpAst = false;
         bool dumpFrontendBundle = false;
+        bool traceSourcePath = false;
+#ifdef FLOWMINI_TEST_SCALAR_PATH
+        bool legacyOracle = false;
+        bool forbidLegacy = false;
+#endif
 
         flowmini::TokenTreeBridgeDumpFormat dumpTokenTreeBridgeFormat = flowmini::TokenTreeBridgeDumpFormat::Json;
         std::string dumpSymbolsPath;
         std::string dumpAstSymbolsPath;
         for (int i = 1; i < argc; ++i) {
             const std::string arg = argv[i];
+#ifdef FLOWMINI_TEST_SCALAR_PATH
+            if (arg == "--test-legacy-oracle") { legacyOracle = true; continue; }
+            if (arg == "--test-forbid-legacy") { forbidLegacy = true; continue; }
+#endif
 
             if (arg == "--help" || arg == "-h") {
                 printUsage(std::cout);
@@ -711,7 +721,8 @@ int main(int argc, char** argv) {
             }
 
             if (arg == "--trace") {
-                ctx.policies.set("runtime.trace", flow::parseBool(flow::requireArgValue(argc, argv, i, arg)));
+                traceSourcePath = flow::parseBool(flow::requireArgValue(argc, argv, i, arg));
+                ctx.policies.set("runtime.trace", traceSourcePath);
                 continue;
             }
 
@@ -822,7 +833,53 @@ int main(int argc, char** argv) {
             return 0;
         }
 
-        const auto module = flowmini::parseModule(tokens);
+        // Keep the canonical-to-runtime relation alive through execution;
+        // ModuleSpec/legacy FlowIR itself has no source-provenance field.
+        std::vector<flowmini::scalar_source::RuntimeOrigin> scalarRuntimeOrigins;
+        const auto module = [&]() -> flowmini::ModuleSpec {
+#ifdef FLOWMINI_TEST_SCALAR_PATH
+            const bool useLegacyOracle = legacyOracle;
+#else
+            constexpr bool useLegacyOracle = false;
+#endif
+            const auto first = std::find_if(tokens.begin(), tokens.end(), [](const auto& token) {
+                return token.kind != flowmini::TokenKind::Newline;
+            });
+            // Format ownership is in the header, not the filename. Renaming a
+            // scalar source to .flowir must not bypass canonical admission.
+            const bool legacyArtifact = first != tokens.end() && first->kind == flowmini::TokenKind::KeywordModule;
+            if (!legacyArtifact && !useLegacyOracle) {
+                const auto syntax = flowmini::ast::build_source_header_ast(tokens);
+                const bool canonicalScalar = flowmini::scalar_source::classify(syntax) == flowmini::scalar_source::Ownership::canonical;
+                if (canonicalScalar && traceSourcePath) std::cerr << "source-path: canonical-scalar\n";
+                flowmini::parse_validity::require_execution_validity(syntax);
+                if (flowmini::scalar_source::classify(syntax) == flowmini::scalar_source::Ownership::canonical) {
+                    const auto projection = flowmini::ast::build_symbol_projection(syntax);
+                    std::ostringstream serialized;
+                    flowmini::ast::dump_frontend_bundle_json(serialized, syntax, projection, sourcePath, expandedSource.origins());
+                    const auto bundle = flowcontracts::json::parse(serialized.str());
+                    const auto model = flowmini::scalar_source::analyze(syntax, bundle);
+                    if (traceSourcePath) std::cerr << "source-path: scalar-facts-admitted\n";
+                    if (traceSourcePath) std::cerr << "source-path: runtime-adapter\n";
+                    const auto adapted = flowmini::scalar_source::adapt(syntax, model, sourcePath, expandedSource.origins());
+                    scalarRuntimeOrigins = adapted.origins;
+                    if (traceSourcePath) {
+                        for (const auto& origin : scalarRuntimeOrigins)
+                            std::cerr << "scalar-origin: " << origin.node << " statement=" << origin.statement
+                                << " declaration=" << origin.declaration << " expression=" << origin.expression
+                                << " destination=" << origin.destination << " source=" << origin.source.source
+                                << ':' << origin.source.line << ':' << origin.source.column
+                                << " ast=" << origin.source.ast_path << '\n';
+                    }
+                    return adapted.module;
+                }
+            }
+            if (traceSourcePath) std::cerr << "source-path: legacy-compatibility\n";
+#ifdef FLOWMINI_TEST_SCALAR_PATH
+            if (forbidLegacy) throw flow::DiagnosticError{"test-source-path", "legacy parser invocation forbidden by test"};
+#endif
+            return flowmini::parseModule(tokens);
+        }();
 
         if (!dumpSymbolsPath.empty()) {
             writeOutputFile(dumpSymbolsPath, [&](std::ostream& out) { flowmini::writeFlowIrSymbolTableDump(module, out); });

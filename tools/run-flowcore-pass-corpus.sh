@@ -67,6 +67,20 @@ for grant in \
 done
 
 count=0
+unsupported_targets=0
+check_lowering() {
+    if jq -e 'any(.lowering_plan.operations[]; .target_fact.execution? == "unsupported")' "$optimized" >/dev/null; then
+        if "$lowerer" "$@" < "$optimized" > "$lowered" 2> "$tmpdir/lowering.err"; then
+            echo "unsupported preserved target unexpectedly lowered: $name" >&2
+            exit 1
+        fi
+        grep -q 'unsupported target kind: member/index execution is not admitted' "$tmpdir/lowering.err"
+        unsupported_targets=$((unsupported_targets + 1))
+    else
+        "$lowerer" "$@" < "$optimized" > "$lowered"
+        grep -q '"status": "ready"' "$lowered"
+    fi
+}
 for source in "$pass_root"/*.flow; do
     name=${source##*/}
     name=${name%.flow}
@@ -84,12 +98,11 @@ for source in "$pass_root"/*.flow; do
     binding=$tmpdir/$name.binding.json
     if jq -e '((.aggregate_abi_layouts // []) | length) == 0' "$semantic" >/dev/null; then
         "$bind" --policy "$policy" < "$semantic" > "$binding"
-        "$lowerer" --binding-report "$binding" < "$optimized" > "$lowered"
+        check_lowering --binding-report "$binding"
     else
-        "$lowerer" < "$optimized" > "$lowered"
+        check_lowering
     fi
-    grep -q '"status": "ready"' "$lowered"
     count=$((count + 1))
 done
 
-echo "Flowcore pass corpus: $count programs passed semantic and lowering boundaries"
+echo "Flowcore pass corpus: $count programs checked; $unsupported_targets explicitly refused preserved member/index targets; remaining lowering reports ready"

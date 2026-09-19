@@ -117,6 +117,7 @@ int lower(std::string_view report, const Options& options, std::string_view bind
 #endif
     using namespace flowlower::structured;
     const auto root = Parser{std::string(report)}.parse();
+    if (const auto* plan = field(root, "lowering_plan")) flowcontracts::require_executable_targets(*plan);
     if (const auto* plan = field(root, "lowering_plan"))
         if (const auto* graph = field(*plan, "source_graph")) {
             if (!flowcontracts::source_graph(*graph, "$.lowering_plan.source_graph").executable)

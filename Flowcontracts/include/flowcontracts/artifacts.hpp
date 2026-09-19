@@ -5,6 +5,7 @@
 #include <flowcontracts/source_graph.hpp>
 #include <flowcontracts/graph_execution.hpp>
 #include <flowcontracts/binding_evidence.hpp>
+#include <flowcontracts/scalar_facts.hpp>
 
 #include <set>
 #include <string>
@@ -114,6 +115,7 @@ inline void validate_aggregate_abi_layouts(const json::Array& layouts, std::stri
 }
 
 inline void validate_lowering_authority(const json::Value& value, std::string_view base = "$.lowering_plan") {
+    validate_scalar_facts(value, base);
     const auto& plan = json::object(value, base);
     if (const auto* graph = json::optional(plan, "source_graph")) {
         if (!source_graph(*graph, std::string(base) + ".source_graph").executable)

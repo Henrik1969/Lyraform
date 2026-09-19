@@ -70,7 +70,13 @@ void dump_frontend_bundle_json(std::ostream& out,
     out << "{\n"
         << "  \"format\": \"flowmini.frontend_bundle\",\n"
         << "  \"version\": 2,\n"
-        << "  \"source\": {\"path\": ";
+        << "  \"parse_validity\": {\"format\":\"lyraform.parse_validity\",\"version\":1,\"state\":";
+    dump_json_string(out, module.parse_validity.state);
+    out << ",\"scope\":"; dump_json_string(out, module.parse_validity.scope);
+    out << ",\"coverage\":"; dump_json_string(out, module.parse_validity.coverage);
+    out << ",\"recovery_used\":" << (module.parse_validity.recovery ? "true" : "false");
+    out << ",\"message\":"; dump_json_string(out, module.parse_validity.message);
+    out << "},\n  \"source\": {\"path\": ";
     dump_json_string(out, sourcePath);
     out << "},\n"
         << "  \"source_map\": {\n"

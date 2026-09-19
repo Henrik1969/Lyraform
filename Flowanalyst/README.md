@@ -41,6 +41,13 @@ entrypoint shape. It emits analysis regions and a Boolean dependency matrix.
 More checks will be added as explicit semantic contracts, without moving
 semantic meaning backward into Flowmini.
 
+The bounded `int`/`Bool` declaration and identifier-placement path now uses
+shared canonical scalar rules. Incompatible flows are refused before a ready
+lowering plan, and covered operations carry versioned type/identity/provenance
+facts through the stage artifacts. See
+[`canonical scalar semantics`](../docs/architecture/canonical-scalar-semantics-v1.md)
+for the exact scope, compatibility boundary and Gate 2 status.
+
 It also emits `effect_facts`. The first proven effect is `pure` for function
 bodies consisting only of return expressions over literals, parameters, and
 pure unary/binary operators. Calls, mutation, control-state constructs,

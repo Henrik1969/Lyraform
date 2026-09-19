@@ -2,6 +2,7 @@
 #include <memory>
 #include "flow_common.h"
 #include "flowmini_ast_builder.h"
+#include "flowmini_parse_validity.h"
 
 namespace flowmini::ast {
 
@@ -2314,12 +2315,51 @@ namespace flowmini::ast {
             return i;
         }
 
-        AssignableTarget parse_ast_assignable_target(
+        // Prove the bounded expression shell retained the whole index component.
+        // This checks syntax only: index type, bounds and assignability are deferred.
+        bool target_index_complete(const std::vector<Expression>& pool, std::size_t id,
+                                   const std::vector<flowmini::Token>& tokens,
+                                   std::size_t begin, std::size_t end) {
+            std::vector<std::string> actual, expected;
+            std::vector<std::size_t> opens;
+            std::set<std::pair<std::size_t, std::size_t>> groups, spans;
+            for (auto i = begin; i < end; ++i) {
+                if (tokens[i].kind == flowmini::TokenKind::LeftParen) opens.push_back(actual.size());
+                else if (tokens[i].kind == flowmini::TokenKind::RightParen) {
+                    if (opens.empty()) return false;
+                    groups.emplace(opens.back(), actual.size()); opens.pop_back();
+                } else actual.push_back(tokens[i].text);
+            }
+            if (!opens.empty() || actual.empty()) return false;
+            std::function<bool(std::size_t, unsigned)> project = [&](std::size_t n, unsigned depth) {
+                if (n >= pool.size() || depth >= 256) return false;
+                const auto start = expected.size();
+                const auto& value = pool[n].payload;
+                if (const auto* v = std::get_if<IdentifierExpr>(&value)) expected.push_back(v->name);
+                else if (const auto* v = std::get_if<IntegerLiteralExpr>(&value)) expected.push_back(v->text);
+                else if (const auto* v = std::get_if<BoolLiteralExpr>(&value)) expected.push_back(v->text);
+                else if (const auto* v = std::get_if<UnaryExpr>(&value)) {
+                    expected.push_back(v->op);
+                    if (!v->operand || !project(*v->operand, depth + 1)) return false;
+                } else if (const auto* v = std::get_if<BinaryExpr>(&value)) {
+                    if (!v->left || !v->right || !project(*v->left, depth + 1)) return false;
+                    expected.push_back(v->op);
+                    if (!project(*v->right, depth + 1)) return false;
+                } else return false;
+                spans.emplace(start, expected.size());
+                return true;
+            };
+            if (!project(id, 0) || actual != expected) return false;
+            for (const auto& group : groups) if (!spans.count(group)) return false;
+            return true;
+        }
+
+        std::optional<AssignableTarget> parse_ast_assignable_target(
             const std::vector<flowmini::Token>& tokens,
-            std::size_t i,
+            std::size_t& i,
             std::vector<Expression>& expressionPool) {
             if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::Identifier) {
-                return IdentifierTarget{};
+                return std::nullopt;
             }
 
             const auto baseName = tokens[i].text;
@@ -2331,7 +2371,7 @@ namespace flowmini::ast {
                 while (i < tokens.size() && tokens[i].kind == flowmini::TokenKind::Dot) {
                     ++i;
                     if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::Identifier) {
-                        break;
+                        return std::nullopt;
                     }
                     target.fields.push_back(FieldPathSegment{
                         tokens[i].text,
@@ -2345,18 +2385,18 @@ namespace flowmini::ast {
             if (i < tokens.size() && tokens[i].kind == flowmini::TokenKind::LeftBracket) {
                 IndexedTarget target{baseName, baseLocation, {}};
                 ++i;
-                while (i < tokens.size() &&
-                       tokens[i].kind != flowmini::TokenKind::RightBracket &&
-                       !is_end_token(tokens[i]) &&
-                       tokens[i].kind != flowmini::TokenKind::Newline) {
-                    target.indexes.push_back(
-                        add_expression_placeholder_at(expressionPool, tokens, i));
+                while (i < tokens.size()) {
+                    const auto begin = i;
                     i = skip_target_index_component(tokens, i);
-                    if (i < tokens.size() && tokens[i].kind == flowmini::TokenKind::Comma) {
-                        ++i;
-                    }
+                    if (begin == i || i >= tokens.size()) return std::nullopt;
+                    const auto expression = add_expression_placeholder_at(expressionPool, tokens, begin);
+                    if (!target_index_complete(expressionPool, expression, tokens, begin, i)) return std::nullopt;
+                    target.indexes.push_back(expression);
+                    if (tokens[i].kind == flowmini::TokenKind::RightBracket) { ++i; return target; }
+                    if (tokens[i].kind != flowmini::TokenKind::Comma) return std::nullopt;
+                    ++i;
                 }
-                return target;
+                return std::nullopt;
             }
 
             return IdentifierTarget{baseName, baseLocation};
@@ -2372,12 +2412,21 @@ namespace flowmini::ast {
             const auto valueExpression =
                 add_expression_placeholder_at(expressionPool, tokens, statementStart);
             const auto targetStart = arrowIndex + 1;
-            auto target = parse_ast_assignable_target(tokens, targetStart, expressionPool);
+            auto targetEnd = targetStart;
+            auto target = parse_ast_assignable_target(tokens, targetEnd, expressionPool);
+            const bool boundary = targetEnd >= tokens.size() || is_end_token(tokens[targetEnd]) ||
+                tokens[targetEnd].kind == flowmini::TokenKind::Newline ||
+                tokens[targetEnd].kind == flowmini::TokenKind::RightBrace;
 
             Statement statement;
             statement.location = location_from_token(tokens[statementStart]);
-            const auto* identifierTarget = std::get_if<IdentifierTarget>(&target);
-            if (identifierTarget && identifierTarget->name == "return") {
+            const auto* identifierTarget = target ? std::get_if<IdentifierTarget>(&*target) : nullptr;
+            if (!target || !boundary) {
+                const auto location = targetEnd < tokens.size() ? location_from_token(tokens[targetEnd]) : statement.location;
+                statement.payload = UnknownStatement{"incomplete or unsupported placement target at " +
+                    std::to_string(location.line) + ":" + std::to_string(location.column) +
+                    "; no complete target projection"};
+            } else if (identifierTarget && identifierTarget->name == "return") {
                 statement.payload = ReturnStatement{
                     valueExpression,
                     StatementSourceForm::ArrowPlacement
@@ -2385,7 +2434,7 @@ namespace flowmini::ast {
             } else {
                 statement.payload = PlacementStatement{
                     valueExpression,
-                    std::move(target),
+                    std::move(*target),
                     StatementSourceForm::ArrowPlacement
                 };
             }
@@ -2882,6 +2931,10 @@ namespace flowmini::ast {
     }
 
     AstModule build_source_header_ast(const std::vector<flowmini::Token>& tokens) {
+#ifdef FLOWMINI_TEST_SCALAR_PATH
+        static unsigned parse_count = 0;
+        if (++parse_count != 1) throw std::runtime_error("structural source parsed more than once in test process");
+#endif
         AstModule module = make_empty_ast_module();
         capture_graph_syntax(tokens, module);
         for (const auto& token : tokens) {
@@ -3024,6 +3077,7 @@ namespace flowmini::ast {
 
             ++i;
         }
+        flowmini::parse_validity::finalize(module, tokens);
         return module;
     }
 

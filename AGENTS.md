@@ -5,6 +5,15 @@ commit/push permission, and definition of done belong in an explicitly invoked
 mission document; no historical task or checkpoint is ambient authority for a
 future task.
 
+Compiler and architecture maturation stages follow the standing
+[`Stage Execution Protocol`](docs/development/stage-execution-protocol.md).
+An explicitly invoked stage mission supplies its bounded objective and may
+override the protocol only where it says so directly.
+After a gate, use
+[`Autonomous Next-Stage Selection`](docs/development/autonomous-next-stage-selection.md)
+to continue obvious engineering work or stop with a decision brief when the
+next step would establish language, architecture, or policy meaning.
+
 ## Working safely
 
 - Inspect the branch, worktree, relevant history, and build graph before

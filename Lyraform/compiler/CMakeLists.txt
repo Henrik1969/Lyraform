@@ -149,6 +149,16 @@ add_dependencies(flowmini flowmini_testabi)
 add_dependencies(flowmini_allocation_fault flowmini_testabi)
 add_dependencies(flowmini_publication_fault flowmini_testabi)
 
+# Test-only path ownership/oracle switches; absent from the shipped executable.
+get_target_property(FLOWMINI_SOURCE_PATH_SOURCES flowmini SOURCES)
+add_executable(flowmini_scalar_path_test ${FLOWMINI_SOURCE_PATH_SOURCES})
+target_compile_definitions(flowmini_scalar_path_test PRIVATE FLOWMINI_TEST_SCALAR_PATH)
+target_include_directories(flowmini_scalar_path_test PRIVATE include subprojects/testabi/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Flowcontracts/include)
+target_compile_options(flowmini_scalar_path_test PRIVATE -Wall -Wextra -pedantic)
+target_link_libraries(flowmini_scalar_path_test PRIVATE TokenTree_static SymbolTable::static ${DL_LIBRARY})
+add_dependencies(flowmini_scalar_path_test flowmini_testabi)
+
 # ------------------------------------------------
 # Internal test prerequisite preparation
 # ------------------------------------------------

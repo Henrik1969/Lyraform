@@ -1,4 +1,5 @@
 #include "flowmini_parser.h"
+#include <flowcontracts/scalar_semantics.hpp>
 
 #include "flow_common.h"
 
@@ -518,6 +519,8 @@ private:
     }
 
     [[nodiscard]] bool canAssignType(const std::string& actual, const std::string& wanted) const {
+        if (lyraform::scalar::selected(lyraform::scalar::type(actual)) && lyraform::scalar::selected(lyraform::scalar::type(wanted)))
+            return lyraform::scalar::compatible(lyraform::scalar::type(actual), lyraform::scalar::type(wanted));
         if (actual == wanted) { return true; }
         if (isSubtypeOf(actual, wanted)) { return true; }
         // int may flow into invariant-free semantic aliases such as Integer refines int.
@@ -789,13 +792,16 @@ private:
         }
         if (expr.kind == ExprKind::UnaryNot) {
             const std::string inner = exprType(*expr.left);
-            if (inner != "Bool") { throw flow::DiagnosticError{"lowerer", "not requires Bool operand, got " + inner}; }
-            return "Bool";
+            const auto result = lyraform::scalar::unary("not", lyraform::scalar::type(inner));
+            if (result != lyraform::scalar::Type::boolean) { throw flow::DiagnosticError{"lowerer", "not requires Bool operand, got " + inner}; }
+            return std::string(lyraform::scalar::name(result));
         }
         const std::string lhs = exprType(*expr.left);
         const std::string rhs = exprType(*expr.right);
-        if (expr.op == TokenKind::EqualEqual && lhs == "Bool" && rhs == "Bool") {
-            return "Bool";
+        if (lyraform::scalar::selected(lyraform::scalar::type(lhs)) && lyraform::scalar::selected(lyraform::scalar::type(rhs))) {
+            const auto result = lyraform::scalar::binary(tokenKindName(expr.op), lyraform::scalar::type(lhs), lyraform::scalar::type(rhs));
+            if (!lyraform::scalar::selected(result)) throw flow::DiagnosticError{"lowerer", "binary operator has incompatible scalar operands"};
+            return std::string(lyraform::scalar::name(result));
         }
         if (!isIntLikeType(lhs) || !isIntLikeType(rhs)) { throw flow::DiagnosticError{"lowerer", "binary operator requires int-like operands"}; }
         if (expr.op == TokenKind::Greater || expr.op == TokenKind::Less || expr.op == TokenKind::GreaterEqual || expr.op == TokenKind::LessEqual || expr.op == TokenKind::EqualEqual || expr.op == TokenKind::BangEqual) {
@@ -1441,7 +1447,7 @@ private:
         if (!match(TokenKind::LeftParen)) { fail(peek(), "declaration of '" + id + "' requires initializer"); }
         Expr initializer = parseValueExpr();
         expect(TokenKind::RightParen, "expected ')' after int initializer");
-        if (exprType(initializer) != "int") { throw flow::DiagnosticError{"lowerer", "initializer for int '" + id + "' is not int"}; }
+        if (!lyraform::scalar::compatible(lyraform::scalar::type(exprType(initializer)), lyraform::scalar::Type::integer)) { throw flow::DiagnosticError{"lowerer", "initializer for int '" + id + "' is not int"}; }
         // At module/root level, keep v5 graph-sugar compatibility: `zero : int(0)` creates a node named `zero`.
         if (scopes_.size() == 1 && initializer.kind == ExprKind::LiteralInt) {
             declareSymbol(idToken, id, "int");
@@ -1463,7 +1469,7 @@ private:
         if (!match(TokenKind::LeftParen)) { fail(peek(), "declaration of '" + id + "' requires initializer"); }
         Expr initializer = parsePredicateExpr();
         expect(TokenKind::RightParen, "expected ')' after Bool initializer");
-        if (exprType(initializer) != "Bool") { throw flow::DiagnosticError{"lowerer", "initializer for Bool '" + id + "' is not Bool"}; }
+        if (!lyraform::scalar::compatible(lyraform::scalar::type(exprType(initializer)), lyraform::scalar::Type::boolean)) { throw flow::DiagnosticError{"lowerer", "initializer for Bool '" + id + "' is not Bool"}; }
         declareSymbol(idToken, id, "Bool");
         const std::string path = lookup(id)->path;
         Step step;

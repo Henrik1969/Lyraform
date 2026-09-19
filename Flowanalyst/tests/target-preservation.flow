@@ -1,0 +1,23 @@
+program preserved_targets
+type Inner {
+ b : int
+}
+type Point {
+ x : int
+ a : Inner
+}
+main {
+x : int(0)
+p : Point({x:0, a:{b:0}})
+items : list<int>([0,0])
+matrix : array<int>[2,2]([0,0,0,0])
+i : int(0)
+r : int(0)
+c : int(1)
+20 -> x
+20 -> p.x
+20 -> p.a.b
+20 -> items[i]
+20 -> matrix[r,c]
+x -> return
+}
