@@ -532,6 +532,11 @@ namespace flowmini::ast {
                     dump_optional_id(out, payload.value_expression);
                     out << ", \"source_form\": ";
                     dump_json_string(out, to_string(payload.source_form));
+                } else if constexpr (std::is_same_v<Payload, GuardActivateStatement>) {
+                    out << "\"name\": "; dump_json_string(out, payload.name);
+                    out << ", \"predicate_expression\": " << payload.predicate_expression;
+                } else if constexpr (std::is_same_v<Payload, GuardDeactivateStatement>) {
+                    out << "\"name\": "; dump_json_string(out, payload.name);
                 } else if constexpr (std::is_same_v<Payload, ExpressionStatement>) {
                     out << "\"expression\": ";
                     out << payload.expression << ", \"print\": "
@@ -564,6 +569,8 @@ namespace flowmini::ast {
                     const auto* ifStatement = std::get_if<IfStatement>(&statement.payload);
                     const auto* whileStatement = std::get_if<WhileStatement>(&statement.payload);
                     const auto* returnStatement = std::get_if<ReturnStatement>(&statement.payload);
+                    const auto* guardActivate = std::get_if<GuardActivateStatement>(&statement.payload);
+                    const auto* guardDeactivate = std::get_if<GuardDeactivateStatement>(&statement.payload);
                     const auto* expressionStatement = std::get_if<ExpressionStatement>(&statement.payload);
                     const auto* flowStatement = std::get_if<FlowStatement>(&statement.payload);
                     std::vector<std::size_t> expressionIds;
@@ -591,6 +598,8 @@ namespace flowmini::ast {
                         if (returnStatement->value_expression) {
                             expressionIds.push_back(*returnStatement->value_expression);
                         }
+                    } else if (guardActivate) {
+                        expressionIds.push_back(guardActivate->predicate_expression);
                     } else if (expressionStatement) {
                         expressionIds.push_back(expressionStatement->expression);
                     } else if (flowStatement) {
@@ -613,6 +622,10 @@ namespace flowmini::ast {
                     const std::string* name = nullptr;
                     if (let && !let->name.empty()) {
                         name = &let->name;
+                    } else if (guardActivate) {
+                        name = &guardActivate->name;
+                    } else if (guardDeactivate) {
+                        name = &guardDeactivate->name;
                     } else if (assignment) {
                         if (const auto* target = std::get_if<IdentifierTarget>(&assignment->target)) {
                             name = &target->name;
@@ -1116,6 +1129,8 @@ namespace flowmini::ast {
             case StatementKind::Break:      return "break";
             case StatementKind::Continue:   return "continue";
             case StatementKind::Return:     return "return";
+            case StatementKind::GuardActivate: return "guard_activate";
+            case StatementKind::GuardDeactivate: return "guard_deactivate";
             case StatementKind::Expression: return "expression";
             case StatementKind::Flow:       return "flow";
             case StatementKind::Unknown:    return "unknown";
@@ -1151,6 +1166,10 @@ namespace flowmini::ast {
                 return StatementKind::Continue;
             } else if constexpr (std::is_same_v<Payload, ReturnStatement>) {
                 return StatementKind::Return;
+            } else if constexpr (std::is_same_v<Payload, GuardActivateStatement>) {
+                return StatementKind::GuardActivate;
+            } else if constexpr (std::is_same_v<Payload, GuardDeactivateStatement>) {
+                return StatementKind::GuardDeactivate;
             } else if constexpr (std::is_same_v<Payload, ExpressionStatement>) {
                 return StatementKind::Expression;
             } else if constexpr (std::is_same_v<Payload, FlowStatement>) {

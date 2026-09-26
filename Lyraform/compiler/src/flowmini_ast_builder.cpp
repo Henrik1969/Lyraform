@@ -2478,6 +2478,53 @@ namespace flowmini::ast {
             return i;
         }
 
+        std::size_t parse_guard_statement_shell(const std::vector<flowmini::Token>& tokens,
+                                                std::size_t i,
+                                                std::vector<StatementId>& body,
+                                                std::vector<Statement>& statementPool,
+                                                std::vector<Expression>& expressionPool) {
+            const auto start = i;
+            Statement statement;
+            statement.location = location_from_token(tokens[i++]);
+            if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::Identifier) {
+                statement.payload = UnknownStatement{"guard requires a name"};
+            } else {
+                const auto name = tokens[i++].text;
+                if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::Colon) {
+                    statement.payload = UnknownStatement{"guard requires ':' before its predicate"};
+                } else if (++i >= tokens.size() || !has_expression_until_statement_boundary(tokens, i)) {
+                    statement.payload = UnknownStatement{"guard requires a predicate"};
+                } else {
+                    statement.payload = GuardActivateStatement{name,
+                        add_expression_placeholder_at(expressionPool, tokens, i)};
+                }
+            }
+            statementPool.push_back(std::move(statement));
+            body.push_back(statementPool.size() - 1);
+            return skip_until_line_end(tokens, start);
+        }
+
+        std::size_t parse_unguard_statement_shell(const std::vector<flowmini::Token>& tokens,
+                                                  std::size_t i,
+                                                  std::vector<StatementId>& body,
+                                                  std::vector<Statement>& statementPool) {
+            const auto start = i;
+            Statement statement;
+            statement.location = location_from_token(tokens[i++]);
+            if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::Identifier) {
+                statement.payload = UnknownStatement{"unguard requires a guard name"};
+            } else {
+                const auto name = tokens[i++].text;
+                if (i < tokens.size() && tokens[i].kind != flowmini::TokenKind::Newline &&
+                    tokens[i].kind != flowmini::TokenKind::RightBrace && !is_end_token(tokens[i]))
+                    statement.payload = UnknownStatement{"unguard accepts exactly one guard name"};
+                else statement.payload = GuardDeactivateStatement{name};
+            }
+            statementPool.push_back(std::move(statement));
+            body.push_back(statementPool.size() - 1);
+            return skip_until_line_end(tokens, start);
+        }
+
 
         bool is_if_token(const flowmini::Token& token) {
             return token.kind == flowmini::TokenKind::KeywordIf ||
@@ -2634,6 +2681,16 @@ namespace flowmini::ast {
 
                 if (is_typed_binding_start(tokens, i)) {
                     i = parse_typed_binding_statement_shell(tokens, i, body, statementPool, expressionPool);
+                    continue;
+                }
+
+                if (is_identifier_text(tokens[i], "guard")) {
+                    i = parse_guard_statement_shell(tokens, i, body, statementPool, expressionPool);
+                    continue;
+                }
+
+                if (is_identifier_text(tokens[i], "unguard")) {
+                    i = parse_unguard_statement_shell(tokens, i, body, statementPool);
                     continue;
                 }
 

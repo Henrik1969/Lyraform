@@ -1,10 +1,15 @@
 import "../../std/abi/libc.flow"
 import "../../std/abi/text.flow"
 
-program text_outcome
+program text_outcome_return
+
+fn make(): TextOutcome {
+    produced : TextOutcome(concat_outcome("Lyra", "form"))
+    produced -> return
+}
 
 main {
-    outcome : TextOutcome(concat_outcome("Lyra", "form"))
+    outcome : TextOutcome(make())
     zero : c_int(0)
     code : c_int(outcome.code)
     status : c_int(0)

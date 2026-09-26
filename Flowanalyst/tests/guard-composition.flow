@@ -1,0 +1,12 @@
+program guard_composition
+
+main {
+    x : int(1)
+    guard positive : x > 0
+    guard small : x < 100
+    50 -> x
+    unguard small
+    101 -> x
+    unguard positive
+    x -> return
+}

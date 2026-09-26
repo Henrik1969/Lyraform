@@ -1,6 +1,8 @@
 #pragma once
 #include <flowcontracts/parse_validity.hpp>
 #include <flowcontracts/target_facts.hpp>
+#include <flowcontracts/guard_facts.hpp>
+#include <flowcontracts/disposition_facts.hpp>
 
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/scalar_semantics.hpp>
@@ -59,6 +61,7 @@ inline lyraform::scalar::Type scalar_operand_type(const json::Value& value, cons
 inline void validate_scalar_facts(const json::Value& value, std::string_view base) {
     require_plan_parse_validity(value);
     validate_target_facts(value);
+    validate_guard_facts(value, base);
     using namespace json;
     using namespace lyraform::scalar;
     const auto& plan = object(value, base);
@@ -114,5 +117,6 @@ inline void validate_scalar_facts(const json::Value& value, std::string_view bas
             integer(required(provenance, "line")) < 1 || integer(required(provenance, "column")) < 1)
             throw Error(path, "invalid scalar fact provenance");
     }
+    validate_disposition_facts(value, base);
 }
 } // namespace flowcontracts

@@ -38,6 +38,7 @@ enum class AstOriginRole {
     MainDeclaration,
     TargetDeclaration,
     LocalBinding,
+    LocalGuard,
     ModuleScope,
     FunctionScope,
     RecordScope,

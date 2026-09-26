@@ -32,6 +32,14 @@ Flow-owned pager behavior, and governed LLVM/TinyVM backend boundaries. See the
 [current verification ledger](docs/checkpoints/2026-09-07-reusable-flow-chain-result.md)
 for exact evidence and scoped limitations.
 
+The current guard/outcome boundary is documented in the
+[Gate 2 hardening checkpoint](docs/checkpoints/2026-09-26-gate-2-execution-hardening.md)
+and the [subsequent consolidation checkpoint](docs/checkpoints/2026-09-26-post-gate-2-consolidation.md).
+The [uniform transfer checkpoint](docs/checkpoints/2026-09-26-uniform-owned-transfer.md)
+records the shared ownership contract and first executable function-return slice.
+The [maturation sequence](docs/tasks/post-gate-2-consolidation.md) tracks supported
+coverage and remaining work.
+
 For external evaluation, use the [tester and critic onboarding package](docs/onboarding/README.md)
 and the [critical alpha-testing missions](ALPHA-TESTING.md).
 

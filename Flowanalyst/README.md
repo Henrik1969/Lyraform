@@ -48,6 +48,22 @@ facts through the stage artifacts. See
 [`canonical scalar semantics`](../docs/architecture/canonical-scalar-semantics-v1.md)
 for the exact scope, compatibility boundary and Gate 2 status.
 
+Statically proven guarded scalar transitions also carry a versioned
+`lyraform.disposition_fact` v1. It records exactly-one completion, the atomic
+destination commit, the canonical success type and route, and the exact guard
+facts that eliminated `Failure<GuardViolation>` before execution. The fact is
+semantic authority, not a general runtime-failure carrier; runtime-dependent
+guards remain refused.
+
+The existing bounded `Outcome<Text,TextFailure>` path uses the same canonical
+disposition authority. Tagged storage transfers a must-account obligation; it
+does not make failure disappear. A direct return from one nullary producer to
+one entry caller uses the generic ownership-transfer contract (ADR 0060).
+Flowanalyst proves accounting at the current owner using the established shape with one `.code` projection, complementary zero/nonzero
+branches, success-only `.value` use, exactly-once disposal, and an explicit
+nonempty failure branch. Incomplete or broader ownership forms are refused
+with `FLOWANALYST_DANGLING_OUTCOME_WIRE` before an executable plan is admitted.
+
 It also emits `effect_facts`. The first proven effect is `pure` for function
 bodies consisting only of return expressions over literals, parameters, and
 pure unary/binary operators. Calls, mutation, control-state constructs,

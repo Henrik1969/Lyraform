@@ -22,6 +22,10 @@ target_compile_definitions(flowvalidate_allocation_fault PRIVATE FLOWVALIDATE_TE
 
 enable_testing()
 add_test(NAME flowcontracts_json COMMAND flowcontracts_tests)
+add_executable(flowcontracts_ownership_transfer_tests tests/ownership_transfer_tests.cpp)
+target_link_libraries(flowcontracts_ownership_transfer_tests PRIVATE flowcontracts)
+target_compile_options(flowcontracts_ownership_transfer_tests PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME flowcontracts_ownership_transfer COMMAND flowcontracts_ownership_transfer_tests)
 add_test(NAME flowvalidate_artifacts
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>

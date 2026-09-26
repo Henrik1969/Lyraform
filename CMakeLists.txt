@@ -324,6 +324,7 @@ add_test(NAME text_outcome_boundary
         FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
         FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
         FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
+        FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>
         FLOWTEXT_RUNTIME=$<TARGET_FILE:flowtext_runtime>
         "FLOWTEXT_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-text-outcome.sh)

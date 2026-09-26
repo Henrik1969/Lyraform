@@ -39,6 +39,7 @@ const char* to_string(const AstOriginRole role) {
         case AstOriginRole::MainDeclaration:     return "main_declaration";
         case AstOriginRole::TargetDeclaration:   return "target_declaration";
         case AstOriginRole::LocalBinding:        return "local_binding";
+        case AstOriginRole::LocalGuard:          return "local_guard";
         case AstOriginRole::ModuleScope:         return "module_scope";
         case AstOriginRole::FunctionScope:       return "function_scope";
         case AstOriginRole::RecordScope:         return "record_scope";
@@ -223,6 +224,17 @@ void project_statement_binding(symboltable::SymbolTable& table,
                                variableSymbol,
                                "declared_type_spelling",
                                binding->type);
+    }
+    if (const auto* guard = std::get_if<GuardActivateStatement>(&statement.payload);
+        guard && !guard->name.empty()) {
+        const auto guardSymbol = table.insertSymbol(owningScope, guard->name,
+                                                     symboltable::SymbolKind::Contract);
+        set_declaration_location(table, guardSymbol, statement.location);
+        record_symbol_origin(symbolOrigins, guardSymbol, statement_ast_path(statementId),
+            make_origin(AstOriginEntityKind::Statement, AstOriginRole::LocalGuard,
+                        statement.location, statementId));
+        add_string_fact(table, guardSymbol, symboltable::FactoidKind::Custom,
+                        "contract_role", "guard");
     }
 
     std::optional<BlockId> body;

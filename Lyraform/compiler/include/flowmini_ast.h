@@ -46,6 +46,8 @@ enum class StatementKind {
     Break,
     Continue,
     Return,
+    GuardActivate,
+    GuardDeactivate,
     Expression,
     Flow,
     Unknown
@@ -281,6 +283,11 @@ struct ReturnStatement {
     std::optional<std::size_t> value_expression;
     StatementSourceForm source_form = StatementSourceForm::KeywordReturn;
 };
+struct GuardActivateStatement {
+    std::string name;
+    std::size_t predicate_expression;
+};
+struct GuardDeactivateStatement { std::string name; };
 struct ExpressionStatement {
     std::size_t expression;
     bool print = false;
@@ -299,6 +306,8 @@ struct Statement {
         BreakStatement,
         ContinueStatement,
         ReturnStatement,
+        GuardActivateStatement,
+        GuardDeactivateStatement,
         ExpressionStatement,
         FlowStatement,
         UnknownStatement

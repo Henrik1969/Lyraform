@@ -1,6 +1,6 @@
-# Text outcome contract v0.1 — proposed
+# Text outcome contract v0.1
 
-**Status:** bounded backend-neutral value contract implemented; wider ownership remains scoped
+**Status:** bounded backend-neutral value and must-account contract implemented; wider ownership remains scoped
 **Scope:** failure representation for owned Text construction
 
 The current `flow_text_concat(Text,Text): Text` provider shape is useful for
@@ -34,6 +34,32 @@ to the same failure code.
 
 ## Boundary rules
 
+- Producing a tagged outcome creates one canonical disposition identity.
+- Storing the outcome transfers its must-account obligation to the local
+  semantic owner; storage does not discharge failure.
+- The currently admitted source shape projects `.code` exactly once and uses
+  complementary `== 0` and `!= 0` sibling branches.
+- The projected tag and any named zero comparator remain unchanged in the
+  containing function. Call return values use a separate status local.
+- Production (or an admitted return call), projection, and the two sibling branches must follow their
+  established statement order in one containing block. Nested producer routes,
+  additional entries to the handling blocks, and exits that bypass accounting
+  are refused in this bounded slice. Handling branches must fall through.
+- `.value` is available only in the proven success branch and its owned Text is
+  disposed exactly once there, after every admitted direct use. Cleanup is
+  identified by its canonical provider contract, not the source callee name.
+  Other admitted direct uses must be read-only borrowed external-call
+  arguments with call lifetime; copying the payload into a local or passing it
+  to another owning boundary remains outside this slice.
+- The failure branch must perform explicit behavior, must not access `.value`,
+  and must not be empty.
+- One nullary producer may directly return an owned outcome to one entry
+  caller under [ADR 0060](decisions/0060-uniform-owned-obligation-transfer.md).
+  The generic transfer fact retains the obligation identity, invalidates the
+  old owner, and requires complete local accounting by the caller.
+- An uninspected, partially inspected, copied, aliased, indirectly returned, nested, or
+  otherwise unproved outcome is refused as a dangling outcome wire in this
+  bounded stage.
 - The maximum byte length is target-policy data, not a compiler profile.
 - A provider must not return a null pointer as a successful `Text` value.
 - A failed construction emits no normal Text result and does not transfer
@@ -47,13 +73,22 @@ to the same failure code.
 
 ## Migration shape
 
-The lowering plan marks the bounded construction operation as `text_outcome`,
+The lowering plan marks the bounded construction operation as `text_outcome`
 and validates a serializable `result_outcome` declaration with the
 `Outcome<Text,TextFailure>` shape. `concat_outcome` returns the provider's
 tagged `{code,value}` carrier atomically. LLVM represents that carrier as a
 local `{i32,ptr}` value; TinyVM represents it as a checked opaque outcome
 handle whose fields are projected only by the governed runtime. Neither
 representation serializes a host pointer.
+
+Flowanalyst additionally emits one `lyraform.disposition_fact` v1 for the
+producer. It records the exclusive `Success<Text>` and
+`Failure<TextFailure>` possibilities, atomic tagged publication, owner and
+code-projection identities, complementary branch proof, exact success-value
+uses and disposal, exact failure-recovery operations, stable failure codes,
+and source provenance. Flowcontracts validates those relations independently;
+all carrying stages preserve the fact exactly, and both executable backends
+reject missing or hostile authority.
 
 `flow_text_concat` remains a compatibility adapter for existing programs. The
 provider also exposes `flow_text_concat_outcome` and

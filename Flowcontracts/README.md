@@ -18,6 +18,10 @@ Current surfaces:
 - typed `flowparallel.execution_plan` and
   `flowparallel.graph_provider_decision` v1 consumption for Flowoptimize;
 - lowering-plan identity and matrix dimension/coordinate validation;
+- canonical `lyraform.disposition_fact` v1 validation for the bounded proven
+  guard-transition and `Outcome<Text,TextFailure>` slices, including operation,
+  type, completion, commit, route, proof, owner, exact branch/value/disposal or
+  guard linkage, and provenance consistency;
 - captured `flowcore.bootstrap_seed` v1 tool/source/provider evidence;
 - dependency-closed `flowcore.bootstrap_gap_inventory` v1 staged-bootstrap
   evidence;
@@ -30,6 +34,21 @@ Current surfaces:
   source attribution, and canonical JSON round-tripping.
 - structural validation for current ABI manifests, both runtime-capability
   variants, and matrix/graph calibration evidence consumed by provider planners.
+
+Current guard and Text-outcome hostile gates use accepted semantic, optimized,
+and backend-lowering controls and require a guard/disposition contract reason
+for rejection. A backend rejecting a semantic report for the wrong format does
+not count as disposition-validation evidence. See the
+[consolidation checkpoint](../docs/checkpoints/2026-09-26-post-gate-2-consolidation.md).
+
+The generic `lyraform.ownership_transfer` v1 fact records a unique function
+return, producer/return/call identities, source/destination owners and functions,
+value type, and unchanged obligation identity. `ownership_transfer.hpp` owns
+the shared legality checks used by source analysis and serialized projections.
+The nested fact is preserved by carrying stages and checked by all seven
+consumers: validation, binding, parallel planning, optimization, preparation,
+LLVM lowering, and TinyVM lowering. TextOutcome is the first executable carrier;
+the shared law has no Text-specific dispatch.
 
 ## Version-1 unknown-field policy
 

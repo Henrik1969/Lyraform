@@ -708,7 +708,7 @@ private:
         out<<"  br label %flow_block_"<<function.body_block<<"\n";
         if (!emit_block(function.body_block,out,"flow_function_exit") && !function.entry)
             throw std::runtime_error("callable function has a path without a result: " + std::to_string(function.symbol));
-        out<<"flow_function_exit:\n  ret "<<result_type<<" "<<(result_type == "ptr" ? "null" : "0")<<"\n}\n";
+        out<<"flow_function_exit:\n  ret "<<result_type<<" "<<"zeroinitializer"<<"\n}\n";
     }
     std::string load_symbol(int symbol,std::ostringstream& out) {
         const auto found=symbol_types_.find(symbol); if(found==symbol_types_.end()) return {};

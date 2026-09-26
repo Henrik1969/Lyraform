@@ -5,9 +5,11 @@
 #include <flowcontracts/source_graph.hpp>
 #include <flowcontracts/scalar_facts.hpp>
 #include <flowcontracts/parse_validity.hpp>
+#include <flowcontracts/ownership_transfer.hpp>
 #include "scalar_analysis.hpp"
 #include "target_analysis.hpp"
 #include <cctype>
+#include <cstdint>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -75,6 +77,12 @@ struct CallSite { int expression = -1, statement = -1, scope = -1, callee_symbol
 struct LoweringOperation { int expression = -1, statement = -1, scope = -1, block = -1, function_symbol = -1, then_block = -1, else_block = -1, body_block = -1, callee_symbol = -1, result_symbol = -1; std::string callee, kind, contract, library, convention, symbol, effect, parameter_types, return_type, evidence; std::vector<int> arguments; };
 struct Callable { int symbol = -1, scope = -1, body_block = -1; bool entry = false; std::string name, return_type, availability; std::vector<std::pair<int, std::string>> parameters; };
 struct Resolution { int expression = -1, statement = -1, scope = -1, symbol = -1; std::string name; };
+struct GuardState { int symbol = -1, statement = -1, scope = -1, predicate = -1; std::string name; std::set<int> dependencies; };
+struct ConstantValue {
+    enum class Kind { unknown, integer, boolean } kind = Kind::unknown;
+    std::int64_t integer = 0;
+    bool boolean = false;
+};
 
 std::string trim_copy(std::string value) {
     const auto first = value.find_first_not_of(" \t\n\r");
@@ -233,7 +241,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     const std::vector<std::string> intrinsic_roots = {"stdin", "start"};
     const std::vector<std::string> intrinsic_functions = {"length"};
     std::map<std::string, int> type_symbols;
-    for (const auto& [id, symbol] : symbols) { auto kind = text(field(*symbol, "kind")); if (kind == "Type" || kind == "Struct" || kind == "Contract") type_symbols[text(field(*symbol, "name"))] = id; }
+    for (const auto& [id, symbol] : symbols) {
+        const auto kind = text(field(*symbol, "kind"));
+        if (kind == "Type" || kind == "Struct" ||
+            (kind == "Contract" && fact_value(*symbol, "contract_role") != "guard"))
+            type_symbols[text(field(*symbol, "name"))] = id;
+    }
     const std::vector<std::string> generic_constructors = {"list", "array", "optional", "collection.list", "result.Result"};
     std::function<bool(const std::string&)> is_resolved_type = [&](const std::string& raw_value) {
         const auto value = trim_copy(raw_value); if (is_builtin(value) || is_abi_type(value) || is_intrinsic_type(value) || type_symbols.count(value) != 0) return true;
@@ -1160,6 +1173,549 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
         target_facts.emplace(static_cast<int>(operation_id), std::move(result));
     }
+    Array guard_facts;
+    Array disposition_facts;
+    std::map<int, std::vector<int>> proven_guard_facts_by_operation;
+    struct OutcomeAccounting {
+        int owner = -1, code_projection_operation = -1, code_symbol = -1;
+        int success_branch_operation = -1, success_block = -1;
+        int failure_branch_operation = -1, failure_block = -1;
+        int dispose_operation = -1;
+        Json ownership_transfer = nullptr;
+        std::vector<int> success_value_operations, failure_recovery_operations;
+    };
+    std::map<int, OutcomeAccounting> text_outcome_accounting;
+    std::map<int, int> operation_by_statement;
+    for (std::size_t operation_id = 0; operation_id < lowering_operations.size(); ++operation_id)
+        operation_by_statement.emplace(lowering_operations[operation_id].statement,
+                                       static_cast<int>(operation_id));
+    auto statement_guard_symbol = [&](int statement_id) {
+        const auto path = "/statement_pool/" + std::to_string(statement_id);
+        for (const auto& [symbol_id, origin] : origins)
+            if (text(field(*origin, "ast_path")) == path && symbols.count(symbol_id) &&
+                text(field(*symbols.at(symbol_id), "kind")) == "Contract" &&
+                fact_value(*symbols.at(symbol_id), "contract_role") == "guard") return symbol_id;
+        return -1;
+    };
+    // Guard/outcome facts and diagnostics share the frontend's original-file
+    // coordinates, rather than exposing expanded import-stream line numbers.
+    auto statement_provenance = [&](int statement_id) {
+        const auto* location = statements.count(statement_id)
+            ? field(*statements.at(statement_id), "location") : nullptr;
+        int line = integer(field(location, "line"));
+        const int column = integer(field(location, "column"));
+        std::string source = text(field(field(bundle, "source"), "path"));
+        const auto* source_map = field(bundle, "source_map");
+        for (const auto& entry : list(field(source_map, "lines"))) {
+            if (integer(field(entry, "expanded_line")) != line) continue;
+            const int source_id = integer(field(entry, "source_id"));
+            const int source_line = integer(field(entry, "source_line"));
+            if (source_id >= 0 && source_line > 0) {
+                for (const auto& file : list(field(source_map, "files"))) {
+                    if (integer(field(file, "id")) != source_id || text(field(file, "path")).empty()) continue;
+                    source = text(field(file, "path"));
+                    line = source_line;
+                    break;
+                }
+            }
+            break;
+        }
+        return Object{{"source", source}, {"ast_path", "/statement_pool/" + std::to_string(statement_id)},
+            {"line", line}, {"column", column}};
+    };
+    auto set_statement_provenance = [&](Diagnostic& diagnostic, int statement_id) {
+        const Json origin = statement_provenance(statement_id);
+        diagnostic.ast_path = text(field(origin, "ast_path"));
+        diagnostic.source = text(field(origin, "source"));
+        diagnostic.line = integer(field(origin, "line"));
+        diagnostic.column = integer(field(origin, "column"));
+    };
+
+    std::function<ConstantValue(int, const std::map<int, std::int64_t>&)> evaluate_constant =
+        [&](int expression_id, const std::map<int, std::int64_t>& state) -> ConstantValue {
+            if (!expressions.count(expression_id)) return {};
+            const auto* expression = expressions.at(expression_id);
+            const auto kind = text(field(*expression, "kind"));
+            const auto* payload = field(*expression, "payload");
+            if (kind == "integer_literal") {
+                try {
+                    std::size_t consumed = 0;
+                    const auto spelling = text(field(payload, "value_text"));
+                    const auto value = std::stoll(spelling, &consumed, 10);
+                    if (consumed == spelling.size()) return {ConstantValue::Kind::integer, value, false};
+                } catch (const std::exception&) {}
+                return {};
+            }
+            if (kind == "bool_literal")
+                return {ConstantValue::Kind::boolean, 0, text(field(payload, "value_text")) == "true"};
+            if (kind == "identifier" && resolved_expression_symbols.count(expression_id)) {
+                const auto found = state.find(resolved_expression_symbols.at(expression_id));
+                if (found != state.end()) return {ConstantValue::Kind::integer, found->second, false};
+                return {};
+            }
+            if (kind == "unary") {
+                const auto operand = evaluate_constant(integer(field(payload, "operand")), state);
+                if (operand.kind != ConstantValue::Kind::integer) return {};
+                const auto operation = text(field(payload, "operator"));
+                if (operation == "+") return operand;
+                if (operation == "-" && operand.integer != std::numeric_limits<std::int64_t>::min())
+                    return {ConstantValue::Kind::integer, -operand.integer, false};
+                return {};
+            }
+            if (kind == "binary") {
+                const auto left = evaluate_constant(integer(field(payload, "left")), state);
+                const auto right = evaluate_constant(integer(field(payload, "right")), state);
+                if (left.kind != ConstantValue::Kind::integer || right.kind != ConstantValue::Kind::integer) return {};
+                const auto operation = text(field(payload, "operator"));
+                if (operation == "==") return {ConstantValue::Kind::boolean, 0, left.integer == right.integer};
+                if (operation == "!=") return {ConstantValue::Kind::boolean, 0, left.integer != right.integer};
+                if (operation == "<") return {ConstantValue::Kind::boolean, 0, left.integer < right.integer};
+                if (operation == "<=") return {ConstantValue::Kind::boolean, 0, left.integer <= right.integer};
+                if (operation == ">") return {ConstantValue::Kind::boolean, 0, left.integer > right.integer};
+                if (operation == ">=") return {ConstantValue::Kind::boolean, 0, left.integer >= right.integer};
+            }
+            return {};
+        };
+    auto guard_dependencies = [&](int predicate) {
+        std::set<int> dependencies;
+        collect_reads(predicate, dependencies);
+        return dependencies;
+    };
+    auto append_guard_fact = [&](const GuardState& guard, std::string event,
+                                 std::string classification, int statement_id,
+                                 int affected_operation) {
+        const int fact_id = static_cast<int>(guard_facts.size());
+        Array dependencies;
+        for (const auto dependency : guard.dependencies) dependencies.emplace_back(dependency);
+        guard_facts.emplace_back(Object{
+            {"format", "lyraform.guard_fact"}, {"version", 1},
+            {"fact_id", fact_id},
+            {"event", event}, {"classification", classification},
+            {"guard_symbol_id", guard.symbol}, {"guard_name", guard.name},
+            {"statement_id", statement_id}, {"scope_id", guard.scope},
+            {"predicate_expression_id", guard.predicate},
+            {"dependencies", std::move(dependencies)},
+            {"affected_operation_id", affected_operation >= 0 ? Json(affected_operation) : Json(nullptr)},
+            {"execution", (classification == "proven_safe" || classification == "deactivated")
+                ? Json("elided_static") : Json("unsupported")},
+            {"provenance", statement_provenance(statement_id)}
+        });
+        return fact_id;
+    };
+    for (const auto& [block_id, block] : blocks) {
+        (void)block_id;
+        std::map<int, std::int64_t> state;
+        std::map<std::string, GuardState> active_guards;
+        bool has_control_flow = false;
+        for (const auto& member : list(field(*block, "statements"))) {
+            const int statement_id = integer(&member);
+            if (!statements.count(statement_id)) continue;
+            const auto kind = text(field(*statements.at(statement_id), "kind"));
+            if (kind == "if" || kind == "while") has_control_flow = true;
+        }
+        for (const auto& member : list(field(*block, "statements"))) {
+            const int statement_id = integer(&member);
+            if (!statements.count(statement_id)) continue;
+            const auto* statement = statements.at(statement_id);
+            const auto kind = text(field(*statement, "kind"));
+            const auto* payload = field(*statement, "payload");
+            const int scope_id = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
+            if (kind == "let") {
+                const int symbol = visible_symbol(scope_id, text(field(*statement, "name")));
+                const auto value = evaluate_constant(integer(field(payload, "initializer_expression")), state);
+                if (symbol >= 0 && symbol_types[symbol] == "int" && value.kind == ConstantValue::Kind::integer)
+                    state[symbol] = value.integer;
+                else if (symbol >= 0) state.erase(symbol);
+                continue;
+            }
+            if (kind == "guard_activate") {
+                GuardState guard{statement_guard_symbol(statement_id), statement_id, scope_id,
+                    integer(field(payload, "predicate_expression")), text(field(*statement, "name")), {}};
+                guard.dependencies = guard_dependencies(guard.predicate);
+                const auto value = evaluate_constant(guard.predicate, state);
+                bool bounded = !has_control_flow && guard.symbol >= 0 && !guard.dependencies.empty();
+                for (const auto dependency : guard.dependencies)
+                    bounded = bounded && symbol_types.count(dependency) && symbol_types.at(dependency) == "int";
+                if (!bounded || value.kind != ConstantValue::Kind::boolean) {
+                    append_guard_fact(guard, "activate", "not_provable", statement_id, -1);
+                    add_diagnostic("FLOWANALYST_GUARD_NOT_PROVABLE",
+                        "guard activation is outside the bounded straight-line scalar proof slice",
+                        guard.symbol, "scope:" + std::to_string(scope_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                } else if (!value.boolean) {
+                    append_guard_fact(guard, "activate", "proven_violation", statement_id, -1);
+                    add_diagnostic("FLOWANALYST_GUARD_ACTIVATION_VIOLATION",
+                        "guard '" + guard.name + "' is false at its activation point",
+                        guard.symbol, "scope:" + std::to_string(scope_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                } else {
+                    append_guard_fact(guard, "activate", "proven_safe", statement_id, -1);
+                    active_guards[guard.name] = std::move(guard);
+                }
+                continue;
+            }
+            if (kind == "guard_deactivate") {
+                const auto name = text(field(*statement, "name"));
+                const auto found = active_guards.find(name);
+                if (found == active_guards.end()) {
+                    add_diagnostic("FLOWANALYST_GUARD_NOT_ACTIVE",
+                        "unguard names no active guard in this lexical scope: " + name,
+                        -1, "scope:" + std::to_string(scope_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                } else {
+                    append_guard_fact(found->second, "deactivate", "deactivated", statement_id, -1);
+                    active_guards.erase(found);
+                }
+                continue;
+            }
+            if (kind != "placement") continue;
+            const auto* target = field(payload, "target");
+            if (text(field(target, "kind")) != "identifier") continue;
+            const int destination = visible_symbol(scope_id, text(field(target, "name")));
+            if (destination < 0) continue;
+            const auto candidate = evaluate_constant(integer(field(payload, "value_expression")), state);
+            auto candidate_state = state;
+            if (candidate.kind == ConstantValue::Kind::integer) candidate_state[destination] = candidate.integer;
+            else candidate_state.erase(destination);
+            bool admitted = true;
+            for (const auto& [name, guard] : active_guards) {
+                (void)name;
+                if (!guard.dependencies.count(destination)) continue;
+                const auto proof = evaluate_constant(guard.predicate, candidate_state);
+                const int operation = operation_by_statement.count(statement_id)
+                    ? operation_by_statement.at(statement_id) : -1;
+                if (proof.kind != ConstantValue::Kind::boolean) {
+                    append_guard_fact(guard, "transition", "not_provable", statement_id, operation);
+                    add_diagnostic("FLOWANALYST_GUARD_NOT_PROVABLE",
+                        "transition affecting guard '" + guard.name + "' requires runtime overwatch, which is not yet admitted",
+                        guard.symbol, "scope:" + std::to_string(scope_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                    admitted = false;
+                } else if (!proof.boolean) {
+                    append_guard_fact(guard, "transition", "proven_violation", statement_id, operation);
+                    add_diagnostic("FLOWANALYST_GUARD_TRANSITION_VIOLATION",
+                        "transition would violate active guard '" + guard.name + "'",
+                        guard.symbol, "scope:" + std::to_string(scope_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                    admitted = false;
+                } else {
+                    const int guard_fact = append_guard_fact(
+                        guard, "transition", "proven_safe", statement_id, operation);
+                    proven_guard_facts_by_operation[operation].push_back(guard_fact);
+                }
+            }
+            if (admitted) state = std::move(candidate_state);
+        }
+    }
+    auto expression_field_of_owner = [&](int expression_id, int owner, std::string_view expected) {
+        if (!expressions.count(expression_id)) return false;
+        const auto* expression = expressions.at(expression_id);
+        if (text(field(*expression, "kind")) != "field_access") return false;
+        const auto* payload = field(*expression, "payload");
+        const int base = integer(field(payload, "base"));
+        return text(field(payload, "field")) == expected &&
+            resolved_expression_symbols.count(base) && resolved_expression_symbols.at(base) == owner;
+    };
+    std::function<bool(int, int, std::string_view)> expression_contains_field =
+        [&](int expression_id, int owner, std::string_view expected) {
+            if (!expressions.count(expression_id)) return false;
+            if (expression_field_of_owner(expression_id, owner, expected)) return true;
+            for (const auto& child : list(field(*expressions.at(expression_id), "child_expressions")))
+                if (expression_contains_field(integer(&child), owner, expected)) return true;
+            return false;
+        };
+    auto symbol_is_zero = [&](int symbol) {
+        for (const auto& operation : lowering_operations) {
+            if (operation.kind != "value_definition" || operation.result_symbol != symbol ||
+                operation.arguments.size() != 1 || !expressions.count(operation.arguments.front())) continue;
+            const auto* expression = expressions.at(operation.arguments.front());
+            if (text(field(*expression, "kind")) == "integer_literal" &&
+                text(field(field(*expression, "payload"), "value_text")) == "0") return true;
+        }
+        return false;
+    };
+    auto branch_relation = [&](const LoweringOperation& operation, int code_symbol) {
+        if (operation.kind != "branch" || !expressions.count(operation.expression)) return std::string{};
+        const auto* expression = expressions.at(operation.expression);
+        if (text(field(*expression, "kind")) != "binary") return std::string{};
+        const auto* payload = field(*expression, "payload");
+        const auto relation = text(field(payload, "operator"));
+        if (relation != "==" && relation != "!=") return std::string{};
+        const int left = integer(field(payload, "left"));
+        const int right = integer(field(payload, "right"));
+        auto is_code = [&](int id) {
+            return resolved_expression_symbols.count(id) && resolved_expression_symbols.at(id) == code_symbol;
+        };
+        auto is_zero = [&](int id) {
+            if (!expressions.count(id)) return false;
+            const auto* candidate = expressions.at(id);
+            if (text(field(*candidate, "kind")) == "integer_literal")
+                return text(field(field(*candidate, "payload"), "value_text")) == "0";
+            return resolved_expression_symbols.count(id) && symbol_is_zero(resolved_expression_symbols.at(id));
+        };
+        return ((is_code(left) && is_zero(right)) || (is_code(right) && is_zero(left)))
+            ? relation : std::string{};
+    };
+    std::vector<flowcontracts::OwnershipOperation> ownership_operations;
+    std::vector<flowcontracts::OwnershipFunction> ownership_functions;
+    for (std::size_t id=0; id<lowering_operations.size(); ++id) {
+        const auto& op=lowering_operations[id];
+        std::set<int> reads;
+        for (int argument:op.arguments) collect_reads(argument,reads);
+        ownership_operations.push_back({static_cast<long long>(id),op.statement,op.block,op.function_symbol,
+            op.result_symbol,op.callee_symbol,op.kind,std::set<long long>(reads.begin(),reads.end()),op.arguments.size()});
+    }
+    for (const auto& fn:callables)
+        ownership_functions.push_back({fn.symbol,fn.body_block,fn.return_type,fn.entry,fn.parameters.size()});
+    for (std::size_t outcome_id = 0; outcome_id < lowering_operations.size(); ++outcome_id) {
+        const auto& producer = lowering_operations[outcome_id];
+        // Historical Text-returning compatibility operations also use the
+        // text_outcome lowering kind. Only the existing atomic tagged carrier
+        // is in this bounded must-account stage.
+        if (producer.kind != "text_outcome" || producer.return_type != "TextOutcome") continue;
+        OutcomeAccounting accounting;
+        accounting.owner = producer.result_symbol;
+        std::string refusal;
+        if (accounting.owner < 0) refusal = "tagged outcome has no semantic owner";
+        int accounting_origin=static_cast<int>(outcome_id);
+        std::vector<int> returns, callers;
+        for (std::size_t id=0; id<lowering_operations.size(); ++id) {
+            const auto& op=lowering_operations[id];
+            if(op.function_symbol==producer.function_symbol && op.kind=="return_value" &&
+                op.arguments.size()==1 && resolved_expression_symbols.count(op.arguments.front()) &&
+                resolved_expression_symbols.at(op.arguments.front())==accounting.owner)
+                returns.push_back(static_cast<int>(id));
+            if(op.kind=="call" && op.callee_symbol==producer.function_symbol)
+                callers.push_back(static_cast<int>(id));
+        }
+        if(!returns.empty()) {
+            if(lowering_plan_version!=2 || returns.size()!=1 || callers.size()!=1)
+                refusal="owned return requires callable plan v2, one return and one caller";
+            else {
+                const auto& call=lowering_operations[callers.front()];
+                flowcontracts::OwnershipTransfer transfer{static_cast<long long>(outcome_id),returns.front(),callers.front(),
+                    accounting.owner,call.result_symbol,producer.function_symbol,call.function_symbol,
+                    producer.return_type,"operation:"+std::to_string(outcome_id)+":outcome"};
+                refusal=flowcontracts::ownership_transfer_refusal(transfer,ownership_operations,ownership_functions);
+                if(refusal.empty()) {
+                    accounting.ownership_transfer=flowcontracts::ownership_transfer_fact(transfer);
+                    accounting.owner=call.result_symbol;
+                    accounting_origin=callers.front();
+                }
+            }
+        }
+        const auto& accounting_producer=lowering_operations[accounting_origin];
+
+        for (std::size_t operation_id = 0; refusal.empty() && operation_id < lowering_operations.size(); ++operation_id) {
+            const auto& operation = lowering_operations[operation_id];
+            if (operation.kind != "value_definition" || operation.arguments.size() != 1 ||
+                !expression_field_of_owner(operation.arguments.front(), accounting.owner, "code")) continue;
+            if (accounting.code_projection_operation >= 0) {
+                refusal = "tagged outcome code is projected more than once in the bounded slice";
+                break;
+            }
+            accounting.code_projection_operation = static_cast<int>(operation_id);
+            accounting.code_symbol = operation.result_symbol;
+        }
+        if (refusal.empty() && (accounting.code_projection_operation < 0 || accounting.code_symbol < 0))
+            refusal = "tagged outcome failure is never inspected";
+        for (std::size_t operation_id = 0; refusal.empty() && operation_id < lowering_operations.size(); ++operation_id) {
+            const auto& operation = lowering_operations[operation_id];
+            if (operation.block != accounting_producer.block || operation.function_symbol != accounting_producer.function_symbol) continue;
+            const auto relation = branch_relation(operation, accounting.code_symbol);
+            if (relation.empty()) continue;
+            int& branch = relation == "==" ? accounting.success_branch_operation : accounting.failure_branch_operation;
+            int& block = relation == "==" ? accounting.success_block : accounting.failure_block;
+            if (branch >= 0 || operation.then_block < 0 || operation.else_block >= 0) {
+                refusal = "tagged outcome requires one simple success branch and one simple failure branch";
+                break;
+            }
+            branch = static_cast<int>(operation_id);
+            block = operation.then_block;
+        }
+        if (refusal.empty() && (accounting.success_branch_operation < 0 || accounting.failure_branch_operation < 0 ||
+            accounting.success_block == accounting.failure_block))
+            refusal = "tagged outcome code branches are not complementary and complete";
+
+        std::set<int> allowed_owner_identifiers;
+        for (const auto& [expression_id, expression] : expressions) {
+            if (text(field(*expression, "kind")) != "field_access") continue;
+            const auto* payload = field(*expression, "payload");
+            const int base = integer(field(payload, "base"));
+            if (resolved_expression_symbols.count(base) && resolved_expression_symbols.at(base) == accounting.owner &&
+                (text(field(payload, "field")) == "code" || text(field(payload, "field")) == "value"))
+                allowed_owner_identifiers.insert(base);
+        }
+        for (const auto& [expression_id, symbol] : resolved_expression_symbols)
+            if (refusal.empty() && symbol == accounting.owner && !allowed_owner_identifiers.count(expression_id))
+                refusal = "tagged outcome is copied, returned, aliased, or used outside a bounded field projection";
+
+        for (std::size_t operation_id = 0; refusal.empty() && operation_id < lowering_operations.size(); ++operation_id) {
+            const auto& operation = lowering_operations[operation_id];
+            bool uses_value = false;
+            for (const auto argument : operation.arguments)
+                uses_value = uses_value || expression_contains_field(argument, accounting.owner, "value");
+            if (operation.block == accounting.success_block) {
+                if (operation.kind == "branch" || operation.kind == "loop") {
+                    refusal = "nested control flow cannot yet prove tagged outcome accounting";
+                    break;
+                }
+                if (uses_value) {
+                    accounting.success_value_operations.push_back(static_cast<int>(operation_id));
+                    if (operation.kind == "external_call" && operation.contract == "text_runtime" &&
+                        operation.symbol == "flow_text_dispose" && operation.parameter_types == "Text" &&
+                        operation.return_type == "c_int") {
+                        if (accounting.dispose_operation >= 0) {
+                            refusal = "tagged outcome success value is disposed more than once";
+                            break;
+                        }
+                        accounting.dispose_operation = static_cast<int>(operation_id);
+                    }
+                }
+            } else if (operation.block == accounting.failure_block) {
+                if (operation.kind == "branch" || operation.kind == "loop") {
+                    refusal = "nested control flow cannot yet prove tagged outcome accounting";
+                    break;
+                }
+                if (uses_value) {
+                    refusal = "tagged outcome value is accessed on the failure branch";
+                    break;
+                }
+                accounting.failure_recovery_operations.push_back(static_cast<int>(operation_id));
+            } else if (uses_value) {
+                refusal = "tagged outcome value escapes its proven success branch";
+                break;
+            }
+        }
+        if (refusal.empty() && (accounting.dispose_operation < 0 || accounting.success_value_operations.size() < 2))
+            refusal = "tagged outcome success branch must consume and dispose the value exactly once";
+        if (refusal.empty() && accounting.failure_recovery_operations.empty())
+            refusal = "tagged outcome failure branch has no explicit recovery behavior";
+        if (refusal.empty()) {
+            std::set<long long> zero_symbols;
+            for (int id : {accounting.success_branch_operation, accounting.failure_branch_operation}) {
+                const auto* payload = field(*expressions.at(lowering_operations[id].expression), "payload");
+                for (const auto side : {"left", "right"}) {
+                    const int expression = integer(field(payload, side));
+                    if (resolved_expression_symbols.count(expression) &&
+                        resolved_expression_symbols.at(expression) != accounting.code_symbol)
+                        zero_symbols.insert(resolved_expression_symbols.at(expression));
+                }
+            }
+            std::vector<flowcontracts::OutcomeExecutionOperation> execution;
+            for (std::size_t id = 0; id < lowering_operations.size(); ++id) {
+                const auto& op = lowering_operations[id];
+                bool uses_value = false;
+                for (int argument : op.arguments)
+                    uses_value = uses_value || expression_contains_field(argument, accounting.owner, "value");
+                const bool disposes = uses_value && op.kind == "external_call" &&
+                    op.contract == "text_runtime" && op.symbol == "flow_text_dispose" &&
+                    op.parameter_types == "Text" && op.return_type == "c_int" &&
+                    op.arguments.size() == 1 && expression_field_of_owner(op.arguments.front(), accounting.owner, "value");
+                bool borrows = uses_value && op.kind == "external_call";
+                const auto carriers = split_generic_arguments(op.parameter_types);
+                for (std::size_t arg = 0; arg < op.arguments.size(); ++arg) {
+                    if (!expression_contains_field(op.arguments[arg], accounting.owner, "value")) continue;
+                    bool borrowed_contract = false;
+                    if (arg < carriers.size()) for (const auto& type : abi_type_contracts)
+                        if (type.contract == op.contract && type.name == carriers[arg] && type.name == "Text" &&
+                            type.ownership == "borrowed" && type.access == "read" && type.lifetime == "call")
+                            borrowed_contract = true;
+                    borrows = borrows && borrowed_contract &&
+                        expression_field_of_owner(op.arguments[arg], accounting.owner, "value");
+                }
+                execution.push_back({static_cast<long long>(id), op.statement, op.block, op.function_symbol,
+                    op.result_symbol, op.then_block, op.else_block, op.body_block, op.kind, uses_value, disposes, borrows});
+            }
+            refusal = flowcontracts::outcome_execution_refusal(execution, accounting_origin,
+                accounting.code_projection_operation, accounting.success_branch_operation,
+                accounting.failure_branch_operation, accounting.dispose_operation, zero_symbols);
+        }
+        if (!refusal.empty()) {
+            add_diagnostic("FLOWANALYST_DANGLING_OUTCOME_WIRE",
+                refusal + "; inspect both variants using unchanged code/zero values, explicit failure behavior, "
+                    "and exactly one cleanup after direct borrowed success-value uses; "
+                    "only direct unique return transfer is supported; further propagation and explicit policy sinks remain unsupported",
+                accounting.owner, "scope:" + std::to_string(producer.scope));
+            set_statement_provenance(diagnostics.back(), producer.statement);
+        } else text_outcome_accounting.emplace(static_cast<int>(outcome_id), std::move(accounting));
+    }
+    if (diagnostics.empty()) for (const auto& [operation_id, proof_ids] : proven_guard_facts_by_operation) {
+        if (operation_id < 0 || static_cast<std::size_t>(operation_id) >= lowering_operations.size()) continue;
+        const auto& operation = lowering_operations[static_cast<std::size_t>(operation_id)];
+        const auto scalar = scalar_facts.find(operation.statement);
+        if (operation.kind != "assignment" || operation.result_symbol < 0 ||
+            scalar == scalar_facts.end() || !scalar->second.admitted()) continue;
+        Array proofs;
+        for (const auto proof : proof_ids) proofs.emplace_back(proof);
+        Object fact{
+            {"format", "lyraform.disposition_fact"}, {"version", 1},
+            {"fact_id", static_cast<int>(disposition_facts.size())},
+            {"operation_id", operation_id}, {"statement_id", operation.statement},
+            {"expression_id", operation.expression}, {"scope_id", operation.scope},
+            {"completion", "exactly_one"},
+            {"possible_dispositions", Array{Object{
+                {"kind", "success"},
+                {"payload_type", std::string(lyraform::scalar::name(scalar->second.destination_type))},
+                {"commit", "atomic_destination"},
+                {"route", Object{{"kind", "destination"}, {"symbol_id", operation.result_symbol}}}
+            }}},
+            {"eliminated_dispositions", Array{Object{
+                {"kind", "failure"}, {"payload_type", "GuardViolation"},
+                {"reason", "proven_guard_preservation"},
+                {"proof_guard_fact_ids", std::move(proofs)}
+            }}},
+            {"provenance", statement_provenance(operation.statement)}
+        };
+        if (lowering_plan_version == 2 && operation.function_symbol >= 0)
+            fact.emplace("function_symbol_id", operation.function_symbol);
+        disposition_facts.emplace_back(std::move(fact));
+    }
+    if (diagnostics.empty()) for (const auto& [operation_id, accounting] : text_outcome_accounting) {
+        const auto& operation = lowering_operations[static_cast<std::size_t>(operation_id)];
+        Array success_uses;
+        for (const auto id : accounting.success_value_operations) success_uses.emplace_back(id);
+        Array failure_recovery;
+        for (const auto id : accounting.failure_recovery_operations) failure_recovery.emplace_back(id);
+        Object fact{
+            {"format", "lyraform.disposition_fact"}, {"version", 1},
+            {"fact_id", static_cast<int>(disposition_facts.size())},
+            {"operation_id", operation_id}, {"statement_id", operation.statement},
+            {"expression_id", operation.expression}, {"scope_id", operation.scope},
+            {"completion", "exactly_one"},
+            {"possible_dispositions", Array{
+                Object{{"kind", "success"}, {"payload_type", "Text"},
+                    {"commit", "atomic_tagged_result"},
+                    {"route", Object{{"kind", "tagged_owner"}, {"symbol_id", operation.result_symbol}}}},
+                Object{{"kind", "failure"}, {"payload_type", "TextFailure"},
+                    {"failure_codes", Array{"invalid_input", "exhausted", "provider_unavailable"}},
+                    {"commit", "atomic_tagged_result"},
+                    {"route", Object{{"kind", "tagged_owner"}, {"symbol_id", operation.result_symbol}}}}
+            }},
+            {"eliminated_dispositions", Array{}},
+            {"obligation", Object{
+                {"kind", "must_account"},
+                {"identity", "operation:" + std::to_string(operation_id) + ":outcome"},
+                {"status", "accounted"}, {"owner_symbol_id", accounting.owner},
+                {"code_projection_operation_id", accounting.code_projection_operation},
+                {"code_symbol_id", accounting.code_symbol},
+                {"success_branch_operation_id", accounting.success_branch_operation},
+                {"success_block_id", accounting.success_block},
+                {"failure_branch_operation_id", accounting.failure_branch_operation},
+                {"failure_block_id", accounting.failure_block},
+                {"success_value_operation_ids", std::move(success_uses)},
+                {"dispose_operation_id", accounting.dispose_operation},
+                {"failure_recovery_operation_ids", std::move(failure_recovery)},
+                {"proof", "complementary_zero_code_branches"}
+            }},
+            {"provenance", statement_provenance(operation.statement)}
+        };
+        if (!std::holds_alternative<std::nullptr_t>(accounting.ownership_transfer))
+            std::get<Object>(fact.at("obligation")).emplace("ownership_transfer", accounting.ownership_transfer);
+        if (lowering_plan_version == 2 && operation.function_symbol >= 0)
+            fact.emplace("function_symbol_id", operation.function_symbol);
+        disposition_facts.emplace_back(std::move(fact));
+    }
     std::vector<Region> regions;
     for (const auto& [id, scope] : scopes) regions.push_back({"scope:" + std::to_string(id), "scope", "sane", {}});
     for (const auto& [id, symbol] : symbols) {
@@ -1247,6 +1803,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
         std::cout << "]";
     }
+    std::cout << ",\"guard_facts\":" << flowcontracts::json::serialize(guard_facts);
+    std::cout << ",\"disposition_facts\":" << flowcontracts::json::serialize(disposition_facts);
     std::cout << ",\"operations\":[";
     std::function<void(int, const std::string&)> emit_operand = [&](int expression_id, const std::string& declared_type) {
         const auto* expression = expressions.count(expression_id) ? expressions.at(expression_id) : nullptr;

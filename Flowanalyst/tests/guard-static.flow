@@ -1,0 +1,10 @@
+program guard_static
+
+main {
+    x : int(1)
+    guard positive : x > 0
+    4 -> x
+    unguard positive
+    -1 -> x
+    x -> return
+}
