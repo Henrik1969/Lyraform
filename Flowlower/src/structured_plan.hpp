@@ -368,7 +368,7 @@ private:
     }
     void emit_graph_globals(std::ostringstream& out) const {
         out<<"declare void @flow_graph_enter(ptr)\ndeclare void @flow_graph_operation(i64)\ndeclare void @flow_graph_event(ptr)\ndeclare void @flow_graph_drop(ptr)\ndeclare void @flow_graph_fail(i64, ptr) noreturn\ndeclare void @flow_graph_state_before(ptr, i64, i64)\ndeclare void @flow_graph_state_after(ptr, i64, i64)\n"
-           <<"declare void @flow_graph_stream_item_enter(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_enter(ptr, ptr, i64, i64, i64, i64)\ndeclare void @flow_graph_stream_event(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_drop(ptr, ptr, i64, i64, i64)\ndeclare void @flow_graph_parallel_run(ptr, ptr, ptr, i64)\ndeclare void @flow_graph_parallel_result(i64, i64)\n";
+           <<"declare void @flow_graph_stream_item_enter(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_enter(ptr, ptr, i64, i64, i64, i64)\ndeclare void @flow_graph_stream_event(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_drop(ptr, ptr, i64, i64, i64)\ndeclare void @flow_graph_parallel_run(ptr, ptr, ptr, i64)\ndeclare void @flow_graph_parallel_result(i64, i64)\ndeclare void @flow_graph_effect_enter(i64, ptr)\ndeclare void @flow_graph_effect_result(ptr, i64, i64)\n";
         out<<"@flow.graph.division = private constant [17 x i8] c\"invalid_division\\00\"\n";
         for (const auto& step : graph_steps()) {
             const auto id = integer(field(step, "activation_id"), "activation_id");
@@ -391,7 +391,7 @@ private:
         for (const auto& node : graph_model_->receivers) receivers.emplace(text(field(node, "node_id")), &node);
         const auto* schedule = field(root_, "graph_schedule");
         const auto schedule_version = schedule ? integer(field(*schedule, "version"), "graph_schedule.version") : 1;
-        if (schedule_version == 4) {
+        if (schedule_version == 4 || schedule_version == 6) {
             emit_parallel_graph_main(entry, out, providers, receivers);
             return;
         }
@@ -567,8 +567,9 @@ private:
                                   const std::map<std::string, const Json*>& providers,
                                   const std::map<std::string, const Json*>& receivers) {
         const auto* schedule = field(root_, "graph_schedule");
+        const auto parallel_contract = schedule ? text(field(*schedule, "parallel_contract")) : std::string{};
         if (!schedule || text(field(*schedule, "policy")) != "parallel_independent_v1" ||
-            text(field(*schedule, "parallel_contract")) != "dependency_waves_v1")
+            (parallel_contract != "dependency_waves_v1" && parallel_contract != "effect_conflict_waves_v1"))
             throw std::runtime_error("parallel graph schedule has an unsupported worker contract");
         if (providers.size() != 1) throw std::runtime_error("parallel graph lowering requires one startup provider");
         const auto& root = *providers.begin()->second;
@@ -605,8 +606,16 @@ private:
             text(field(*steps.at(wave_ids.front().front()), "kind")) != "startup")
             throw std::runtime_error("parallel graph schedule must start with one startup activation");
         std::map<int, std::string> output_types{{wave_ids.front().front(), root_type}};
+        struct EffectTrace {
+            int operation = -1;
+            std::string capability;
+            std::string resource;
+            std::size_t worker = 0;
+        };
+        std::map<int, EffectTrace> effect_traces;
         for (std::size_t wave_index = 1; wave_index < wave_ids.size(); ++wave_index) {
-            for (const auto id : wave_ids[wave_index]) {
+            for (std::size_t worker_index = 0; worker_index < wave_ids[wave_index].size(); ++worker_index) {
+                const auto id = wave_ids[wave_index][worker_index];
                 const auto& step = *steps.at(id);
                 if (text(field(step, "kind")) != "receiver" || !receivers.count(text(field(step, "node_id"))))
                     throw std::runtime_error("parallel graph worker wave contains a non-fresh receiver");
@@ -622,14 +631,42 @@ private:
                     (result_type != "i32" && result_type != "i64") || !output_types.count(input) || output_types.at(input) != input_type)
                     throw std::runtime_error("parallel graph worker carrier mismatch");
                 output_types[id] = result_type;
-                bool return_only = false;
+                const auto* execution_effect = field(receiver, "execution_effect");
+                const auto effect_class = execution_effect ? text(field(*execution_effect, "class")) : std::string{};
+                if (parallel_contract == "dependency_waves_v1") {
+                    bool return_only = false;
+                    for (const auto& operation : operations_)
+                        if (operation.function_symbol == function) {
+                            if (operation.kind != "return_value")
+                                throw std::runtime_error("parallel graph worker requires a return-only receiver function");
+                            return_only = true;
+                        }
+                    if (!return_only) throw std::runtime_error("parallel graph worker receiver body is unavailable");
+                    continue;
+                }
+                bool has_return = false;
+                int external_calls = 0;
                 for (const auto& operation : operations_)
                     if (operation.function_symbol == function) {
-                        if (operation.kind != "return_value")
-                            throw std::runtime_error("parallel graph worker requires a return-only receiver function");
-                        return_only = true;
+                        if (operation.kind == "return_value") has_return = true;
+                        else if (effect_class == "bounded_concurrent_observation_v1" && operation.kind == "external_call")
+                            ++external_calls;
+                        else if (operation.kind == "call" || operation.kind == "text_outcome" ||
+                                 (operation.kind == "external_call" && effect_class != "bounded_concurrent_observation_v1"))
+                            throw std::runtime_error("parallel graph worker body differs from its execution-effect authority");
                     }
-                if (!return_only) throw std::runtime_error("parallel graph worker receiver body is unavailable");
+                if (!has_return || (effect_class == "pure_v1" && external_calls != 0) ||
+                    (effect_class == "bounded_concurrent_observation_v1" && external_calls != 1) ||
+                    (effect_class != "pure_v1" && effect_class != "bounded_concurrent_observation_v1"))
+                    throw std::runtime_error("parallel graph worker receiver body is unavailable or unauthorized");
+                if (effect_class == "bounded_concurrent_observation_v1") {
+                    const auto* access = field(*execution_effect, "effect_access");
+                    if (!access) throw std::runtime_error("effectful parallel worker lacks access provenance");
+                    effect_traces.emplace(id, EffectTrace{
+                        integer(field(*access, "operation_id"), "receiver.execution_effect.effect_access.operation_id"),
+                        text(field(*access, "capability_identity")),
+                        text(field(*access, "resource_domain")), worker_index});
+                }
             }
         }
         for (std::size_t wave_index = 1; wave_index < wave_ids.size(); ++wave_index) {
@@ -640,6 +677,17 @@ private:
             }
             out << "]\n";
         }
+        for (const auto& [id, trace] : effect_traces) {
+            const auto context = flowcontracts::json::serialize(flowcontracts::json::Object{
+                {"format", "flowcore.graph_effect"}, {"version", flowcontracts::json::Integer{1}},
+                {"event", "execute"}, {"operation_id", flowcontracts::json::Integer{trace.operation}},
+                {"activation_id", flowcontracts::json::Integer{id}},
+                {"worker_index", flowcontracts::json::Integer{static_cast<flowcontracts::json::Integer>(trace.worker)}},
+                {"capability_identity", trace.capability}, {"resource_domain", trace.resource},
+                {"policy", "parallel_independent_v1"}});
+            out << "@flow.graph.effect." << id << " = private constant [" << context.size() + 1
+                << " x i8] c\"" << escaped_string(context) << "\"\n";
+        }
         for (std::size_t wave_index = 1; wave_index < wave_ids.size(); ++wave_index) {
             for (const auto id : wave_ids[wave_index]) {
                 const auto& step = *steps.at(id);
@@ -648,7 +696,11 @@ private:
                 const auto input_type = llvm_type(function.parameters.front().second);
                 const auto result_type = llvm_type(function.result);
                 out << "define internal void @flow.graph.worker." << id << "(i64 %flow.worker.input, ptr %flow.worker.output) {\n"
-                    << "entry:\n  call void @flow_graph_enter(ptr @flow.graph.enter." << id << ")\n"
+                    << "entry:\n  call void @flow_graph_enter(ptr @flow.graph.enter." << id << ")\n";
+                if (const auto trace = effect_traces.find(id); trace != effect_traces.end())
+                    out << "  call void @flow_graph_effect_enter(i64 " << trace->second.operation
+                        << ", ptr @flow.graph.effect." << id << ")\n";
+                out
                     << "  %flow.worker.narrow." << id << " = " << (input_type == "i32" ? "trunc i64 %flow.worker.input to i32" : "add i64 %flow.worker.input, 0") << "\n"
                     << "  %flow.worker.result." << id << " = call " << input_type << " @" << callable_name(function) << "(" << input_type << " %flow.worker.narrow." << id << ")\n"
                     << "  %flow.worker.wide." << id << " = " << (result_type == "i32" ? "sext i32 %flow.worker.result." + std::to_string(id) + " to i64" : "add i64 %flow.worker.result." + std::to_string(id) + ", 0") << "\n"
@@ -688,7 +740,11 @@ private:
                     << "  %flow.parallel.output.value." << id << " = load i64, ptr %flow.parallel.output.slot." << id << "\n"
                     << "  %flow.parallel.value.slot." << id << " = getelementptr [" << total << " x i64], ptr %flow.parallel.values, i64 0, i64 " << id << "\n"
                     << "  store i64 %flow.parallel.output.value." << id << ", ptr %flow.parallel.value.slot." << id << "\n"
-                    << "  call void @flow_graph_parallel_result(i64 " << id << ", i64 %flow.parallel.output.value." << id << ")\n"
+                    << "  call void @flow_graph_parallel_result(i64 " << id << ", i64 %flow.parallel.output.value." << id << ")\n";
+                if (effect_traces.count(id))
+                    out << "  call void @flow_graph_effect_result(ptr @flow.graph.effect." << id
+                        << ", i64 " << id << ", i64 %flow.parallel.output.value." << id << ")\n";
+                out
                     << "  call void @flow_graph_event(ptr @flow.graph.output." << id << ")\n";
                 if (!std::get<bool>(*field(*steps.at(id), "output_connected"))) out << "  call void @flow_graph_drop(ptr @flow.graph.drop." << id << ")\n";
             }

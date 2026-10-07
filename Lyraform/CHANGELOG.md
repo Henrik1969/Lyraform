@@ -16,8 +16,35 @@
 - Added the first declarative typed failure-consumer and policy-selection
   contract. It accepts canonical failure-envelope inputs but does not yet admit
   response-transition execution, propagation, retry, or runtime guard routing.
+- Added complete declarative response-transition authority for the bounded
+  `recover` and `transform` classes. Recovery closes the original obligation
+  through typed success; transformation creates a linked successor failure.
+  Source projection, graph routing, and execution remain deliberately absent.
+- Added a LaTeX/TikZ semantic--syntax--graph projection map that illustrates
+  each bounded failure-flow operation while visibly separating canonical law,
+  provisional notation, and currently refused execution behavior.
+- Added the first bounded executable failure-flow reference projection. One
+  established typed failure envelope now crosses one explicit serial wire to
+  one exact policy-selected ordinary function identity and emits a validated
+  recovery or linked-transformation receipt. Source syntax, compiler/backend
+  integration, retry, sinks, faults, and parallel failure routing remain
+  outside the admitted slice.
 - Accepted bounded disposition-evidence epochs and policy-visible retention
   limits as future implementation law.
+- Recorded the canonical scheduling law: parallel opportunity is derived from
+  graph and effect evidence, while deployment policy and measured runtime
+  feasibility select execution mechanisms. No `async` or parallel source
+  syntax is introduced.
+- Prepared the first bounded mission for general effectful parallel scheduling
+  through canonical resource/conflict facts, explicit dispositions, policy,
+  calibrated provider selection, and serial-equivalent backend evidence.
+- Implemented that mission's first executable family: exact profiled read-only
+  scalar observations now carry provider, resource, access, conflict, serial-
+  reference, join, and publication authority across Flowanalyst, Flowparallel,
+  Flowoptimize, Flowlower, LLVM, and TinyVM. Native execution proves worker
+  overlap while TinyVM retains deterministic serial projection. Unprofiled,
+  forged, mutable, pointer-bearing, aggregate, fallible, and broader effect
+  families remain refused.
 
 ## v27_namespaced_provider_chain — historical
 

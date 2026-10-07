@@ -78,6 +78,8 @@ jq -e '
     .state == "deprecated_oracle_only") and
   any(.known_bridges[]; .id == "general_failure_routing_gap" and
     .state == "declarative_consumer_only") and
+  any(.known_bridges[]; .id == "bounded_serial_failure_flow_bridge" and
+    .state == "exact_serial_reference_execution") and
   (.forbidden_during_freeze | index("new_syntax")) != null and
   (.forbidden_during_freeze | index("new_language_semantics")) != null and
   (.forbidden_during_freeze | index("self_hosting")) != null
@@ -139,6 +141,24 @@ grep -Fq 'legacy runtime is deprecated, non-canonical' "$root/igor" ||
     fail 'legacy execution no longer emits its deprecation warning'
 grep -Fq 'parameter_projection != "failure_envelope"' "$root/Flowcontracts/include/flowcontracts/failure_consumer.hpp" ||
     fail 'declarative failure consumers no longer require the canonical envelope projection'
+grep -Fq '"lyraform.failure_response_transition"' "$root/Flowcontracts/include/flowcontracts/failure_response_transition.hpp" ||
+    fail 'declarative failure-response transition authority is missing'
+grep -Fq 'transition.response_class == "recover"' "$root/Flowcontracts/include/flowcontracts/failure_response_transition.hpp" ||
+    fail 'bounded recovery response-transition validation is missing'
+grep -Fq 'transition.response_class == "transform"' "$root/Flowcontracts/include/flowcontracts/failure_response_transition.hpp" ||
+    fail 'bounded transformation response-transition validation is missing'
+grep -Fq 'transition.origin_commit_law != "preserve_origin_commit"' "$root/Flowcontracts/include/flowcontracts/failure_response_transition.hpp" ||
+    fail 'failure-response transitions no longer preserve origin commit evidence'
+grep -Fq 'transition.response_attempt_failure_law != "separate_obligations"' "$root/Flowcontracts/include/flowcontracts/failure_response_transition.hpp" ||
+    fail 'response-attempt failures no longer remain separate obligations'
+grep -Fq '"lyraform.failure_flow_plan"' "$root/Flowcontracts/include/flowcontracts/failure_flow_execution.hpp" ||
+    fail 'bounded executable failure-flow plan is missing'
+grep -Fq 'plan.schedule != "serial_explicit_failure_route_v1"' "$root/Flowcontracts/include/flowcontracts/failure_flow_execution.hpp" ||
+    fail 'bounded failure-flow execution no longer requires its serial schedule'
+grep -Fq 'callables.find(route.function)' "$root/Flowcontracts/include/flowcontracts/failure_flow_execution.hpp" ||
+    fail 'bounded failure-flow execution no longer dispatches by exact function identity'
+grep -Fq 'failure_flow_receipt_refusal(receipt, plan, envelope)' "$root/Flowcontracts/include/flowcontracts/failure_flow_execution.hpp" ||
+    fail 'bounded failure-flow execution no longer validates its completion receipt'
 grep -Fq 'Status: accepted architectural law' "$root/docs/architecture/decisions/0063-bounded-disposition-evidence-epochs.md" ||
     fail 'bounded evidence-epoch law is missing or no longer accepted'
 grep -Fq 'LLVM/TinyVM continue to refuse all member targets' "$root/docs/checkpoints/2026-09-19-v1-bounded-local-member-assignability.md" ||

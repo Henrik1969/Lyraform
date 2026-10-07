@@ -46,6 +46,15 @@ for rejection. A backend rejecting a semantic report for the wrong format does
 not count as disposition-validation evidence. See the
 [consolidation checkpoint](../docs/checkpoints/2026-09-26-post-gate-2-consolidation.md).
 
+`effect_scheduling.hpp` defines the backend-neutral version-1 provider-effect
+profile, access, conflict, and schedule facts used by bounded effectful graph
+scheduling. The admitted family is deliberately narrow: an exact generated
+provider capability may authorize one read-only, infallible, by-value scalar
+observation under `concurrent_observation_v1`. Shared validation recomputes
+capability linkage, resource identity, pairwise independence, deterministic
+serial order, complete-wave join, and no-partial-publication law. A `readonly`
+label alone is never concurrency authority.
+
 The generic `lyraform.ownership_transfer` v1 fact records a unique function
 return, producer/return/call identities, source/destination owners and functions,
 value type, and unchanged obligation identity. `ownership_transfer.hpp` owns
@@ -69,8 +78,35 @@ for the exact routed payload type. The companion
 `lyraform.failure_policy_selection` version 1 fact proves that policy selected
 only a route authorized for that consumer and failure type. Both contracts are
 explicitly `declarative`: they cannot authorize source admission or runtime
-execution until response-function disposition authority and producer routing
-are established by later bounded stages.
+execution.
+
+`failure_response_transition.hpp` adds the carrier-independent
+`lyraform.failure_response_transition` version 1 refinement. Every route in a
+validated set has exactly one successful-completion meaning: `recover`
+produces `Success<T>` and closes the original expected-failure obligation;
+`transform` produces a linked successor `Failure<E2>`. The response result
+type must exactly equal the declared outgoing payload type. Origin commit
+evidence remains immutable, response provenance links to the origin, and any
+failure or fault of the response attempt remains a separate obligation. The
+fact is also strictly `declarative`; it admits no source spelling, producer
+wiring, response invocation, graph route, propagation, retry, or backend
+execution.
+
+`failure_flow_execution.hpp` supplies the first deliberately narrow executable
+projection over those unchanged authorities. `lyraform.failure_flow_plan`
+version 1 binds one established producer `Failure<E>`, one explicit typed wire,
+one closed consumer route, one policy selection, and one response transition
+under `serial_explicit_failure_route_v1`. Dispatch uses the exact resolved
+function-symbol identity; there is no textual-name lookup or dynamic nearest
+handler. `lyraform.failure_envelope` version 1 carries the original disposition,
+obligation, producer attempt, correlation, no-commit evidence, payload, and
+provenance read-only into the selected function. A completed execution emits a
+separately validated `lyraform.failure_flow_receipt` version 1 proving either
+typed recovery with original-obligation closure or typed transformation with a
+distinct successor obligation. This is a shared reference execution boundary,
+not source admission or LLVM/TinyVM support. Propagation, retry, sinks,
+response-attempt failure, faults, mutation, and concurrent failure routing
+remain refused.
 
 ADR 0063 governs the later envelope's evidence lifetime: live evidence remains
 must-account until proven closure or transfer, may compact only through a

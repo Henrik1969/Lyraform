@@ -110,14 +110,21 @@ shortcut.
 - Keep compatibility pointer/storage behavior visibly separate from permanent
   language semantics.
 
-### Gate 4 — cancellation, async, backpressure, and parallel effects
+### Gate 4 — graph-derived scheduling, cancellation, and backpressure
+
+Parallel and asynchronous execution are provider/scheduling mechanisms, not
+Lyraform source features. The compiler derives legal freedom from canonical
+graph, effect, resource, dependency, and disposition facts. Policy selects
+only within that freedom; runtime capability and calibration determine whether
+an authorized provider is feasible.
 
 Define and implement only the smallest independently testable contracts:
 
 - cancellation request, observation point, acknowledgement, and final state;
 - whether cancellation is cooperative, preemptive, or unsupported;
 - queue admission, capacity, overflow, drain, and backpressure behavior;
-- effect/resource classes permitted in asynchronous or parallel execution;
+- effect/resource access and conflict classes from which legal serial,
+  parallel, or asynchronously dispatched schedules can be derived;
 - commit/abort rules for partial work and provider failure;
 - ordering, joins, retries, idempotence, and reentrancy;
 - deterministic serial projection where parallel execution is not admitted.
@@ -225,8 +232,9 @@ ASan/UBSan and Valgrind gates. Keep build trees and logs outside the checkout.
 - All admitted failures have explicit, deterministic outcomes and provenance.
 - Cleanup and bounded-resource behavior is proven across return, failure,
   cancellation, exhaustion, and provider loss.
-- Cancellation, async, backpressure, and effectful parallelism are either
-  implemented with complete contracts or explicitly refused.
+- Cancellation, queue/backpressure, asynchronous dispatch, and effectful
+  parallel scheduling are either implemented through complete graph, policy,
+  and provider contracts or explicitly refused.
 - Mutation provenance and durable error-state handling are implemented for the
   scope claimed, or the exact remaining boundary blocks self-hosting.
 - Isolation, trust, signed profiles, and platform limitations are honest,

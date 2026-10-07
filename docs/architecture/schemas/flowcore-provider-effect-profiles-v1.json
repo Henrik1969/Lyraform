@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowcore.dev/schemas/flowcore-provider-effect-profiles-v1.json",
+  "title": "Lyraform Provider Effect Profiles v1",
+  "type": "object",
+  "required": ["format", "version", "status", "profiles"],
+  "properties": {
+    "format": {"const": "flowcore.provider_effect_profiles"},
+    "version": {"const": 1},
+    "status": {"const": "declarative"},
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "required": ["format", "version", "status", "profile_id", "capability", "resource_domain", "access", "concurrency", "failure"],
+        "properties": {
+          "format": {"const": "flowcore.provider_effect_profile"},
+          "version": {"const": 1},
+          "status": {"const": "declarative"},
+          "profile_id": {"type": "integer", "minimum": 0},
+          "capability": {
+            "type": "object",
+            "required": ["contract", "library", "symbol", "convention", "effect", "parameter_types", "return_type", "evidence"],
+            "properties": {
+              "contract": {"type": "string", "minLength": 1},
+              "library": {"type": "string", "minLength": 1},
+              "symbol": {"type": "string", "minLength": 1},
+              "convention": {"const": "c"},
+              "effect": {"const": "readonly"},
+              "parameter_types": {"type": "string"},
+              "return_type": {"enum": ["int", "Bool", "c_int", "c_long", "c_ulong", "c_size_t"]},
+              "evidence": {"type": "string", "pattern": "^flowcore\\.generated_binding\\.v1:[0-9a-f]{64}:[0-9a-f]{64}$"}
+            },
+            "additionalProperties": false
+          },
+          "resource_domain": {"type": "string", "minLength": 1},
+          "access": {"const": "observe"},
+          "concurrency": {"const": "concurrent_observation_v1"},
+          "failure": {"const": "infallible_scalar_v1"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

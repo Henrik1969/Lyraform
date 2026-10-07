@@ -6,6 +6,7 @@
 #include <flowcontracts/scalar_facts.hpp>
 #include <flowcontracts/parse_validity.hpp>
 #include <flowcontracts/ownership_transfer.hpp>
+#include <flowcontracts/effect_scheduling.hpp>
 #include "scalar_analysis.hpp"
 #include "target_analysis.hpp"
 #include <cctype>
@@ -125,7 +126,8 @@ bool numeric_extents(const std::string& value) {
     return true;
 }
 
-int run(const Json& bundle, int lowering_plan_version, const Json& provider_map, int graph_plan_version) {
+int run(const Json& bundle, int lowering_plan_version, const Json& provider_map, int graph_plan_version,
+        const std::vector<flowcontracts::ProviderEffectProfile>& provider_effect_profiles) {
 #ifdef FLOWANALYST_TEST_ALLOCATION_FAILURE
     (void)bundle;
     (void)lowering_plan_version;
@@ -1128,6 +1130,160 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             operation_id_by_call_expression.emplace(lowering_operations[operation_id].expression,
                                                     static_cast<int>(operation_id));
     }
+    std::map<std::string, const flowcontracts::ProviderEffectProfile*> effect_profile_by_capability;
+    for (const auto& profile : provider_effect_profiles)
+        effect_profile_by_capability.emplace(
+            flowcontracts::capability_identity(profile.capability, "$.provider_effect_profiles[].capability"),
+            &profile);
+    std::map<int, std::string> receiver_activation_by_function;
+    for (const auto& receiver_value : graph_receivers) {
+        const auto& receiver = flowcontracts::json::object(receiver_value, "$.graph_analysis.receivers[]");
+        receiver_activation_by_function.emplace(
+            static_cast<int>(flowcontracts::json::integer(
+                flowcontracts::json::required(receiver, "function_symbol_id", "$.graph_analysis.receivers[]"),
+                "$.graph_analysis.receivers[].function_symbol_id")),
+            flowcontracts::json::string(
+                flowcontracts::json::required(receiver, "node_id", "$.graph_analysis.receivers[]"),
+                "$.graph_analysis.receivers[].node_id"));
+    }
+    std::vector<flowcontracts::EffectAccessFact> effect_access_facts;
+    for (std::size_t operation_id = 0; operation_id < lowering_operations.size(); ++operation_id) {
+        const auto& operation = lowering_operations[operation_id];
+        if (operation.kind != "external_call") continue;
+        Object capability{{"contract", operation.contract}, {"library", operation.library},
+                          {"symbol", operation.symbol}, {"convention", operation.convention},
+                          {"effect", operation.effect}, {"parameter_types", operation.parameter_types},
+                          {"return_type", operation.return_type}, {"evidence", operation.evidence}};
+        const auto identity = flowcontracts::capability_identity(capability, "$.lowering_plan.operations[].provider");
+        const auto found = effect_profile_by_capability.find(identity);
+        if (found == effect_profile_by_capability.end()) continue;
+        const auto* profile = found->second;
+        const auto activation = receiver_activation_by_function.count(operation.function_symbol)
+            ? receiver_activation_by_function.at(operation.function_symbol)
+            : "function:" + std::to_string(operation.function_symbol);
+        flowcontracts::EffectAccessFact fact{
+            static_cast<flowcontracts::json::Integer>(operation_id), operation.function_symbol,
+            activation, profile->id, identity, operation.effect, profile->resource_domain,
+            profile->access, profile->concurrency,
+            "operation:" + std::to_string(operation_id)};
+        const auto refusal = flowcontracts::effect_access_refusal(fact, *profile);
+        if (!refusal.empty()) throw std::runtime_error("effect-access authority refused: " + refusal);
+        effect_access_facts.push_back(std::move(fact));
+    }
+    std::map<int, std::vector<int>> operation_ids_by_function;
+    std::map<int, int> body_block_by_function;
+    std::map<int, std::string> callable_name_by_function;
+    std::map<int, std::set<int>> parameter_symbols_by_function;
+    std::map<int, std::set<std::string>> parameter_names_by_function;
+    for (const auto& callable : callables) {
+        body_block_by_function.emplace(callable.symbol, callable.body_block);
+        callable_name_by_function.emplace(callable.symbol, callable.name);
+    }
+    for (const auto& callable : callables)
+        for (const auto& parameter : callable.parameters)
+        {
+            parameter_symbols_by_function[callable.symbol].insert(parameter.first);
+            if (symbols.count(parameter.first))
+                parameter_names_by_function[callable.symbol].insert(text(field(*symbols.at(parameter.first), "name")));
+        }
+    std::function<bool(int, int)> receiver_expression_is_pure = [&](int expression_id, int function) {
+        if (!expressions.count(expression_id)) return false;
+        const auto& expression = *expressions.at(expression_id);
+        const auto kind = text(field(expression, "kind"));
+        if (kind == "integer_literal" || kind == "float_literal" || kind == "bool_literal" || kind == "string_literal")
+            return true;
+        if (kind == "identifier") {
+            const auto found = resolved_expression_symbols.find(expression_id);
+            return (found != resolved_expression_symbols.end() &&
+                    parameter_symbols_by_function[function].count(found->second)) ||
+                parameter_names_by_function[function].count(
+                    text(field(field(expression, "payload"), "name")));
+        }
+        const auto* payload = field(expression, "payload");
+        if (kind == "unary")
+            return receiver_expression_is_pure(integer(field(payload, "operand")), function);
+        if (kind == "binary")
+            return receiver_expression_is_pure(integer(field(payload, "left")), function) &&
+                receiver_expression_is_pure(integer(field(payload, "right")), function);
+        return false;
+    };
+    auto source_receiver_return_expression = [&](int function) {
+        const auto callable_name = callable_name_by_function.find(function);
+        if (callable_name == callable_name_by_function.end()) return -1;
+        const Json* declaration = nullptr;
+        for (const auto& [id, candidate] : declarations) {
+            (void)id;
+            if (text(field(*candidate, "kind")) == "function" &&
+                text(field(*candidate, "name")) == callable_name->second) {
+                if (declaration) return -1;
+                declaration = candidate;
+            }
+        }
+        if (!declaration) return -1;
+        const int body = integer(field(*declaration, "body_block"));
+        if (!blocks.count(body)) return -1;
+        const auto& members = list(field(*blocks.at(body), "statements"));
+        if (members.size() != 1 || !statements.count(integer(&members.front()))) return -1;
+        const auto& statement = *statements.at(integer(&members.front()));
+        if (text(field(statement, "kind")) != "return") return -1;
+        return integer(field(field(statement, "payload"), "value_expression"));
+    };
+    std::map<int, const flowcontracts::EffectAccessFact*> access_by_operation;
+    for (std::size_t id = 0; id < lowering_operations.size(); ++id)
+        if (lowering_operations[id].function_symbol >= 0 &&
+            body_block_by_function.count(lowering_operations[id].function_symbol) &&
+            lowering_operations[id].block == body_block_by_function.at(lowering_operations[id].function_symbol))
+            operation_ids_by_function[lowering_operations[id].function_symbol].push_back(static_cast<int>(id));
+    for (const auto& access : effect_access_facts)
+        access_by_operation.emplace(static_cast<int>(access.operation), &access);
+    for (auto& receiver_value : graph_receivers) {
+        auto& receiver = std::get<Object>(receiver_value);
+        const int function = static_cast<int>(flowcontracts::json::integer(
+            flowcontracts::json::required(receiver, "function_symbol_id", "$.graph_analysis.receivers[]"),
+            "$.graph_analysis.receivers[].function_symbol_id"));
+        Array operation_ids;
+        for (const int id : operation_ids_by_function[function]) {
+            operation_ids.emplace_back(id);
+        }
+        const int direct_return_expression = source_receiver_return_expression(function);
+        const bool proven_pure = direct_return_expression >= 0 &&
+            receiver_expression_is_pure(direct_return_expression, function);
+        const bool direct_call = direct_return_expression >= 0 && expressions.count(direct_return_expression) &&
+            text(field(*expressions.at(direct_return_expression), "kind")) == "call";
+        const flowcontracts::EffectAccessFact* direct_observation = nullptr;
+        for (std::size_t id = 0; id < lowering_operations.size(); ++id)
+            if (lowering_operations[id].kind == "external_call" &&
+                lowering_operations[id].expression == direct_return_expression && access_by_operation.count(static_cast<int>(id))) {
+                if (direct_observation) { direct_observation = nullptr; break; }
+                direct_observation = access_by_operation.at(static_cast<int>(id));
+            }
+        if (proven_pure) {
+            receiver.emplace("execution_effect", Object{{"class", "pure_v1"},
+                {"operation_ids", std::move(operation_ids)}});
+        } else if (direct_observation) {
+            receiver.emplace("execution_effect", Object{{"class", "bounded_concurrent_observation_v1"},
+                {"operation_ids", std::move(operation_ids)},
+                {"effect_access", flowcontracts::effect_access_fact(*direct_observation)}});
+        } else if (direct_call) {
+            receiver.emplace("execution_effect", Object{{"class", "unprofiled_effect"},
+                {"operation_ids", std::move(operation_ids)}});
+        } else {
+            receiver.emplace("execution_effect", Object{{"class", "unresolved"},
+                {"operation_ids", std::move(operation_ids)}});
+        }
+    }
+    if (!std::holds_alternative<std::nullptr_t>(graph_model)) {
+        auto& graph = std::get<Object>(graph_model);
+        graph["receivers"] = graph_receivers;
+        Array profiles;
+        for (const auto& profile : provider_effect_profiles)
+            profiles.emplace_back(flowcontracts::provider_effect_profile_fact(profile));
+        Array accesses;
+        for (const auto& access : effect_access_facts)
+            accesses.emplace_back(flowcontracts::effect_access_fact(access));
+        graph["provider_effect_profiles"] = std::move(profiles);
+        graph["effect_access_facts"] = std::move(accesses);
+    }
     Array source_operation_facts;
     int source_operation_refusals = 0;
     for (const auto& [statement_id, statement] : statements) {
@@ -1840,6 +1996,18 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     for (std::size_t i = 0; i < diagnostics.size(); ++i) { const auto& d = diagnostics[i]; if (i) std::cout << ','; std::cout << "{\"code\":" << quote(d.code) << ",\"severity\":" << quote(d.severity) << ",\"message\":" << quote(d.message) << ",\"root_cause\":true"; if (d.symbol >= 0) { std::cout << ",\"subject\":{\"kind\":\"symbol\",\"id\":" << d.symbol << "}"; } if (d.symbol >= 0 || d.line >= 0) { std::cout << ",\"provenance\":{\"source\":" << quote(d.source) << ",\"ast_path\":" << quote(d.ast_path) << ",\"line\":" << d.line << ",\"column\":" << d.column << "}"; } if (!d.region.empty()) std::cout << ",\"region\":" << quote(d.region); std::cout << '}'; }
     std::cout << "],\n  \"binding_requirements\": [";
     for (std::size_t i = 0; i < binding_requirements.size(); ++i) { if (i) std::cout << ','; const auto& requirement = binding_requirements[i]; std::cout << "{\"contract\":" << quote(requirement.contract) << ",\"library\":" << quote(requirement.library) << ",\"convention\":" << quote(requirement.convention) << ",\"symbol\":" << quote(requirement.symbol) << ",\"effect\":" << quote(requirement.effect) << ",\"parameter_types\":" << quote(requirement.parameter_types) << ",\"return_type\":" << quote(requirement.return_type) << ",\"evidence\":" << quote(requirement.evidence) << "}"; }
+    std::cout << "],\n  \"provider_effect_profiles\": [";
+    for (std::size_t i = 0; i < provider_effect_profiles.size(); ++i) {
+        if (i) std::cout << ',';
+        std::cout << flowcontracts::json::serialize(
+            flowcontracts::provider_effect_profile_fact(provider_effect_profiles[i]));
+    }
+    std::cout << "],\n  \"effect_access_facts\": [";
+    for (std::size_t i = 0; i < effect_access_facts.size(); ++i) {
+        if (i) std::cout << ',';
+        std::cout << flowcontracts::json::serialize(
+            flowcontracts::effect_access_fact(effect_access_facts[i]));
+    }
     std::cout << "],\n  \"aggregate_abi_layouts\": [";
     for (std::size_t i = 0; i < aggregate_layouts.size(); ++i) {
         if (i) std::cout << ',';
@@ -2197,6 +2365,7 @@ int main(int argc, char** argv) {
                              "Options: -h, -?, --help  show help\n"
                              "         -a, --about    show about information\n"
                              "         -v, --version  print the raw version number\n"
+                             "         --effect-profiles PATH  reviewed provider-effect profiles\n"
                              "         --diagnostics json  emit machine-readable failures on stderr\n\n"
                              "More help: Flowanalyst/README.md and the Flowanalyst consumer contract.\n";
                 return 0;
@@ -2208,7 +2377,8 @@ int main(int argc, char** argv) {
             }
             if (option == "-v" || option == "--version") { std::cout << FLOWANALYST_VERSION << '\n'; return 0; }
         }
-        int lowering_plan_version = 1, graph_plan_version = 1; std::string input_path, graph_provider_path;
+        int lowering_plan_version = 1, graph_plan_version = 1;
+        std::string input_path, graph_provider_path, effect_profiles_path;
         for (int index = 1; index < argc; ++index) {
             const std::string argument = argv[index];
             if (argument == "--diagnostics") {
@@ -2225,6 +2395,9 @@ int main(int argc, char** argv) {
             } else if (argument == "--graph-providers") {
                 if (++index >= argc || !graph_provider_path.empty()) throw std::runtime_error("--graph-providers requires one selection artifact");
                 graph_provider_path = argv[index];
+            } else if (argument == "--effect-profiles") {
+                if (++index >= argc || !effect_profiles_path.empty()) throw std::runtime_error("--effect-profiles requires one provider-effect profile artifact");
+                effect_profiles_path = argv[index];
             } else if (!argument.empty() && argument.front() == '-') throw std::runtime_error("unknown option: " + argument);
             else if (input_path.empty()) input_path = argument;
             else throw std::runtime_error("too many input paths");
@@ -2238,7 +2411,15 @@ int main(int argc, char** argv) {
             if (!file) throw std::runtime_error("cannot open graph provider map");
             provider_map = Parser(flowcontracts::read_bounded(file, "graph provider map")).parse();
         }
-        return run(Parser(input_text).parse(), lowering_plan_version, provider_map, graph_plan_version);
+        std::vector<flowcontracts::ProviderEffectProfile> effect_profiles;
+        if (!effect_profiles_path.empty()) {
+            std::ifstream file(effect_profiles_path);
+            if (!file) throw std::runtime_error("cannot open provider-effect profile artifact");
+            effect_profiles = flowcontracts::read_provider_effect_profiles(
+                Parser(flowcontracts::read_bounded(file, "provider-effect profiles")).parse());
+        }
+        return run(Parser(input_text).parse(), lowering_plan_version, provider_map, graph_plan_version,
+                   effect_profiles);
     }
     catch (const std::bad_alloc&) {
         if (structured_diagnostics) write_structured_failure("FLOWANALYST_RESOURCE_EXHAUSTED", "runtime", "allocation failed");

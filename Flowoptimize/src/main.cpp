@@ -63,6 +63,8 @@ int analyze(std::string_view input, const std::optional<flowcontracts::ProviderD
         plan.external_operations = semantic.external_operations; plan.abi_type_contracts = semantic.abi_type_contracts;
         plan.aggregate_abi_layouts = semantic.aggregate_abi_layouts;
         plan.effect_facts = semantic.effect_facts; plan.parallel_candidates = semantic.parallel_candidates;
+        plan.provider_effect_profiles = semantic.provider_effect_profiles;
+        plan.effect_access_facts = semantic.effect_access_facts;
         plan.lowering_plan = semantic.lowering_plan; plan.dependency_matrix = semantic.dependency_matrix;
         if (optional(object(plan.lowering_plan), "source_graph")) throw Error("$.input", "native graph requires Flowparallel scheduling");
         input_format = input_header.format;
@@ -90,6 +92,8 @@ int analyze(std::string_view input, const std::optional<flowcontracts::ProviderD
         {"abi_type_contracts", plan.abi_type_contracts}, {"external_operations", plan.external_operations},
         {"aggregate_abi_layouts", plan.aggregate_abi_layouts},
         {"effect_facts", plan.effect_facts}, {"format", text("flowoptimize.optimization_report")},
+        {"provider_effect_profiles", plan.provider_effect_profiles},
+        {"effect_access_facts", plan.effect_access_facts},
         {"input", Object{{"format", text(input_format)}, {"version", Integer{1}}}}, {"lowering_plan", plan.lowering_plan},
         {"message", text("optimization boundary reached; derived matrix views are available; provider selection remains runtime policy")},
         {"parallel_candidates", plan.parallel_candidates},

@@ -4,6 +4,7 @@
 #include <flowcontracts/binding_evidence.hpp>
 #include <flowcontracts/graph_provider_map.hpp>
 #include <flowcontracts/scheduling.hpp>
+#include <flowcontracts/effect_scheduling.hpp>
 #include <set>
 
 namespace flowcontracts {
@@ -19,6 +20,7 @@ struct SourceGraph {
     std::vector<SourceGraphNode> nodes;
     std::vector<SourceGraphWire> wires;
     json::Array policies, receivers, providers;
+    json::Array provider_effect_profiles, effect_access_facts;
 };
 
 // This contract preserves analysis evidence. It grants no provider authority and
@@ -162,6 +164,34 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
         } else if (kind != "string") throw Error(p, "unknown graph policy value kind");
         provenance(item, p);
     }
+    std::map<Integer, ProviderEffectProfile> effect_profiles;
+    if (const auto* values = optional(root, "provider_effect_profiles")) {
+        result.provider_effect_profiles = array(*values, path + ".provider_effect_profiles");
+        for (std::size_t index = 0; index < result.provider_effect_profiles.size(); ++index) {
+            const auto item_path = path + ".provider_effect_profiles[" + std::to_string(index) + "]";
+            auto profile = read_provider_effect_profile(result.provider_effect_profiles[index], item_path);
+            const auto refusal = provider_effect_profile_refusal(profile);
+            if (!refusal.empty()) throw Error(item_path, refusal);
+            if (!effect_profiles.emplace(profile.id, std::move(profile)).second)
+                throw Error(item_path, "duplicate provider-effect profile identity");
+        }
+    }
+    std::map<Integer, EffectAccessFact> effect_accesses;
+    if (const auto* values = optional(root, "effect_access_facts")) {
+        result.effect_access_facts = array(*values, path + ".effect_access_facts");
+        for (std::size_t index = 0; index < result.effect_access_facts.size(); ++index) {
+            const auto item_path = path + ".effect_access_facts[" + std::to_string(index) + "]";
+            auto access = read_effect_access(result.effect_access_facts[index], item_path);
+            const auto profile = effect_profiles.find(access.profile);
+            if (profile == effect_profiles.end()) throw Error(item_path, "effect-access profile is absent");
+            const auto refusal = effect_access_refusal(access, profile->second);
+            if (!refusal.empty()) throw Error(item_path, refusal);
+            if (!effect_accesses.emplace(access.operation, std::move(access)).second)
+                throw Error(item_path, "duplicate effect-access operation identity");
+        }
+    }
+    if (effect_profiles.empty() != effect_accesses.empty())
+        throw Error(path, "provider-effect profiles and effect-access facts must travel together");
     result.receivers = array(required(root, "receivers", path), path + ".receivers");
     std::set<std::string> receivers;
     std::map<std::string, std::pair<std::string, std::string>> types;
@@ -191,6 +221,28 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
             throw Error(p + ".input_type", "unsupported native receiver input carrier");
         if (!native_carrier(types[node].second))
             throw Error(p + ".output_type", "unsupported native receiver output carrier");
+        if (const auto* effect_value = optional(item, "execution_effect")) {
+            const auto effect_path = p + ".execution_effect";
+            const auto& effect = object(*effect_value, effect_path);
+            const auto kind = str(effect, "class", effect_path);
+            const auto& operation_values = array(required(effect, "operation_ids", effect_path), effect_path + ".operation_ids");
+            std::set<Integer> operation_ids;
+            for (const auto& operation_value : operation_values) {
+                const auto operation = integer(operation_value, effect_path + ".operation_ids[]");
+                if (operation < 0 || !operation_ids.insert(operation).second)
+                    throw Error(effect_path + ".operation_ids", "invalid or duplicate receiver operation identity");
+            }
+            if (kind == "bounded_concurrent_observation_v1") {
+                const auto access = read_effect_access(required(effect, "effect_access", effect_path), effect_path + ".effect_access");
+                const auto found = effect_accesses.find(access.operation);
+                if (found == effect_accesses.end() || serialize(effect_access_fact(found->second)) != serialize(effect_access_fact(access)) ||
+                    access.owner_function != integer(required(item, "function_symbol_id", p), p + ".function_symbol_id") ||
+                    access.activation != node || !operation_ids.count(access.operation))
+                    throw Error(effect_path, "receiver effect-access evidence differs from graph authority");
+            } else if (kind != "pure_v1" && kind != "unresolved" && kind != "unprofiled_effect") {
+                throw Error(effect_path + ".class", "unsupported receiver execution-effect class");
+            }
+        }
         provenance(item, p);
     }
     std::map<std::string, std::string> provider_types;

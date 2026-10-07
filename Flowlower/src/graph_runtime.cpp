@@ -150,6 +150,21 @@ extern "C" void flow_graph_parallel_result(std::int64_t activation_id, std::int6
         std::to_string(activation_id) + ",\"value\":" + std::to_string(value) + "}";
     record(record_value.c_str());
 }
+extern "C" void flow_graph_effect_enter(std::uint64_t operation, const char* context) {
+    active_operation = operation;
+    activation = context;
+    if (tracing()) record(context);
+}
+extern "C" void flow_graph_effect_result(const char* context, std::int64_t activation_id,
+                                           std::int64_t value) {
+    if (!tracing()) return;
+    const auto context_length = context ? ::strnlen(context, max_diagnostic_bytes + 1) : 0;
+    const auto safe_context = context && context_length <= max_diagnostic_bytes ? context : "null";
+    const auto record_value = std::string{"{\"format\":\"flowcore.graph_effect\",\"version\":1,\"event\":\"publish\",\"activation_id\":"} +
+        std::to_string(activation_id) + ",\"value\":" + std::to_string(value) +
+        ",\"effect_context\":" + safe_context + "}";
+    record(record_value.c_str());
+}
 extern "C" [[noreturn]] void flow_graph_fail(std::uint64_t operation, const char* reason) {
     // Both strings are compiler-serialized constants; no payload or raw pointer
     // is interpolated into the diagnostic. Failure never publishes an output.

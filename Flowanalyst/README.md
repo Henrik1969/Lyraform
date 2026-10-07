@@ -93,6 +93,21 @@ inspectable independence evidence only: it does not authorize scheduling or
 runtime concurrency. The `region_dependency` matrix remains a scope/symbol
 analysis graph and is not an operation dependency graph.
 
+The candidate is derived from ordinary source semantics; developers do not
+declare parallel or asynchronous execution. Later graph analysis and policy
+may schedule only the freedom this evidence proves. Runtime provider and
+calibration decisions cannot strengthen the semantic proof.
+
+For the first bounded effectful scheduling slice, `--effect-profiles PATH`
+accepts a reviewed `flowcore.provider_effect_profiles` version-1 artifact.
+Flowanalyst binds each profile to the complete provider capability tuple,
+including generated evidence, and emits canonical `effect_access_facts` only
+for matching external operations. A receiver is classified as
+`bounded_concurrent_observation_v1` only when its direct return is exactly one
+profiled, read-only, infallible by-value scalar observation. Unprofiled calls,
+mixed bodies, pointer or aggregate carriers, mutation, and unknown shapes do
+not acquire parallel authority.
+
 The independent consumer boundary is specified in
 [`docs/flowanalyst/v0.1-consumer-contract.md`](../docs/flowanalyst/v0.1-consumer-contract.md).
 

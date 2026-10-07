@@ -143,6 +143,14 @@ The compiler can see that `Parse` and `AuditRaw` may run independently after `Re
 
 It can also see that `Render` is a join point.
 
+This freedom is derived from graph structure and semantic effect evidence. The
+source developer does not mark operations `parallel` or `async`, select worker
+counts, or place work on a particular execution provider. Versioned policy may
+choose only among schedules proved legal by the graph, and runtime capability
+and calibration evidence determine whether a permitted parallel provider is
+feasible and worthwhile. Serial execution remains a projection of the same
+program meaning, not a different language mode.
+
 The programmer did not need to write threads, locks, or scheduling machinery. The legal execution space is exposed by the graph itself.
 
 ## Contracts make the graph safe

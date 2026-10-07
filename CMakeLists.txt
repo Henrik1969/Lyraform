@@ -908,9 +908,13 @@ add_test(NAME native_parallel_graph
         FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
         FLOWBIND_BIN=$<TARGET_FILE:flowbind>
         FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWPARALLEL_CPU_BIN=$<TARGET_FILE:flowparallel_cpu>
         FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
         FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
+        FLOWTINYVALIDATE_BIN=$<TARGET_FILE:flowtinyvalidate>
+        FLOWTINYRUN_BIN=$<TARGET_FILE:flowtinyrun>
         FLOWGRAPH_RUNTIME=$<TARGET_FILE:flowgraph_runtime>
         FLOWGRAPH_CXX=${CMAKE_CXX_COMPILER}
         "FLOWGRAPH_LINK_FLAGS=${CMAKE_CXX_FLAGS}"

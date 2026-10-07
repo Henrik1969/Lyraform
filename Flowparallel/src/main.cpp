@@ -97,6 +97,8 @@ int analyze(std::string_view input) {
                                        {"parallel_candidates", Integer{static_cast<Integer>(report.independent_candidate_count)}},
                                        {"pure_callables", Integer{static_cast<Integer>(report.proven_pure_count)}}, {"status", text("available")}}},
         {"effect_facts", report.effect_facts},
+        {"provider_effect_profiles", report.provider_effect_profiles},
+        {"effect_access_facts", report.effect_access_facts},
         {"external_operations", report.external_operations},
         {"fallback", Object{{"provider", text("cpu.serial")}, {"required", true}}},
         {"format", text("flowparallel.execution_plan")},

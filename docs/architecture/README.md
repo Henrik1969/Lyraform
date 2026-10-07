@@ -139,6 +139,9 @@ Foundational notes:
 - [ADR-0061: Legacy implementation is deprecated and oracle-only](decisions/0061-legacy-is-deprecated-oracle-only.md)
 - [ADR-0062: Typed failure consumers with policy-selected routing](decisions/0062-typed-failure-consumers-and-policy-routing.md)
 - [ADR-0063: Disposition evidence uses bounded epochs](decisions/0063-bounded-disposition-evidence-epochs.md)
+- [ADR-0064: Parallel opportunity is derived from the graph](decisions/0064-graph-derived-parallelism-and-policy-scheduling.md)
+- [Failure-flow semantic--syntax--graph projection map](failure-flow-semantic-syntax-graph-map.tex)
+- [Canonical executable failure flow — Mission 01](../tasks/canonical-executable-failure-flow-mission-01.md)
 - [Canonical language authority map v1](canonical-language-authority-map-v1.json)
 - [Frankencore implementation roadmap](FRANKENCORE-IMPLEMENTATION-ROADMAP.md)
 - [Frankencore hardening checkpoint — 2026-08-20](../checkpoints/2026-08-20-frankencore-hardening-status.md)
@@ -154,6 +157,11 @@ Foundational notes:
 `compiler-transformation-revision-model.md` contains binding stage laws and
 provisional implementation mechanisms. `prerequisites.md` contains a binding
 environment-contract rule with provisional syntax and taxonomy.
+
+Scheduling follows ADR 0064: canonical graph and effect facts establish
+dependencies and conflicts; policy and measured runtime feasibility select an
+execution strategy only within that proved freedom. Parallelism and
+asynchronous dispatch are not source-language features.
 
 ## Executable facade profiles
 

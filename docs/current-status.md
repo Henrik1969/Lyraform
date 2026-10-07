@@ -96,13 +96,29 @@ failure-envelope projection carrying the producer's obligation, attempt,
 commit, and provenance evidence rather than a naked payload. The accepted
 [response-transition decision](checkpoints/2026-09-27-failure-response-disposition-decision-brief.md)
 keeps the developer function ordinary and places transition meaning in a
-separate canonical contract. [ADR 0063](architecture/decisions/0063-bounded-disposition-evidence-epochs.md)
+separate canonical contract. The bounded
+[response-transition Gate 2](checkpoints/2026-10-07-canonical-failure-response-transition.md)
+implements that shared declarative authority for exact `recover` and
+`transform` transitions over every authorized consumer route. It closes an
+original obligation only through typed success or replaces it with a
+parent-linked typed failure while preserving origin commit and provenance
+laws. [ADR 0063](architecture/decisions/0063-bounded-disposition-evidence-epochs.md)
 requires evidence to remain live while an obligation depends on it, permits
 compaction only at proven closure boundaries, and forbids silent truncation at
-policy limits. These contracts deliberately carry no executable status:
-response-transition integration, source syntax, producer wiring, and runtime
-guard failure routing remain refused until later bounded missions establish and
-verify them.
+policy limits. The first
+[bounded serial executable failure-flow mission](tasks/canonical-executable-failure-flow-mission-01.md)
+now composes those still-declarative authorities into one separately versioned
+shared execution plan. One established `Failure<E>` envelope crosses one
+explicit typed wire to one exact policy-selected function identity; successful
+response completion emits an independently validated recovery or
+transformation receipt. Its [Gate 1 checkpoint](checkpoints/2026-10-07-canonical-executable-failure-flow.md)
+records the exact evidence and boundary. Source projection, compiler-plan integration, general
+graph behavior, LLVM/TinyVM execution, response-attempt failure, propagation,
+retry, sinks, and runtime guard failure routing remain refused.
+The provisional
+[semantic--syntax--graph projection map](architecture/failure-flow-semantic-syntax-graph-map.tex)
+places those unresolved source and graph choices beside the canonical facts
+without admitting a spelling or executable route.
 
 The Flowmini parser, `ModuleSpec`, and direct runtime are deprecated legacy.
 They remain available through `igor run-legacy` only as behavior and regression
@@ -127,13 +143,35 @@ Do not infer a checkout's registered test total from an older document.
 - explicit refusal, failure, and fault categories;
 - no dangling admitted failure or fault disposition;
 - canonical disposition facts preserved and validated across compiler stages;
+- one shared serial reference execution projection for an explicitly wired,
+  exact-identity expected-failure recovery or transformation;
 - bounded `Outcome<Text,TextFailure>` accounting with success-only payload use
   and exactly-once cleanup;
 - one uniform unique-ownership transfer law;
 - one executable direct-return projection, extended through at most one
   nullary forwarding owner, followed by complete local accounting at the entry
   caller;
+- compiler-derived pure-operation independence and deterministic graph waves,
+  with bounded native worker execution and TinyVM parity selected through an
+  external schedule policy rather than source syntax;
+- runtime provider planning that keeps capability discovery, calibration, and
+  minimum-benefit policy separate from semantic legality;
 - governed LLVM and TinyVM execution for the admitted slices.
+
+Parallelism is not a Lyraform source feature. Developers declare ordinary
+operations, wires, effects, resources, and ordering constraints. The compiler
+derives legal scheduling freedom from those facts; versioned policy chooses
+within that freedom; runtime capability and calibration determine feasibility.
+`async` likewise names a possible execution mechanism, not canonical language
+syntax. See [ADR 0064](architecture/decisions/0064-graph-derived-parallelism-and-policy-scheduling.md).
+The first bounded effectful scheduling stage is implemented by
+[General Effectful Parallel Scheduling — Mission 01](tasks/general-effectful-parallel-scheduling-mission-01.md).
+It admits only exact, generated-evidence-backed, read-only, infallible by-value
+scalar provider observations. Flowanalyst produces provider/access authority;
+shared contracts derive and validate resource-conflict waves; LLVM executes a
+joined native worker wave with deterministic publication; TinyVM executes the
+same schedule as its deterministic serial reference projection. This is not
+general effectful parallelism and introduces no source scheduling syntax.
 
 ## Explicitly unsupported
 
@@ -142,7 +180,14 @@ Do not infer a checkout's registered test total from an older document.
 - containers, recursion, and general path-sensitive outcome accounting;
 - runtime-dependent guard execution;
 - general propagation syntax and policy sinks;
-- general cancellation, async execution, backpressure, and effectful parallelism;
+- compiler/source/backend integration of the bounded serial failure-flow
+  reference projection;
+- operational cancellation and queue/backpressure contracts;
+- effectful parallel scheduling beyond the bounded concurrent scalar-
+  observation family, including mutation, fallible effects, aliasing,
+  irreversible commits, and partial-failure recovery;
+- asynchronous provider dispatch where it requires cancellation, suspension,
+  delivery, or queue behavior not yet represented by admitted contracts;
 - arbitrary native ABI/FFI;
 - safety certification or production use.
 

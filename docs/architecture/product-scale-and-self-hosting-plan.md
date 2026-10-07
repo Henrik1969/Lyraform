@@ -96,7 +96,8 @@ At minimum examine:
 - ownership, borrowing/observation, lifetimes and resource cleanup;
 - functions, closures/callbacks and interface/trait-style contracts;
 - bounded iteration, iterators and graph/stream processing;
-- concurrency, cancellation, async I/O and scheduler-visible effects;
+- effect/resource identities, ordering constraints, cancellation, delivery,
+  and queue semantics needed to derive safe execution schedules;
 - stable serialization, hashing, paths, time and numeric facilities;
 - reflection or generated metadata needed by tooling, without unrestricted
   runtime semantic mutation.
@@ -140,12 +141,15 @@ allocation without removing these capabilities from the language.
 **Exit:** no product or compiler feature needs an untyped pointer escape to
 express its ordinary ownership and cleanup behavior.
 
-## Gate 4 — effect, failure and concurrency closure
+## Gate 4 — effect, failure and scheduling closure
 
 - Make outcome edges and final dispositions explicit and checkable.
 - Model filesystem, process, network, UI, clock, randomness and device effects.
-- Define task, channel, stream, cancellation and join contracts in Graph IR.
-- Keep scheduling policy separate from graph meaning and activation semantics.
+- Define operation, effect/resource, stream, cancellation, delivery and join
+  contracts needed for Graph IR to derive dependencies and conflicts.
+- Keep serial, parallel, accelerator and asynchronous-dispatch policy separate
+  from graph meaning and activation semantics; do not add source scheduling
+  syntax.
 - Support deterministic reference scheduling for tests.
 - Prove race/resource-conflict refusal before parallel placement.
 - Carry diagnostic versus operational payload identity.

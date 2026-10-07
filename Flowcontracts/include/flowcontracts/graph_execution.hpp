@@ -193,6 +193,40 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
         }
     }
     if (schedule_policy == "parallel_independent_v1") {
+        std::vector<EffectAccessFact> effect_accesses;
+        for (const auto& receiver_value : graph.receivers) {
+            const auto& receiver = object(receiver_value, "$.source_graph.receivers[]");
+            const auto* raw_effect = optional(receiver, "execution_effect");
+            if (!raw_effect)
+                throw Error("$.graph_schedule", "parallel receiver lacks canonical execution-effect authority");
+            const auto& effect = object(*raw_effect, "$.source_graph.receivers[].execution_effect");
+            const auto effect_class = string(required(effect, "class", "$.source_graph.receivers[].execution_effect"),
+                                             "$.source_graph.receivers[].execution_effect.class");
+            if (effect_class == "pure_v1") continue;
+            if (effect_class == "unresolved" && graph.effect_access_facts.empty()) continue;
+            if (effect_class != "bounded_concurrent_observation_v1")
+                throw Error("$.graph_schedule", "parallel receiver '" +
+                    string(required(receiver, "node_id", "$.source_graph.receivers[]"),
+                           "$.source_graph.receivers[].node_id") +
+                    "' effect is unresolved or outside the admitted slice: " + serialize(effect));
+            effect_accesses.push_back(read_effect_access(
+                required(effect, "effect_access", "$.source_graph.receivers[].execution_effect"),
+                "$.source_graph.receivers[].execution_effect.effect_access"));
+        }
+        if (!effect_accesses.empty() && effect_accesses.size() < 2)
+            throw Error("$.graph_schedule", "effectful parallel scheduling requires at least two concurrent observations");
+        std::sort(effect_accesses.begin(), effect_accesses.end(), [](const auto& left, const auto& right) {
+            return left.operation < right.operation;
+        });
+        std::vector<EffectConflictFact> effect_conflicts;
+        for (std::size_t left = 0; left < effect_accesses.size(); ++left)
+            for (std::size_t right = left + 1; right < effect_accesses.size(); ++right) {
+                EffectConflictFact conflict{effect_accesses[left].operation, effect_accesses[right].operation,
+                                            "independent", "concurrent_observation_v1", "none"};
+                const auto refusal = effect_conflict_refusal(conflict, effect_accesses[left], effect_accesses[right]);
+                if (!refusal.empty()) throw Error("$.graph_schedule", refusal);
+                effect_conflicts.push_back(std::move(conflict));
+            }
         std::map<Integer, Array> waves;
         std::map<Integer, Integer> levels;
         for (const auto& step : steps) {
@@ -205,9 +239,30 @@ inline json::Value graph_schedule(const json::Value& graph_value) {
         Array parallel_waves;
         for (const auto& [level, activations] : waves)
             parallel_waves.emplace_back(Object{{"activation_ids", activations}, {"level", level}, {"status", "independent"}});
-        return Object{{"format", "flowcore.graph_schedule"}, {"version", Integer{4}},
+        Object result{{"format", "flowcore.graph_schedule"},
+            {"version", effect_accesses.empty() ? Integer{4} : Integer{6}},
             {"policy", "parallel_independent_v1"}, {"activation_contract", "fresh_single_input_v1"},
-            {"parallel_contract", "dependency_waves_v1"}, {"parallel_waves", parallel_waves}, {"steps", steps}};
+            {"parallel_contract", effect_accesses.empty() ? "dependency_waves_v1" : "effect_conflict_waves_v1"},
+            {"parallel_waves", parallel_waves}, {"steps", steps}};
+        if (!effect_accesses.empty()) {
+            Array accesses, conflicts, operations;
+            for (const auto& access : effect_accesses) {
+                accesses.emplace_back(effect_access_fact(access));
+                operations.emplace_back(access.operation);
+            }
+            for (const auto& conflict : effect_conflicts)
+                conflicts.emplace_back(effect_conflict_fact(conflict));
+            EffectScheduleFact schedule{"flowcore.source_graph:v2", "parallel_independent_v1",
+                                        "deterministic_activation_order_v1", "publish_after_wave_join_v1",
+                                        "no_partial_wave_publication_v1", {}};
+            for (const auto& access : effect_accesses) schedule.operations.push_back(access.operation);
+            const auto refusal = effect_schedule_refusal(schedule, effect_accesses, effect_conflicts);
+            if (!refusal.empty()) throw Error("$.graph_schedule", refusal);
+            result.emplace("effect_access_facts", std::move(accesses));
+            result.emplace("effect_conflict_facts", std::move(conflicts));
+            result.emplace("effect_schedule", effect_schedule_fact(schedule));
+        }
+        return result;
     }
     if (persistent) {
         Array state_steps;

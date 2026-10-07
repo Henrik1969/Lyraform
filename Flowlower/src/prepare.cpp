@@ -122,6 +122,10 @@ int prepare(const Options& option) {
         if (const auto* facts = optional(root, "effect_facts")) output.emplace("effect_facts", *facts);
         if (const auto* candidates = optional(root, "parallel_candidates")) output.emplace("parallel_candidates", *candidates);
     }
+    if (const auto* profiles = optional(root, "provider_effect_profiles"))
+        output.emplace("provider_effect_profiles", *profiles);
+    if (const auto* accesses = optional(root, "effect_access_facts"))
+        output.emplace("effect_access_facts", *accesses);
     // Lowering-plan v2 carries the canonical authority envelope exactly.  An
     // empty layout set is still an asserted fact and must not disappear at
     // the backend boundary.  Keep the v1 omission behaviour for compatibility

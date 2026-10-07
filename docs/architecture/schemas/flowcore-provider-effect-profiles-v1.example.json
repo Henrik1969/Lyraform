@@ -1,0 +1,27 @@
+{
+  "format": "flowcore.provider_effect_profiles",
+  "version": 1,
+  "status": "declarative",
+  "profiles": [
+    {
+      "format": "flowcore.provider_effect_profile",
+      "version": 1,
+      "status": "declarative",
+      "profile_id": 0,
+      "capability": {
+        "contract": "observation",
+        "library": "libobservation.so",
+        "symbol": "observe_left",
+        "convention": "c",
+        "effect": "readonly",
+        "parameter_types": "c_int",
+        "return_type": "c_int",
+        "evidence": "flowcore.generated_binding.v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "resource_domain": "fixture:left",
+      "access": "observe",
+      "concurrency": "concurrent_observation_v1",
+      "failure": "infallible_scalar_v1"
+    }
+  ]
+}

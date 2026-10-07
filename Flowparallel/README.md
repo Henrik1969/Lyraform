@@ -24,6 +24,13 @@ alone does not prove purity, absence of mutation, ordering freedom, or safe
 external effects. The CPU execution API accepts only this explicitly approved
 task boundary; all other work remains serial or deferred.
 
+Lyraform source does not request parallelism or `async` execution. Flowanalyst
+and graph planning derive legal scheduling freedom from canonical operations,
+dependencies, effects, and resource identities. Versioned deployment policy
+selects only within that freedom; Flowparallel then uses runtime capability and
+calibration evidence to decide whether an authorized provider is feasible and
+worth using.
+
 Provider selection is deferred to runtime policy. A deployment may eventually
 ship the plan with a Frankencore runtime/JIT layer that discovers local CPU,
 memory, and CUDA capabilities, then selects a permitted strategy without
@@ -124,6 +131,15 @@ scheduling-control admission as execution plans. The bounded
 `parallel_independent_v1` policy is admitted where the graph contract version
 supports it; stronger or unknown controls are rejected during independent
 artifact validation and cannot be hidden inside a provider selection.
+
+Effect-aware graph schedule version 6 adds the
+`effect_conflict_waves_v1` contract. It carries the exact provider profiles,
+operation access facts, pairwise conflict proofs, deterministic serial
+projection, and `publish_after_wave_join_v1` disposition established by shared
+semantic authority. Flowparallel preserves and revalidates these facts; it
+does not derive provider concurrency from topology, availability, or measured
+speed. The initial executable family is limited to two or more fresh receiver
+activations, each performing one exact profiled scalar observation.
 
 ## Host GPU execution gate
 

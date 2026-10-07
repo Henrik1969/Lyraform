@@ -1,6 +1,7 @@
 #include <flowcontracts/validate.hpp>
 #include <flowcontracts/bounded_input.hpp>
 #include <flowcontracts/diagnostics.hpp>
+#include <flowcontracts/effect_scheduling.hpp>
 extern "C" {
 #include <tinyvm/isa_v1.h>
 }
@@ -202,6 +203,21 @@ private:
         }
         return false;
     }
+    bool bounded_observation_provider(const Object& provider) const {
+        const auto* raw_profiles = optional(root_, "provider_effect_profiles");
+        const auto* raw_accesses = optional(root_, "effect_access_facts");
+        if (!raw_profiles || !raw_accesses) return false;
+        const auto identity = capability_identity(provider, "$.provider");
+        (void)array(*raw_profiles, "$.provider_effect_profiles");
+        for (const auto& value : array(*raw_accesses, "$.effect_access_facts")) {
+            const auto access = read_effect_access(value, "$.effect_access_facts[]");
+            if (access.capability == identity &&
+                access.effect == "readonly" && access.access == "observe" &&
+                access.concurrency == "concurrent_observation_v1")
+                return true;
+        }
+        return false;
+    }
     std::size_t invoke_graph_callable(Integer function_id, const std::vector<std::size_t>& inputs) {
         if (!callables_.contains(function_id) || !callables_.at(function_id).available)
             throw Unsupported("graph receiver function definition is unavailable");
@@ -300,9 +316,12 @@ private:
         }
         const auto schedule_policy = string(required(schedule, "policy", "$.graph_schedule"), "$.graph_schedule.policy");
         if (schedule_policy == "parallel_independent_v1") {
-            if (schedule_version != 4 || string(required(schedule, "parallel_contract", "$.graph_schedule"), "$.graph_schedule.parallel_contract") != "dependency_waves_v1")
-                throw Unsupported("TinyVM parallel graph requires dependency-wave schedule v4");
-            if (!parallel_graph_is_pure(receivers))
+            const auto parallel_contract = string(required(schedule, "parallel_contract", "$.graph_schedule"), "$.graph_schedule.parallel_contract");
+            if ((schedule_version != 4 && schedule_version != 6) ||
+                (schedule_version == 4 && parallel_contract != "dependency_waves_v1") ||
+                (schedule_version == 6 && parallel_contract != "effect_conflict_waves_v1"))
+                throw Unsupported("TinyVM parallel graph requires an admitted dependency/effect wave schedule");
+            if (schedule_version == 4 && !parallel_graph_is_pure(receivers))
                 throw Unsupported("TinyVM parallel graph requires pure receiver activations");
         } else if (schedule_policy != "fifo_per_root_source_order_v1") {
             throw Unsupported("TinyVM graph lowering currently requires FIFO graph scheduling");
@@ -408,7 +427,7 @@ private:
             if (values.empty()) throw Unsupported("TinyVM persistent graph schedule has no activations");
             return;
         }
-        if (schedule_version != 1 && schedule_version != 4)
+        if (schedule_version != 1 && schedule_version != 4 && schedule_version != 6)
             throw Unsupported("TinyVM graph lowering currently requires the serial fresh-activation schedule");
         std::map<Integer, std::size_t> values;
         for (const auto& value : required_array(schedule, "steps", "$.graph_schedule")) {
@@ -606,7 +625,8 @@ private:
             const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
             const bool aggregate_result = aggregate_types_.count(result_type) != 0;
             const bool aggregate_parameter = parameters.find(',') == std::string::npos && aggregate_types_.count(parameters) != 0;
-            const bool admitted = (symbol == "abs" && parameters == "c_int" && result_type == "c_int") ||
+            const bool bounded_observation = bounded_observation_provider(provider);
+            const bool admitted = bounded_observation || (symbol == "abs" && parameters == "c_int" && result_type == "c_int") ||
                                   (symbol == "labs" && parameters == "c_long" && result_type == "c_long") ||
                                   (symbol == "strlen" && parameters == "c_string" && result_type == "c_size_t") ||
                                   (symbol == "strnlen" && parameters == "c_string,c_size_t" && result_type == "c_size_t") ||
@@ -628,21 +648,22 @@ private:
                                   ((symbol == "getpid" || symbol == "getuid" || symbol == "getgid" || symbol == "geteuid" || symbol == "getegid" || symbol == "getppid" || symbol == "getpgrp") && parameters.empty() && result_type == "c_int") ||
                                   (effect == "readonly" && ((parameters.empty() && result_type == "c_size_t") || (parameters == "c_size_t" && result_type == "c_int"))) ||
                                   ((aggregate_result && ((parameters.empty() && (effect == "pure" || effect == "io")) || (effect == "readonly" && parameters == "c_size_t"))) || (aggregate_parameter && result_type == "c_int"));
-            const bool authority = ((effect == "pure" || effect == "io") && (contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io")) ||
+            const bool authority = bounded_observation || ((effect == "pure" || effect == "io") && (contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io")) ||
                                    (effect == "memory" && contract == "text_runtime") ||
                                    (effect == "readonly" && (contract == "kernel" || contract == "linux")) ||
                                    (contract == "stream" && effect == "readonly") ||
                                    (effect == "readonly" && parameters.empty() && result_type == "c_size_t") ||
                                    ((aggregate_result && ((effect == "pure" || effect == "io") || (effect == "readonly" && parameters == "c_size_t"))) || (aggregate_parameter && (effect == "pure" || effect == "io")));
             const auto library = string(required(provider, "library", "$.operation.provider"), "$.operation.provider.library");
-            const bool library_admitted = ((contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
+            const bool library_admitted = bounded_observation || ((contract == "libc" || contract == "memory" || contract == "ctype" || contract == "file_io" || contract == "kernel" || contract == "linux") && library == "libc.so.6") ||
                                           (contract == "text_runtime" && library == "libflowtext.so") ||
                                           (contract == "stream" && !library.empty()) ||
                                           (effect == "readonly" && parameters.empty() && result_type == "c_size_t" && !library.empty()) ||
                                           ((aggregate_result || aggregate_parameter) && !library.empty());
             if (!admitted || !authority || !library_admitted ||
                 string(required(provider, "convention", "$.operation.provider"), "$.operation.provider.convention") != "c")
-                throw Unsupported("external provider tuple is not admitted by the typed-call slice");
+                throw Unsupported("external provider tuple is not admitted by the typed-call slice: " + symbol +
+                                  (bounded_observation ? " (profiled observation)" : " (no bounded observation authority)"));
             std::vector<std::uint32_t> expected; for (std::size_t start = 0; start < parameters.size();) { const auto end = parameters.find(',', start); expected.push_back(carrier(parameters.substr(start, end == std::string::npos ? parameters.size() - start : end - start))); if (end == std::string::npos) break; start = end + 1; }
             std::vector<std::size_t> values; for (std::size_t index = 0; index < operands.size(); ++index) { auto value = expression(operands[index]); if (index >= expected.size()) throw Unsupported("provider argument count mismatch"); if (slot_types_.at(value) != expected[index]) { const auto converted = slot(); slot_types_[converted] = expected[index]; emit(TV1_CONVERT, converted, value, expected[index]); value = converted; } values.push_back(value); }
             const auto argument_start = slot();
@@ -652,7 +673,7 @@ private:
             auto field = [&](char output[64], std::string_view name) { copy(output, string(required(provider, name, "$.operation.provider"), "$.operation.provider." + std::string(name))); };
             field(imported.contract,"contract"); field(imported.library,"library"); field(imported.convention,"convention"); field(imported.symbol,"symbol"); field(imported.effect,"effect"); field(imported.parameters,"parameter_types"); field(imported.result,"return_type");
             if (!imported.parameters[0]) copy(imported.parameters, "none");
-            copy(imported.evidence, identity("authorization-", serialize(provider))); imports.push_back(imported);
+            copy(imported.evidence, identity(bounded_observation ? "bounded-observation-v1-" : "authorization-", serialize(provider))); imports.push_back(imported);
             const auto* result_identity = optional(operation, "result_symbol_id");
             const auto destination = result_identity ? symbol_slot(integer(*result_identity, "$.operation.result_symbol_id")) : slot();
             slot_types_[destination] = carrier(result_type);

@@ -7,6 +7,7 @@
 #include <flowcontracts/binding_evidence.hpp>
 #include <flowcontracts/scalar_facts.hpp>
 #include <flowcontracts/source_operation_coverage.hpp>
+#include <flowcontracts/effect_scheduling.hpp>
 
 #include <functional>
 #include <iterator>
@@ -37,9 +38,67 @@ struct MatrixView { std::string name; json::Integer rows = 0; json::Integer colu
 struct SemanticReport {
     Header artifact; std::string source_path; json::Array targets; json::Array external_operations;
     json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Array effect_facts;
+    json::Array provider_effect_profiles; json::Array effect_access_facts;
     json::Array parallel_candidates; json::Value lowering_plan; std::size_t proven_pure_count = 0;
     std::size_t independent_candidate_count = 0; MatrixView dependency_matrix;
 };
+
+inline void validate_effect_access_authority(const json::Object& root,
+                                             std::string_view path = "$") {
+    const auto* raw_profiles = json::optional(root, "provider_effect_profiles");
+    const auto* raw_accesses = json::optional(root, "effect_access_facts");
+    if (!raw_profiles && !raw_accesses) return;
+    if (!raw_profiles || !raw_accesses)
+        throw json::Error(std::string(path), "provider-effect profiles and effect-access facts must travel together");
+    const auto& profiles = json::array(*raw_profiles, std::string(path) + ".provider_effect_profiles");
+    const auto& accesses = json::array(*raw_accesses, std::string(path) + ".effect_access_facts");
+    std::map<json::Integer, ProviderEffectProfile> by_id;
+    std::set<std::string> profile_capabilities;
+    for (std::size_t index = 0; index < profiles.size(); ++index) {
+        const auto item_path = std::string(path) + ".provider_effect_profiles[" + std::to_string(index) + "]";
+        auto profile = read_provider_effect_profile(profiles[index], item_path);
+        const auto refusal = provider_effect_profile_refusal(profile);
+        if (!refusal.empty()) throw json::Error(item_path, refusal);
+        const auto identity = capability_identity(profile.capability, item_path + ".capability");
+        if (!by_id.emplace(profile.id, profile).second || !profile_capabilities.insert(identity).second)
+            throw json::Error(item_path, "duplicate provider-effect profile identity or capability");
+    }
+    std::set<json::Integer> operations;
+    std::set<std::string> accessed_capabilities;
+    const auto& plan = json::object(json::required(root, "lowering_plan", path),
+                                    std::string(path) + ".lowering_plan");
+    const auto& lowering_operations = json::array(
+        json::required(plan, "operations", std::string(path) + ".lowering_plan"),
+        std::string(path) + ".lowering_plan.operations");
+    for (std::size_t index = 0; index < accesses.size(); ++index) {
+        const auto item_path = std::string(path) + ".effect_access_facts[" + std::to_string(index) + "]";
+        const auto access = read_effect_access(accesses[index], item_path);
+        const auto found = by_id.find(access.profile);
+        if (found == by_id.end()) throw json::Error(item_path, "effect-access profile is absent");
+        const auto refusal = effect_access_refusal(access, found->second);
+        if (!refusal.empty()) throw json::Error(item_path, refusal);
+        if (!operations.insert(access.operation).second)
+            throw json::Error(item_path + ".operation_id", "duplicate effect-access operation identity");
+        if (access.operation >= static_cast<json::Integer>(lowering_operations.size()))
+            throw json::Error(item_path + ".operation_id", "effect-access operation is absent");
+        const auto operation_path = std::string(path) + ".lowering_plan.operations[" +
+                                    std::to_string(access.operation) + "]";
+        const auto& operation = json::object(lowering_operations[static_cast<std::size_t>(access.operation)],
+                                             operation_path);
+        if (json::integer(json::required(operation, "id", operation_path), operation_path + ".id") != access.operation ||
+            json::string(json::required(operation, "kind", operation_path), operation_path + ".kind") != "external_call" ||
+            json::integer(json::required(operation, "function_symbol_id", operation_path), operation_path + ".function_symbol_id") != access.owner_function)
+            throw json::Error(item_path, "effect-access identity differs from lowering operation");
+        const auto& provider = json::object(json::required(operation, "provider", operation_path),
+                                            operation_path + ".provider");
+        if (capability_identity(provider, operation_path + ".provider") != access.capability)
+            throw json::Error(item_path, "effect-access capability differs from lowering operation provider");
+        accessed_capabilities.insert(access.capability);
+    }
+    if (profile_capabilities != accessed_capabilities)
+        throw json::Error(std::string(path) + ".provider_effect_profiles",
+                          "provider-effect profiles do not exactly match proven effect accesses");
+}
 
 inline const json::Object& required_object(const json::Object& parent, std::string_view key, std::string_view path = "$") {
     return json::object(json::required(parent, key, path), std::string(path) + "." + std::string(key));
@@ -653,6 +712,11 @@ inline SemanticReport semantic_report(const json::Value& value) {
     const auto plan_version = json::integer(json::required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version");
     if (plan_version != 1 && plan_version != 2) throw json::Error("$.lowering_plan.version", "unsupported lowering plan version");
     result.effect_facts = required_array(root, "effect_facts");
+    validate_effect_access_authority(root);
+    if (const auto* profiles = json::optional(root, "provider_effect_profiles"))
+        result.provider_effect_profiles = json::array(*profiles, "$.provider_effect_profiles");
+    if (const auto* accesses = json::optional(root, "effect_access_facts"))
+        result.effect_access_facts = json::array(*accesses, "$.effect_access_facts");
     for (const auto& item : result.effect_facts) {
         const auto& fact = json::object(item, "$.effect_facts[]");
         if (const auto* certainty = json::optional(fact, "certainty")) if (json::string(*certainty, "$.effect_facts[].certainty") == "proven") ++result.proven_pure_count;
@@ -675,6 +739,7 @@ inline json::Value matrix_entries(const MatrixView& matrix) {
 struct ExecutionPlan {
     Header artifact; std::string source_path; json::Array targets; json::Array external_operations;
     json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Array effect_facts;
+    json::Array provider_effect_profiles; json::Array effect_access_facts;
     json::Array parallel_candidates; json::Value lowering_plan; json::Value graph_schedule; MatrixView dependency_matrix;
 };
 
@@ -757,6 +822,11 @@ inline ExecutionPlan execution_plan(const json::Value& value) {
         if (const auto* facts = json::optional(root, "effect_facts")) result.effect_facts = json::array(*facts, "$.effect_facts");
         if (const auto* candidates = json::optional(root, "parallel_candidates")) result.parallel_candidates = json::array(*candidates, "$.parallel_candidates");
     }
+    validate_effect_access_authority(root);
+    if (const auto* profiles = json::optional(root, "provider_effect_profiles"))
+        result.provider_effect_profiles = json::array(*profiles, "$.provider_effect_profiles");
+    if (const auto* accesses = json::optional(root, "effect_access_facts"))
+        result.effect_access_facts = json::array(*accesses, "$.effect_access_facts");
     result.dependency_matrix = execution_matrix(root);
     return result;
 }

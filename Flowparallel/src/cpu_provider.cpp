@@ -89,7 +89,8 @@ int resolve(const std::string& plan, const Options& options) {
     throw std::bad_alloc();
 #endif
     using namespace flowcontracts::json;
-    const auto root = object(flowcontracts::json::parse(plan));
+    const auto parsed_plan = flowcontracts::json::parse(plan);
+    const auto root = object(parsed_plan);
     if (string(required(root, "format"), "$.format") != "flowparallel.execution_plan")
         throw Error("$.format", "input is not a Flowparallel execution plan");
     if (integer(required(root, "version"), "$.version") != 1)
@@ -107,6 +108,14 @@ int resolve(const std::string& plan, const Options& options) {
         const auto value = integer(*item, "$.dependency_analysis.parallel_candidates");
         if (value < 0) throw Error("$.dependency_analysis.parallel_candidates", "must not be negative");
         candidates = static_cast<std::uint64_t>(value);
+    }
+    if (optional(root, "graph_schedule")) {
+        const auto execution = flowcontracts::execution_plan(parsed_plan);
+        const auto& schedule = object(execution.graph_schedule, "$.graph_schedule");
+        if (integer(required(schedule, "version", "$.graph_schedule"), "$.graph_schedule.version") == 6) {
+            const auto effect_candidates = execution.effect_access_facts.size();
+            if (effect_candidates > candidates) candidates = effect_candidates;
+        }
     }
     const long local_processors = sysconf(_SC_NPROCESSORS_ONLN);
     const unsigned available = local_processors > 0 ? static_cast<unsigned>(local_processors) : 1;

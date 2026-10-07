@@ -6,18 +6,21 @@ aggregate payload checkpoint (2026-09-13).
 ## v0.33 bounded schedule contract
 
 `flowcore.graph_provider_map` v3 may select
-`schedule_policy: "parallel_independent_v1"`. The policy is explicit input;
-it is never inferred from an implementation name, a node name, or a provider
-effect. It currently applies only to executable, acyclic, fresh-receiver
-graphs. Streams and persistent receivers remain separate schedule families.
+`schedule_policy: "parallel_independent_v1"`. This is an external, versioned
+deployment-policy input, not Lyraform source syntax and not a developer claim
+that operations are independent. The legal dependency waves are derived from
+the canonical graph. Policy may select them, but cannot create or remove their
+dependencies. The policy is never inferred from an implementation name, a node
+name, or a provider effect. It currently applies only to executable, acyclic,
+fresh-receiver graphs. Streams and persistent receivers remain separate
+schedule families.
 
 Flowparallel publishes the ordinary topological activation list together with
 `parallel_waves`. A wave contains activation identities whose input dependency
 belongs to an earlier wave, so no activation in a wave consumes another
 activation in that same wave. Wave order and activation identities remain
-deterministic even though a future worker runtime may dispatch a wave
-concurrently. Fan-out retains one source output signal and distinct delivery
-identities.
+deterministic when the worker runtime dispatches a wave concurrently. Fan-out
+retains one source output signal and distinct delivery identities.
 
 ## v0.34 bounded worker runtime
 

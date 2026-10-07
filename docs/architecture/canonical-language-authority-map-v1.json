@@ -251,7 +251,14 @@
       "from": "operation_disposition",
       "to": "general_function_and_graph_boundaries",
       "state": "declarative_consumer_only",
-      "risk": "typed envelope consumers and policy-selected function identities are declarative; response-transition execution, propagation, retry, policy-sink, and fault-containment integration remain refused"
+      "risk": "the bounded shared serial reference executor is not yet projected from source or integrated into compiler plans/backends; propagation, retry, policy-sink, response-attempt failure, and fault-containment integration remain refused"
+    },
+    {
+      "id": "bounded_serial_failure_flow_bridge",
+      "from": "declared_failure_producer_and_route_authority",
+      "to": "shared_reference_execution_receipt",
+      "state": "exact_serial_reference_execution",
+      "risk": "one explicit recover or transform route only; no source projection, compiler/backend integration, retry, sink, fault, mutation, or parallel execution"
     }
   ],
   "forbidden_during_freeze": [
