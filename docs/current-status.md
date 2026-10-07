@@ -112,9 +112,30 @@ shared execution plan. One established `Failure<E>` envelope crosses one
 explicit typed wire to one exact policy-selected function identity; successful
 response completion emits an independently validated recovery or
 transformation receipt. Its [Gate 1 checkpoint](checkpoints/2026-10-07-canonical-executable-failure-flow.md)
-records the exact evidence and boundary. Source projection, compiler-plan integration, general
+records the exact evidence and boundary. Mission 02 extends the same reference
+execution law to a finite producer failure set: producer and consumer closed
+sets must match, every type receives one explicit wire and one exact
+policy-selected route, and a concrete envelope can dispatch only through that
+prevalidated identity. Its
+[Gate 2 checkpoint](checkpoints/2026-10-07-canonical-failure-flow-closed-set.md)
+records complete coverage and hostile evidence. Source projection,
+compiler-plan integration, general
 graph behavior, LLVM/TinyVM execution, response-attempt failure, propagation,
 retry, sinks, and runtime guard failure routing remain refused.
+Mission 03 additionally admits one fixed serial `transform -> recover`
+reference chain. Its explicit handoff binds the transforming transition to the
+successor plan's disposition, operation, type, obligation, payload,
+correlation, commit evidence, and provenance; arbitrary-depth propagation and
+retention-policy formats remain absent. The
+[Gate 3 checkpoint](checkpoints/2026-10-07-canonical-failure-flow-chain.md)
+records its execution and hostile evidence.
+Mission 04 closes one bounded response-attempt failure path. A recovering
+response may itself produce one declared expected failure with a distinct
+obligation while the original remains open. One exact recovery plan may rejoin
+only with the original promised result type; faults, undeclared host escapes,
+recursive response failure, and inferred rejoin remain refused. Its
+[Gate 4 checkpoint](checkpoints/2026-10-07-canonical-response-attempt-failure.md)
+records the executable and hostile evidence.
 The provisional
 [semantic--syntax--graph projection map](architecture/failure-flow-semantic-syntax-graph-map.tex)
 places those unresolved source and graph choices beside the canonical facts
@@ -144,7 +165,9 @@ Do not infer a checkout's registered test total from an older document.
 - no dangling admitted failure or fault disposition;
 - canonical disposition facts preserved and validated across compiler stages;
 - one shared serial reference execution projection for an explicitly wired,
-  exact-identity expected-failure recovery or transformation;
+  exact-identity expected-failure recovery or transformation, including
+  complete finite closed-set routing and one fixed transform-to-recovery
+  successor chain;
 - bounded `Outcome<Text,TextFailure>` accounting with success-only payload use
   and exactly-once cleanup;
 - one uniform unique-ownership transfer law;

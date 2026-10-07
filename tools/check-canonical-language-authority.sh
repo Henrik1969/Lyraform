@@ -79,7 +79,7 @@ jq -e '
   any(.known_bridges[]; .id == "general_failure_routing_gap" and
     .state == "declarative_consumer_only") and
   any(.known_bridges[]; .id == "bounded_serial_failure_flow_bridge" and
-    .state == "exact_serial_reference_execution") and
+    .state == "finite_closed_set_two_stage_and_response_failure_reference_execution") and
   (.forbidden_during_freeze | index("new_syntax")) != null and
   (.forbidden_during_freeze | index("new_language_semantics")) != null and
   (.forbidden_during_freeze | index("self_hosting")) != null
@@ -159,6 +159,24 @@ grep -Fq 'callables.find(route.function)' "$root/Flowcontracts/include/flowcontr
     fail 'bounded failure-flow execution no longer dispatches by exact function identity'
 grep -Fq 'failure_flow_receipt_refusal(receipt, plan, envelope)' "$root/Flowcontracts/include/flowcontracts/failure_flow_execution.hpp" ||
     fail 'bounded failure-flow execution no longer validates its completion receipt'
+grep -Fq '"serial_closed_failure_set_v1"' "$root/Flowcontracts/include/flowcontracts/failure_flow_closed_set.hpp" ||
+    fail 'closed-set serial failure-flow authority is missing'
+grep -Fq 'consumer_types != failure_types' "$root/Flowcontracts/include/flowcontracts/failure_flow_closed_set.hpp" ||
+    fail 'producer and consumer failure closed sets are no longer required to match'
+grep -Fq 'plan.selections.size() != plan.producer.failure_types.size()' "$root/Flowcontracts/include/flowcontracts/failure_flow_closed_set.hpp" ||
+    fail 'closed-set failure flow no longer requires one policy selection per type'
+grep -Fq '"serial_transform_then_recover_v1"' "$root/Flowcontracts/include/flowcontracts/failure_flow_chain.hpp" ||
+    fail 'bounded transform-to-recovery chain authority is missing'
+grep -Fq 'receipt.recovered.original_obligation !=' "$root/Flowcontracts/include/flowcontracts/failure_flow_chain.hpp" ||
+    fail 'failure-flow chain no longer proves successor-obligation closure'
+grep -Fq '"serial_response_failure_recovery_v1"' "$root/Flowcontracts/include/flowcontracts/failure_response_attempt.hpp" ||
+    fail 'bounded response-attempt failure authority is missing'
+grep -Fq '"remain_open_until_rejoin"' "$root/Flowcontracts/include/flowcontracts/failure_response_attempt.hpp" ||
+    fail 'response-attempt failure no longer preserves the original obligation'
+grep -Fq 'response_failure_obligation == origin.obligation' "$root/Flowcontracts/include/flowcontracts/failure_response_attempt.hpp" ||
+    fail 'response-attempt failure no longer requires a distinct obligation'
+grep -Fq '"recovered_payload_resumes_original_transition"' "$root/Flowcontracts/include/flowcontracts/failure_response_attempt.hpp" ||
+    fail 'response-attempt recovery no longer requires an explicit typed rejoin'
 grep -Fq 'Status: accepted architectural law' "$root/docs/architecture/decisions/0063-bounded-disposition-evidence-epochs.md" ||
     fail 'bounded evidence-epoch law is missing or no longer accepted'
 grep -Fq 'LLVM/TinyVM continue to refuse all member targets' "$root/docs/checkpoints/2026-09-19-v1-bounded-local-member-assignability.md" ||

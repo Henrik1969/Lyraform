@@ -108,6 +108,38 @@ not source admission or LLVM/TinyVM support. Propagation, retry, sinks,
 response-attempt failure, faults, mutation, and concurrent failure routing
 remain refused.
 
+`failure_flow_closed_set.hpp` generalizes only the cardinality of that
+reference projection. `lyraform.failure_flow_plan` version 2 admits one finite
+producer failure set when the consumer accepts exactly the same semantic set,
+every declared type has one explicit wire and one policy selection, every
+authorized route has one response transition, and every response function is
+referenced. A type may have several authorized routes, but policy selects
+exactly one before execution. The concrete version-1 envelope selects its
+prevalidated type entry; execution still dispatches by exact function identity
+and emits the unchanged version-1 receipt. Open sets, wildcard/subtype lookup,
+dynamic handlers, and source or backend integration remain absent.
+
+`failure_flow_chain.hpp` adds one fixed two-stage reference chain. An explicit
+`lyraform.failure_flow_chain` version 1 handoff binds the selected transforming
+transition to the next plan's producer disposition, operation, and failure
+type. The successor envelope is constructed from the transformation receipt:
+it reuses the linked successor obligation, response attempt, response payload,
+correlation, no-commit evidence, and response provenance. The second stage
+must recover and close that exact obligation. Arbitrary depth, configurable
+evidence budgets, compaction, cycles, retry, and general propagation remain
+outside this contract.
+
+`failure_response_attempt.hpp` closes one bounded response-attempt failure
+case. A selected recovering response may produce one declared expected
+failure. That result opens a distinct linked obligation while the original
+obligation remains live; it cannot masquerade as successful recovery. One
+exact closed-set recovery plan may then consume the response failure and
+rejoin the original transition only when its successful payload type exactly
+matches the original promised result. The final receipt proves both the nested
+obligation closure and the explicit rejoin before closing the original
+obligation. Faults, host exceptions, recursively failing responses, and
+inferred or type-changing rejoins are refused.
+
 ADR 0063 governs the later envelope's evidence lifetime: live evidence remains
 must-account until proven closure or transfer, may compact only through a
 validated closure receipt, and may never be silently truncated to satisfy a

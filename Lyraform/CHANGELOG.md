@@ -29,6 +29,20 @@
   recovery or linked-transformation receipt. Source syntax, compiler/backend
   integration, retry, sinks, faults, and parallel failure routing remain
   outside the admitted slice.
+- Extended that serial reference projection to a finite closed producer
+  failure set. Every declared type must have one explicit wire and one exact
+  policy-selected authorized route before any member can execute; unselected
+  alternatives, uncovered types, wildcard matching, and dynamic handlers are
+  refused.
+- Added one fixed `transform -> recover` chain with an explicit successor
+  handoff. The chain preserves obligation, payload, correlation, no-commit,
+  attempt, and provenance evidence across the boundary and refuses inferred,
+  cyclic, mismatched, or non-closing links.
+- Added one bounded response-attempt failure/recovery path. A failed response
+  now creates a distinct expected-failure obligation without closing its
+  original input; only an exact typed recovery receipt and identity-bound
+  rejoin may close both. Faults, host exceptions, recursion, and inferred
+  rejoins remain refused.
 - Accepted bounded disposition-evidence epochs and policy-visible retention
   limits as future implementation law.
 - Recorded the canonical scheduling law: parallel opportunity is derived from
