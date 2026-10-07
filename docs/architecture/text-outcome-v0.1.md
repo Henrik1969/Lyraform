@@ -54,9 +54,11 @@ to the same failure code.
 - The failure branch must perform explicit behavior, must not access `.value`,
   and must not be empty.
 - One nullary producer may directly return an owned outcome to one entry
-  caller under [ADR 0060](decisions/0060-uniform-owned-obligation-transfer.md).
-  The generic transfer fact retains the obligation identity, invalidates the
-  old owner, and requires complete local accounting by the caller.
+  caller, or pass through exactly one nullary forwarding owner, under
+  [ADR 0060](decisions/0060-uniform-owned-obligation-transfer.md). Each generic
+  transfer fact retains the obligation identity, invalidates the old owner,
+  and requires complete local accounting by the final caller. A forwarding
+  owner may only receive and directly return the value.
 - An uninspected, partially inspected, copied, aliased, indirectly returned, nested, or
   otherwise unproved outcome is refused as a dangling outcome wire in this
   bounded stage.
@@ -64,8 +66,11 @@ to the same failure code.
 - A provider must not return a null pointer as a successful `Text` value.
 - A failed construction emits no normal Text result and does not transfer
   ownership of partially allocated bytes.
-- A successful result may be returned, assigned, repeated, or delivered to
-  multiple consumers; each consumer observes the same immutable content.
+- A successful payload may be observed by multiple admitted direct read-only
+  borrows before cleanup. Those observations do not create owners. Assignment,
+  return, or other ownership transfer is legal only where ADR 0060's unique
+  transfer relation is established; implicit copy, sharing, and fan-out remain
+  refused.
 - Cleanup is attached to the owned success value and runs once after the last
   owner, independently of LLVM or TinyVM representation.
 - The existing borrowed `puts_text(Text): c_int` boundary remains valid for the
@@ -89,6 +94,12 @@ uses and disposal, exact failure-recovery operations, stable failure codes,
 and source provenance. Flowcontracts validates those relations independently;
 all carrying stages preserve the fact exactly, and both executable backends
 reject missing or hostile authority.
+
+A direct return carries one nested `ownership_transfer`. The admitted
+one-forwarder form carries an ordered two-element `ownership_transfers` chain
+whose adjacent operation, function, and owner identities must join exactly.
+Both use `lyraform.ownership_transfer` version 1; the plural form does not
+define a second ownership law or change the obligation identity.
 
 `flow_text_concat` remains a compatibility adapter for existing programs. The
 provider also exposes `flow_text_concat_outcome` and

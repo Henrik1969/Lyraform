@@ -35,6 +35,16 @@ next step would establish language, architecture, or policy meaning.
 - Keep formal architecture terminology precise: contract, provider, adapter,
   graph, port, wire, artifact, lowering plan, projection, effect, policy, and
   provenance.
+- Preserve the explicit-failure boundary: canonical semantics establish
+  dispositions and legal routes, typed failure consumers expose statically
+  resolved ordinary functions, policy selects only among those authorized
+  routes, and runtimes execute without inventing meaning. Do not introduce
+  exception-style unwinding, dynamic nearest-handler lookup, implicit
+  propagation or termination, diagnostic-and-drop, policy-created success, or
+  ordinary recovery of faults.
+- Preserve disposition-evidence liveness: evidence remains attached while an
+  obligation depends on it, may compact only at a proven closure boundary, and
+  must never be silently truncated to satisfy a resource or policy limit.
 - Run focused tests while iterating and the canonical configure/build/test
   gates at meaningful boundaries. Record exact results rather than inferred
   counts.

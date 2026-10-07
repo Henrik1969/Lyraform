@@ -217,7 +217,11 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
                 throw Error(path + ".eliminated_dispositions", "Text outcome cannot eliminate a declared completion");
 
             const auto& obligation = object(required(fact, "obligation", path), path + ".obligation");
-            if (const auto* raw_transfer=optional(obligation,"ownership_transfer")) {
+            const auto* raw_transfer=optional(obligation,"ownership_transfer");
+            const auto* raw_transfers=optional(obligation,"ownership_transfers");
+            if(raw_transfer && raw_transfers)
+                throw Error(path+".obligation","ownership transfer authority is ambiguous");
+            if (raw_transfer) {
                 const auto transfer=read_ownership_transfer(*raw_transfer,path+".obligation.ownership_transfer");
                 const auto& provider=object(required(operation,"provider",path));
                 if(transfer.producer!=operation_id || transfer.source_owner!=initial_owner ||
@@ -228,6 +232,21 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
                 if(!error.empty()) throw Error(path+".obligation.ownership_transfer",error);
                 owner=transfer.destination_owner;
                 accounting_origin=transfer.call;
+            } else if(raw_transfers) {
+                const auto& items=array(*raw_transfers,path+".obligation.ownership_transfers");
+                std::vector<OwnershipTransfer> transfers;
+                for(std::size_t hop=0;hop<items.size();++hop)
+                    transfers.push_back(read_ownership_transfer(items[hop],path+".obligation.ownership_transfers["+std::to_string(hop)+"]"));
+                const auto& provider=object(required(operation,"provider",path));
+                if(transfers.empty() || transfers.front().producer!=operation_id ||
+                    transfers.front().source_owner!=initial_owner ||
+                    transfers.front().value_type!=string(required(provider,"return_type")) ||
+                    transfers.front().obligation!="operation:"+std::to_string(operation_id)+":outcome")
+                    throw Error(path+".obligation.ownership_transfers","ownership forwarding changes the producer obligation");
+                const auto error=validate_ownership_transfer_chain_projection(transfers,plan);
+                if(!error.empty()) throw Error(path+".obligation.ownership_transfers",error);
+                owner=transfers.back().destination_owner;
+                accounting_origin=transfers.back().call;
             }
 
             if (string(required(obligation, "kind", path), path + ".obligation.kind") != "must_account" ||

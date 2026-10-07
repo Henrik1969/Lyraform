@@ -25,12 +25,18 @@ status:           experimental / unstable / not production-ready
 current lineage:  v0.29 reusable native language chain
 ```
 
+The authoritative current-status landing page is
+[docs/current-status.md](docs/current-status.md). It separates implemented
+coverage from deferred semantics and links to the latest revisioned evidence.
+
 The current verified boundary includes source-driven scalar/control-flow
 lowering, exact generated ABI evidence, runtime-owned deterministic scalar
-activation-record FIFO,
-Flow-owned pager behavior, and governed LLVM/TinyVM backend boundaries. See the
-[current verification ledger](docs/checkpoints/2026-09-07-reusable-flow-chain-result.md)
-for exact evidence and scoped limitations.
+activation-record FIFO, Flow-owned pager behavior, canonical disposition
+accounting, governed LLVM/TinyVM backend boundaries, and a declarative
+closed-set failure-consumer contract over exact ordinary function identities.
+General failure routing remains non-executable. Accepted future law requires
+typed failure envelopes and bounded evidence epochs; it does not silently
+discard provenance at policy limits.
 
 The current guard/outcome boundary is documented in the
 [Gate 2 hardening checkpoint](docs/checkpoints/2026-09-26-gate-2-execution-hardening.md)
@@ -51,15 +57,24 @@ igor doctor
 igor check
 igor build
 igor test
-igor run -- Lyraform/compiler/examples/pass/fn_demo.flow
+igor run -- Lyraform/compiler/examples/pass/profile_free_return.flow
+igor run-canonical -- Lyraform/compiler/examples/pass/profile_free_return.flow
+igor run-legacy -- Lyraform/compiler/examples/pass/fn_demo.flow
 ```
 
 `igor` is a small, inspectable driver around the existing CMake, compiler, and
 CTest entry points. The underlying stage binaries remain available for
 stage-specific work and compatibility. `igor check` validates the CMake
 configuration; `igor build` builds the canonical root graph; `igor test` runs
-the canonical tests; and `igor run` delegates to the current `flowmini`
-compatibility executable for a source or artifact path.
+the canonical tests; and `igor run` uses the fail-closed canonical stage chain.
+
+`igor run-canonical` is the bounded fail-closed path through the structural
+frontend, canonical semantic report, planning, optimization, and LLVM lowering.
+It accepts only callable-plan-v2 source whose every statement is accounted for;
+unsupported source is refused rather than delegated to compatibility behavior.
+`igor run-legacy` exposes the deprecated Flowmini runtime solely as a behavior
+oracle. Legacy acceptance or output is evidence, not Lyraform semantic
+authority, and the canonical path never falls back to it.
 
 ## Repository map
 
@@ -91,9 +106,9 @@ cmake --build /tmp/lyraform-build
 ctest --test-dir /tmp/lyraform-build --output-on-failure
 ```
 
-The clean root graph currently registers 103 CTest tests. Individual stage
-builds remain useful for focused development; the root graph is the canonical
-clean-checkout verification path.
+The registered test graph belongs to the checked-out revision. Use `igor check`
+to inspect it and `igor test` to execute it. Exact totals belong to dated
+checkpoints; individual stage builds remain useful for focused development.
 
 ## Intellectual provenance and acknowledgements
 

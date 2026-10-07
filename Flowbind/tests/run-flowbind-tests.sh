@@ -78,6 +78,20 @@ hostile_effect_rc=$?
 set -e
 test "$hostile_effect_rc" -eq 1
 
+# Canonical provider authority is exact in both directions. An artifact may not
+# request duplicate or unused capabilities that no admitted operation consumes.
+for mutation in \
+  '.binding_requirements += [.binding_requirements[0]]' \
+  '.binding_requirements += [{"contract":"unused","library":"libc.so.6","convention":"c","symbol":"abs","effect":"pure","parameter_types":"c_int","return_type":"c_int","evidence":""}]'
+do
+  hostile_authority=$(printf '%s\n' "$file_semantic" | jq "$mutation")
+  set +e
+  printf '%s\n' "$hostile_authority" | "$bin" --policy "$policy" >/dev/null 2>&1
+  hostile_authority_rc=$?
+  set -e
+  test "$hostile_authority_rc" -eq 1
+done
+
 set +e
 bad=$(printf '%s' '{"format":"flowanalyst.semantic_report","version":1,"status":"ok","binding_requirements":[{"contract":"bad","library":"libc.so.6","convention":"c","symbol":"flowcore_symbol_that_does_not_exist","effect":"pure","parameter_types":"","return_type":"c_int"}]}' | "$bin" --policy "$policy")
 bad_rc=$?

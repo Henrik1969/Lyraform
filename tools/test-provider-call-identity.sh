@@ -37,7 +37,30 @@ FLOW
 jq -e '[.binding_requirements[] | [.contract, .symbol, .effect]] == [["first", "abs", "pure"], ["second", "abs", "readonly"]] and
     [.lowering_plan.operations[] | select(.kind == "external_call") | [.callee, .provider.contract, .provider.symbol, .provider.effect]] ==
         [["first.renamed", "first", "abs", "pure"], ["second.renamed", "second", "abs", "readonly"]] and
-    any(.lowering_plan.operations[]; .kind == "call" and .callee == "abs" and (has("provider") | not))' "$tmpdir/semantic.json" >/dev/null
+    any(.lowering_plan.operations[]; .kind == "call" and .callee == "abs" and (has("provider") | not)) and
+    (. as $report | all(.external_operations[];
+      . as $projection | any($report.lowering_plan.operations[];
+        .id == $projection.operation_id and .source_call_projection == true and
+        .expression_id == $projection.expression_id and .statement_id == $projection.statement_id and
+        .callee == $projection.callee and .callee_symbol_id == $projection.callee_symbol_id and
+        .arguments == $projection.arguments)))' "$tmpdir/semantic.json" >/dev/null
+
+reject_call_projection() {
+    mutation=$1
+    jq "$mutation" "$tmpdir/semantic.json" > "$tmpdir/hostile.semantic.json"
+    if "$FLOWPARALLEL_BIN" < "$tmpdir/hostile.semantic.json" >/dev/null 2>&1; then
+        echo "call projection mutation was accepted: $mutation" >&2
+        exit 1
+    fi
+}
+reject_call_projection 'del(.lowering_plan.operations[0].source_call_projection)'
+reject_call_projection '.external_operations[0].operation_id = 999'
+reject_call_projection '.external_operations[0].callee = "drifted"'
+reject_call_projection '.external_operations += [.external_operations[0]]'
+reject_call_projection 'del(.external_operations[0])'
+reject_call_projection '.external_operations[0].purity = "pure"'
+reject_call_projection '(.effect_facts[] | select(.effect == "pure")) |= (.effect = "unknown" | .certainty = "unresolved")'
+reject_call_projection '(.lowering_plan.operations[] | select(.kind == "return_value") | .source_call_projection) = true'
 printf '%s\n' 'allow libc.so.6 abs c pure c_int c_int' 'allow libc.so.6 abs c readonly c_int c_int' > "$tmpdir/policy.conf"
 "$FLOWBIND_BIN" --policy "$tmpdir/policy.conf" < "$tmpdir/semantic.json" > "$tmpdir/binding.json"
 "$FLOWPARALLEL_BIN" < "$tmpdir/semantic.json" > "$tmpdir/execution.json"

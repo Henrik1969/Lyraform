@@ -6,7 +6,11 @@
 #include <flowcontracts/graph_execution.hpp>
 #include <flowcontracts/binding_evidence.hpp>
 #include <flowcontracts/scalar_facts.hpp>
+#include <flowcontracts/source_operation_coverage.hpp>
 
+#include <functional>
+#include <iterator>
+#include <map>
 #include <set>
 #include <string>
 #include <string_view>
@@ -32,7 +36,8 @@ struct MatrixEntry { json::Integer row = 0; json::Integer column = 0; bool value
 struct MatrixView { std::string name; json::Integer rows = 0; json::Integer columns = 0; std::string semiring; std::string storage; std::vector<MatrixEntry> entries; };
 struct SemanticReport {
     Header artifact; std::string source_path; json::Array targets; json::Array external_operations;
-    json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Value lowering_plan; std::size_t proven_pure_count = 0;
+    json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Array effect_facts;
+    json::Array parallel_candidates; json::Value lowering_plan; std::size_t proven_pure_count = 0;
     std::size_t independent_candidate_count = 0; MatrixView dependency_matrix;
 };
 
@@ -114,9 +119,303 @@ inline void validate_aggregate_abi_layouts(const json::Array& layouts, std::stri
     }
 }
 
+inline void validate_provider_authority(const json::Object& root,
+                                        std::string_view path = "$") {
+    std::set<std::string> declared;
+    const auto& requirements = required_array(root, "binding_requirements", path);
+    for (std::size_t index = 0; index < requirements.size(); ++index) {
+        const auto item_path = std::string(path) + ".binding_requirements[" +
+                               std::to_string(index) + "]";
+        const auto& requirement = json::object(requirements[index], item_path);
+        if (!declared.insert(capability_identity(requirement, item_path)).second)
+            throw json::Error(item_path, "duplicate binding requirement identity");
+    }
+
+    std::set<std::string> used;
+    const auto& plan = required_object(root, "lowering_plan", path);
+    const auto& operations = required_array(plan, "operations",
+                                            std::string(path) + ".lowering_plan");
+    for (std::size_t index = 0; index < operations.size(); ++index) {
+        const auto operation_path = std::string(path) + ".lowering_plan.operations[" +
+                                    std::to_string(index) + "]";
+        const auto& operation = json::object(operations[index], operation_path);
+        const auto kind = json::string(json::required(operation, "kind", operation_path),
+                                       operation_path + ".kind");
+        if (kind != "external_call" && kind != "text_outcome") continue;
+        const auto& provider = required_object(operation, "provider", operation_path);
+        used.insert(capability_identity(provider, operation_path + ".provider"));
+    }
+    if (const auto* graph_value = json::optional(plan, "source_graph")) {
+        const auto graph = source_graph(*graph_value,
+                                        std::string(path) + ".lowering_plan.source_graph");
+        for (std::size_t index = 0; index < graph.providers.size(); ++index) {
+            const auto provider_path = std::string(path) +
+                ".lowering_plan.source_graph.providers[" + std::to_string(index) + "]";
+            const auto& node = json::object(graph.providers[index], provider_path);
+            used.insert(capability_identity(required_object(node, "provider", provider_path),
+                                            provider_path + ".provider"));
+            if (const auto* count = json::optional(node, "count_provider"))
+                used.insert(capability_identity(json::object(*count, provider_path + ".count_provider"),
+                                                provider_path + ".count_provider"));
+        }
+    }
+
+    if (declared != used)
+        throw json::Error(std::string(path) + ".binding_requirements",
+                          "binding requirements do not exactly match external operation providers");
+}
+
+inline void validate_call_operation_projection(const json::Object& root,
+                                               std::string_view path = "$") {
+    const auto& plan = required_object(root, "lowering_plan", path);
+    const auto version = json::integer(json::required(plan, "version", path),
+                                       std::string(path) + ".lowering_plan.version");
+    if (version != 2) return; // Historical plan v1 makes no connectivity claim.
+
+    std::map<json::Integer, const json::Object*> projected_operations;
+    const auto& operations = required_array(plan, "operations",
+                                            std::string(path) + ".lowering_plan");
+    for (std::size_t index = 0; index < operations.size(); ++index) {
+        const auto operation_path = std::string(path) + ".lowering_plan.operations[" +
+                                    std::to_string(index) + "]";
+        const auto& operation = json::object(operations[index], operation_path);
+        const bool projected = json::boolean(
+            json::required(operation, "source_call_projection", operation_path),
+            operation_path + ".source_call_projection");
+        if (!projected) continue;
+        const auto kind = json::string(json::required(operation, "kind", operation_path),
+                                       operation_path + ".kind");
+        if (kind != "call" && kind != "external_call" && kind != "text_outcome")
+            throw json::Error(operation_path + ".source_call_projection",
+                              "non-call operation claims a source-call projection");
+        const auto id = json::integer(json::required(operation, "id", operation_path),
+                                      operation_path + ".id");
+        if (!projected_operations.emplace(id, &operation).second)
+            throw json::Error(operation_path + ".id", "duplicate projected operation identity");
+    }
+
+    std::set<json::Integer> pure_symbols;
+    const auto& effect_facts = required_array(root, "effect_facts", path);
+    for (std::size_t index = 0; index < effect_facts.size(); ++index) {
+        const auto fact_path = std::string(path) + ".effect_facts[" +
+                               std::to_string(index) + "]";
+        const auto& fact = json::object(effect_facts[index], fact_path);
+        const auto symbol = json::integer(json::required(fact, "symbol_id", fact_path),
+                                          fact_path + ".symbol_id");
+        const auto effect = json::string(json::required(fact, "effect", fact_path),
+                                         fact_path + ".effect");
+        const auto certainty = json::string(json::required(fact, "certainty", fact_path),
+                                            fact_path + ".certainty");
+        if ((effect == "pure") != (certainty == "proven") ||
+            (effect != "pure" && effect != "unknown") ||
+            (certainty != "proven" && certainty != "unresolved"))
+            throw json::Error(fact_path, "effect fact and certainty disagree");
+        if (effect == "pure" && symbol >= 0) pure_symbols.insert(symbol);
+    }
+
+    std::set<json::Integer> covered;
+    const auto& projections = required_array(root, "external_operations", path);
+    for (std::size_t index = 0; index < projections.size(); ++index) {
+        const auto projection_path = std::string(path) + ".external_operations[" +
+                                     std::to_string(index) + "]";
+        const auto& projection = json::object(projections[index], projection_path);
+        if (json::string(json::required(projection, "operation", projection_path),
+                         projection_path + ".operation") != "call")
+            throw json::Error(projection_path + ".operation", "unsupported call projection kind");
+        const auto operation_id = json::integer(
+            json::required(projection, "operation_id", projection_path),
+            projection_path + ".operation_id");
+        const auto found = projected_operations.find(operation_id);
+        if (found == projected_operations.end() || !covered.insert(operation_id).second)
+            throw json::Error(projection_path + ".operation_id",
+                              "missing or duplicate source-call operation");
+        const auto& operation = *found->second;
+        for (const auto field : {"expression_id", "statement_id", "scope_id", "callee_symbol_id"})
+            if (json::integer(json::required(projection, field, projection_path), projection_path + "." + field) !=
+                json::integer(json::required(operation, field, projection_path), projection_path + "." + field))
+                throw json::Error(projection_path + "." + field,
+                                  "call projection identity differs from operation");
+        if (json::string(json::required(projection, "callee", projection_path), projection_path + ".callee") !=
+            json::string(json::required(operation, "callee", projection_path), projection_path + ".callee"))
+            throw json::Error(projection_path + ".callee",
+                              "call projection callee differs from operation");
+
+        const auto& arguments = required_array(projection, "arguments", projection_path);
+        const auto& operation_arguments = required_array(operation, "arguments", projection_path);
+        if (arguments != operation_arguments)
+            throw json::Error(projection_path + ".arguments",
+                              "call projection arguments differ from operation");
+        const auto* projection_result = json::optional(projection, "result_symbol_id");
+        const auto* operation_result = json::optional(operation, "result_symbol_id");
+        if ((projection_result == nullptr) != (operation_result == nullptr) ||
+            (projection_result && json::integer(*projection_result, projection_path + ".result_symbol_id") !=
+                                  json::integer(*operation_result, projection_path + ".result_symbol_id")))
+            throw json::Error(projection_path + ".result_symbol_id",
+                              "call projection result differs from operation");
+        const auto callee_symbol = json::integer(
+            json::required(operation, "callee_symbol_id", projection_path),
+            projection_path + ".callee_symbol_id");
+        const auto expected_purity = pure_symbols.count(callee_symbol) ? "pure" : "effectful";
+        if (json::string(json::required(projection, "purity", projection_path),
+                         projection_path + ".purity") != expected_purity)
+            throw json::Error(projection_path + ".purity",
+                              "call projection purity differs from effect authority");
+    }
+    if (covered.size() != projected_operations.size())
+        throw json::Error(std::string(path) + ".external_operations",
+                          "source-call operation lacks its call projection");
+}
+
+inline void validate_parallel_candidate_projection(const json::Object& root,
+                                                   std::string_view path = "$") {
+    const auto& plan = required_object(root, "lowering_plan", path);
+    const auto version = json::integer(json::required(plan, "version", path),
+                                       std::string(path) + ".lowering_plan.version");
+    if (version != 2) return; // Historical plan v1 makes no connectivity claim.
+
+    std::set<json::Integer> pure_symbols;
+    const auto& effect_facts = required_array(root, "effect_facts", path);
+    for (std::size_t index = 0; index < effect_facts.size(); ++index) {
+        const auto fact_path = std::string(path) + ".effect_facts[" +
+                               std::to_string(index) + "]";
+        const auto& fact = json::object(effect_facts[index], fact_path);
+        if (json::string(json::required(fact, "effect", fact_path), fact_path + ".effect") == "pure" &&
+            json::string(json::required(fact, "certainty", fact_path), fact_path + ".certainty") == "proven")
+            pure_symbols.insert(json::integer(json::required(fact, "symbol_id", fact_path),
+                                              fact_path + ".symbol_id"));
+    }
+
+    struct OperationEvidence {
+        const json::Object* operation = nullptr;
+        json::Integer expression = -1;
+        json::Integer statement = -1;
+        json::Integer scope = -1;
+        json::Integer result = -1;
+        std::set<json::Integer> reads;
+    };
+    std::map<json::Integer, OperationEvidence> pure_calls;
+    const auto& operations = required_array(plan, "operations",
+                                            std::string(path) + ".lowering_plan");
+    for (std::size_t index = 0; index < operations.size(); ++index) {
+        const auto operation_path = std::string(path) + ".lowering_plan.operations[" +
+                                    std::to_string(index) + "]";
+        const auto& operation = json::object(operations[index], operation_path);
+        if (!json::boolean(json::required(operation, "source_call_projection", operation_path),
+                           operation_path + ".source_call_projection")) continue;
+        const auto callee_symbol = json::integer(
+            json::required(operation, "callee_symbol_id", operation_path),
+            operation_path + ".callee_symbol_id");
+        if (!pure_symbols.count(callee_symbol)) continue;
+
+        OperationEvidence evidence;
+        evidence.operation = &operation;
+        evidence.expression = json::integer(json::required(operation, "expression_id", operation_path),
+                                            operation_path + ".expression_id");
+        evidence.statement = json::integer(json::required(operation, "statement_id", operation_path),
+                                           operation_path + ".statement_id");
+        evidence.scope = json::integer(json::required(operation, "scope_id", operation_path),
+                                       operation_path + ".scope_id");
+        if (const auto* result = json::optional(operation, "result_symbol_id"))
+            evidence.result = json::integer(*result, operation_path + ".result_symbol_id");
+        std::function<void(const json::Value&)> collect_reads = [&](const json::Value& value) {
+            if (std::holds_alternative<json::Object>(value)) {
+                const auto& object = std::get<json::Object>(value);
+                const auto* kind = json::optional(object, "kind");
+                if (kind && json::string(*kind, operation_path + ".operands[].kind") == "identifier")
+                    evidence.reads.insert(json::integer(
+                        json::required(object, "symbol_id", operation_path + ".operands[]"),
+                        operation_path + ".operands[].symbol_id"));
+                for (const auto& [key, child] : object) { (void)key; collect_reads(child); }
+            } else if (std::holds_alternative<json::Array>(value)) {
+                for (const auto& child : std::get<json::Array>(value)) collect_reads(child);
+            }
+        };
+        collect_reads(json::required(operation, "operands", operation_path));
+        const auto id = json::integer(json::required(operation, "id", operation_path),
+                                      operation_path + ".id");
+        pure_calls.emplace(id, std::move(evidence));
+    }
+
+    std::map<json::Integer, std::set<json::Integer>> expected;
+    for (auto left = pure_calls.begin(); left != pure_calls.end(); ++left) {
+        for (auto right = std::next(left); right != pure_calls.end(); ++right) {
+            const auto& first = left->second;
+            const auto& second = right->second;
+            if (first.scope != second.scope || first.statement == second.statement) continue;
+            bool shared_read = false;
+            for (const auto symbol : first.reads)
+                if (second.reads.count(symbol)) { shared_read = true; break; }
+            const bool output_conflict = first.result >= 0 && first.result == second.result;
+            const bool read_after_write =
+                (first.result >= 0 && second.reads.count(first.result)) ||
+                (second.result >= 0 && first.reads.count(second.result));
+            if (!shared_read && !output_conflict && !read_after_write) {
+                expected[left->first].insert(right->first);
+                expected[right->first].insert(left->first);
+            }
+        }
+    }
+
+    std::map<json::Integer, std::set<json::Integer>> observed;
+    const auto& candidates = required_array(root, "parallel_candidates", path);
+    for (std::size_t index = 0; index < candidates.size(); ++index) {
+        const auto candidate_path = std::string(path) + ".parallel_candidates[" +
+                                    std::to_string(index) + "]";
+        const auto& candidate = json::object(candidates[index], candidate_path);
+        const auto operation_id = json::integer(
+            json::required(candidate, "operation_id", candidate_path),
+            candidate_path + ".operation_id");
+        const auto found = pure_calls.find(operation_id);
+        if (found == pure_calls.end() || observed.count(operation_id))
+            throw json::Error(candidate_path + ".operation_id",
+                              "parallel candidate lacks one unique proven-pure call operation");
+        const auto& operation = *found->second.operation;
+        if (json::integer(json::required(candidate, "call_expression", candidate_path),
+                          candidate_path + ".call_expression") != found->second.expression ||
+            json::integer(json::required(candidate, "statement_id", candidate_path),
+                          candidate_path + ".statement_id") != found->second.statement ||
+            json::string(json::required(candidate, "callee", candidate_path),
+                         candidate_path + ".callee") !=
+                json::string(json::required(operation, "callee", candidate_path),
+                             candidate_path + ".callee"))
+            throw json::Error(candidate_path, "parallel candidate identity differs from call operation");
+        if (json::string(json::required(candidate, "proof", candidate_path),
+                         candidate_path + ".proof") != "pure-callee-disjoint-inputs" ||
+            json::string(json::required(candidate, "status", candidate_path),
+                         candidate_path + ".status") != "deferred")
+            throw json::Error(candidate_path, "unsupported parallel candidate proof or status");
+
+        const auto& peer_operations = required_array(candidate, "independent_operation_ids",
+                                                     candidate_path);
+        const auto& peer_expressions = required_array(candidate, "independent_with",
+                                                      candidate_path);
+        if (peer_operations.empty() || peer_operations.size() != peer_expressions.size())
+            throw json::Error(candidate_path + ".independent_operation_ids",
+                              "parallel peer operation and expression identities differ");
+        auto& peers = observed[operation_id];
+        for (std::size_t peer_index = 0; peer_index < peer_operations.size(); ++peer_index) {
+            const auto peer_id = json::integer(peer_operations[peer_index],
+                                               candidate_path + ".independent_operation_ids[]");
+            const auto peer = pure_calls.find(peer_id);
+            if (peer == pure_calls.end() || peer_id == operation_id || !peers.insert(peer_id).second)
+                throw json::Error(candidate_path + ".independent_operation_ids",
+                                  "parallel peer is not one distinct proven-pure call operation");
+            if (json::integer(peer_expressions[peer_index],
+                              candidate_path + ".independent_with[]") != peer->second.expression)
+                throw json::Error(candidate_path + ".independent_with",
+                                  "parallel peer expression differs from call operation");
+        }
+    }
+    if (observed != expected)
+        throw json::Error(std::string(path) + ".parallel_candidates",
+                          "parallel candidates do not exactly match canonical operation evidence");
+}
+
 inline void validate_lowering_authority(const json::Value& value, std::string_view base = "$.lowering_plan") {
     validate_scalar_facts(value, base);
     const auto& plan = json::object(value, base);
+    if (const auto* coverage = json::optional(plan, "source_operation_coverage"))
+        validate_source_operation_coverage(*coverage, std::string(base) + ".source_operation_coverage");
     if (const auto* graph = json::optional(plan, "source_graph")) {
         if (!source_graph(*graph, std::string(base) + ".source_graph").executable)
             throw json::Error(std::string(base) + ".source_graph", "source graph execution is not admitted");
@@ -204,6 +503,9 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
             }
         }
     }
+    if (const auto* coverage = json::optional(plan, "source_operation_coverage"))
+        validate_source_operation_links(*coverage, operations,
+                                        std::string(base) + ".source_operation_coverage");
     if (const auto* graph_value = json::optional(plan, "source_graph")) {
         if (version != 2) throw json::Error(std::string(base), "native graph requires callable plan version 2");
         const auto graph = source_graph(*graph_value);
@@ -343,15 +645,20 @@ inline SemanticReport semantic_report(const json::Value& value) {
     }
     result.lowering_plan = json::required(root, "lowering_plan");
     validate_lowering_authority(result.lowering_plan);
+    validate_provider_authority(root);
+    validate_call_operation_projection(root);
+    validate_parallel_candidate_projection(root);
     const auto& plan = json::object(result.lowering_plan, "$.lowering_plan");
     if (json::string(json::required(plan, "format", "$.lowering_plan"), "$.lowering_plan.format") != "flowcore.lowering_plan") throw json::Error("$.lowering_plan.format", "unsupported lowering plan format");
     const auto plan_version = json::integer(json::required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version");
     if (plan_version != 1 && plan_version != 2) throw json::Error("$.lowering_plan.version", "unsupported lowering plan version");
-    for (const auto& item : required_array(root, "effect_facts")) {
+    result.effect_facts = required_array(root, "effect_facts");
+    for (const auto& item : result.effect_facts) {
         const auto& fact = json::object(item, "$.effect_facts[]");
         if (const auto* certainty = json::optional(fact, "certainty")) if (json::string(*certainty, "$.effect_facts[].certainty") == "proven") ++result.proven_pure_count;
     }
-    for (const auto& item : required_array(root, "parallel_candidates")) {
+    result.parallel_candidates = required_array(root, "parallel_candidates");
+    for (const auto& item : result.parallel_candidates) {
         const auto& candidate = json::object(item, "$.parallel_candidates[]");
         if (const auto* proof = json::optional(candidate, "proof")) if (json::string(*proof, "$.parallel_candidates[].proof") == "pure-callee-disjoint-inputs") ++result.independent_candidate_count;
     }
@@ -367,7 +674,8 @@ inline json::Value matrix_entries(const MatrixView& matrix) {
 
 struct ExecutionPlan {
     Header artifact; std::string source_path; json::Array targets; json::Array external_operations;
-    json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Value lowering_plan; json::Value graph_schedule; MatrixView dependency_matrix;
+    json::Array abi_type_contracts; json::Array aggregate_abi_layouts; json::Array effect_facts;
+    json::Array parallel_candidates; json::Value lowering_plan; json::Value graph_schedule; MatrixView dependency_matrix;
 };
 
 inline MatrixView execution_matrix(const json::Object& root) {
@@ -417,6 +725,38 @@ inline ExecutionPlan execution_plan(const json::Value& value) {
     if (json::string(json::required(plan, "format", "$.lowering_plan"), "$.lowering_plan.format") != "flowcore.lowering_plan") throw json::Error("$.lowering_plan.format", "unsupported lowering plan format");
     const auto plan_version = json::integer(json::required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version");
     if (plan_version != 1 && plan_version != 2) throw json::Error("$.lowering_plan.version", "unsupported lowering plan version");
+    if (plan_version == 2) {
+        result.effect_facts = required_array(root, "effect_facts");
+        result.parallel_candidates = required_array(root, "parallel_candidates");
+        validate_call_operation_projection(root);
+        validate_parallel_candidate_projection(root);
+        const auto& summary = required_object(root, "dependency_analysis");
+        if (json::string(json::required(summary, "candidate_kind", "$.dependency_analysis"),
+                         "$.dependency_analysis.candidate_kind") != "pure-callee-disjoint-inputs" ||
+            json::string(json::required(summary, "status", "$.dependency_analysis"),
+                         "$.dependency_analysis.status") != "available")
+            throw json::Error("$.dependency_analysis", "unsupported candidate summary contract");
+        const auto candidate_count = json::integer(
+            json::required(summary, "parallel_candidates", "$.dependency_analysis"),
+            "$.dependency_analysis.parallel_candidates");
+        if (candidate_count != static_cast<json::Integer>(result.parallel_candidates.size()))
+            throw json::Error("$.dependency_analysis.parallel_candidates",
+                              "candidate summary differs from exact evidence");
+        std::size_t pure_count = 0;
+        for (const auto& item : result.effect_facts) {
+            const auto& fact = json::object(item, "$.effect_facts[]");
+            if (json::string(json::required(fact, "effect", "$.effect_facts[]"), "$.effect_facts[].effect") == "pure" &&
+                json::string(json::required(fact, "certainty", "$.effect_facts[]"), "$.effect_facts[].certainty") == "proven")
+                ++pure_count;
+        }
+        if (json::integer(json::required(summary, "pure_callables", "$.dependency_analysis"),
+                          "$.dependency_analysis.pure_callables") != static_cast<json::Integer>(pure_count))
+            throw json::Error("$.dependency_analysis.pure_callables",
+                              "pure-callable summary differs from effect authority");
+    } else {
+        if (const auto* facts = json::optional(root, "effect_facts")) result.effect_facts = json::array(*facts, "$.effect_facts");
+        if (const auto* candidates = json::optional(root, "parallel_candidates")) result.parallel_candidates = json::array(*candidates, "$.parallel_candidates");
+    }
     result.dependency_matrix = execution_matrix(root);
     return result;
 }

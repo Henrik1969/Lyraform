@@ -13,12 +13,15 @@ This is the soul of Lyraform.
 
 ## Main areas
 
+- [Current Lyraform status](current-status.md)
 - [Lyraform compiler](../Lyraform/README.md)
 - [Tester and critic onboarding](onboarding/README.md)
 - [Critical alpha-testing missions](../ALPHA-TESTING.md)
 - [Subprojects](../subprojects/README.md)
 - [Pattern explored](../Pattern_explored/README.md)
 - [Architecture notes](architecture/README.md)
+- [Canonical language authority map](architecture/canonical-language-authority-map-v1.json)
+- [Whole-language source-form audit](architecture/canonical-source-form-audit-v1.json)
 - [Text value contract proposal](architecture/text-value-v0.1-proposal.md)
 - [Language lineage docs](flowmini/README.md)
 - [Session notes](sessions/)
@@ -51,11 +54,7 @@ See:
 - [Lyraform version index](../Lyraform/VERSION_INDEX.md)
 - [Lyraform changelog](../Lyraform/CHANGELOG.md)
 
-Current checkpoint:
-
-```text
-Lyraform v0.29 reusable native language chain
-GCC root CTest: 107/107; fresh Clang ASan+UBSan CTest: 107/107
-Native Flow-owned pager and graph activation laws: PASS
-Installed new-capability acceptance: exit 42, unchanged compiler binaries
-```
+The [current-status landing page](current-status.md) identifies the latest
+integrated checkpoint and separates implemented coverage from deferred work.
+Exact test totals remain with dated checkpoint evidence rather than this
+evergreen index.

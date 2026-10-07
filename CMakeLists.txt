@@ -30,6 +30,36 @@ add_subdirectory(Flowkernel ${CMAKE_CURRENT_BINARY_DIR}/flowkernel)
 add_subdirectory(Lyraform/compiler/examples/apps/flow_less
     ${CMAKE_CURRENT_BINARY_DIR}/flow_less_providers)
 
+add_test(NAME lyraform_current_documentation
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-current-documentation.sh)
+
+add_test(NAME lyraform_canonical_authority_freeze
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-canonical-language-authority.sh)
+
+add_test(NAME lyraform_canonical_source_form_audit
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-canonical-source-form-audit.sh)
+
+add_test(NAME lyraform_canonical_source_operation_coverage
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        CANONICAL_RUNNER=${CMAKE_CURRENT_SOURCE_DIR}/tools/igor-run-canonical.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-canonical-source-operation-coverage.sh)
+
+add_test(NAME lyraform_legacy_deprecation
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-legacy-deprecation.sh)
 
 add_test(NAME flowcore_integration_corpus
     COMMAND ${CMAKE_COMMAND} -E env
@@ -221,6 +251,25 @@ add_test(NAME provider_call_identity
         FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
         sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-provider-call-identity.sh)
+
+add_test(NAME parallel_candidate_identity
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-parallel-candidate-identity.sh)
+
+add_test(NAME canonical_authority_preservation
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        FLOWANALYST_BIN=$<TARGET_FILE:flowanalyst>
+        FLOWPARALLEL_BIN=$<TARGET_FILE:flowparallel>
+        FLOWOPTIMIZE_BIN=$<TARGET_FILE:flowoptimize>
+        FLOWPREPARE_BIN=$<TARGET_FILE:flowprepare>
+        FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
+        FLOWTINYLOWER_BIN=$<TARGET_FILE:flowtinylower>
+        FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>
+        sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-canonical-authority-preservation.sh)
 
 add_test(NAME flow_less_ncurses_pager
     COMMAND ${CMAKE_COMMAND} -E env

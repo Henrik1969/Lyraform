@@ -35,12 +35,17 @@ inline void validate_identity_array(const json::Object& parent, std::string_view
 inline void validate_lowering_plan(const json::Value& value, std::string_view path = "$") {
     validate_scalar_facts(value, path);
     const auto& plan = json::object(value, path);
+    if (const auto* coverage = json::optional(plan, "source_operation_coverage"))
+        validate_source_operation_coverage(*coverage, std::string(path) + ".source_operation_coverage");
     if (json::string(json::required(plan, "format", path), std::string(path) + ".format") != "flowcore.lowering_plan")
         throw json::Error(std::string(path) + ".format", "unsupported lowering plan format");
     const auto version = json::integer(json::required(plan, "version", path), std::string(path) + ".version");
     if (version != 1 && version != 2)
         throw json::Error(std::string(path) + ".version", "unsupported lowering plan version");
     validate_identity_array(plan, "operations", "id", path);
+    if (const auto* coverage = json::optional(plan, "source_operation_coverage"))
+        validate_source_operation_links(*coverage, required_array(plan, "operations", path),
+                                        std::string(path) + ".source_operation_coverage");
     if (version == 2) {
         const auto& functions = required_array(plan, "functions", path);
         std::set<json::Integer> identities;
@@ -113,10 +118,21 @@ inline void validate_optimization_report(const json::Value& value) {
     const auto artifact = require_header(value, "flowoptimize.optimization_report", 1);
     if (artifact.status != "ready") return;
     const auto& root = json::object(value);
+    const auto& source = required_object(root, "source");
+    (void)json::string(json::required(source, "path", "$.source"), "$.source.path");
+    validate_targets(root);
+    validate_abi_contracts(root);
     if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) validate_aggregate_abi_layouts(json::array(*layouts, "$.aggregate_abi_layouts"));
     validate_lowering_plan(json::required(root, "lowering_plan"), "$.lowering_plan");
+    const auto& plan = json::object(json::required(root, "lowering_plan"), "$.lowering_plan");
+    if (json::integer(json::required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version") == 2) {
+        (void)required_array(root, "external_operations");
+        (void)required_array(root, "effect_facts");
+        (void)required_array(root, "parallel_candidates");
+        validate_call_operation_projection(root);
+        validate_parallel_candidate_projection(root);
+    }
     validate_graph_schedule(root);
-    (void)required_array(root, "targets");
     const auto& transforms = required_array(root, "transforms");
     for (std::size_t index = 0; index < transforms.size(); ++index) {
         const auto path = "$.transforms[" + std::to_string(index) + "]";
@@ -255,6 +271,13 @@ inline void validate_backend_lowering_artifact(const json::Value& value) {
     validate_lowering_authority(json::required(root, "lowering_plan"));
     validate_graph_schedule(root);
     (void)required_array(root, "external_operations");
+    const auto& authority_plan = json::object(json::required(root, "lowering_plan"), "$.lowering_plan");
+    if (json::integer(json::required(authority_plan, "version", "$.lowering_plan"), "$.lowering_plan.version") == 2) {
+        (void)required_array(root, "effect_facts");
+        (void)required_array(root, "parallel_candidates");
+        validate_call_operation_projection(root);
+        validate_parallel_candidate_projection(root);
+    }
     const auto& target = required_object(root, "target");
     const auto target_name = json::string(json::required(target, "name", "$.target"), "$.target.name");
     if (target_name.empty()) throw json::Error("$.target.name", "selected target name is empty");
@@ -287,7 +310,7 @@ inline void validate_backend_lowering_artifact(const json::Value& value) {
         if (!authorized.insert(identity).second) throw json::Error(path, "duplicate authorized capability identity");
     }
     std::set<std::string> required_capabilities;
-    const auto& plan = json::object(json::required(root, "lowering_plan"), "$.lowering_plan");
+    const auto& plan = authority_plan;
     const auto& operations = required_array(plan, "operations", "$.lowering_plan");
     for (std::size_t index = 0; index < operations.size(); ++index) {
         const auto path = "$.lowering_plan.operations[" + std::to_string(index) + "]";

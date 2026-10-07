@@ -58,6 +58,8 @@ reject_parallel '(.lowering_plan.operations[] | select(.kind == "external_call")
 reject_parallel '.abi_type_contracts[0].name = 7'
 reject_parallel '(.lowering_plan.operations[] | select(.kind == "external_call") | .effect_contract.external) = 7'
 reject_parallel '(.lowering_plan.operations[] | select(.kind == "external_call") | .argument_resources[0].memory_effect) = 7'
+reject_parallel '.binding_requirements += [.binding_requirements[0]]'
+reject_parallel '.binding_requirements += [{"contract":"unused","library":"libc.so.6","symbol":"abs","convention":"c","effect":"pure","parameter_types":"c_int","return_type":"c_int","evidence":""}]'
 
 jq '(.capabilities[] | .status) = "denied"' "$tmpdir/binding.json" > "$tmpdir/denied-binding.json"
 if "$flowlower" --binding-report "$tmpdir/denied-binding.json" --emit-llvm "$tmpdir/denied.ll" < "$tmpdir/optimization.json" >/dev/null 2>&1; then

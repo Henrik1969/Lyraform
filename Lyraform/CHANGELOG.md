@@ -4,6 +4,20 @@
 
 - Promoted the reusable native language chain to the active v0.29 milestone.
 - Made `main` and `Lyraform/compiler` the current authority.
+- Added fail-closed source-operation coverage and the canonical Igor execution
+  path; legacy parser/runtime behavior is now explicit oracle-only behavior.
+- Connected scalar, target, guard, disposition, ownership, provider/effect,
+  call, and deferred parallel-candidate identities through one preserved and
+  independently revalidated callable-plan-v2 authority envelope.
+- Added whole-language source-form and authority audits under a frozen language
+  surface.
+- Extended unique must-account outcome transfer through one bounded forwarding
+  owner with LLVM/TinyVM parity and hostile artifact validation.
+- Added the first declarative typed failure-consumer and policy-selection
+  contract. It accepts canonical failure-envelope inputs but does not yet admit
+  response-transition execution, propagation, retry, or runtime guard routing.
+- Accepted bounded disposition-evidence epochs and policy-visible retention
+  limits as future implementation law.
 
 ## v27_namespaced_provider_chain — historical
 

@@ -34,7 +34,9 @@ Commands:
     build              configure when needed, then build the root graph
     check              configure and list the discovered CTest graph
     test               build and run the canonical CTest suite
-    run                build and run the compatibility flowmini executable
+    run                compile and run through the bounded canonical stage chain
+    run-canonical      explicit alias for the canonical run path
+    run-legacy         DEPRECATED: invoke the legacy behavior oracle
     doctor             check local tool and repository readiness
 
 The underlying stage tools remain independently invocable. Igor is the
@@ -114,23 +116,42 @@ case "$command" in
         ctest --test-dir "$BUILD_DIR" --output-on-failure
         say "tests complete"
         ;;
-    run)
-        [[ "$#" -gt 0 ]] || die "run requires a source or artifact path"
+    run|run-canonical)
+        [[ "$#" -gt 0 ]] || die "$command requires a source path"
         if [[ "$1" == "--" ]]; then
             shift
         fi
-        [[ "$#" -gt 0 ]] || die "run requires a source or artifact path"
+        [[ "$#" -gt 0 ]] || die "$command requires a source path"
+        build
+        source=$1
+        shift
+        say "checking canonical source-operation coverage..."
+        say "compiling $source through the canonical stage chain..."
+        exec env \
+            FLOWMINI_BIN="$BUILD_DIR/flowmini/flowmini" \
+            FLOWANALYST_BIN="$BUILD_DIR/flowanalyst/flowanalyst" \
+            FLOWPARALLEL_BIN="$BUILD_DIR/flowtools/flowparallel/flowparallel" \
+            FLOWOPTIMIZE_BIN="$BUILD_DIR/flowoptimize/flowoptimize" \
+            FLOWLOWER_BIN="$BUILD_DIR/flowlower/flowlower" \
+            "$ROOT/tools/igor-run-canonical.sh" "$source" "$@"
+        ;;
+    run-legacy)
+        [[ "$#" -gt 0 ]] || die "run-legacy requires a source or legacy artifact path"
+        if [[ "$1" == "--" ]]; then
+            shift
+        fi
+        [[ "$#" -gt 0 ]] || die "run-legacy requires a source or legacy artifact path"
         build
         executable="$BUILD_DIR/flowmini/flowmini"
-        [[ -x "$executable" ]] || die "built flowmini executable not found at $executable"
-        say "running $1..."
+        [[ -x "$executable" ]] || die "built legacy executable not found at $executable"
+        printf '%s\n' 'Igor: warning: the legacy runtime is deprecated, non-canonical, and available only as a behavior oracle.' >&2
         exec "$executable" "$@"
         ;;
     doctor)
         [[ "$#" -eq 0 ]] || die "doctor does not accept positional arguments"
         say "checking Lyraform toolchain readiness..."
         failures=0
-        for tool in cmake ctest git; do
+        for tool in cmake ctest git jq clang; do
             if command -v "$tool" >/dev/null 2>&1; then
                 printf '  %-10s %s\n' "$tool" "$(command -v "$tool")"
             else

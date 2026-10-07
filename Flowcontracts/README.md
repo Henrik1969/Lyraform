@@ -1,5 +1,10 @@
 # Flowcontracts
 
+`source_operation_coverage.hpp` validates the versioned statement-accounting
+evidence carried by canonical lowering plans. This prevents a ready staged
+execution path from treating omitted source behavior as an implementation
+detail.
+
 Flowcontracts is the public, compiler-stage-independent artifact contract
 component introduced during the Flowcore v0.28 lineage and retained as a
 Lyraform compiler-stage-independent contract surface.
@@ -49,6 +54,28 @@ The nested fact is preserved by carrying stages and checked by all seven
 consumers: validation, binding, parallel planning, optimization, preparation,
 LLVM lowering, and TinyVM lowering. TextOutcome is the first executable carrier;
 the shared law has no Text-specific dispatch.
+
+The bounded forwarding projection represents exactly two ordered version-1
+transfer facts in `ownership_transfers`. Their adjacent owner, function, and
+operation identities must connect, and their value type and obligation identity
+must remain unchanged. The existing singular `ownership_transfer` projection
+remains the compatible direct-return form.
+
+`failure_consumer.hpp` defines the first carrier-independent declarative
+failure-consumer boundary from ADR 0062. `lyraform.failure_consumer` version 1
+binds a closed expected-failure payload-type set to exact ordinary function
+identities whose semantic input is the canonical `failure_envelope` projection
+for the exact routed payload type. The companion
+`lyraform.failure_policy_selection` version 1 fact proves that policy selected
+only a route authorized for that consumer and failure type. Both contracts are
+explicitly `declarative`: they cannot authorize source admission or runtime
+execution until response-function disposition authority and producer routing
+are established by later bounded stages.
+
+ADR 0063 governs the later envelope's evidence lifetime: live evidence remains
+must-account until proven closure or transfer, may compact only through a
+validated closure receipt, and may never be silently truncated to satisfy a
+retention budget. This contract does not yet serialize or execute those epochs.
 
 ## Version-1 unknown-field policy
 

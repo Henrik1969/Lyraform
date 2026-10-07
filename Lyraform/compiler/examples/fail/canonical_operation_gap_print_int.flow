@@ -1,0 +1,7 @@
+program canonical_operation_gap_print_int
+
+main {
+    x : int(1)
+    print x
+    return 42
+}

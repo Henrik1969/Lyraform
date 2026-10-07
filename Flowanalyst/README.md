@@ -1,5 +1,12 @@
 # Flowanalyst
 
+Callable lowering-plan v2 includes
+`lyraform.source_operation_coverage/v1`: every structural statement is recorded
+as lowered, statically handled, declaration-only, deliberately effect-free,
+graph-projected, or refused. Any refused statement blocks canonical execution.
+Deprecated legacy plan v1 retains oracle evidence but is not execution
+authority for Lyraform.
+
 Flowanalyst is the semantic-analysis sibling of the Lyraform compiler. It
 consumes the historical Flowmini-compatible frontend artifact.
 
@@ -58,7 +65,8 @@ guards remain refused.
 The existing bounded `Outcome<Text,TextFailure>` path uses the same canonical
 disposition authority. Tagged storage transfers a must-account obligation; it
 does not make failure disappear. A direct return from one nullary producer to
-one entry caller uses the generic ownership-transfer contract (ADR 0060).
+one entry caller, with at most one nullary forwarding owner between them, uses
+the generic ownership-transfer contract (ADR 0060).
 Flowanalyst proves accounting at the current owner using the established shape with one `.code` projection, complementary zero/nonzero
 branches, success-only `.value` use, exactly-once disposal, and an explicit
 nonempty failure branch. Incomplete or broader ownership forms are refused
@@ -68,6 +76,22 @@ It also emits `effect_facts`. The first proven effect is `pure` for function
 bodies consisting only of return expressions over literals, parameters, and
 pure unary/binary operators. Calls, mutation, control-state constructs,
 external effects, and unsupported forms remain `unknown`.
+
+Callable lowering-plan v2 also connects every top-level source-call projection
+to one lowering operation by operation identity. Shared validation requires an
+exact one-to-one projection and preserves expression, statement, scope, callee,
+arguments, result, and the existing function-effect-derived purity fact.
+Synthesized operations such as source-level `print` lowering remain ordinary
+operations but do not pretend to be source call expressions. Historical plan
+v1 remains readable and makes no call-projection connectivity claim.
+
+The existing `parallel_candidates` projection is likewise operation-identified
+in callable plan v2. Each deferred candidate and each peer names its canonical
+call operation. Shared validation recomputes the bounded relation from proven
+function purity, call operands, result symbols, scopes, and statements. This is
+inspectable independence evidence only: it does not authorize scheduling or
+runtime concurrency. The `region_dependency` matrix remains a scope/symbol
+analysis graph and is not an operation dependency graph.
 
 The independent consumer boundary is specified in
 [`docs/flowanalyst/v0.1-consumer-contract.md`](../docs/flowanalyst/v0.1-consumer-contract.md).

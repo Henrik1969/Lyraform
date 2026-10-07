@@ -26,6 +26,10 @@ add_executable(flowcontracts_ownership_transfer_tests tests/ownership_transfer_t
 target_link_libraries(flowcontracts_ownership_transfer_tests PRIVATE flowcontracts)
 target_compile_options(flowcontracts_ownership_transfer_tests PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME flowcontracts_ownership_transfer COMMAND flowcontracts_ownership_transfer_tests)
+add_executable(flowcontracts_failure_consumer_tests tests/failure_consumer_tests.cpp)
+target_link_libraries(flowcontracts_failure_consumer_tests PRIVATE flowcontracts)
+target_compile_options(flowcontracts_failure_consumer_tests PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME flowcontracts_failure_consumer COMMAND flowcontracts_failure_consumer_tests)
 add_test(NAME flowvalidate_artifacts
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>

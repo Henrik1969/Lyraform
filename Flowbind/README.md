@@ -24,6 +24,13 @@ Ready reports also contain a `capabilities` array. Each entry preserves the
 declared contract, provider library, symbol, calling convention, effect, ABI
 types, and authorization status for downstream inspectors and lowerers.
 
+For canonical reports with a lowering plan, shared contract validation requires
+the `binding_requirements` identities to exactly equal the providers used by
+external operations and native-graph provider nodes. Duplicate or unused
+requirements are refused before policy or host discovery can broaden the
+authorized capability set. Flowanalyst owns semantic provider/effect identity;
+Flowbind authorizes that identity but does not reinterpret it.
+
 An optional `--abi-manifest manifest.json` consumes provider-owned aggregate
 layout evidence. Flowbind reports `aggregate_abi: verified` and carries the
 verified layout facts downstream when the manifest matches the semantic

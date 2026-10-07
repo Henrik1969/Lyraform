@@ -25,6 +25,23 @@ jq -e '.status=="ok" and .lowering_plan.status=="ready" and
         .guard_name=="positive" and .guard_symbol_id>=0 and .scope_id>=0 and
         (.dependencies|length)==1 and .provenance.line>0 and .provenance.column>0) and
     (.lowering_plan.disposition_facts|length)==1 and
+    (.lowering_plan as $plan |
+        all($plan.guard_facts[] | select(.event=="transition");
+            . as $guard |
+            any($plan.operations[];
+                .id==$guard.affected_operation_id and
+                (.result_symbol_id as $destination |
+                    any($guard.dependencies[]; .==$destination)))) and
+        all($plan.disposition_facts[];
+            . as $disposition |
+            any($plan.operations[];
+                .id==$disposition.operation_id and
+                .statement_id==$disposition.statement_id and
+                .expression_id==$disposition.expression_id and
+                .scope_id==$disposition.scope_id and
+                .result_symbol_id==.scalar_fact.destination_symbol_id and
+                .result_symbol_id==$disposition.possible_dispositions[0].route.symbol_id and
+                .scalar_fact.destination_type==$disposition.possible_dispositions[0].payload_type))) and
     all(.lowering_plan.disposition_facts[];
         .format=="lyraform.disposition_fact" and .version==1 and .fact_id>=0 and
         .completion=="exactly_one" and

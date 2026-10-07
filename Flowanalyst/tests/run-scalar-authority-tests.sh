@@ -87,7 +87,10 @@ x -> return"
         "$FLOWANALYST_BIN" --lowering-plan-version "$version" "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
         "$FLOWANALYST_BIN" --lowering-plan-version "$version" "$tmpdir/frontend.json" > "$tmpdir/repeat.json"
         cmp "$tmpdir/semantic.json" "$tmpdir/repeat.json"
-        jq -e '.status == "ok" and any(.lowering_plan.operations[]; .scalar_fact.compatibility == "admitted")' "$tmpdir/semantic.json" >/dev/null
+        jq -e '.status == "ok" and
+            ([.lowering_plan.operations[] | select(.scalar_fact) |
+                .result_symbol_id == .scalar_fact.destination_symbol_id] | all)' \
+            "$tmpdir/semantic.json" >/dev/null
         facts "$tmpdir/semantic.json" > "$tmpdir/expected-facts.json"
         "$FLOWBIND_BIN" "$tmpdir/semantic.json" > "$tmpdir/binding.json"
         "$FLOWPARALLEL_BIN" "$tmpdir/semantic.json" > "$tmpdir/execution.json"
@@ -150,6 +153,7 @@ for mutation in \
   '.lowering_plan.operations[0].scalar_fact.source_type="Bool"' \
   '.lowering_plan.operations[0].scalar_fact.version=99' \
   '.lowering_plan.operations[0].scalar_fact.destination_symbol_id=99999' \
+  '.lowering_plan.operations[0].result_symbol_id=99999' \
   '.lowering_plan.operations[0].scalar_fact.declaration_statement_id=99999' \
   '.lowering_plan.operations[0].scalar_fact.provenance.line=0' \
   '.lowering_plan.operations[0].operands[0]={expression_id:.lowering_plan.operations[0].expression_id,kind:"bool_literal",type:"bool",value:"true"}'
@@ -161,4 +165,4 @@ do
     test ! -e "$tmpdir/forbidden.ll"
     test ! -e "$tmpdir/forbidden.tvm"
 done
-echo 'Canonical scalar authority: PASS (12 refusals; 4 LLVM/TinyVM parity cases, 3 legacy matches and 1 known legacy initializer failure, plan v1/v2; 6 hostile artifacts; mapped origins; conflicting frontend types)'
+echo 'Canonical scalar authority: PASS (12 refusals; 4 LLVM/TinyVM parity cases, 3 legacy matches and 1 known legacy initializer failure, plan v1/v2; 7 hostile artifacts; mapped origins; conflicting frontend types)'

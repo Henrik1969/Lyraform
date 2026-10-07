@@ -22,14 +22,24 @@ Ordinary independent values remain governed by ADR 0052; this decision does
 not silently turn every scalar or ordinary aggregate copy into a destructive
 move. Owned obligations cannot be implicitly duplicated by such copying.
 
-## First executable projection
+## Executable projections
 
 One owned producer, one direct function return, and one caller destination,
 followed by already-admitted local handling. The transfer contract records
 source/destination ownership, function and operation identities, payload type,
-and preserved obligation identity. Unsupported additional transfers, parameters,
-recursion, aliasing, fan-out, and containers are explicitly refused until
-admitted by extensions of this same mechanism.
+and preserved obligation identity.
+
+The first bounded extension admits exactly one intermediate forwarding owner:
+producer, direct return, forwarding owner, direct return, entry-caller owner,
+and already-admitted local handling. The chain is an ordered pair of the same
+`lyraform.ownership_transfer` v1 facts. Its adjacent owner, function, operation,
+value-type, and obligation identities must connect exactly. The forwarding
+owner may only receive and directly return the value; it may not inspect, copy,
+reuse, replace, branch, or discharge it.
+
+Additional forwarding hops, parameters, recursion, aliasing, fan-out, and
+containers remain explicitly refused until admitted by extensions of this same
+mechanism.
 
 ## Unification constraint
 

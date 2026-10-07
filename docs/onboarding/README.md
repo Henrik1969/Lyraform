@@ -31,8 +31,12 @@ git switch --detach main
 Expected result:
 
 ```text
-100% tests passed, 0 tests failed out of 94
+100% of the tests registered by the checked-out revision pass
 ```
+
+Do not copy a test total from this guide. `igor check` reports the current
+registered graph, and the [current-status page](../current-status.md) links the
+latest dated checkpoint with exact totals.
 
 Record the exact revision before reporting results:
 
@@ -84,7 +88,9 @@ igor doctor   local tool and checkout readiness
 igor check    configure and list the registered CTest graph
 igor build    configure when needed, then build the root graph
 igor test     build and run the canonical CTest suite
-igor run      run a Flow source through the compatibility executable
+igor run      run completely accounted source through the canonical stages
+igor run-canonical  explicit alias for the canonical run path
+igor run-legacy  DEPRECATED behavior-oracle execution; never canonical authority
 ```
 
 The underlying stage binaries remain independently invocable for focused
@@ -117,15 +123,16 @@ ctest --test-dir /tmp/lyraform-onboarding-build --output-on-failure \
 Read these in order:
 
 1. [root project README](../../README.md);
-2. [current Lyraform version](../../Lyraform/CURRENT.md);
-3. [migration record](../../LYRAFORM_MIGRATION_2026-09-13.md);
-4. [verified reusable-chain result](../checkpoints/2026-09-07-reusable-flow-chain-result.md);
-5. [verification-gate policy](../development/verification-gates.md).
+2. [current project status](../current-status.md);
+3. [current Lyraform version](../../Lyraform/CURRENT.md);
+4. [migration record](../../LYRAFORM_MIGRATION_2026-09-13.md);
+5. [latest checkpoint linked from current status](../current-status.md#latest-integrated-checkpoint);
+6. [verification-gate policy](../development/verification-gates.md).
 
 Then challenge the claims with evidence:
 
 - Does a clean checkout build with the installed dependencies?
-- Does the complete 94-test suite pass at the reported revision?
+- Does every test registered by the reported revision pass?
 - Are source identity, provider identity, native symbol identity, and contract
   identity kept distinct?
 - Do malformed or unauthorized plans fail explicitly?

@@ -1,0 +1,266 @@
+{
+  "schema": "lyraform.canonical-language-authority-map/v1",
+  "status": "convergence_freeze",
+  "as_of": "2026-09-26",
+  "baseline_commit": "ecdac7184236dab24423ca7495e882f771cdf287",
+  "language_surface_frozen": true,
+  "whole_language_audit": "docs/architecture/canonical-source-form-audit-v1.json",
+  "canonical_flow": [
+    "structural_frontend",
+    "flowanalyst_shared_semantics",
+    "flowcontracts_validation",
+    "preserving_compiler_stages",
+    "llvm_or_tinyvm"
+  ],
+  "surfaces": [
+    {
+      "id": "source_operation_coverage",
+      "recognition": "canonical_contract",
+      "structural": "statement_complete",
+      "semantic": "fail_closed_for_callable_plan_v2",
+      "execution": "bounded_executable",
+      "authority": "lyraform.source_operation_coverage/v1",
+      "gate": "lyraform_canonical_source_operation_coverage"
+    },
+    {
+      "id": "initialized_local_scalar_flow",
+      "recognition": "canonical",
+      "structural": "bounded_complete",
+      "semantic": "admitted_single_canonical_producer",
+      "execution": "bounded_executable",
+      "authority": "flowanalyst scalar facts + flowcontracts validation",
+      "gate": "lyraform_scalar_source_path"
+    },
+    {
+      "id": "assignable_target_shape",
+      "recognition": "canonical",
+      "structural": "bounded_complete",
+      "semantic": "preserved",
+      "execution": "shape_dependent",
+      "authority": "structural_frontend+flowanalyst.target",
+      "gate": "lyraform_target_preservation"
+    },
+    {
+      "id": "field_path_identity",
+      "recognition": "canonical",
+      "structural": "bounded_complete",
+      "semantic": "resolved",
+      "execution": "unsupported",
+      "authority": "flowanalyst.target",
+      "gate": "lyraform_field_path_resolution"
+    },
+    {
+      "id": "local_member_reconstruction",
+      "recognition": "canonical",
+      "structural": "bounded_complete",
+      "semantic": "admitted",
+      "execution": "unsupported",
+      "authority": "lyraform.aggregate_reconstruction/v1",
+      "gate": "lyraform_field_path_resolution"
+    },
+    {
+      "id": "named_static_guard_lifecycle",
+      "recognition": "canonical",
+      "structural": "bounded_complete",
+      "semantic": "admitted_static_only",
+      "execution": "elided_static_or_refused",
+      "authority": "flowanalyst.guard+lyraform.disposition_fact/v1",
+      "gate": "lyraform_guard_static_lifecycle"
+    },
+    {
+      "id": "operation_disposition",
+      "recognition": "semantic_contract",
+      "structural": "not_source_syntax",
+      "semantic": "bounded_canonical",
+      "execution": "projection_dependent",
+      "authority": "lyraform.disposition_fact/v1",
+      "gate": "text_outcome_boundary"
+    },
+    {
+      "id": "text_outcome_accounting",
+      "recognition": "canonical_bounded_projection",
+      "structural": "bounded_complete",
+      "semantic": "admitted_single_canonical_producer",
+      "execution": "bounded_executable",
+      "authority": "flowanalyst+flowcontracts.disposition",
+      "gate": "text_outcome_boundary"
+    },
+    {
+      "id": "owned_return_transfer",
+      "recognition": "canonical_bounded_projection",
+      "structural": "bounded_complete",
+      "semantic": "admitted_single_canonical_producer",
+      "execution": "bounded_executable",
+      "authority": "lyraform.ownership_transfer/v1",
+      "gate": "flowcontracts_ownership_transfer"
+    },
+    {
+      "id": "provider_and_effect_admission",
+      "recognition": "canonical_contract",
+      "structural": "artifact_driven",
+      "semantic": "admitted_single_canonical_producer",
+      "execution": "bounded_executable",
+      "authority": "flowanalyst requirements + flowcontracts exact-use validation + flowbind authorization",
+      "gate": "flowbind_provider"
+    },
+    {
+      "id": "source_call_operation_projection",
+      "recognition": "canonical_projection",
+      "structural": "bounded_complete",
+      "semantic": "operation_linked",
+      "execution": "projection_only",
+      "authority": "flowanalyst lowering operation + flowcontracts exact projection validation",
+      "gate": "provider_call_identity"
+    },
+    {
+      "id": "deferred_parallel_candidate_projection",
+      "recognition": "canonical_projection",
+      "structural": "bounded_existing_evidence",
+      "semantic": "operation_linked_deferred_only",
+      "execution": "not_admitted",
+      "authority": "canonical call operations + proven effect facts + flowcontracts exact relation validation",
+      "gate": "parallel_candidate_identity"
+    },
+    {
+      "id": "schedule_admission",
+      "recognition": "canonical_contract",
+      "structural": "artifact_driven",
+      "semantic": "refusal_only",
+      "execution": "neutral_only",
+      "authority": "shared_schedule_admission",
+      "gate": "scheduling_admission_inventory"
+    },
+    {
+      "id": "deprecated_legacy_source",
+      "recognition": "deprecated_legacy",
+      "structural": "legacy_mixed",
+      "semantic": "oracle_only_non_authoritative",
+      "execution": "excluded_from_canonical",
+      "authority": "none; observed through flowmini.parseModule+ModuleSpec",
+      "gate": "flowmini_support_boundary"
+    }
+  ],
+  "known_bridges": [
+    {
+      "id": "canonical_staged_execution_bridge",
+      "from": "source_operation_coverage",
+      "to": "llvm",
+      "state": "bounded_connected",
+      "risk": "only source with complete callable-plan-v2 statement accounting is admitted; deprecated legacy plan v1 remains oracle evidence only"
+    },
+    {
+      "id": "scalar_operation_identity_bridge",
+      "from": "initialized_local_scalar_flow",
+      "to": "canonical_lowering_operations",
+      "state": "bounded_connected",
+      "risk": "only int/Bool initialized declarations and identifier placements consume scalar-fact destination identity/type; other source families retain their existing authorities"
+    },
+    {
+      "id": "target_operation_identity_bridge",
+      "from": "assignable_target_shape",
+      "to": "canonical_lowering_operations",
+      "state": "single_producer_validated",
+      "risk": "flowanalyst target resolution is the sole producer; member/index execution remains explicitly unsupported"
+    },
+    {
+      "id": "guard_disposition_operation_bridge",
+      "from": "named_static_guard_lifecycle",
+      "to": "operation_disposition",
+      "state": "bounded_single_producer",
+      "risk": "static int guard proofs only; runtime-dependent guard transitions and general failure routing remain refused"
+    },
+    {
+      "id": "text_outcome_ownership_disposition_bridge",
+      "from": "text_outcome_accounting",
+      "to": "owned_return_transfer",
+      "state": "bounded_single_producer",
+      "risk": "direct return or one forwarding owner only; general propagation, additional hops, owned parameters, and policy sinks remain refused"
+    },
+    {
+      "id": "provider_effect_authorization_bridge",
+      "from": "provider_and_effect_admission",
+      "to": "canonical_lowering_operations",
+      "state": "bounded_exact_set",
+      "risk": "Flowanalyst alone produces required provider/effect identities; Flowbind authorizes the exact used set and retains plan-less reports only as explicit compatibility inspection inputs"
+    },
+    {
+      "id": "call_projection_operation_bridge",
+      "from": "source_call_operation_projection",
+      "to": "canonical_lowering_operations",
+      "state": "bounded_exact_projection",
+      "risk": "callable plan v2 only; historical plan v1 remains readable without claiming this connectivity"
+    },
+    {
+      "id": "parallel_candidate_operation_bridge",
+      "from": "deferred_parallel_candidate_projection",
+      "to": "canonical_lowering_operations",
+      "state": "bounded_exact_deferred_projection",
+      "risk": "proves only current pure-call independence evidence; status remains deferred and grants no scheduling, concurrency, async, cancellation, retry, or execution authority"
+    },
+    {
+      "id": "call_authority_carrying_stage_bridge",
+      "from": "canonical_lowering_operations",
+      "to": "flowparallel_flowoptimize_backend_artifact",
+      "state": "plan_v2_exact_preservation",
+      "risk": "effect and deferred-candidate evidence is preserved and revalidated through every callable-plan-v2 carrying route; plan v1 remains historical compatibility without this claim"
+    },
+    {
+      "id": "remaining_authority_carrying_stage_bridge",
+      "from": "canonical_lowering_operations",
+      "to": "flowparallel_flowoptimize_backend_artifact",
+      "state": "plan_v2_complete_envelope",
+      "risk": "the current plan-v2 source, target, ABI, scalar, guard, disposition, ownership, provider/effect, call, and candidate facts are preserved or deliberately consumed by a separately validated authorization branch; unsupported execution remains refused and plan v1 retains its historical wire contract"
+    },
+    {
+      "id": "whole_language_authority_audit",
+      "from": "accepted_source_forms",
+      "to": "canonical_or_explicit_boundary",
+      "state": "complete_under_language_freeze",
+      "risk": "the audit is a disposition of the current surface, not a claim that unsupported forms are executable or that the frozen language is complete"
+    },
+    {
+      "id": "direct_scalar_runtime_adapter",
+      "from": "initialized_local_scalar_flow",
+      "to": "legacy_runtime_representation",
+      "state": "deprecated_oracle_bridge",
+      "risk": "outside Igor canonical execution; retained only in the deprecated direct-runtime oracle and test evidence"
+    },
+    {
+      "id": "legacy_source_fallback",
+      "from": "deprecated_legacy_source",
+      "to": "legacy_runtime",
+      "state": "deprecated_oracle_only",
+      "risk": "legacy parser/runtime behavior is evidence only and must never authorize canonical admission or execution"
+    },
+    {
+      "id": "member_execution_gap",
+      "from": "local_member_reconstruction",
+      "to": "llvm_or_tinyvm",
+      "state": "blocked_prerequisite",
+      "risk": "canonical assignability has no validated reconstruction operation, and ordinary aggregate construction, ABI layout, and field-completeness semantics remain deliberately undefined"
+    },
+    {
+      "id": "ordinary_aggregate_construction_gap",
+      "from": "structural_frontend",
+      "to": "local_member_reconstruction",
+      "state": "decision_required",
+      "risk": "record literals remain unsupported operands and ordinary aggregate ABI layouts are absent; defining them would add semantic meaning during the freeze"
+    },
+    {
+      "id": "general_failure_routing_gap",
+      "from": "operation_disposition",
+      "to": "general_function_and_graph_boundaries",
+      "state": "declarative_consumer_only",
+      "risk": "typed envelope consumers and policy-selected function identities are declarative; response-transition execution, propagation, retry, policy-sink, and fault-containment integration remain refused"
+    }
+  ],
+  "forbidden_during_freeze": [
+    "new_syntax",
+    "new_language_semantics",
+    "new_ownership_mode",
+    "new_failure_or_fault_meaning",
+    "new_scheduling_meaning",
+    "new_abi_or_ffi_surface",
+    "self_hosting"
+  ]
+}

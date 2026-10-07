@@ -1,0 +1,29 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/text.flow"
+
+program text_outcome_forward
+
+fn make(): TextOutcome {
+    produced : TextOutcome(concat_outcome("Lyra", "form"))
+    produced -> return
+}
+
+fn forward(): TextOutcome {
+    received : TextOutcome(make())
+    received -> return
+}
+
+main {
+    outcome : TextOutcome(forward())
+    zero : c_int(0)
+    code : c_int(outcome.code)
+    status : c_int(0)
+
+    if code == zero {
+        puts_text(outcome.value) -> status
+        dispose(outcome.value) -> status
+    }
+    if code != zero {
+        puts("concat failed") -> status
+    }
+}

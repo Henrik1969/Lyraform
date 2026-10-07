@@ -104,6 +104,12 @@ the violating input does not satisfy this law.
 - Generic and provider-selected operations must expose enough failure/fault
   contract information for route completeness to be checked.
 
+[ADR 0062](0062-typed-failure-consumers-and-policy-routing.md) further
+establishes the expected-failure consumer boundary: a typed consumer declares a
+closed accepted failure set and compatible ordinary developer functions, while
+explicit policy selects only among those authorized routes. This does not admit
+concrete consumer syntax or runtime routing by itself.
+
 ## Deferred
 
 This ADR does not define:

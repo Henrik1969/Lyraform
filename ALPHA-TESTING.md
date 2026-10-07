@@ -144,14 +144,17 @@ The documentation may simply be bad.
 
 At the time this document was written, a clean fresh clone is expected to build and test successfully from zero local project state.
 
-Current verified baseline:
+The current baseline is revision-relative:
 
 ```text
 clean configure: PASS
 clean build: PASS
-registered tests: 107
-CTest: 107/107 PASS (fresh GCC)
+all tests registered by the checkout: PASS
 ```
+
+See [the current-status landing page](docs/current-status.md) for the latest
+checkpoint with exact revision, totals, sanitizer results, and known limits.
+Do not treat a test count copied from an older checkpoint as the current graph.
 
 The project remains experimental despite passing its current tests.
 
@@ -197,6 +200,8 @@ igor build
 igor check
 igor test
 igor run
+igor run-canonical
+igor run-legacy
 igor doctor
 ```
 

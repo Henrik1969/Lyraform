@@ -12,7 +12,7 @@ lower=${FLOWLOWER_BIN:?}
 tiny_lower=${FLOWTINYLOWER_BIN:?}
 tiny_validate=${FLOWTINYVALIDATE_BIN:?}
 tiny_run=${FLOWTINYRUN_BIN:?}
-source="$root/Lyraform/compiler/examples/pass/fn_demo.flow"
+source="$root/Lyraform/compiler/examples/pass/fn_canonical_demo.flow"
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 

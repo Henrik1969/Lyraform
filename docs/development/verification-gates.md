@@ -1,6 +1,6 @@
 # Verification Gates
 
-Flowcore uses tiered verification. Small changes should remain quick to test,
+Lyraform uses tiered verification. Small changes should remain quick to test,
 while claims that open or close an architectural border require broader pressure
 testing.
 

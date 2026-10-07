@@ -1,0 +1,20 @@
+program fn_canonical_demo
+
+fn square(n : int): int {
+    n * n -> return
+}
+
+fn add_then_square(a : int, b : int): int {
+    sum : int(0)
+    a + b -> sum
+    square(sum) -> return
+}
+
+main {
+    x : int(3)
+    y : int(4)
+    result : int(0)
+
+    add_then_square(x, y) -> result
+    return result
+}

@@ -43,6 +43,23 @@ run_case() {
         .obligation.proof=="complementary_zero_code_branches" and
         (.obligation.success_value_operation_ids|length)>=2 and
         (.obligation.failure_recovery_operation_ids|length)>=1) and
+      (.lowering_plan as $plan |
+        all($plan.disposition_facts[] | select(.obligation.kind=="must_account");
+          . as $fact |
+          any($plan.operations[];
+            .id==$fact.operation_id and .kind=="text_outcome" and
+            $fact.obligation.identity==("operation:"+(.id|tostring)+":outcome") and
+            $fact.possible_dispositions[0].route.symbol_id==.result_symbol_id and
+            $fact.possible_dispositions[1].route.symbol_id==.result_symbol_id) and
+          (if $fact.obligation.ownership_transfer then
+             ($fact.obligation.ownership_transfer.value_type==
+                ($plan.operations[]|select(.id==$fact.operation_id).provider.return_type) and
+              $fact.obligation.ownership_transfer.obligation_identity==$fact.obligation.identity)
+           elif $fact.obligation.ownership_transfers then
+             all($fact.obligation.ownership_transfers[];
+               .value_type==($plan.operations[]|select(.id==$fact.operation_id).provider.return_type) and
+               .obligation_identity==$fact.obligation.identity)
+           else true end))) and
       any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "flow_text_dispose") and
       any(.lowering_plan.operations[]; .kind == "branch")
     ' "$tmpdir/$name.semantic.json" >/dev/null
@@ -75,6 +92,7 @@ run_case() {
 
 run_case "$root/Lyraform/compiler/examples/text/text_outcome.flow" 'Lyraform' success
 run_case "$root/Lyraform/compiler/examples/text/text_outcome_return.flow" 'Lyraform' returned
+run_case "$root/Lyraform/compiler/examples/text/text_outcome_forward.flow" 'Lyraform' forwarded
 
 sed -e "s|../../std/abi/libc.flow|$root/Lyraform/compiler/std/abi/libc.flow|" \
     -e "s|../../std/abi/text.flow|$root/Lyraform/compiler/std/abi/text.flow|" \
@@ -99,7 +117,7 @@ refuse_case() {
         any(.diagnostics[];
             .code=="FLOWANALYST_DANGLING_OUTCOME_WIRE" and
             (.message|contains("inspect both variants")) and
-            (.message|contains("only direct unique return transfer is supported; further propagation and explicit policy sinks remain unsupported")) and
+            (.message|contains("bounded direct unique return and one forwarding hop are supported; further propagation and explicit policy sinks remain unsupported")) and
             .root_cause==true and .provenance.line>0)' "$tmpdir/$name.semantic.json" >/dev/null
 }
 
@@ -198,6 +216,49 @@ Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace('"Lyra", "for
 PYFAIL
 run_case "$tmpdir/return-failure.flow" 'concat failed' return-failure
 
+# One forwarding owner may receive and directly transfer the same obligation.
+sed -e "s|../../std/abi/libc.flow|$root/Lyraform/compiler/std/abi/libc.flow|" \
+    -e "s|../../std/abi/text.flow|$root/Lyraform/compiler/std/abi/text.flow|" \
+    "$root/Lyraform/compiler/examples/text/text_outcome_forward.flow" > "$tmpdir/forward-base.flow"
+jq -e '.lowering_plan.disposition_facts[0] as $fact |
+    $fact.obligation.ownership_transfers as $chain |
+    ($chain|length)==2 and
+    all($chain[]; .format=="lyraform.ownership_transfer" and .version==1 and
+        .kind=="function_return" and .mode=="unique" and
+        .obligation_identity==$fact.obligation.identity) and
+    $chain[0].destination_owner_symbol_id==$chain[1].source_owner_symbol_id and
+    $chain[0].destination_function_symbol_id==$chain[1].source_function_symbol_id and
+    $chain[0].call_operation_id==$chain[1].producer_operation_id and
+    $chain[1].destination_owner_symbol_id==$fact.obligation.owner_symbol_id' \
+    "$tmpdir/forwarded.semantic.json" >/dev/null
+sed '/received -> return/i\    copy : TextOutcome(received)' "$tmpdir/forward-base.flow" > "$tmpdir/forward-copy.flow"
+refuse_case "$tmpdir/forward-copy.flow" forward-copy
+sed '/received -> return/a\    stale : TextOutcome(received)' "$tmpdir/forward-base.flow" > "$tmpdir/forward-stale-use.flow"
+refuse_case "$tmpdir/forward-stale-use.flow" forward-stale-use
+sed '/received -> return/i\    observed : c_int(received.code)' "$tmpdir/forward-base.flow" > "$tmpdir/forward-inspect.flow"
+refuse_case "$tmpdir/forward-inspect.flow" forward-inspect
+sed '/received : TextOutcome(make())/a\    another : TextOutcome(make())' "$tmpdir/forward-base.flow" > "$tmpdir/forward-producer-fanout.flow"
+refuse_case "$tmpdir/forward-producer-fanout.flow" forward-producer-fanout
+sed '/outcome : TextOutcome(forward())/a\    another : TextOutcome(forward())' "$tmpdir/forward-base.flow" > "$tmpdir/forward-caller-fanout.flow"
+refuse_case "$tmpdir/forward-caller-fanout.flow" forward-caller-fanout
+python3 - "$tmpdir/forward-base.flow" "$tmpdir/forward-third-hop.flow" <<'PYFORWARD'
+from pathlib import Path
+import sys
+s = Path(sys.argv[1]).read_text()
+marker = '\nmain {\n'
+extra = '\nfn forward_again(): TextOutcome {\n    relayed : TextOutcome(forward())\n    relayed -> return\n}\n'
+s = s.replace(marker, extra + marker).replace('outcome : TextOutcome(forward())',
+                                              'outcome : TextOutcome(forward_again())')
+Path(sys.argv[2]).write_text(s)
+PYFORWARD
+refuse_case "$tmpdir/forward-third-hop.flow" forward-third-hop
+python3 - "$tmpdir/forward-base.flow" "$tmpdir/forward-failure.flow" <<'PYFORWARDFAIL'
+from pathlib import Path
+import sys
+Path(sys.argv[2]).write_text(Path(sys.argv[1]).read_text().replace('"Lyra", "form"', '"'+'A'*4097+'", "x"'))
+PYFORWARDFAIL
+run_case "$tmpdir/forward-failure.flow" 'concat failed' forward-failure
+
 # Every hostile consumer gets its own accepted artifact format. A valid
 # control must succeed before a rejection can count as contract evidence.
 "$validator" "$tmpdir/success.semantic.json" >/dev/null
@@ -221,7 +282,9 @@ reject_hostile_plan() {
     if "$optimize" "$tmpdir/hostile.parallel.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
     grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
     if "$bind" --policy "$policy" "$tmpdir/hostile.semantic.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
-    grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
+    # A provider-changing mutation may now be rejected even earlier by the
+    # exact binding-requirement/operation authority check.
+    grep -Eiq 'disposition|outcome|provider|binding requirement' "$tmpdir/rejection"
     if "$prepare" --binding-report "$tmpdir/$hostile_baseline.binding.json" "$tmpdir/hostile.optimized.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
     grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
     hostile_count=$((hostile_count + 1))
@@ -232,6 +295,23 @@ for mutation in \
     '.lowering_plan.disposition_facts=[]' \
     '.lowering_plan.disposition_facts += [.lowering_plan.disposition_facts[0]]' \
     '.lowering_plan.disposition_facts[0].obligation.success_branch_operation_id as $id | (.lowering_plan.operations[]|select(.id==$id).operands[0].left.symbol_id)=999'; do
+    reject_hostile_plan "$mutation"
+done
+
+# Mutate the ordered two-hop relation while every consumer receives its valid
+# stage format. The singular direct-return projection above remains compatible.
+hostile_baseline=forwarded
+for mutation in \
+    'del(.lowering_plan.disposition_facts[0].obligation.ownership_transfers)' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers=[]' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers|=reverse' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers += [.lowering_plan.disposition_facts[0].obligation.ownership_transfers[1]]' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers[1].mode="shared"' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers[1].obligation_identity="new-completion"' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers[1].value_type="OtherOwnedType"' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers[1].source_owner_symbol_id=999' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers[1].source_function_symbol_id=999' \
+    '.lowering_plan.disposition_facts[0].obligation.ownership_transfers[1].producer_operation_id=999'; do
     reject_hostile_plan "$mutation"
 done
 
@@ -310,4 +390,4 @@ awk 'BEGIN { for (i = 0; i < 4097; ++i) printf "A" }' >> "$tmpdir/overflow.flow"
 printf '%s\n' '", "x"))' '    zero : c_int(0)' '    code : c_int(outcome.code)' '    status : c_int(0)' '    if code == zero {' '        puts_text(outcome.value) -> status' '        dispose(outcome.value) -> status' '    }' '    if code != zero {' '        puts("concat failed") -> status' '    }' '}' >> "$tmpdir/overflow.flow"
 run_case "$tmpdir/overflow.flow" 'concat failed' overflow
 
-echo "TextOutcome boundary: PASS (6 execution cases, 23 source refusals, $hostile_count hostile mutations at 7 valid consumer boundaries, 3 preserved stages, ordered exactly-once cleanup)"
+echo "TextOutcome boundary: PASS (8 execution cases, 29 source refusals, $hostile_count hostile mutations at 7 valid consumer boundaries, 3 preserved stages, ordered exactly-once cleanup and bounded forwarding)"

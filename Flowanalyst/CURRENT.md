@@ -18,7 +18,10 @@ Implemented checks:
 - resolved-name facts and semantic dependency edges;
 - callable arity checking for resolved calls;
 - refined-type base resolution and invariant binding checks;
-- each named target must expose exactly one `main` procedure.
+- each named target must expose exactly one `main` procedure;
+- versioned source-operation coverage for every structural statement;
+- fail-closed callable-plan-v2 admission when any source statement lacks a
+  canonical executable or explicit non-runtime disposition.
 - bounded named-guard lifecycle and straight-line scalar preservation proofs;
 - canonical disposition facts for statically proven guarded scalar
   transitions, with exact operation, type, commit, route, guard-proof, owner,
@@ -53,10 +56,11 @@ outcome tag used by subsequent branch tests.
 
 The consolidation stage maps guard/outcome fact and diagnostic locations through
 frontend import source maps. Dangling-outcome messages distinguish supported
-local handling and direct unique return transfer from further propagation and
-policy sinks, which remain unavailable.
+local handling, direct unique return transfer, and one bounded forwarding hop
+from further propagation and policy sinks, which remain unavailable.
 See [the consolidation checkpoint](../docs/checkpoints/2026-09-26-post-gate-2-consolidation.md)
 and [the uniform transfer checkpoint](../docs/checkpoints/2026-09-26-uniform-owned-transfer.md).
-One nullary producer may directly return its owned outcome to one entry caller.
-The shared ownership contract preserves obligation identity and changes its owner;
-the caller must complete the existing local accounting proof.
+One nullary producer may directly return its owned outcome to one entry caller,
+or transfer it through exactly one nullary forwarding owner. The shared
+ownership contract preserves obligation identity and changes its owner at each
+hop; the final caller must complete the existing local accounting proof.

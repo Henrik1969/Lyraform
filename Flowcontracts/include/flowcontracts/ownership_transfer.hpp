@@ -98,6 +98,39 @@ inline std::string ownership_transfer_refusal(const OwnershipTransfer& t,
     return {};
 }
 
+inline std::string ownership_transfer_chain_refusal(const std::vector<OwnershipTransfer>& transfers,
+    const std::vector<OwnershipOperation>& operations, const std::vector<OwnershipFunction>& functions) {
+    if (transfers.size()!=2) return "bounded ownership forwarding requires exactly two transfer hops";
+    std::map<long long,const OwnershipFunction*> fns;
+    for (const auto& fn:functions)
+        if(!fns.emplace(fn.id,&fn).second) return "duplicate ownership function";
+    const auto& first=transfers[0];
+    const auto& second=transfers[1];
+    if(first.value_type!=second.value_type || first.obligation!=second.obligation)
+        return "ownership forwarding changes value type or obligation identity";
+    if(first.destination_owner!=second.source_owner ||
+        first.destination_function!=second.source_function || first.call!=second.producer)
+        return "ownership forwarding hops are disconnected or reordered";
+    if(first.source_function==second.source_function ||
+        second.source_function==second.destination_function ||
+        !fns.count(first.source_function) || !fns.count(second.source_function) ||
+        !fns.count(second.destination_function))
+        return "ownership forwarding function identity is invalid";
+    if(fns.at(first.source_function)->entry || fns.at(second.source_function)->entry ||
+        !fns.at(second.destination_function)->entry)
+        return "ownership forwarding must terminate at one entry caller";
+    for(const auto& transfer:transfers) {
+        auto projected_functions=functions;
+        for(auto& fn:projected_functions) {
+            if(fn.id==transfer.source_function) fn.entry=false;
+            if(fn.id==transfer.destination_function) fn.entry=true;
+        }
+        const auto error=ownership_transfer_refusal(transfer,operations,projected_functions);
+        if(!error.empty()) return error;
+    }
+    return {};
+}
+
 inline void ownership_operand_reads(const json::Value& value, std::set<long long>& reads) {
     using namespace json;
     if(const auto* obj=std::get_if<Object>(&value)) {
@@ -108,11 +141,9 @@ inline void ownership_operand_reads(const json::Value& value, std::set<long long
         for(const auto& child:*items) ownership_operand_reads(child,reads);
 }
 
-inline std::string validate_ownership_transfer_projection(const OwnershipTransfer& transfer,
-    const json::Object& plan) {
+inline std::vector<OwnershipOperation> ownership_projection_operations(const json::Object& plan) {
     using namespace json;
     std::vector<OwnershipOperation> operations;
-    std::vector<OwnershipFunction> functions;
     for(const auto& raw:array(required(plan,"operations"),"$.operations")) {
         const auto& op=object(raw);
         auto number=[&](std::string_view key)->long long {
@@ -123,14 +154,24 @@ inline std::string validate_ownership_transfer_projection(const OwnershipTransfe
         operations.push_back({number("id"),number("statement_id"),number("block_id"),number("function_symbol_id"),
             number("result_symbol_id"),number("callee_symbol_id"),string(required(op,"kind"),"$.kind"),reads,array(required(op,"operands"),"$.operands").size()});
     }
+    return operations;
+}
+
+inline std::vector<OwnershipFunction> ownership_projection_functions(const json::Object& plan) {
+    using namespace json;
+    std::vector<OwnershipFunction> functions;
     for(const auto& raw:array(required(plan,"functions"),"$.functions")) {
         const auto& fn=object(raw);
         functions.push_back({integer(required(fn,"symbol_id"),"$.symbol_id"),integer(required(fn,"body_block_id"),"$.body_block_id"),
             string(required(fn,"return_type"),"$.return_type"),boolean(required(fn,"entry"),"$.entry"),
             array(required(fn,"parameters"),"$.parameters").size()});
     }
-    const auto error=ownership_transfer_refusal(transfer,operations,functions);
-    if(!error.empty()) return error;
+    return functions;
+}
+
+inline std::string ownership_direct_return_projection_refusal(const OwnershipTransfer& transfer,
+    const json::Object& plan) {
+    using namespace json;
     // A symbol buried inside a larger expression is not a direct transfer.
     for(const auto& raw:array(required(plan,"operations"),"$.operations")) {
         const auto& op=object(raw);
@@ -138,6 +179,26 @@ inline std::string validate_ownership_transfer_projection(const OwnershipTransfe
         const auto& operands=array(required(op,"operands"),"$.operands");
         if(operands.size()!=1 || string(required(object(operands[0]),"kind"),"$.kind")!="identifier")
             return "owned return must directly transfer its owner";
+    }
+    return {};
+}
+
+inline std::string validate_ownership_transfer_projection(const OwnershipTransfer& transfer,
+    const json::Object& plan) {
+    const auto error=ownership_transfer_refusal(transfer,ownership_projection_operations(plan),
+        ownership_projection_functions(plan));
+    if(!error.empty()) return error;
+    return ownership_direct_return_projection_refusal(transfer,plan);
+}
+
+inline std::string validate_ownership_transfer_chain_projection(
+    const std::vector<OwnershipTransfer>& transfers, const json::Object& plan) {
+    const auto error=ownership_transfer_chain_refusal(transfers,ownership_projection_operations(plan),
+        ownership_projection_functions(plan));
+    if(!error.empty()) return error;
+    for(const auto& transfer:transfers) {
+        const auto projection_error=ownership_direct_return_projection_refusal(transfer,plan);
+        if(!projection_error.empty()) return projection_error;
     }
     return {};
 }

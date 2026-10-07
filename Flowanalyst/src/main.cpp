@@ -74,7 +74,7 @@ struct AggregateLayout { std::string contract, name; std::vector<std::pair<std::
 struct Region { std::string id, kind, status; std::vector<std::string> prerequisites; };
 struct EffectFact { int declaration = -1, symbol = -1; std::string name, effect, certainty, reason; };
 struct CallSite { int expression = -1, statement = -1, scope = -1, callee_symbol = -1, write_symbol = -1; std::string callee; bool pure = false; std::set<int> reads; std::string writes; std::vector<int> arguments; std::vector<int> independent_with; };
-struct LoweringOperation { int expression = -1, statement = -1, scope = -1, block = -1, function_symbol = -1, then_block = -1, else_block = -1, body_block = -1, callee_symbol = -1, result_symbol = -1; std::string callee, kind, contract, library, convention, symbol, effect, parameter_types, return_type, evidence; std::vector<int> arguments; };
+struct LoweringOperation { int expression = -1, statement = -1, scope = -1, block = -1, function_symbol = -1, then_block = -1, else_block = -1, body_block = -1, callee_symbol = -1, result_symbol = -1; bool source_call_projection = false; std::string callee, kind, contract, library, convention, symbol, effect, parameter_types, return_type, evidence; std::vector<int> arguments; };
 struct Callable { int symbol = -1, scope = -1, body_block = -1; bool entry = false; std::string name, return_type, availability; std::vector<std::pair<int, std::string>> parameters; };
 struct Resolution { int expression = -1, statement = -1, scope = -1, symbol = -1; std::string name; };
 struct GuardState { int symbol = -1, statement = -1, scope = -1, predicate = -1; std::string name; std::set<int> dependencies; };
@@ -853,6 +853,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     auto visible_symbol = [&](int scope_id, const std::string& name) {
         return flowanalyst::scalar::visible_symbol(scopes, symbols, scope_id, name);
     };
+    // Produce bounded scalar identity/type/admission facts once. Lowering
+    // operations and target projections consume this authority below instead
+    // of independently resolving the same scalar destinations.
+    const auto scalar_facts = flowanalyst::scalar::analyze(bundle, statements, expressions,
+        statement_scopes, resolved_expression_symbols, symbol_types, visible_symbol);
     std::vector<CallSite> call_sites;
     for (const auto& [expression_id, expression] : expressions) {
         if (text(field(*expression, "kind")) != "call") continue;
@@ -999,6 +1004,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     for (const auto symbol : called_provider_symbols) binding_requirements.push_back(provider_functions.at(symbol));
     for (const auto& site : call_sites) {
         LoweringOperation operation;
+        operation.source_call_projection = true;
         operation.expression = site.expression;
         operation.statement = site.statement;
         operation.scope = site.scope;
@@ -1032,13 +1038,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         const auto* payload = field(*statement, "payload");
         const int initializer = integer(field(payload, "initializer_expression"));
         if (initializer < 0) continue;
-        const auto name = text(field(*statement, "name"));
         const int scope_id = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
-        int result_symbol = -1;
-        if (scopes.count(scope_id)) for (const auto& candidate : list(field(*scopes.at(scope_id), "symbol_ids"))) {
-            const int candidate_id = integer(&candidate);
-            if (symbols.count(candidate_id) && text(field(*symbols.at(candidate_id), "name")) == name) { result_symbol = candidate_id; break; }
-        }
+        const auto scalar = scalar_facts.find(statement_id);
+        const int result_symbol = scalar != scalar_facts.end()
+            ? static_cast<int>(scalar->second.destination)
+            : visible_symbol(scope_id, text(field(*statement, "name")));
         LoweringOperation operation;
         operation.expression = initializer;
         operation.statement = statement_id;
@@ -1092,7 +1096,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         operation.scope = scope_id;
         operation.block = containing_block(statement_id);
         operation.function_symbol = containing_function(scope_id);
-        operation.result_symbol = visible_symbol(scope_id, text(field(field(payload, "target"), "name")));
+        const auto scalar = scalar_facts.find(statement_id);
+        operation.result_symbol = scalar != scalar_facts.end()
+            ? static_cast<int>(scalar->second.destination)
+            : visible_symbol(scope_id, text(field(field(payload, "target"), "name")));
         operation.kind = "assignment";
         operation.arguments.push_back(value_expression);
         lowering_operations.push_back(std::move(operation));
@@ -1111,6 +1118,66 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (operation.expression >= 0) operation.arguments.push_back(operation.expression);
         lowering_operations.push_back(std::move(operation));
     }
+    std::map<int, std::vector<int>> operation_ids_by_statement;
+    std::map<int, int> operation_id_by_call_expression;
+    for (std::size_t operation_id = 0; operation_id < lowering_operations.size(); ++operation_id)
+    {
+        operation_ids_by_statement[lowering_operations[operation_id].statement].push_back(
+            static_cast<int>(operation_id));
+        if (lowering_operations[operation_id].source_call_projection)
+            operation_id_by_call_expression.emplace(lowering_operations[operation_id].expression,
+                                                    static_cast<int>(operation_id));
+    }
+    Array source_operation_facts;
+    int source_operation_refusals = 0;
+    for (const auto& [statement_id, statement] : statements) {
+        const auto kind = text(field(*statement, "kind"));
+        const auto found = operation_ids_by_statement.find(statement_id);
+        const bool lowered = found != operation_ids_by_statement.end() && !found->second.empty();
+        std::string disposition;
+        if (lowered) disposition = "lowered";
+        else if (kind == "guard_activate" || kind == "guard_deactivate")
+            disposition = "static_semantic";
+        else if (kind == "let" && integer(field(field(*statement, "payload"), "initializer_expression")) < 0)
+            disposition = "declaration_only";
+        else if (kind == "expression") {
+            const auto* payload = field(*statement, "payload");
+            const int expression_id = integer(field(payload, "expression"));
+            const auto* print = field(payload, "print");
+            const bool is_print = print && std::holds_alternative<bool>(*print) && std::get<bool>(*print);
+            if (!is_print && expression_is_pure(expression_id)) disposition = "elided_pure";
+            else disposition = "refused";
+        } else if (kind == "flow" && graph_native) disposition = "graph_projection";
+        else disposition = "refused";
+
+        Array operation_ids;
+        if (found != operation_ids_by_statement.end())
+            for (const auto operation_id : found->second) operation_ids.emplace_back(operation_id);
+        source_operation_facts.emplace_back(Object{
+            {"statement_id", statement_id}, {"kind", kind},
+            {"disposition", disposition}, {"operation_ids", std::move(operation_ids)}
+        });
+        if (disposition == "refused") {
+            ++source_operation_refusals;
+            if (lowering_plan_version == 2) {
+                add_diagnostic("FLOWANALYST_SOURCE_OPERATION_GAP",
+                    "source statement kind '" + kind +
+                        "' has no canonical executable operation; execution admission is refused",
+                    -1, "statement:" + std::to_string(statement_id));
+                const auto* location = field(*statement, "location");
+                diagnostics.back().line = integer(field(location, "line"));
+                diagnostics.back().column = integer(field(location, "column"));
+                diagnostics.back().ast_path = "/statement_pool/" + std::to_string(statement_id);
+            }
+        }
+    }
+    const Json source_operation_coverage = Object{
+        {"format", "lyraform.source_operation_coverage"}, {"version", 1},
+        {"status", source_operation_refusals == 0 ? "complete" : "refused"},
+        {"statement_count", static_cast<int>(statements.size())},
+        {"refused_count", source_operation_refusals},
+        {"statements", std::move(source_operation_facts)}
+    };
     std::map<int, int> initialized_local_declarations;
     std::set<int> uninitialized_local_declarations;
     for (const auto& [statement_id, statement] : statements) {
@@ -1122,8 +1189,6 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             initialized_local_declarations.emplace(symbol, statement_id);
         else uninitialized_local_declarations.insert(symbol);
     }
-    const auto scalar_facts = flowanalyst::scalar::analyze(bundle, statements, expressions,
-        statement_scopes, resolved_expression_symbols, symbol_types, visible_symbol);
     for (const auto& [statement_id, fact] : scalar_facts) if (!fact.admitted()) {
         add_diagnostic("FLOWANALYST_SCALAR_FLOW_REFUSED",
             "scalar flow requires an established destination of the same type (source " +
@@ -1143,11 +1208,16 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (!statements.count(operation.statement) || text(field(*statements.at(operation.statement), "kind")) != "placement") continue;
         const auto* target = field(field(*statements.at(operation.statement), "payload"), "target");
         const auto kind = text(field(target, "kind"));
-        const int base = visible_symbol(operation.scope, text(field(target, kind == "identifier" ? "name" : "base_identifier")));
-        const std::string base_type = symbol_types.count(base) ? symbol_types.at(base) : std::string{};
+        const auto scalar = scalar_facts.find(operation.statement);
+        const int base = kind == "identifier" && scalar != scalar_facts.end()
+            ? static_cast<int>(scalar->second.destination)
+            : visible_symbol(operation.scope, text(field(target, kind == "identifier" ? "name" : "base_identifier")));
+        const std::string base_type = kind == "identifier" && scalar != scalar_facts.end()
+            ? std::string(lyraform::scalar::name(scalar->second.destination_type))
+            : symbol_types.count(base) ? symbol_types.at(base) : std::string{};
         std::string destination_type;
-        if (kind == "identifier" && scalar_facts.count(operation.statement))
-            destination_type = std::string(lyraform::scalar::name(scalar_facts.at(operation.statement).destination_type));
+        if (kind == "identifier" && scalar != scalar_facts.end())
+            destination_type = std::string(lyraform::scalar::name(scalar->second.destination_type));
         auto source_type = lyraform::scalar::Type::outside_slice;
         if (kind == "field_path") source_type = lyraform::scalar::frontend::infer_expression_type(
             operation.statement, operation.expression, statements, expressions,
@@ -1181,7 +1251,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         int success_branch_operation = -1, success_block = -1;
         int failure_branch_operation = -1, failure_block = -1;
         int dispose_operation = -1;
-        Json ownership_transfer = nullptr;
+        std::string obligation_identity, value_type;
+        Array ownership_transfers;
         std::vector<int> success_value_operations, failure_recovery_operations;
     };
     std::map<int, OutcomeAccounting> text_outcome_accounting;
@@ -1321,7 +1392,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             const auto* payload = field(*statement, "payload");
             const int scope_id = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
             if (kind == "let") {
-                const int symbol = visible_symbol(scope_id, text(field(*statement, "name")));
+                const auto scalar = scalar_facts.find(statement_id);
+                const int symbol = scalar != scalar_facts.end()
+                    ? static_cast<int>(scalar->second.destination)
+                    : visible_symbol(scope_id, text(field(*statement, "name")));
                 const auto value = evaluate_constant(integer(field(payload, "initializer_expression")), state);
                 if (symbol >= 0 && symbol_types[symbol] == "int" && value.kind == ConstantValue::Kind::integer)
                     state[symbol] = value.integer;
@@ -1371,7 +1445,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             if (kind != "placement") continue;
             const auto* target = field(payload, "target");
             if (text(field(target, "kind")) != "identifier") continue;
-            const int destination = visible_symbol(scope_id, text(field(target, "name")));
+            const auto scalar = scalar_facts.find(statement_id);
+            const int destination = scalar != scalar_facts.end()
+                ? static_cast<int>(scalar->second.destination)
+                : operation_by_statement.count(statement_id)
+                    ? lowering_operations.at(static_cast<std::size_t>(operation_by_statement.at(statement_id))).result_symbol
+                    : visible_symbol(scope_id, text(field(target, "name")));
             if (destination < 0) continue;
             const auto candidate = evaluate_constant(integer(field(payload, "value_expression")), state);
             auto candidate_state = state;
@@ -1475,35 +1554,51 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (producer.kind != "text_outcome" || producer.return_type != "TextOutcome") continue;
         OutcomeAccounting accounting;
         accounting.owner = producer.result_symbol;
+        accounting.obligation_identity = "operation:" + std::to_string(outcome_id) + ":outcome";
+        accounting.value_type = producer.return_type;
         std::string refusal;
         if (accounting.owner < 0) refusal = "tagged outcome has no semantic owner";
         int accounting_origin=static_cast<int>(outcome_id);
-        std::vector<int> returns, callers;
-        for (std::size_t id=0; id<lowering_operations.size(); ++id) {
-            const auto& op=lowering_operations[id];
-            if(op.function_symbol==producer.function_symbol && op.kind=="return_value" &&
-                op.arguments.size()==1 && resolved_expression_symbols.count(op.arguments.front()) &&
-                resolved_expression_symbols.at(op.arguments.front())==accounting.owner)
-                returns.push_back(static_cast<int>(id));
-            if(op.kind=="call" && op.callee_symbol==producer.function_symbol)
-                callers.push_back(static_cast<int>(id));
-        }
-        if(!returns.empty()) {
-            if(lowering_plan_version!=2 || returns.size()!=1 || callers.size()!=1)
-                refusal="owned return requires callable plan v2, one return and one caller";
-            else {
-                const auto& call=lowering_operations[callers.front()];
-                flowcontracts::OwnershipTransfer transfer{static_cast<long long>(outcome_id),returns.front(),callers.front(),
-                    accounting.owner,call.result_symbol,producer.function_symbol,call.function_symbol,
-                    producer.return_type,"operation:"+std::to_string(outcome_id)+":outcome"};
-                refusal=flowcontracts::ownership_transfer_refusal(transfer,ownership_operations,ownership_functions);
-                if(refusal.empty()) {
-                    accounting.ownership_transfer=flowcontracts::ownership_transfer_fact(transfer);
-                    accounting.owner=call.result_symbol;
-                    accounting_origin=callers.front();
-                }
+        int transfer_producer=static_cast<int>(outcome_id);
+        int transfer_function=producer.function_symbol;
+        std::vector<flowcontracts::OwnershipTransfer> transfers;
+        while(refusal.empty()) {
+            std::vector<int> returns, callers;
+            for (std::size_t id=0; id<lowering_operations.size(); ++id) {
+                const auto& op=lowering_operations[id];
+                if(op.function_symbol==transfer_function && op.kind=="return_value" &&
+                    op.arguments.size()==1 && resolved_expression_symbols.count(op.arguments.front()) &&
+                    resolved_expression_symbols.at(op.arguments.front())==accounting.owner)
+                    returns.push_back(static_cast<int>(id));
+                if(op.kind=="call" && op.callee_symbol==transfer_function)
+                    callers.push_back(static_cast<int>(id));
+            }
+            if(returns.empty()) break;
+            if(lowering_plan_version!=2 || returns.size()!=1 || callers.size()!=1) {
+                refusal="owned return requires callable plan v2, one return and one caller at every hop";
+                break;
+            }
+            const auto& call=lowering_operations[callers.front()];
+            transfers.push_back({transfer_producer,returns.front(),callers.front(),
+                accounting.owner,call.result_symbol,transfer_function,call.function_symbol,
+                accounting.value_type,accounting.obligation_identity});
+            accounting.owner=call.result_symbol;
+            accounting_origin=callers.front();
+            transfer_producer=callers.front();
+            transfer_function=call.function_symbol;
+            if(transfers.size()>2) {
+                refusal="owned return exceeds the bounded one-forwarder transfer chain";
+                break;
             }
         }
+        if(refusal.empty() && transfers.size()==1)
+            refusal=flowcontracts::ownership_transfer_refusal(
+                transfers.front(),ownership_operations,ownership_functions);
+        else if(refusal.empty() && transfers.size()==2)
+            refusal=flowcontracts::ownership_transfer_chain_refusal(
+                transfers,ownership_operations,ownership_functions);
+        if(refusal.empty()) for(const auto& transfer:transfers)
+            accounting.ownership_transfers.emplace_back(flowcontracts::ownership_transfer_fact(transfer));
         const auto& accounting_producer=lowering_operations[accounting_origin];
 
         for (std::size_t operation_id = 0; refusal.empty() && operation_id < lowering_operations.size(); ++operation_id) {
@@ -1635,7 +1730,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             add_diagnostic("FLOWANALYST_DANGLING_OUTCOME_WIRE",
                 refusal + "; inspect both variants using unchanged code/zero values, explicit failure behavior, "
                     "and exactly one cleanup after direct borrowed success-value uses; "
-                    "only direct unique return transfer is supported; further propagation and explicit policy sinks remain unsupported",
+                    "bounded direct unique return and one forwarding hop are supported; further propagation and explicit policy sinks remain unsupported",
                 accounting.owner, "scope:" + std::to_string(producer.scope));
             set_statement_provenance(diagnostics.back(), producer.statement);
         } else text_outcome_accounting.emplace(static_cast<int>(outcome_id), std::move(accounting));
@@ -1695,7 +1790,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             {"eliminated_dispositions", Array{}},
             {"obligation", Object{
                 {"kind", "must_account"},
-                {"identity", "operation:" + std::to_string(operation_id) + ":outcome"},
+                {"identity", accounting.obligation_identity},
                 {"status", "accounted"}, {"owner_symbol_id", accounting.owner},
                 {"code_projection_operation_id", accounting.code_projection_operation},
                 {"code_symbol_id", accounting.code_symbol},
@@ -1710,8 +1805,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             }},
             {"provenance", statement_provenance(operation.statement)}
         };
-        if (!std::holds_alternative<std::nullptr_t>(accounting.ownership_transfer))
-            std::get<Object>(fact.at("obligation")).emplace("ownership_transfer", accounting.ownership_transfer);
+        if (accounting.ownership_transfers.size()==1)
+            std::get<Object>(fact.at("obligation")).emplace(
+                "ownership_transfer", accounting.ownership_transfers.front());
+        else if (!accounting.ownership_transfers.empty())
+            std::get<Object>(fact.at("obligation")).emplace(
+                "ownership_transfers", accounting.ownership_transfers);
         if (lowering_plan_version == 2 && operation.function_symbol >= 0)
             fact.emplace("function_symbol_id", operation.function_symbol);
         disposition_facts.emplace_back(std::move(fact));
@@ -1774,6 +1873,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
               << (diagnostics.empty() ? "ready" : "blocked") << "\"";
     if (const auto* validity = field(bundle, "parse_validity"))
         std::cout << ",\"parse_validity\":" << flowcontracts::json::serialize(*validity);
+    std::cout << ",\"source_operation_coverage\":"
+              << flowcontracts::json::serialize(source_operation_coverage);
     if (!std::holds_alternative<std::nullptr_t>(graph_model))
         std::cout << ",\"source_graph\":" << flowcontracts::json::serialize(graph_model);
     if (lowering_plan_version == 2) {
@@ -1939,6 +2040,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         const auto& operation = lowering_operations[i];
         std::cout << "{\"id\":" << i
                   << ",\"kind\":" << quote(operation.kind)
+                  << ",\"source_call_projection\":" << (operation.source_call_projection ? "true" : "false")
                   << ",\"expression_id\":" << operation.expression
                   << ",\"statement_id\":" << operation.statement
                   << ",\"scope_id\":" << operation.scope;
@@ -1957,8 +2059,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             scalar_facts.count(operation.statement) && !scalar_facts.at(operation.statement).admitted();
         for (std::size_t argument = 0; !scalar_refused && argument < operation.arguments.size(); ++argument) {
             if (argument) std::cout << ',';
-            auto declared_type = (operation.kind == "value_definition" || operation.kind == "assignment") && operation.result_symbol >= 0 && symbol_types.count(operation.result_symbol)
-                ? symbol_types.at(operation.result_symbol) : std::string{};
+            const auto scalar = scalar_facts.find(operation.statement);
+            auto declared_type = (operation.kind == "value_definition" || operation.kind == "assignment") && scalar != scalar_facts.end()
+                ? std::string(lyraform::scalar::name(scalar->second.destination_type))
+                : (operation.kind == "value_definition" || operation.kind == "assignment") && operation.result_symbol >= 0 && symbol_types.count(operation.result_symbol)
+                    ? symbol_types.at(operation.result_symbol) : std::string{};
             if (operation.kind == "return_value" && lowering_plan_version == 2)
                 for (const auto& callable : callables) if (callable.symbol == operation.function_symbol) {
                     declared_type = callable.return_type;
@@ -2028,7 +2133,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     for (std::size_t i = 0; i < call_sites.size(); ++i) {
         if (i) std::cout << ',';
         const auto& site = call_sites[i];
-        std::cout << "{\"operation\":\"call\",\"expression_id\":" << site.expression
+        std::cout << "{\"operation\":\"call\",\"operation_id\":" << operation_id_by_call_expression.at(site.expression)
+                  << ",\"expression_id\":" << site.expression
                   << ",\"statement_id\":" << site.statement
                   << ",\"scope_id\":" << site.scope
                   << ",\"callee\":" << quote(site.callee)
@@ -2044,7 +2150,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     for (const auto& site : call_sites) if (!site.independent_with.empty()) {
         if (!first_candidate) std::cout << ',';
         first_candidate = false;
-        std::cout << "{\"call_expression\":" << site.expression << ",\"statement_id\":" << site.statement << ",\"callee\":" << quote(site.callee) << ",\"proof\":\"pure-callee-disjoint-inputs\",\"status\":\"deferred\",\"independent_with\":[";
+        std::cout << "{\"operation_id\":" << operation_id_by_call_expression.at(site.expression)
+                  << ",\"call_expression\":" << site.expression << ",\"statement_id\":" << site.statement
+                  << ",\"callee\":" << quote(site.callee)
+                  << ",\"proof\":\"pure-callee-disjoint-inputs\",\"status\":\"deferred\",\"independent_operation_ids\":[";
+        for (std::size_t i = 0; i < site.independent_with.size(); ++i) { if (i) std::cout << ','; std::cout << operation_id_by_call_expression.at(site.independent_with[i]); }
+        std::cout << "],\"independent_with\":[";
         for (std::size_t i = 0; i < site.independent_with.size(); ++i) { if (i) std::cout << ','; std::cout << site.independent_with[i]; }
         std::cout << "]}";
     }

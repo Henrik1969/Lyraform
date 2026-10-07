@@ -233,6 +233,7 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
     const Json root = JsonParser{report}.parse();
     const Json* plan = json_field(root, "lowering_plan");
     if (plan == nullptr) return;
+    flowcontracts::validate_provider_authority(flowcontracts::json::object(root));
     flowcontracts::validate_scalar_facts(*plan, "$.lowering_plan");
     if (const auto* graph = json_field(*plan, "source_graph")) {
         const auto model = flowcontracts::source_graph(*graph, "$.lowering_plan.source_graph");

@@ -4,8 +4,11 @@
 
 Accepted architectural law on 2026-09-19. The result-disposition algebra was
 subsequently resolved by
-[ADR 0055](0055-refusal-failure-fault-dispositions.md); carrier and routing
-details remain unresolved.
+[ADR 0055](0055-refusal-failure-fault-dispositions.md), contextual projections
+by [ADR 0058](0058-canonical-disposition-fact-projections.md), and the typed
+consumer/policy boundary by
+[ADR 0062](0062-typed-failure-consumers-and-policy-routing.md). Concrete source
+spelling and executable general routing remain unresolved.
 
 ## Decision
 
@@ -96,6 +99,12 @@ not constitute additional completions.
 that every failure and fault requires an explicit, statically inspectable
 disposition route. A missing route is a dangling wire error and causes
 admission refusal.
+
+[ADR 0062](0062-typed-failure-consumers-and-policy-routing.md) subsequently
+establishes that expected failures route through typed consumers to ordinary
+statically resolved developer functions. Policy may select only among routes
+already authorized by semantic and consumer contracts; it cannot create
+language meaning or implicit control transfer.
 
 ## Deferred decisions
 

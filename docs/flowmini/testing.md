@@ -42,16 +42,10 @@ cmake --build cmake-build-debug --target flowmini_suite
 ctest --test-dir cmake-build-debug --output-on-failure
 ```
 
-Expected current baseline:
-
-```text
-AST golden tests:          28 / 28
-Symbol projection tests:   14 / 14
-Frontend bundle tests:      8 golden / 1 isolated / 19 negative
-fresh GCC 13.3 CTest:       107 / 107
-fresh Clang 18.1 CTest:     107 / 107 (ASan/UBSan; detect_leaks=0)
-flowcat ELF example:        PASS
-```
+The expected baseline is revision-relative: all tests registered by the
+checkout must pass. Use `igor check` at the repository root to inspect that
+graph. The [current-status landing page](../current-status.md) links the latest
+checkpoint with exact compiler, sanitizer, and leak-check evidence.
 
 ## Current categorized-suite note
 
@@ -93,12 +87,13 @@ Diagnostic `.contains` files are substring checks. They should contain stable di
 ```
 
 `--run-support` executes importable support units as expected failures when used
-as root sources. The current native-chain support-inclusive firetest is 97 pass
-programs plus 57/57 categorized negative/support checks. The legacy
+as root sources. At the 2026-09-13 checkpoint, the native-chain
+support-inclusive firetest was 97 pass programs plus 57/57 categorized
+negative/support checks. The legacy
 interpreter-inclusive run is 154 total, 99 pass, and 55 expected native-chain
 refusals.
 
-The fresh Clang 18.1.3 ASan/UBSan CTest gate is 107/107 when run with
+At that checkpoint, the fresh Clang 18.1.3 ASan/UBSan CTest gate was 107/107 when run with
 `ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=detect_leaks=0`; LeakSanitizer cannot
 run under this environment's ptrace-based process supervision. The new `c_long`
 aggregate boundary, aggregate stream parity, aggregate stream-pipeline parity,

@@ -83,7 +83,8 @@ int prepare(const Options& option) {
             if (!array(*layouts, "$.aggregate_abi_layouts").empty()) aggregate_layouts = array(*layouts, "$.aggregate_abi_layouts");
         binding_provenance = Object{{"format", binding_header.format}, {"status", binding_header.status}, {"version", binding_header.version}};
     }
-    const auto& operations = required_array(object(required(root, "lowering_plan"), "$.lowering_plan"), "operations", "$.lowering_plan");
+    const auto& lowering_plan = object(required(root, "lowering_plan"), "$.lowering_plan");
+    const auto& operations = required_array(lowering_plan, "operations", "$.lowering_plan");
     bool requires_binding = false;
     for (const auto& value : operations) {
         const auto kind = string(required(object(value, "$.lowering_plan.operations[]"), "kind", "$.lowering_plan.operations[]"), "$.lowering_plan.operations[].kind");
@@ -112,7 +113,21 @@ int prepare(const Options& option) {
         {"targets", required(root, "targets")},
         {"version", Integer{option.target_policy_path.empty() ? 1 : 2}}
     };
-    if (!aggregate_layouts.empty()) output.emplace("aggregate_abi_layouts", aggregate_layouts);
+    const auto plan_version = integer(required(lowering_plan, "version", "$.lowering_plan"),
+                                      "$.lowering_plan.version");
+    if (plan_version == 2) {
+        output.emplace("effect_facts", required(root, "effect_facts"));
+        output.emplace("parallel_candidates", required(root, "parallel_candidates"));
+    } else {
+        if (const auto* facts = optional(root, "effect_facts")) output.emplace("effect_facts", *facts);
+        if (const auto* candidates = optional(root, "parallel_candidates")) output.emplace("parallel_candidates", *candidates);
+    }
+    // Lowering-plan v2 carries the canonical authority envelope exactly.  An
+    // empty layout set is still an asserted fact and must not disappear at
+    // the backend boundary.  Keep the v1 omission behaviour for compatibility
+    // with captured historical artifacts.
+    if (plan_version == 2 || !aggregate_layouts.empty())
+        output.emplace("aggregate_abi_layouts", aggregate_layouts);
     if (const auto* schedule = optional(root, "graph_schedule")) output.emplace("graph_schedule", *schedule);
     if (!option.target_policy_path.empty()) {
         const auto target_policy = parse(read(option.target_policy_path));

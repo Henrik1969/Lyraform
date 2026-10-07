@@ -5,6 +5,28 @@ stages are intentionally preserved as historical implementation checkpoints.
 
 ## Current checkpoint
 
+### 2026-10-07 — canonical convergence integration
+
+- Completed the frozen-surface compiler convergence campaign through
+  source-operation accounting, scalar/target/guard/disposition authority,
+  provider/effect authorization, exact operation connectivity, and preservation
+  across planning, optimization, LLVM preparation, and TinyVM preparation.
+- Added executable authority and source-form audits that refuse semantic gaps
+  rather than delegating them to legacy behavior.
+- Isolated the Flowmini parser, `ModuleSpec`, and direct runtime behind
+  `igor run-legacy`; `igor run` now uses the fail-closed canonical stage chain.
+- Extended unique owned-obligation transfer through one bounded forwarding
+  owner while retaining complete final-owner accounting.
+- Added declarative typed failure-consumer and policy-selection contracts over
+  exact ordinary function identities. The function input is a canonical
+  failure-envelope projection; general response execution remains refused.
+- Accepted bounded disposition-evidence epochs: evidence may compact only at a
+  proven closure boundary and may never be silently discarded to satisfy a
+  policy budget.
+- Refreshed current-status, onboarding, alpha-testing, presentation, and
+  component documentation. Exact verification totals remain in dated
+  checkpoints rather than evergreen documents.
+
 - Added the first executable read-only kernel profiles: `getpid` and
   `clock_gettime`, followed by the one-byte `getrandom` profile; each is
   policy-gated and tested through native LLVM-to-ELF execution. The remaining
@@ -16,9 +38,9 @@ stages are intentionally preserved as historical implementation checkpoints.
 - Active milestone: Lyraform v0.29 reusable native language chain
 - Implementation base: `Lyraform/compiler`
 - Active branch: `main`
-- Current integration baseline: AST 28/28, SymbolTable projection 14/14,
-  frontend bundle eight goldens plus one isolated run and nineteen negative
-  attacks, downstream CTest green, and native `flowcat` ELF execution
+- Current integration baseline: the canonical authority envelope and current
+  source-form audit are green; use `igor check` and `igor test` for the checked
+  out revision and dated checkpoints for exact totals
 - Current bundle contract: `flowmini.frontend_bundle` version 2
 
 The detailed implementation history is maintained in

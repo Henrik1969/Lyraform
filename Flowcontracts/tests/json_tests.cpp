@@ -1,6 +1,7 @@
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/diagnostics.hpp>
 #include <flowcontracts/scheduling.hpp>
+#include <flowcontracts/source_operation_coverage.hpp>
 
 #include <cstdio>
 #include <cstdlib>
@@ -84,6 +85,26 @@ int main() {
     rejects([&] { (void)flowcontracts::scheduling_refusal(wrong_control_type, true); }, "$.async");
     rejects([&] { (void)flowcontracts::scheduling_refusal(wrong_control_type, true, "$.providers[0]"); },
             "$.providers[0].async");
+
+    const auto complete_coverage = parse(R"({
+      "format":"lyraform.source_operation_coverage","version":1,"status":"complete",
+      "statement_count":1,"refused_count":0,
+      "statements":[{"statement_id":0,"kind":"return","disposition":"lowered","operation_ids":[0]}]
+    })");
+    flowcontracts::validate_source_operation_coverage(complete_coverage);
+    const auto refused_coverage = parse(R"({
+      "format":"lyraform.source_operation_coverage","version":1,"status":"refused",
+      "statement_count":1,"refused_count":1,
+      "statements":[{"statement_id":0,"kind":"expression","disposition":"refused","operation_ids":[]}]
+    })");
+    flowcontracts::validate_source_operation_coverage(refused_coverage);
+    const auto contradictory_coverage = parse(R"({
+      "format":"lyraform.source_operation_coverage","version":1,"status":"complete",
+      "statement_count":1,"refused_count":1,
+      "statements":[{"statement_id":0,"kind":"expression","disposition":"refused","operation_ids":[]}]
+    })");
+    rejects([&] { flowcontracts::validate_source_operation_coverage(contradictory_coverage); },
+            "$.source_operation_coverage.status");
 
     require(diagnostic_text("quote\" slash\\ newline\n control\x01") ==
                 "quote\\\" slash\\\\ newline\\n control\\u0001",

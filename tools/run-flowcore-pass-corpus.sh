@@ -68,6 +68,7 @@ done
 
 count=0
 unsupported_targets=0
+unsupported_source_operations=0
 check_lowering() {
     if jq -e 'any(.lowering_plan.operations[]; .target_fact.execution? == "unsupported")' "$optimized" >/dev/null; then
         if "$lowerer" "$@" < "$optimized" > "$lowered" 2> "$tmpdir/lowering.err"; then
@@ -90,7 +91,18 @@ for source in "$pass_root"/*.flow; do
     lowered=$tmpdir/$name.lowered.json
 
     "$flowmini" --dump-frontend-bundle "$source" > "$bundle"
+    set +e
     "$analyst" --lowering-plan-version 2 < "$bundle" > "$semantic"
+    analysis_rc=$?
+    set -e
+    if test "$analysis_rc" -ne 0; then
+        test "$analysis_rc" -eq 2
+        jq -e '(.diagnostics | length) > 0 and all(.diagnostics[]; .code == "FLOWANALYST_SOURCE_OPERATION_GAP")' "$semantic" >/dev/null
+        jq -e '.lowering_plan.source_operation_coverage.status == "refused"' "$semantic" >/dev/null
+        unsupported_source_operations=$((unsupported_source_operations + 1))
+        count=$((count + 1))
+        continue
+    fi
     grep -q '"status": "ok"' "$semantic"
     "$parallel" < "$semantic" > "$tmpdir/$name.parallel.json"
     "$optimizer" < "$tmpdir/$name.parallel.json" > "$optimized"
@@ -105,4 +117,4 @@ for source in "$pass_root"/*.flow; do
     count=$((count + 1))
 done
 
-echo "Flowcore pass corpus: $count programs checked; $unsupported_targets explicitly refused preserved member/index targets; remaining lowering reports ready"
+echo "Flowcore pass corpus: $count programs checked; $unsupported_source_operations explicitly refused source-operation gaps; $unsupported_targets explicitly refused preserved member/index targets; remaining lowering reports ready"
