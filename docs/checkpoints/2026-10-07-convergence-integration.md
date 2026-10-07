@@ -69,3 +69,6 @@ checkpoint enters the authority graph.
 - `git diff --check`: **PASS**.
 
 **Integration gate: PASS.**
+
+Integration commit:
+`a085cbb3ba791caaf5cb0e94f5da89ef98d909bd`.

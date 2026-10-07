@@ -10,7 +10,7 @@
   "source_state": {
     "as_of": "2026-10-07",
     "branch": "main",
-    "commit": "ecdac7184236dab24423ca7495e882f771cdf287",
+    "commit": "a085cbb3ba791caaf5cb0e94f5da89ef98d909bd",
     "working_tree_checkpoint": "docs/checkpoints/2026-10-07-convergence-integration.md"
   },
   "current_milestone": {
