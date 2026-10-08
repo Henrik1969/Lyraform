@@ -43,6 +43,16 @@
   original input; only an exact typed recovery receipt and identity-bound
   rejoin may close both. Faults, host exceptions, recursion, and inferred
   rejoins remain refused.
+- Established that fault containment halts and quarantines the exact declared
+  scope with no normal publication or local continuation. Added the first
+  versioned activation-scope reference plan, envelope, exact-authority
+  dispatch, containment receipt, and hostile validation. The receipt accounts
+  for a fault without converting it to success or ordinary failure.
+- Connected one selected response attempt's declared fault to the bounded
+  containment authority. The fault gets a distinct obligation; the original
+  expected-failure obligation remains unresolved inside the quarantined
+  activation, and the composite receipt proves no publication, continuation,
+  rejoin, recovery, or success conversion occurred.
 - Accepted bounded disposition-evidence epochs and policy-visible retention
   limits as future implementation law.
 - Recorded the canonical scheduling law: parallel opportunity is derived from

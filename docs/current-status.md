@@ -136,6 +136,23 @@ only with the original promised result type; faults, undeclared host escapes,
 recursive response failure, and inferred rejoin remain refused. Its
 [Gate 4 checkpoint](checkpoints/2026-10-07-canonical-response-attempt-failure.md)
 records the executable and hostile evidence.
+ADR 0065 establishes that a fault-containment authority halts and quarantines
+its exact declared scope, suppresses normal publication, and permits no local
+continuation. Mission 05 implements the first activation-scope reference
+projection with one exact fault wire, authority dispatch, policy selection,
+and independently validated containment receipt. The receipt accounts for the
+fault but never reclassifies it as success or ordinary failure. Its
+[Gate 5 checkpoint](checkpoints/2026-10-08-canonical-fault-containment.md)
+records the bounded execution and hostile evidence. Broader scopes,
+escalation, trusted restart, source/compiler/backend integration, and
+top-level termination policy remain refused.
+Mission 06 connects one selected response attempt's declared fault to that
+authority. The response fault receives a distinct obligation and exact
+containment route; the original expected-failure obligation remains
+`unresolved_contained`, and the composite receipt proves that the quarantined
+activation produced no normal publication, continuation, or rejoin. Its
+[Gate 6 checkpoint](checkpoints/2026-10-08-canonical-response-fault-containment.md)
+records the link and hostile evidence.
 The provisional
 [semantic--syntax--graph projection map](architecture/failure-flow-semantic-syntax-graph-map.tex)
 places those unresolved source and graph choices beside the canonical facts

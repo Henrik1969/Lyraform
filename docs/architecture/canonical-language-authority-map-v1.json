@@ -251,14 +251,28 @@
       "from": "operation_disposition",
       "to": "general_function_and_graph_boundaries",
       "state": "declarative_consumer_only",
-      "risk": "the bounded shared serial reference executor is not yet projected from source or integrated into compiler plans/backends; propagation, retry, policy-sink, recursive response-attempt failure, and fault-containment integration remain refused"
+      "risk": "the bounded shared serial reference executor is not yet projected from source or integrated into compiler plans/backends; propagation, retry, policy-sink, recursive response-attempt failure, and response-fault-to-containment integration remain refused"
     },
     {
       "id": "bounded_serial_failure_flow_bridge",
       "from": "declared_failure_producer_and_route_authority",
       "to": "shared_reference_execution_receipt",
       "state": "finite_closed_set_two_stage_and_response_failure_reference_execution",
-      "risk": "finite exact routing, one transform-to-recovery chain, and one bounded response-failure recovery/rejoin only; no source/compiler/backend integration, arbitrary depth, configurable evidence budgets, open or subtyped sets, retry, sink, recursive response failure, fault containment, mutation, or parallel execution"
+      "risk": "finite exact routing, one transform-to-recovery chain, and one bounded response-failure recovery/rejoin only; no source/compiler/backend integration, arbitrary depth, configurable evidence budgets, open or subtyped sets, retry, sink, recursive response failure, response-fault containment linkage, mutation, or parallel execution"
+    },
+    {
+      "id": "bounded_fault_containment_bridge",
+      "from": "declared_fault_producer_and_route_authority",
+      "to": "shared_reference_containment_receipt",
+      "state": "activation_halt_quarantine_reference_execution",
+      "risk": "one exact serial activation-scope containment route only; no source/compiler/backend integration, broader containment scopes, escalation, restart, repair, termination policy, durable quarantine, or concurrent fault composition"
+    },
+    {
+      "id": "response_fault_containment_bridge",
+      "from": "selected_failure_response_attempt",
+      "to": "shared_reference_containment_receipt",
+      "state": "bounded_response_fault_preserves_unresolved_origin",
+      "risk": "one response fault type and activation scope only; no original recovery or rejoin, source/compiler/backend integration, broader scopes, escalation, restart, repair, or concurrent composition"
     }
   ],
   "forbidden_during_freeze": [

@@ -80,6 +80,10 @@ jq -e '
     .state == "declarative_consumer_only") and
   any(.known_bridges[]; .id == "bounded_serial_failure_flow_bridge" and
     .state == "finite_closed_set_two_stage_and_response_failure_reference_execution") and
+  any(.known_bridges[]; .id == "bounded_fault_containment_bridge" and
+    .state == "activation_halt_quarantine_reference_execution") and
+  any(.known_bridges[]; .id == "response_fault_containment_bridge" and
+    .state == "bounded_response_fault_preserves_unresolved_origin") and
   (.forbidden_during_freeze | index("new_syntax")) != null and
   (.forbidden_during_freeze | index("new_language_semantics")) != null and
   (.forbidden_during_freeze | index("self_hosting")) != null
@@ -177,6 +181,24 @@ grep -Fq 'response_failure_obligation == origin.obligation' "$root/Flowcontracts
     fail 'response-attempt failure no longer requires a distinct obligation'
 grep -Fq '"recovered_payload_resumes_original_transition"' "$root/Flowcontracts/include/flowcontracts/failure_response_attempt.hpp" ||
     fail 'response-attempt recovery no longer requires an explicit typed rejoin'
+grep -Fq '"lyraform.fault_containment_plan"' "$root/Flowcontracts/include/flowcontracts/fault_containment.hpp" ||
+    fail 'bounded fault-containment plan authority is missing'
+grep -Fq 'plan.authority.action != "halt_and_quarantine"' "$root/Flowcontracts/include/flowcontracts/fault_containment.hpp" ||
+    fail 'fault containment no longer requires halt and quarantine'
+grep -Fq 'plan.authority.normal_publication != "suppressed"' "$root/Flowcontracts/include/flowcontracts/fault_containment.hpp" ||
+    fail 'fault containment no longer suppresses normal publication'
+grep -Fq 'plan.authority.continuation != "none"' "$root/Flowcontracts/include/flowcontracts/fault_containment.hpp" ||
+    fail 'fault containment no longer forbids local continuation'
+grep -Fq '"contained_no_continuation"' "$root/Flowcontracts/include/flowcontracts/fault_containment.hpp" ||
+    fail 'fault-containment receipt no longer accounts for non-continuation'
+grep -Fq 'Accepted architectural law on 2026-10-08.' "$root/docs/architecture/decisions/0065-fault-containment-halts-and-quarantines-scope.md" ||
+    fail 'fault-containment halt-and-quarantine law is missing or unaccepted'
+grep -Fq '"serial_response_fault_containment_v1"' "$root/Flowcontracts/include/flowcontracts/failure_response_fault.hpp" ||
+    fail 'bounded response-fault containment link is missing'
+grep -Fq '"preserve_unresolved_in_contained_scope"' "$root/Flowcontracts/include/flowcontracts/failure_response_fault.hpp" ||
+    fail 'response fault no longer preserves the original unresolved obligation'
+grep -Fq '"contained_fault_no_rejoin"' "$root/Flowcontracts/include/flowcontracts/failure_response_fault.hpp" ||
+    fail 'response-fault containment no longer forbids normal rejoin'
 grep -Fq 'Status: accepted architectural law' "$root/docs/architecture/decisions/0063-bounded-disposition-evidence-epochs.md" ||
     fail 'bounded evidence-epoch law is missing or no longer accepted'
 grep -Fq 'LLVM/TinyVM continue to refuse all member targets' "$root/docs/checkpoints/2026-09-19-v1-bounded-local-member-assignability.md" ||

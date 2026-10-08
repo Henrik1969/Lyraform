@@ -140,6 +140,27 @@ obligation closure and the explicit rejoin before closing the original
 obligation. Faults, host exceptions, recursively failing responses, and
 inferred or type-changing rejoins are refused.
 
+`fault_containment.hpp` supplies the first bounded integrity-fault destination.
+`lyraform.fault_containment_plan` version 1 binds one exact `Fault<F>` producer,
+typed fault wire, activation-scope containment authority, and policy selection
+to `halt_and_quarantine`. The reference executor dispatches by exact authority
+identity and accepts only a result proving that the declared activation is
+halted and quarantined, normal publication is suppressed, and local
+continuation is absent. Its versioned receipt accounts for containment while
+preserving the fault type, obligation, correlation, commit evidence, and
+provenance; it never claims recovery or success. Other scope kinds,
+escalation, restart, repair, and implicit or top-level termination remain
+outside this contract.
+
+`failure_response_fault.hpp` binds one selected recovering response to that
+containment destination when the response attempt itself produces a declared
+`Fault<F>`. The response fault receives a distinct obligation and exact fault
+envelope. Its activation is halted and quarantined through the selected
+authority; normal publication, continuation, and rejoin are all absent. The
+original expected-failure obligation is preserved as `unresolved_contained`
+rather than being forged closed. Expected failure, success, obligation aliasing,
+and fault recovery are refused on this projection.
+
 ADR 0063 governs the later envelope's evidence lifetime: live evidence remains
 must-account until proven closure or transfer, may compact only through a
 validated closure receipt, and may never be silently truncated to satisfy a
