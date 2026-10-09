@@ -176,3 +176,18 @@ CLI refusal diagnostics retain supplied `imported.flow:4:5` as unverified origin
 
 The source-association and containment decisions are the next steps. No
 continuation beyond this selected mission is authorized or performed.
+
+## Publication and runner handoff
+
+Implementation and gate-evidence commit
+`e077f6745e1974ec4d50c94af70297c166d85bf5` was pushed to
+`origin/mission/canonical-disposition-lanes-wire-closure` and verified with
+`git ls-remote`. Published `main` remained
+`86a5c69d58bacb09f393cef2a3d4e798ac9fe3ad`. This follow-up records publication
+only; it changes no tested implementation. No pull request was created.
+
+The local runner state is `BLOCKED`, for the semantic decisions in the linked
+brief, not a tool outage. Mission-owned tracked work is committed; the unrelated
+untracked `meta-discusions.md` and `output/` remain preserved. The exact final
+branch tip is recorded in `/tmp/disposition-publication.json` and the task's
+final response, avoiding a self-referential commit hash inside this file.
