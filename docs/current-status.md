@@ -246,3 +246,16 @@ for admitted semantics; it may not redefine source validity.
 
 Historical Flowcore, Flowmini, version, and test-count references remain valid
 when they describe an actual historical state or compatibility contract.
+
+## Disposition lane bridge investigation (2026-10-09)
+
+The dedicated disposition-lanes mission adds a declarative graph/plan bridge,
+bounded explanatory refusal projections and a reference evidence epoch. These
+are consistency contracts, not new source admission or LLVM/TinyVM failure-lane
+execution. TextOutcome remains the existing executable tagged projection.
+The mission is blocked on the source producer-to-consumer association and
+read-only envelope signature/commit projection; native activation quarantine
+also lacks an observable receipt-bearing result boundary. See the
+[seam inventory](architecture/disposition-seam-inventory-v1.json),
+[decision brief](checkpoints/2026-10-09-disposition-lanes-decision-brief.md) and
+[stage evidence](checkpoints/2026-10-09-disposition-lanes-and-wire-closure.md).

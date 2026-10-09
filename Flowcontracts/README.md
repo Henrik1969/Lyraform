@@ -188,3 +188,31 @@ native graph execution. Every execution consumer rejects this retained graph eve
 if an outer status has been changed to ready. Captured graph evidence is tested
 without running its producer, with deterministic canonical round-trips and hostile
 identity, port, policy, provenance and activation-contract mutations.
+
+### Declarative disposition route bridge
+
+`disposition_route_projection.hpp` compares independently parsed graph-side
+bindings, existing failure/fault plans and the versioned
+`lyraform.disposition_route_projection/v1` bridge. `flowvalidate` consumes the
+standalone `lyraform.disposition_route_bundle/v1`; it rejects executable claims.
+The graph side uses non-executable source graph v1 endpoint declarations. It is
+not Flowanalyst emission or permission to execute an unresolved provider node.
+Node bindings are supplied by the declarative caller; validation proves
+consistency, not source authenticity. A future semantic producer must own them.
+
+Failure and fault routes have separate explicit string/numeric wire mappings,
+typed endpoints, scope, policy, transition/containment and correlation laws.
+The bounded form contains one recovery lane, one activation fault lane, or both
+in the supplied producer order. No lane may be duplicated or left dangling.
+Normal `out`/`in` wires remain governed by the source graph contract.
+
+`disposition_diagnostic.hpp` projects six bounded refusal classes from one fact
+into human and machine views. Artifact-origin spans are visibly unverified.
+It does not claim imported source analysis or runtime diagnostic integration.
+`disposition_evidence_epoch.hpp` retains one reference recovery's live evidence
+until validated closure and required observer publication. Its deterministic
+serialized evidence bound is 64 KiB plus a 16 KiB closure reserve, one obligation
+and one transition. Over-budget admission creates no attempt; an oversized
+candidate closure is refused while evidence stays live. There is no runtime
+budget-failure route, recursive compaction or backend memory-reclamation claim.
+See [mission evidence](../docs/checkpoints/2026-10-09-disposition-lanes-and-wire-closure.md).
