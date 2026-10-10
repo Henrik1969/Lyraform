@@ -4,11 +4,13 @@ Date: 2026-10-10
 
 Mission: `docs/tasks/gate2-hygiene-convergence-integration.md`
 
-Branch: `codex/gate2-hygiene-convergence`
+Review branch: `codex/gate2-hygiene-convergence`
+
+Integrated branch: `main`
 
 ## Result
 
-**PASS — WAITING FOR HUMAN REVIEW AND MERGE.**
+**PASS — MERGED INTO `main`.**
 
 The review branch contains the complete ordinary merge ancestry of the
 mission/workspace hygiene branch and the source-disposition Gate 2 branch.
@@ -16,9 +18,10 @@ It provides one coherent repository authority chain and one source-derived,
 closed typed disposition topology for the bounded `TextOutcome` specimen.
 That topology remains declarative and execution-unsupported.
 
-This is review-branch evidence. `main` remains authoritative until a separate
-human-reviewed merge. Gate 3 has not started and is not authorized by this
-checkpoint.
+Henrik approved continuation after reviewing the branch result. The reviewed
+tip was merged into `main` through ordinary ancestry as
+`9f3c40ea36047bae4eb788356b4c30e67ba686fc`. Gate 3 has not started and is not
+authorized by this checkpoint.
 
 ## Provenance and ancestry
 
@@ -37,6 +40,12 @@ hygiene merge commit:
 
 Gate 2 merge commit:
     d5d6bf607c9b1788cf9b7f449604b8cb2aa63acf
+
+review branch tip:
+    5feb23d760636dd234b341f891c20cfb8ed81069
+
+main integration merge:
+    9f3c40ea36047bae4eb788356b4c30e67ba686fc
 ```
 
 Both source tips are ancestors of the integration head. Their common verified
@@ -116,8 +125,8 @@ The normal build retains two pre-existing `-Wunused-function` warnings in
 
 ## Fresh-clone verification
 
-Pushed candidate:
-`388bf9567c650b245233f292843458eee02036a0`.
+Final pushed review tip:
+`5feb23d760636dd234b341f891c20cfb8ed81069`.
 
 The candidate was cloned from
 `git@github.com:Henrik1969/Lyraform.git`, selecting only
@@ -126,16 +135,16 @@ The candidate was cloned from
 - clean clone and exact remote branch tip: PASS;
 - `./igor ... doctor`: PASS;
 - clean configure and 324-step build: PASS;
-- canonical suite: **187/187 PASS** in 59.38 seconds;
+- canonical suite: **187/187 PASS** in 58.46 seconds;
 - source checkout remained clean after the suite.
 
-The first build attempt stopped when the host `/tmp` filesystem reached zero
-free space. Only four disposable directories created by this mission were
-removed; no repository or user data was touched. The same untouched fresh
-clone then configured and built successfully, so this was an environmental
-capacity failure rather than source or semantic evidence.
+An earlier prepublication proof attempt at `388bf956` stopped when the host
+`/tmp` filesystem reached zero free space. Only disposable directories created
+by this mission were removed; no repository or user data was touched. The
+candidate and final-tip clean-clone proofs then built successfully, confirming
+an environmental capacity failure rather than source or semantic evidence.
 
-## Final safety accounting
+## Review-branch safety accounting
 
 ```text
 Gate 3 work started:   NO
@@ -146,5 +155,17 @@ FlowLFS touched:        NO
 force used:             NO
 ```
 
-The branch must be merged into synchronized `main` before any adjacent
-disposition stage begins.
+## Main integration accounting
+
+```text
+human merge approval:                  YES
+ordinary merge ancestry preserved:     YES
+unreviewed implementation added direct: NO
+master touched:                        NO
+FlowLFS touched:                       NO
+force used:                            NO
+Gate 3 work started:                   NO
+```
+
+The convergence loop is closed on `main`. Any adjacent disposition stage still
+requires a newly selected bounded mission.

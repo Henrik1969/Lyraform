@@ -7,11 +7,10 @@ not grant task authority.
 
 ## Current mission
 
-[Gate 2 and hygiene convergence integration](gate2-hygiene-convergence-integration.md)
-is **PASS on `codex/gate2-hygiene-convergence` and waiting for human review and
-merge**. Its [dated checkpoint](../checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md)
-records the combined evidence. This is a review-branch result, not integrated
-`main` truth, and it does not authorize Gate 3.
+None. The Gate 2 and hygiene convergence loop is integrated into `main`.
+Selecting a next mission still requires an explicit current request or an
+authorized continuation with a fresh mission identity and convergence
+contract; the completed merge does not itself authorize Gate 3.
 
 ## Completed missions with explicit task-local result
 
@@ -22,6 +21,9 @@ records the combined evidence. This is a review-branch result, not integrated
 - [Disposition foundation and source authority through Gate 2](disposition-foundation-and-source-authority-gate2.md)
   — PASS on 2026-10-10; source-derived topology remains declarative and
   execution-unsupported.
+- [Gate 2 and hygiene convergence integration](gate2-hygiene-convergence-integration.md)
+  — PASS and merged into `main` on 2026-10-10; combines both complete source
+  ancestries without beginning Gate 3.
 
 ## Superseded missions
 

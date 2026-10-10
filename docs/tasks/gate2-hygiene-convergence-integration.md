@@ -284,12 +284,17 @@ Do not start the next mission until this branch is merged into synchronized
 
 ## Task-local result
 
-**PASS — WAITING FOR HUMAN REVIEW AND MERGE.**
+**PASS — MERGED INTO `main`.**
 
 Both source tips are present through ordinary merge ancestry. The combined
 tree preserves the Gate 2 declarative boundary and the mission/workspace
 hygiene authority, retires the tracked root run-state file, and passes its
 clean local and fresh-clone verification. No Gate 3 work was started.
+
+Henrik explicitly approved continuation after review. The exact reviewed tip
+was merged with ordinary ancestry into `main` as
+`9f3c40ea36047bae4eb788356b4c30e67ba686fc`; current-truth documentation was
+then reconciled without adding semantic scope.
 
 See the
 [dated integration checkpoint](../checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md)

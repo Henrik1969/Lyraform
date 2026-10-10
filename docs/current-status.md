@@ -16,34 +16,24 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest current-truth verification is
-[Canonical convergence integration — 2026-10-07](checkpoints/2026-10-07-convergence-integration.md).
-It verifies the accumulated canonical compiler campaign, declarative failure
-consumer, accepted envelope/evidence laws, current documentation, and
-executable drift guards as one coherent integration. The earlier
+[Gate 2 and hygiene convergence integration — 2026-10-10](checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md).
+It verifies the complete mission/workspace hygiene authority together with the
+source-derived disposition topology through Gate 2. The reviewed branch was
+merged into `main` with ordinary ancestry after clean and fresh-clone proof.
+The earlier
+[canonical convergence integration](checkpoints/2026-10-07-convergence-integration.md)
+remains the detailed verification of the preceding compiler campaign, and the
 [current-truth consolidation](checkpoints/2026-09-26-current-truth-consolidation.md)
 remains the detailed authority for the original documentation landing page.
-
-## Pending review branch
-
-The short-lived branch `codex/gate2-hygiene-convergence` has a passing
-[Gate 2 and hygiene convergence checkpoint](checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md).
-It combines the complete mission/workspace hygiene ancestry with the complete
-source-disposition Gate 2 ancestry. The Gate 2 topology is source-derived,
-closed, typed, deterministic, and still explicitly declarative: policy,
-executable Graph IR, backend routing, and runtime containment are not admitted.
-
-This paragraph reports review evidence only. `main` remains the current project
-authority until that branch is reviewed and merged, and no Gate 3 work is
-authorized from the unmerged branch. Its pushed candidate was rebuilt and
-tested from a clean GitHub clone before the review result was recorded.
 
 ## Latest semantic checkpoint
 
 The latest integrated compiler semantic checkpoint is
-[Canonical authority envelope — 2026-09-27](checkpoints/2026-09-27-canonical-authority-envelope.md).
-It records the Stage 4B proof that every fact in the current callable-plan-v2
-semantic envelope is preserved across active carrying stages, consumed only by
-a separately validated authorization branch, or remains explicitly refused.
+[Source-declared disposition authority — Gate 2](checkpoints/2026-10-10-source-disposition-authority-gate-2.md).
+It records one source-derived, closed, typed and deterministic disposition
+topology for the bounded `TextOutcome` specimen. The topology remains
+explicitly declarative: policy selection, executable Graph IR, backend routing
+and runtime containment are not admitted.
 The earlier stage checkpoints below remain the detailed authority for each
 bounded semantic slice. The
 [bounded unique-transfer forwarding checkpoint](checkpoints/2026-09-26-bounded-unique-transfer-forwarding-chain.md)
