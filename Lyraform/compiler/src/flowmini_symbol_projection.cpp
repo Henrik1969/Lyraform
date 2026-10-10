@@ -803,6 +803,11 @@ struct ProjectTopLevelDecl {
                               declarationId);
     }
 
+    void operator()(const ConsumerDecl&) const {
+        // Gate 1 preserves consumer structure by declaration identity. Semantic
+        // identity and membership resolution belong to Flowanalyst Gate 2.
+    }
+
     void operator()(const RecordDecl& decl) const {
         project_record_decl(table,
                             moduleScope,

@@ -213,6 +213,93 @@ void dump_frontend_bundle_json(std::ostream& out,
         out << ",\"provenance\":"; provenance(state.location);
         out << '}';
     }
+    out << "]},\n  \"disposition_syntax\": {\"format\":\"flowmini.disposition_syntax\",\"version\":1,"
+           "\"status\":\"structural\",\"execution\":\"unsupported\",\"functions\":[";
+    bool first_disposition_function = true;
+    for (std::size_t declaration_id = 0; declaration_id < module.declaration_pool.size(); ++declaration_id) {
+        const auto* function = std::get_if<FunctionDecl>(&module.declaration_pool[declaration_id]);
+        if (!function) continue;
+        bool has_envelope = false;
+        for (const auto& parameter : function->parameters)
+            has_envelope |= parameter.type_form == Parameter::TypeForm::FailureEnvelope;
+        if (!has_envelope && function->result_form == FunctionDecl::ResultForm::Ordinary &&
+            !function->failures_location && !function->faults_location) continue;
+        if (!first_disposition_function) out << ',';
+        first_disposition_function = false;
+        out << "{\"declaration_id\":" << declaration_id << ",\"name\":";
+        dump_json_string(out, function->name);
+        out << ",\"result_form\":"; dump_json_string(out, to_string(function->result_form));
+        out << ",\"result_type\":"; dump_json_string(out, type_ref_text(function->return_type));
+        out << ",\"parameters\":[";
+        for (std::size_t parameter_id = 0; parameter_id < function->parameters.size(); ++parameter_id) {
+            if (parameter_id) out << ',';
+            const auto& parameter = function->parameters[parameter_id];
+            out << "{\"parameter_id\":" << parameter_id << ",\"name\":";
+            dump_json_string(out, parameter.name);
+            out << ",\"type_form\":"; dump_json_string(out, to_string(parameter.type_form));
+            out << ",\"payload_type\":"; dump_json_string(out, type_ref_text(parameter.type));
+            out << ",\"provenance\":"; provenance(parameter.location);
+            if (parameter.type_form == Parameter::TypeForm::FailureEnvelope) {
+                out << ",\"form_provenance\":"; provenance(parameter.type_form_location);
+            }
+            out << '}';
+        }
+        auto type_set = [&](const char* name, const std::vector<TypeRef>& values,
+                            const std::optional<SourceLocation>& location) {
+            out << ",\"" << name << "\":{";
+            out << "\"present\":" << (location ? "true" : "false") << ",\"types\":[";
+            for (std::size_t index = 0; index < values.size(); ++index) {
+                if (index) out << ',';
+                out << "{\"spelling\":"; dump_json_string(out, type_ref_text(values[index]));
+                out << ",\"provenance\":"; provenance(values[index].location); out << '}';
+            }
+            out << ']';
+            if (location) { out << ",\"provenance\":"; provenance(*location); }
+            out << '}';
+        };
+        out << ']';
+        type_set("failures", function->failure_types, function->failures_location);
+        type_set("faults", function->fault_types, function->faults_location);
+        out << ",\"provenance\":"; provenance(function->location);
+        out << '}';
+    }
+    out << "],\"consumers\":[";
+    bool first_consumer = true;
+    for (std::size_t declaration_id = 0; declaration_id < module.declaration_pool.size(); ++declaration_id) {
+        const auto* consumer = std::get_if<ConsumerDecl>(&module.declaration_pool[declaration_id]);
+        if (!consumer) continue;
+        if (!first_consumer) out << ',';
+        first_consumer = false;
+        out << "{\"declaration_id\":" << declaration_id << ",\"name\":";
+        dump_json_string(out, consumer->name);
+        out << ",\"members\":[";
+        for (std::size_t member_id = 0; member_id < consumer->members.size(); ++member_id) {
+            if (member_id) out << ',';
+            out << "{\"member_id\":" << member_id << ",\"function_name\":";
+            dump_json_string(out, consumer->members[member_id].function_name);
+            out << ",\"provenance\":"; provenance(consumer->members[member_id].location); out << '}';
+        }
+        out << "],\"provenance\":"; provenance(consumer->location); out << '}';
+    }
+    out << "],\"nodes\":[";
+    for (std::size_t index = 0; index < module.disposition_graph_nodes.size(); ++index) {
+        if (index) out << ',';
+        const auto& node = module.disposition_graph_nodes[index];
+        out << "{\"structural_id\":" << index << ",\"node_id\":"; dump_json_string(out, node.name);
+        out << ",\"implementation_kind\":"; dump_json_string(out, node.implementation_kind);
+        out << ",\"implementation_name\":"; dump_json_string(out, node.implementation_name);
+        out << ",\"provenance\":"; provenance(node.location); out << '}';
+    }
+    out << "],\"wires\":[";
+    for (std::size_t index = 0; index < module.disposition_graph_wires.size(); ++index) {
+        if (index) out << ',';
+        const auto& wire = module.disposition_graph_wires[index];
+        out << "{\"structural_id\":" << index << ",\"wire_id\":";
+        dump_json_string(out, "disposition-wire:" + std::to_string(index));
+        out << ",\"from\":"; endpoint(wire.from);
+        out << ",\"to\":"; endpoint(wire.to);
+        out << ",\"provenance\":"; provenance(wire.location); out << '}';
+    }
     out << "]},\n  \"diagnostics\": [";
     for (std::size_t index = 0; index < module.unsupported_graph_locations.size(); ++index) {
         const auto& location = module.unsupported_graph_locations[index];

@@ -305,6 +305,12 @@ namespace flowmini::ast {
             dump_json_string(out, type_ref_text(parameter.type));
             out << ", \"type_ref\": ";
             dump_type_ref_json(out, parameter.type);
+            if (parameter.type_form != Parameter::TypeForm::Ordinary) {
+                out << ", \"type_form\": ";
+                dump_json_string(out, to_string(parameter.type_form));
+                out << ", \"type_form_location\": ";
+                dump_source_location_json(out, parameter.type_form_location);
+            }
             out << ", \"location\": ";
             dump_source_location_json(out, parameter.location);
             out << "}";
@@ -875,6 +881,17 @@ namespace flowmini::ast {
                         dump_type_ref_json(out, parameter.type);
                         out << ",\n";
 
+                        if (parameter.type_form != Parameter::TypeForm::Ordinary) {
+                            dump_indent(out, indent + 6);
+                            out << "\"type_form\": ";
+                            dump_json_string(out, to_string(parameter.type_form));
+                            out << ",\n";
+                            dump_indent(out, indent + 6);
+                            out << "\"type_form_location\": ";
+                            dump_source_location_json(out, parameter.type_form_location);
+                            out << ",\n";
+                        }
+
                         dump_indent(out, indent + 6);
                         out << "\"location\": ";
                         dump_source_location_json(out, parameter.location);
@@ -905,6 +922,44 @@ namespace flowmini::ast {
                 dump_type_ref_json(out, functionDecl->return_type);
                 out << ",\n";
 
+                if (functionDecl->result_form != FunctionDecl::ResultForm::Ordinary ||
+                    functionDecl->failures_location || functionDecl->faults_location) {
+                    dump_indent(out, indent + 2);
+                    out << "\"result_form\": ";
+                    dump_json_string(out, to_string(functionDecl->result_form));
+                    out << ",\n";
+                    if (functionDecl->result_form != FunctionDecl::ResultForm::Ordinary) {
+                        dump_indent(out, indent + 2);
+                        out << "\"result_form_location\": ";
+                        dump_source_location_json(out, functionDecl->result_form_location);
+                        out << ",\n";
+                    }
+
+                    auto dump_type_set = [&](const char* name, const std::vector<TypeRef>& values) {
+                        dump_indent(out, indent + 2);
+                        out << '\"' << name << "\": [";
+                        for (std::size_t index = 0; index < values.size(); ++index) {
+                            if (index) out << ", ";
+                            dump_type_ref_json(out, values[index]);
+                        }
+                        out << "],\n";
+                    };
+                    dump_type_set("failure_types", functionDecl->failure_types);
+                    dump_type_set("fault_types", functionDecl->fault_types);
+                    if (functionDecl->failures_location) {
+                        dump_indent(out, indent + 2);
+                        out << "\"failures_location\": ";
+                        dump_source_location_json(out, *functionDecl->failures_location);
+                        out << ",\n";
+                    }
+                    if (functionDecl->faults_location) {
+                        dump_indent(out, indent + 2);
+                        out << "\"faults_location\": ";
+                        dump_source_location_json(out, *functionDecl->faults_location);
+                        out << ",\n";
+                    }
+                }
+
                 dump_indent(out, indent + 2);
                 out << "\"has_body\": " << (functionDecl->has_body ? "true" : "false") << ",\n";
 
@@ -916,6 +971,31 @@ namespace flowmini::ast {
                 dump_indent(out, indent + 2);
                 out << "\"location\": ";
                 dump_source_location_json(out, functionDecl->location);
+                out << "\n";
+            } else if (const auto* consumerDecl = std::get_if<ConsumerDecl>(&decl)) {
+                out << ",\n";
+                dump_indent(out, indent + 2);
+                out << "\"name\": ";
+                dump_json_string(out, consumerDecl->name);
+                out << ",\n";
+                dump_indent(out, indent + 2);
+                out << "\"members\": [";
+                for (std::size_t index = 0; index < consumerDecl->members.size(); ++index) {
+                    if (index) out << ", ";
+                    out << "{\"function_name\": ";
+                    dump_json_string(out, consumerDecl->members[index].function_name);
+                    out << ", \"location\": ";
+                    dump_source_location_json(out, consumerDecl->members[index].location);
+                    out << '}';
+                }
+                out << "],\n";
+                dump_indent(out, indent + 2);
+                out << "\"body_location\": ";
+                dump_source_location_json(out, consumerDecl->body_location);
+                out << ",\n";
+                dump_indent(out, indent + 2);
+                out << "\"location\": ";
+                dump_source_location_json(out, consumerDecl->location);
                 out << "\n";
             } else if (const auto* mainBlock = std::get_if<MainBlock>(&decl)) {
                 out << ",\n";
@@ -1109,6 +1189,7 @@ namespace flowmini::ast {
         switch (kind) {
             case TopLevelKind::Import:      return "import";
             case TopLevelKind::Function:    return "function";
+            case TopLevelKind::Consumer:    return "consumer";
             case TopLevelKind::Record:      return "record";
             case TopLevelKind::RefinedType: return "refined_type";
             case TopLevelKind::Abi:         return "abi";
@@ -1136,6 +1217,23 @@ namespace flowmini::ast {
             case StatementKind::Unknown:    return "unknown";
         }
         return "unknown";
+    }
+
+    const char* to_string(Parameter::TypeForm form) {
+        switch (form) {
+            case Parameter::TypeForm::Ordinary:        return "ordinary";
+            case Parameter::TypeForm::FailureEnvelope: return "failure_envelope";
+        }
+        return "ordinary";
+    }
+
+    const char* to_string(FunctionDecl::ResultForm form) {
+        switch (form) {
+            case FunctionDecl::ResultForm::Ordinary:  return "ordinary";
+            case FunctionDecl::ResultForm::Recover:   return "recover";
+            case FunctionDecl::ResultForm::Transform: return "transform";
+        }
+        return "ordinary";
     }
 
     const char* to_string(StatementSourceForm form) {
@@ -1332,6 +1430,7 @@ namespace flowmini::ast {
     TopLevelKind top_level_kind(const TopLevelDecl& decl) {
         if (std::holds_alternative<ImportDecl>(decl))       { return TopLevelKind::Import;}
         if (std::holds_alternative<FunctionDecl>(decl))     { return TopLevelKind::Function;}
+        if (std::holds_alternative<ConsumerDecl>(decl))     { return TopLevelKind::Consumer;}
         if (std::holds_alternative<RecordDecl>(decl))       { return TopLevelKind::Record;}
         if (std::holds_alternative<RefinedTypeDecl>(decl))  { return TopLevelKind::RefinedType;}
         if (std::holds_alternative<AbiDecl>(decl))          { return TopLevelKind::Abi;}

@@ -146,6 +146,26 @@ inline void finalize(ast::AstModule& module, const std::vector<Token>& tokens) {
             return;
         }
     }
+    bool disposition_structure = !module.disposition_graph_nodes.empty() ||
+                                 !module.disposition_graph_wires.empty();
+    for (const auto& declaration : module.declaration_pool) {
+        if (std::holds_alternative<ast::ConsumerDecl>(declaration)) disposition_structure = true;
+        if (const auto* function = std::get_if<ast::FunctionDecl>(&declaration)) {
+            disposition_structure |= function->result_form != ast::FunctionDecl::ResultForm::Ordinary ||
+                                     function->failures_location.has_value() ||
+                                     function->faults_location.has_value();
+            for (const auto& parameter : function->parameters)
+                disposition_structure |= parameter.type_form == ast::Parameter::TypeForm::FailureEnvelope;
+        }
+    }
+    if (disposition_structure) {
+        result.state = "outside_scope";
+        result.scope = "canonical_disposition_structure";
+        result.coverage = "complete";
+        result.recovery = false;
+        result.message = "structurally complete; execution unsupported";
+        return;
+    }
     const bool canonical = classify(module) == Ownership::canonical;
     const bool scalar_observation = classify(module, true) == Ownership::canonical;
     if (!canonical && !scalar_observation) return;

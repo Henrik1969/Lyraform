@@ -1,0 +1,10 @@
+unit imported_responses
+
+fn imported_transform(problem : failure TextFailure): transform OtherFailure {
+    replacement : OtherFailure(1)
+    replacement -> return
+}
+
+consumer imported_failures {
+    imported_transform
+}

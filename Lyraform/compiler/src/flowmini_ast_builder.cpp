@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <memory>
+#include <set>
 #include "flow_common.h"
 #include "flowmini_ast_builder.h"
 #include "flowmini_parse_validity.h"
@@ -20,6 +21,7 @@ namespace flowmini::ast {
         constexpr std::size_t max_expression_population_depth = 64;
 
         bool is_end_token(const flowmini::Token& token);
+        bool is_identifier_text(const flowmini::Token& token, const std::string& text);
         Expression::Payload make_leaf_payload(const flowmini::Token& token);
 
 
@@ -213,8 +215,22 @@ namespace flowmini::ast {
                 if (i < tokens.size() && tokens[i].kind == flowmini::TokenKind::Colon) {
                     ++i;
 
+                    if constexpr (requires { param.type_form; }) {
+                        if (i < tokens.size() && is_identifier_text(tokens[i], "failure")) {
+                            param.type_form = Parameter::TypeForm::FailureEnvelope;
+                            param.type_form_location = location_from_token(tokens[i]);
+                            ++i;
+                            if (i >= tokens.size() || !is_identifier_like_type_token(tokens[i])) {
+                                throw flow::DiagnosticError{"parser", "failure envelope requires one payload type at line " +
+                                    std::to_string(param.location.line)};
+                            }
+                        }
+                    }
                     if (i < tokens.size() && is_identifier_like_type_token(tokens[i])) {
                         param.type = parse_type_ref(tokens, i);
+                    } else {
+                        throw flow::DiagnosticError{"parser", "parameter requires a complete type at line " +
+                            std::to_string(param.location.line)};
                     }
                 }
 
@@ -235,12 +251,105 @@ namespace flowmini::ast {
                      tokens[i].kind == flowmini::TokenKind::PlaceArrow)) {
                     ++i;
 
+                    if constexpr (requires { fn.result_form; }) {
+                        if (i < tokens.size() && is_identifier_text(tokens[i], "recover")) {
+                            fn.result_form = FunctionDecl::ResultForm::Recover;
+                            fn.result_form_location = location_from_token(tokens[i++]);
+                        } else if (i < tokens.size() && is_identifier_text(tokens[i], "transform")) {
+                            fn.result_form = FunctionDecl::ResultForm::Transform;
+                            fn.result_form_location = location_from_token(tokens[i++]);
+                        }
+                    }
                     if (i < tokens.size() && is_identifier_like_type_token(tokens[i])) {
                         fn.return_type = parse_type_ref(tokens, i);
+                    } else {
+                        throw flow::DiagnosticError{"parser", "function result requires a complete type"};
                     }
                 }
             }
 
+            return i;
+        }
+
+        std::vector<TypeRef> parse_closed_type_set(
+            const std::vector<flowmini::Token>& tokens,
+            std::size_t& i,
+            const std::string& clause) {
+            if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::LeftBrace) {
+                throw flow::DiagnosticError{"parser", clause + " requires a closed '{ ... }' type set"};
+            }
+            ++i;
+            std::vector<TypeRef> result;
+            std::set<std::string> seen;
+            bool needs_member = false;
+            while (i < tokens.size() && !is_end_token(tokens[i])) {
+                if (tokens[i].kind == flowmini::TokenKind::RightBrace) {
+                    if (needs_member) {
+                        throw flow::DiagnosticError{"parser", clause + " has a trailing separator"};
+                    }
+                    ++i;
+                    return result;
+                }
+                if (tokens[i].kind == flowmini::TokenKind::Newline) {
+                    ++i;
+                    continue;
+                }
+                if (tokens[i].kind == flowmini::TokenKind::Comma) {
+                    if (result.empty() || needs_member) {
+                        throw flow::DiagnosticError{"parser", clause + " has an empty type entry"};
+                    }
+                    needs_member = true;
+                    ++i;
+                    continue;
+                }
+                if (!is_identifier_like_type_token(tokens[i])) {
+                    throw flow::DiagnosticError{"parser", clause + " contains an incomplete type"};
+                }
+                auto type = parse_type_ref(tokens, i);
+                const auto spelling = type_ref_text(type);
+                if (!seen.insert(spelling).second) {
+                    throw flow::DiagnosticError{"parser", clause + " repeats type " + spelling};
+                }
+                result.push_back(std::move(type));
+                needs_member = false;
+                if (i < tokens.size() && tokens[i].kind != flowmini::TokenKind::Comma &&
+                    tokens[i].kind != flowmini::TokenKind::Newline &&
+                    tokens[i].kind != flowmini::TokenKind::RightBrace) {
+                    throw flow::DiagnosticError{"parser", clause + " types require a comma or newline separator"};
+                }
+            }
+            throw flow::DiagnosticError{"parser", clause + " type set is not closed"};
+        }
+
+        std::size_t parse_function_disposition_clauses(
+            const std::vector<flowmini::Token>& tokens,
+            std::size_t i,
+            FunctionDecl& fn) {
+            bool saw_failures = false;
+            bool saw_faults = false;
+            while (i < tokens.size()) {
+                if (is_identifier_text(tokens[i], "fails")) {
+                    if (saw_failures) {
+                        throw flow::DiagnosticError{"parser", "duplicate fails clause at line " +
+                            std::to_string(tokens[i].line)};
+                    }
+                    saw_failures = true;
+                    fn.failures_location = location_from_token(tokens[i++]);
+                    fn.failure_types = parse_closed_type_set(tokens, i, "fails");
+                    continue;
+                }
+                if (is_identifier_text(tokens[i], "faults")) {
+                    if (saw_faults) {
+                        throw flow::DiagnosticError{"parser", "duplicate faults clause at line " +
+                            std::to_string(tokens[i].line)};
+                    }
+                    saw_faults = true;
+                    fn.faults_location = location_from_token(tokens[i++]);
+                    fn.fault_types = parse_closed_type_set(tokens, i, "faults");
+                    continue;
+                }
+                break;
+            }
             return i;
         }
 
@@ -793,11 +902,18 @@ namespace flowmini::ast {
                     is_import_token(token) ||
                     is_type_token(token) ||
                     is_abi_token(token) ||
+                    is_identifier_text(token, "consumer") ||
                     token.kind == flowmini::TokenKind::KeywordMain ||
                     token.kind == flowmini::TokenKind::KeywordUnit ||
                     token.kind == flowmini::TokenKind::KeywordProgram ||
                     token.kind == flowmini::TokenKind::KeywordModule ||
-                    token.kind == flowmini::TokenKind::KeywordTarget;
+                    token.kind == flowmini::TokenKind::KeywordTarget ||
+                    token.kind == flowmini::TokenKind::KeywordProducer ||
+                    token.kind == flowmini::TokenKind::KeywordNode ||
+                    token.kind == flowmini::TokenKind::KeywordSink ||
+                    token.kind == flowmini::TokenKind::KeywordWire ||
+                    token.kind == flowmini::TokenKind::KeywordPolicy ||
+                    token.kind == flowmini::TokenKind::KeywordState;
         }
 
         std::size_t skip_group(const std::vector<flowmini::Token>& tokens,
@@ -2679,6 +2795,13 @@ namespace flowmini::ast {
                     continue;
                 }
 
+                if (is_identifier_text(tokens[i], "consumer") ||
+                    is_identifier_text(tokens[i], "fails") ||
+                    is_identifier_text(tokens[i], "faults")) {
+                    throw flow::DiagnosticError{"parser", "disposition declaration is not valid inside a function body at line " +
+                        std::to_string(tokens[i].line)};
+                }
+
                 if (is_typed_binding_start(tokens, i)) {
                     i = parse_typed_binding_statement_shell(tokens, i, body, statementPool, expressionPool);
                     continue;
@@ -2793,6 +2916,52 @@ namespace flowmini::ast {
                                                statementPool, expressionPool);
         }
 
+        std::size_t parse_consumer_declaration(const std::vector<flowmini::Token>& tokens,
+                                               std::size_t i,
+                                               AstModule& module) {
+            ConsumerDecl consumer;
+            consumer.location = location_from_token(tokens[i++]);
+            if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::Identifier) {
+                throw flow::DiagnosticError{"parser", "consumer requires a declaration name at line " +
+                    std::to_string(consumer.location.line)};
+            }
+            consumer.name = tokens[i++].text;
+            if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::LeftBrace) {
+                throw flow::DiagnosticError{"parser", "consumer " + consumer.name + " requires a closed member body"};
+            }
+            consumer.body_location = location_from_token(tokens[i++]);
+            std::set<std::string> members;
+            while (i < tokens.size() && !is_end_token(tokens[i])) {
+                if (tokens[i].kind == flowmini::TokenKind::RightBrace) {
+                    ++i;
+                    append_top_level_declaration(module, std::move(consumer));
+                    return i;
+                }
+                if (tokens[i].kind == flowmini::TokenKind::Newline ||
+                    tokens[i].kind == flowmini::TokenKind::Comma) {
+                    ++i;
+                    continue;
+                }
+                if (tokens[i].kind != flowmini::TokenKind::Identifier) {
+                    throw flow::DiagnosticError{"parser", "consumer " + consumer.name +
+                        " contains a malformed function reference"};
+                }
+                ConsumerMember member{tokens[i].text, location_from_token(tokens[i])};
+                if (!members.insert(member.function_name).second) {
+                    throw flow::DiagnosticError{"parser", "consumer " + consumer.name +
+                        " repeats function " + member.function_name};
+                }
+                ++i;
+                if (i < tokens.size() && tokens[i].kind != flowmini::TokenKind::Comma &&
+                    tokens[i].kind != flowmini::TokenKind::Newline &&
+                    tokens[i].kind != flowmini::TokenKind::RightBrace) {
+                    throw flow::DiagnosticError{"parser", "consumer members require a comma or newline separator"};
+                }
+                consumer.members.push_back(std::move(member));
+            }
+            throw flow::DiagnosticError{"parser", "consumer " + consumer.name + " body is not closed"};
+        }
+
         std::size_t parse_target_declaration(const std::vector<flowmini::Token>& tokens,
                                              std::size_t i,
                                              AstModule& module) {
@@ -2831,6 +3000,7 @@ namespace flowmini::ast {
                         ++i;
                     }
                     i = parse_function_signature(tokens, i, function);
+                    i = parse_function_disposition_clauses(tokens, i, function);
                     i = mark_body_container(tokens, i, function.has_body,
                                             function.body_location, function.body,
                                             module.block_pool, module.statement_pool,
@@ -2895,6 +3065,54 @@ namespace flowmini::ast {
     // This is syntax evidence only; it cannot authorize a factory or function.
     static void capture_graph_syntax(const std::vector<flowmini::Token>& tokens, AstModule& module) {
         using K = flowmini::TokenKind;
+        struct CandidateWire {
+            std::string from_node;
+            std::string from_port;
+            std::string to_node;
+            std::string to_port;
+        };
+        std::set<std::string> disposition_nodes;
+        std::vector<CandidateWire> candidate_wires;
+        auto port_text = [&](const std::size_t index) -> std::string {
+            if (index >= tokens.size()) return {};
+            const auto kind = tokens[index].kind;
+            return kind == K::Identifier || kind == K::KeywordTrue || kind == K::KeywordFalse
+                ? tokens[index].text : std::string{};
+        };
+        std::size_t scan_depth = 0;
+        for (std::size_t scan = 0; scan < tokens.size(); ++scan) {
+            if (tokens[scan].kind == K::LeftBrace) { ++scan_depth; continue; }
+            if (tokens[scan].kind == K::RightBrace) { if (scan_depth) --scan_depth; continue; }
+            if (scan_depth) continue;
+            if (tokens[scan].kind == K::KeywordNode && scan + 3 < tokens.size() &&
+                tokens[scan + 1].kind == K::Identifier && tokens[scan + 2].kind == K::Colon &&
+                tokens[scan + 3].kind == K::Identifier &&
+                (tokens[scan + 3].text == "consumer" || tokens[scan + 3].text == "containment")) {
+                disposition_nodes.insert(tokens[scan + 1].text);
+            }
+            if (tokens[scan].kind == K::KeywordWire && scan + 7 < tokens.size() &&
+                tokens[scan + 1].kind == K::Identifier && tokens[scan + 2].kind == K::Dot &&
+                !port_text(scan + 3).empty() && tokens[scan + 4].kind == K::Arrow &&
+                tokens[scan + 5].kind == K::Identifier && tokens[scan + 6].kind == K::Dot &&
+                !port_text(scan + 7).empty()) {
+                candidate_wires.push_back({tokens[scan + 1].text, port_text(scan + 3),
+                                           tokens[scan + 5].text, port_text(scan + 7)});
+            }
+        }
+        auto disposition_port = [](const std::string& port) {
+            return port == "success" || port == "failure" || port == "fault";
+        };
+        bool changed = true;
+        while (changed) {
+            changed = false;
+            for (const auto& wire : candidate_wires) {
+                if (disposition_port(wire.from_port) || disposition_port(wire.to_port) ||
+                    disposition_nodes.contains(wire.from_node) || disposition_nodes.contains(wire.to_node)) {
+                    changed |= disposition_nodes.insert(wire.from_node).second;
+                    changed |= disposition_nodes.insert(wire.to_node).second;
+                }
+            }
+        }
         std::size_t depth = 0;
         for (std::size_t i = 0; i < tokens.size(); ++i) {
             if (tokens[i].kind == K::LeftBrace) { ++depth; continue; }
@@ -2964,21 +3182,44 @@ namespace flowmini::ast {
                 wire.from = endpoint();
                 require(K::Arrow);
                 wire.to = endpoint();
-                module.graph_wires.push_back(std::move(wire));
+                if (disposition_nodes.contains(wire.from.node) || disposition_nodes.contains(wire.to.node))
+                    module.disposition_graph_wires.push_back(std::move(wire));
+                else
+                    module.graph_wires.push_back(std::move(wire));
             } else {
                 GraphNodeSyntax node;
                 node.location = location_from_token(tokens[start]);
                 node.role = kind == K::KeywordProducer ? "producer" : kind == K::KeywordSink ? "sink" : "node";
                 node.name = require(K::Identifier).text;
                 require(K::Colon);
+                std::string disposition_kind;
                 if (i < tokens.size() && tokens[i].kind == K::KeywordFn) {
                     ++i;
                     node.source_function = true;
+                    disposition_kind = "source_function";
+                } else if (i < tokens.size() && is_identifier_text(tokens[i], "consumer")) {
+                    ++i;
+                    disposition_kind = "consumer_instance";
+                } else if (i < tokens.size() && is_identifier_text(tokens[i], "containment")) {
+                    ++i;
+                    if (i >= tokens.size() || !is_identifier_text(tokens[i], "activation")) {
+                        throw flow::DiagnosticError{"parser", "containment node requires activation scope at line " +
+                            std::to_string(tokens[start].line)};
+                    }
+                    ++i;
+                    disposition_kind = "activation_containment";
+                    node.implementation = "activation";
                 }
-                node.implementation = name();
+                if (node.implementation.empty()) node.implementation = name();
                 node.persistent = i < tokens.size() && tokens[i].kind == K::KeywordPersistent;
                 if (node.persistent) ++i;
-                module.graph_nodes.push_back(std::move(node));
+                if (disposition_nodes.contains(node.name)) {
+                    if (disposition_kind.empty()) disposition_kind = "provider_atom";
+                    module.disposition_graph_nodes.push_back(DispositionGraphNodeSyntax{
+                        node.name, disposition_kind, node.implementation, node.location});
+                } else {
+                    module.graph_nodes.push_back(std::move(node));
+                }
             }
             if (i < tokens.size() && tokens[i].kind != K::Newline && tokens[i].kind != K::End)
                 throw flow::DiagnosticError{"parser", "unexpected graph declaration suffix at line " +
@@ -3057,11 +3298,26 @@ namespace flowmini::ast {
                 continue;
             }
 
+            if (is_identifier_text(tokens[i], "consumer")) {
+                i = parse_consumer_declaration(tokens, i, module);
+                continue;
+            }
+
+            if (is_identifier_text(tokens[i], "fails") ||
+                is_identifier_text(tokens[i], "faults") ||
+                is_identifier_text(tokens[i], "failure") ||
+                is_identifier_text(tokens[i], "recover") ||
+                is_identifier_text(tokens[i], "transform")) {
+                throw flow::DiagnosticError{"parser", "disposition form is not valid at top level at line " +
+                    std::to_string(tokens[i].line)};
+            }
+
             if (tokens[i].kind == flowmini::TokenKind::KeywordProducer ||
                 tokens[i].kind == flowmini::TokenKind::KeywordNode ||
                 tokens[i].kind == flowmini::TokenKind::KeywordSink ||
                 tokens[i].kind == flowmini::TokenKind::KeywordWire ||
-                tokens[i].kind == flowmini::TokenKind::KeywordPolicy) {
+                tokens[i].kind == flowmini::TokenKind::KeywordPolicy ||
+                tokens[i].kind == flowmini::TokenKind::KeywordState) {
                 i = skip_until_line_end(tokens, i);
                 continue;
             }
@@ -3104,6 +3360,7 @@ namespace flowmini::ast {
                 }
 
                 i = parse_function_signature(tokens, i, fn);
+                i = parse_function_disposition_clauses(tokens, i, fn);
                 i = mark_body_container(tokens, i, fn.has_body, fn.body_location, fn.body,
                                         module.block_pool, module.statement_pool, module.expression_pool);
 
