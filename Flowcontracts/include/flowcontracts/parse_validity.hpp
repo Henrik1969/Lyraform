@@ -17,16 +17,22 @@ inline bool parse_validity_admits(const json::Value& evidence, const json::Value
     const auto state = string("state"), scope = string("scope"), coverage = string("coverage");
     const bool recovery = json::boolean(json::required(value, "recovery_used"), "$.parse_validity.recovery_used");
     const auto message = string("message");
-    if (scope != "canonical_scalar" && scope != "scalar_with_compatibility_return" && scope != "compatibility")
+    if (scope != "canonical_scalar" && scope != "scalar_with_compatibility_return" &&
+        scope != "canonical_disposition_structure" && scope != "compatibility")
         fail("unknown parse-validity scope");
     if (coverage != "complete" && coverage != "incomplete" && coverage != "unassessed") fail("unknown coverage status");
     if (state != "canonical_valid" && state != "outside_scope" && state != "recovered" && state != "incomplete" && state != "invalid")
         fail("unknown parse-validity state");
     if (state == "canonical_valid" && (scope != "canonical_scalar" || coverage != "complete" || recovery || !message.empty()))
         fail("contradictory canonical parse proof");
-    if (state == "outside_scope" && (scope == "canonical_scalar" || recovery || !message.empty() ||
-        (scope == "compatibility" ? coverage != "unassessed" : coverage != "complete")))
-        fail("contradictory compatibility parse evidence");
+    if (state == "outside_scope") {
+        const bool disposition_structure = scope == "canonical_disposition_structure";
+        if (scope == "canonical_scalar" || recovery ||
+            (disposition_structure
+                ? (coverage != "complete" || message != "structurally complete; execution unsupported")
+                : (!message.empty() || (scope == "compatibility" ? coverage != "unassessed" : coverage != "complete"))))
+            fail("contradictory compatibility parse evidence");
+    }
     if (state == "recovered" && (!recovery || message.empty() || coverage == "complete")) fail("contradictory recovery evidence");
     if ((state == "invalid" || state == "incomplete") && (recovery || coverage != "incomplete" || message.empty()))
         fail("contradictory incomplete/invalid evidence");

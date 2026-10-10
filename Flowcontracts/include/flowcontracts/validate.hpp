@@ -1,6 +1,8 @@
 #pragma once
 
 #include <flowcontracts/artifacts.hpp>
+#include <flowcontracts/disposition_route_projection.hpp>
+#include <flowcontracts/source_disposition.hpp>
 
 #include <set>
 #include <string>
@@ -405,6 +407,8 @@ inline ValidationResult validate(const json::Value& value) {
         else if (result.format == "flowanalyst.semantic_report") (void)semantic_report(value);
         else if (result.format == "flowcore.lowering_plan") validate_lowering_plan(value);
         else if (result.format == "flowcore.graph_provider_map") (void)graph_provider_map(value);
+        else if (result.format == "lyraform.disposition_route_bundle") validate_disposition_route_bundle(value);
+        else if (result.format == "lyraform.source_disposition_topology") validate_source_disposition_topology(value);
         else if (result.format == "flowcore.source_graph") (void)source_graph(value);
         else if (result.format == "flowbind.binding_report") validate_binding_report(value);
         else if (result.format == "flowparallel.execution_plan") (void)execution_plan(value);

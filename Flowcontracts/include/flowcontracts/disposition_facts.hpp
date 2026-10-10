@@ -3,6 +3,7 @@
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/outcome_execution.hpp>
 #include <flowcontracts/ownership_transfer.hpp>
+#include <flowcontracts/source_disposition.hpp>
 
 #include <map>
 #include <set>
@@ -78,6 +79,18 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
     const auto integer = [](const Value& v, std::string_view p = "$") { return json::integer(v, p); };
     const auto string = [](const Value& v, std::string_view p = "$") -> const std::string& { return json::string(v, p); };
     const auto& plan = object(value, base);
+    std::set<Integer> source_disposition_operations;
+    const Object* source_disposition = nullptr;
+    if (const auto* raw_source_disposition = optional(plan, "source_disposition")) {
+        validate_source_disposition_topology(*raw_source_disposition,
+            std::string(base) + ".source_disposition");
+        source_disposition = &object(*raw_source_disposition,
+            std::string(base) + ".source_disposition");
+        const auto& producer = object(required(*source_disposition, "producer"),
+            std::string(base) + ".source_disposition.producer");
+        source_disposition_operations.insert(integer(required(producer, "operation_id"),
+            std::string(base) + ".source_disposition.producer.operation_id"));
+    }
     const auto* raw_facts = optional(plan, "disposition_facts");
     if (!raw_facts) {
         // Artifacts predating guard/disposition authority make no claim. Once
@@ -88,7 +101,10 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
         if (const auto* raw_operations = optional(plan, "operations")) {
             for (const auto& raw_operation : array(*raw_operations, std::string(base) + ".operations")) {
                 const auto& operation = object(raw_operation, std::string(base) + ".operations[]");
-                if (disposition_requires_text_outcome_authority(operation))
+                const auto operation_id = integer(required(operation, "id"),
+                    std::string(base) + ".operations[].id");
+                if (disposition_requires_text_outcome_authority(operation) &&
+                    !source_disposition_operations.count(operation_id))
                     throw Error(std::string(base) + ".disposition_facts", "tagged outcome authority lacks disposition authority");
             }
         }
@@ -98,6 +114,9 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
     const auto& operations = array(required(plan, "operations", base), std::string(base) + ".operations");
     const auto& guards = array(required(plan, "guard_facts", base), std::string(base) + ".guard_facts");
     const auto status = string(required(plan, "status", base), std::string(base) + ".status");
+    if (source_disposition && status != "blocked")
+        throw Error(std::string(base) + ".source_disposition",
+                    "Gate 2 source disposition must remain blocked for execution");
     if (status != "ready" && !facts.empty())
         throw Error(std::string(base) + ".disposition_facts", "blocked plan carries executable disposition authority");
 
@@ -125,6 +144,36 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
                 }
             }
         }
+    }
+    if (source_disposition) {
+        const auto topology_path = std::string(base) + ".source_disposition";
+        const auto& producer = object(required(*source_disposition, "producer", topology_path),
+                                      topology_path + ".producer");
+        const auto operation_id = integer(required(producer, "operation_id", topology_path),
+                                          topology_path + ".producer.operation_id");
+        const auto found = operations_by_id.find(operation_id);
+        if (found == operations_by_id.end() || !disposition_requires_text_outcome_authority(*found->second) ||
+            integer(required(*found->second, "function_symbol_id", topology_path),
+                    topology_path + ".producer.operation.function_symbol_id") !=
+                integer(required(producer, "function_symbol_id", topology_path),
+                        topology_path + ".producer.function_symbol_id") ||
+            integer(required(*found->second, "result_symbol_id", topology_path),
+                    topology_path + ".producer.operation.result_symbol_id") !=
+                integer(required(producer, "owner_symbol_id", topology_path),
+                        topology_path + ".producer.owner_symbol_id"))
+            throw Error(topology_path + ".producer", "source topology does not map to its exact TextOutcome operation");
+        const auto return_id = integer(required(producer, "return_operation_id", topology_path),
+                                       topology_path + ".producer.return_operation_id");
+        const auto returned = operations_by_id.find(return_id);
+        if (returned == operations_by_id.end() ||
+            string(required(*returned->second, "kind", topology_path),
+                   topology_path + ".producer.return_operation.kind") != "return_value" ||
+            integer(required(*returned->second, "function_symbol_id", topology_path),
+                    topology_path + ".producer.return_operation.function_symbol_id") !=
+                integer(required(producer, "function_symbol_id", topology_path),
+                        topology_path + ".producer.function_symbol_id"))
+            throw Error(topology_path + ".producer.return_operation_id",
+                        "source topology return boundary is foreign");
     }
     std::map<Integer, const Object*> guards_by_id;
     std::map<Integer, std::vector<Integer>> safe_guards_by_operation;
@@ -472,7 +521,7 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
             throw Error(std::string(base) + ".disposition_facts", "proven guarded operation lacks disposition authority");
     }
     for (const auto operation_id : text_outcome_operations) {
-        if (!covered_operations.count(operation_id))
+        if (!covered_operations.count(operation_id) && !source_disposition_operations.count(operation_id))
             throw Error(std::string(base) + ".disposition_facts", "tagged outcome operation lacks disposition authority");
     }
 }

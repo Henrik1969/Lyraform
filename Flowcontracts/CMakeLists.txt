@@ -88,3 +88,13 @@ add_test(NAME flowcontracts_identity_preservation
         FLOWLOWER_BIN=$<TARGET_FILE:flowlower>
         FLOW_IDENTITY_FIXTURE=${CMAKE_SOURCE_DIR}/Lyraform/compiler/examples/apps/flowcat/flowcat.flow
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-identity-preservation-tests.sh)
+
+add_executable(flowcontracts_disposition_route_projection_tests tests/disposition_route_projection_tests.cpp)
+target_link_libraries(flowcontracts_disposition_route_projection_tests PRIVATE flowcontracts)
+target_compile_options(flowcontracts_disposition_route_projection_tests PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME flowcontracts_disposition_route_projection COMMAND flowcontracts_disposition_route_projection_tests)
+add_test(NAME flowcontracts_disposition_route_cli
+    COMMAND ${CMAKE_COMMAND} -E env
+        PROJECTION_TEST_BIN=$<TARGET_FILE:flowcontracts_disposition_route_projection_tests>
+        FLOWVALIDATE_BIN=$<TARGET_FILE:flowvalidate>
+        /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-disposition-route-tests.sh)
