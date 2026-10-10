@@ -35,6 +35,11 @@ add_test(NAME lyraform_current_documentation
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
         /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-current-documentation.sh)
 
+add_test(NAME lyraform_agent_workspace_hygiene
+    COMMAND ${CMAKE_COMMAND} -E env
+        FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/tools/check-agent-workspace-hygiene.sh)
+
 add_test(NAME lyraform_canonical_authority_freeze
     COMMAND ${CMAKE_COMMAND} -E env
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}

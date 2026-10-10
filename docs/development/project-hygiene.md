@@ -12,6 +12,22 @@ Build and test artifacts are generated output.
 Old experiments are archaeology, not garbage.
 ```
 
+## Convergence comes first
+
+Workspace hygiene serves the standing
+[Mission Convergence Rule](mission-convergence-rule.md). Every maturation
+mission prioritizes:
+
+1. a bounded vertical slice;
+2. checks against accepted canonical law;
+3. explicit identification of meaning still requiring canonization;
+4. deliberate simplification and reuse; and
+5. consolidation before adjacent expansion.
+
+File placement, runner state, and generated-output conventions make those
+priorities inspectable and reproducible. They do not replace semantic evidence
+or grant task, Git, policy, syntax, or architecture authority.
+
 ## Tracked project material
 
 The following belongs in Git:
@@ -42,6 +58,40 @@ local-machine reports
 cache files
 accidental nested directories
 ```
+
+## Agent and mission placement
+
+```text
+AGENTS.md
+    durable repository law
+
+docs/tasks/
+    selectable missions plus lifecycle index
+
+docs/architecture/decisions/
+    accepted semantic and architectural meaning
+
+docs/checkpoints/
+    dated result evidence; never ambient task authority
+
+.git/codex/runs/<mission-id>/
+    local launch manifest and state; never tracked
+
+/tmp/lyraform-codex-$UID/<mission-id>/
+    ephemeral transcripts and working artifacts
+
+.local/codex/<mission-id>/
+    optional ignored persistent scratch
+
+output/
+    ignored local delivery/export area
+```
+
+One tracked mission directly under `docs/tasks/` owns scope, permissions, and
+definition of done. A mission-specific run directory prevents stale or
+cross-mission state from changing what an agent believes it may do. Curated
+output is moved to the tracked directory that owns its meaning only through an
+explicit mission with recorded provenance.
 
 The repository may track selected IDE files when they intentionally describe
 the development cockpit. For Lyraform, CLion exposes maintained CMake targets

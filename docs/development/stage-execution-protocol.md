@@ -77,6 +77,24 @@ Unless a stage mission says otherwise:
 
 Preserve user work.
 
+## Mission selection and isolated state
+
+A stage runs under exactly one explicitly selected, tracked Markdown mission
+directly beneath `docs/tasks/`. Historical tasks, checkpoints, chat context,
+generated output, and runner state are evidence or local administration; they
+are not ambient authority.
+
+Before implementation, record the selected mission path and its convergence
+contract required by the
+[Mission Convergence Rule](mission-convergence-rule.md). The contract names the
+vertical endpoint, accepted law and fact owners, unresolved decisions, reused
+and retired mechanisms, positive/negative/hostile evidence, reproducibility,
+falsifying evidence, and consolidation owed before expansion.
+
+Each mission version uses fresh Git-local state and a launch manifest under
+`.git/codex/runs/<mission-id>/`. Never inherit `DONE` or `BLOCKED` from another
+mission or use a tracked worktree file as administrative state.
+
 ---
 
 # 3. Phase A — Scout
@@ -460,6 +478,14 @@ The report should contain, as applicable:
 * gate result.
 
 The checkpoint becomes the next stage's factual baseline.
+
+Every gate report also answers:
+
+1. What became usable?
+2. What remains declarative or unsupported?
+3. What became simpler or was removed?
+4. Which accepted law was checked, and what evidence could have disproved the
+   claim?
 
 ---
 

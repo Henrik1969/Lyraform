@@ -1,0 +1,5 @@
+# Preserve imported artifact bytes, including their historical whitespace.
+* -whitespace
+README.md whitespace
+SHA256SUMS whitespace
+.gitattributes whitespace

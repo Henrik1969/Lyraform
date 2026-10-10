@@ -1,0 +1,969 @@
+--- a/docs/architecture/README.md
++++ b/docs/architecture/README.md
+@@ -2,43 +2,52 @@
+ 
+ Project-wide architecture notes belong here.
+ 
+-Current direction:
++Current intended compiler direction:
+ 
+ ```text
+ source files
+   -> import/source loading
+   -> lexer
+   -> TokenTree
+-  -> parser
+-  -> AST
+-  -> SymbolTable population
+-  -> semantic checker
+-  -> lowerer
+-  -> FlowIR
+-  -> runtime/backend
++  -> parser / AST builder
++  -> semantic AST
++  -> SymbolTable / name and type resolution
++  -> semantic validation and canonicalization
++  -> Graph IR
++  -> graph analysis / pruning / transformation / policy
++  -> optimized Graph IR
++  -> target lowering
++  -> target IR
++  -> emitter
++  -> artifact/runtime
+ ```
+ 
+-Current reality as of Flowmini v22:
++The important architectural boundaries are documented before their full
++implementations exist so the current default path does not accidentally become
++the permanent definition of Flowcore.
+ 
+-```text
+-source files
+-  -> import/source loading
+-  -> lexer
+-  -> TokenTree inspection path
+-  -> current parser/lowerer
+-  -> FlowIR/runtime representation
+-  -> runtime interpreter
+-```
++Current active implementation work is Flowmini v0.24 explicit AST
++stabilization. Graph IR, optimizer policy, target lowering, and provider
++selection remain future work.
+ 
+-Planned architecture topics:
++Planned and active architecture topics:
+ 
+ - pipeline boundaries
+ - TokenTree
+ - SymbolTable
+-- AST
++- semantic AST
+ - semantic checker split
++- Graph IR
++- target-independent transformation and pruning
++- policy-directed optimization
++- revisioned IR and transformation provenance
++- target lowering and emitters
+ - runtime backends
+ - bytecode
+ - effects and failure-flow
+ 
++Foundational notes:
++
+ - [Flowcore core promise](flowcore-core-promise.md)
++- [Transformation and revision architecture](compiler-transformation-revision-model.md)
++- [Prerequisites](prerequisites.md)
+--- a/docs/index.md
++++ b/docs/index.md
+@@ -20,6 +20,12 @@
+ - [Flowmini docs](flowmini/README.md)
+ - [Session notes](sessions/)
+ 
++## Foundational architecture
++
++- [Flowcore core promise](architecture/flowcore-core-promise.md)
++- [Transformation and revision architecture](architecture/compiler-transformation-revision-model.md)
++- [Prerequisites](architecture/prerequisites.md)
++
+ ## Current active Flowmini version
+ 
+ See:
+@@ -31,6 +37,7 @@
+ Current checkpoint:
+ 
+ ```text
+-Flowmini v22_unit_kinds
+-suite: 75 / 75
++Flowmini v0.24 explicit AST stabilization
++AST golden tests: 16
++suite: 76 / 76
+ ```
+--- a/docs/flowmini/README.md
++++ b/docs/flowmini/README.md
+@@ -5,20 +5,42 @@
+ Current active version:
+ 
+ ```text
+-Flowmini/flowmini_v22_unit_kinds
++Flowmini/flowmini_v24_explicit_ast
+ ```
+ 
+ Current baseline:
+ 
+ ```text
+-build: OK
+-suite: 75 / 75
++build: PASS
++AST golden tests: 16
++suite: 76 / 76
+ ```
++
++Current architecture checkpoint:
++
++```text
++TokenTree remembers what the source looked like.
++AST states what the source means.
++```
++
++The v0.24 AST is being stabilized so later semantic analysis, Graph IR,
++target-independent transformation, policy, and target lowering can be added
++behind explicit stage boundaries.
+ 
+ Documents in this directory:
+ 
+ - [Roadmap](roadmap.md)
+ - [Testing](testing.md)
++
++Active v0.24 implementation notes:
++
++- [Explicit AST status](../../Flowmini/flowmini_v24_explicit_ast/docs/v0.24-explicit-ast-status.md)
++- [Shallow expression AST sitrep](../../Flowmini/flowmini_v24_explicit_ast/docs/v0.24-shallow-expression-ast-sitrep.md)
++- [Future transformation boundary](../../Flowmini/flowmini_v24_explicit_ast/docs/v0.24-future-transformation-boundary.md)
++
++Project-wide architecture:
++
++- [Transformation and revision architecture](../architecture/compiler-transformation-revision-model.md)
+ 
+ Planned:
+ 
+--- a/Flowmini/README.md
++++ b/Flowmini/README.md
+@@ -189,6 +189,8 @@
+ Flowmini/CURRENT.md
+ Flowmini/flowmini_v24_explicit_ast/docs/v0.24-explicit-ast-status.md
+ Flowmini/flowmini_v24_explicit_ast/docs/v0.24-shallow-expression-ast-sitrep.md
++Flowmini/flowmini_v24_explicit_ast/docs/v0.24-future-transformation-boundary.md
++docs/architecture/compiler-transformation-revision-model.md
+ Flowmini/flowmini_v24_explicit_ast/examples/ast/README.md
+ docs/language/named-targets.md
+ ```
+--- a/Flowmini/CURRENT.md
++++ b/Flowmini/CURRENT.md
+@@ -70,6 +70,26 @@
+ AST states what the source means.
+ ```
+ 
++## Architecture checkpoint for future lowering
++
++The v0.24 AST is being stabilized against the future Flowcore transformation
++pipeline.
++
++Current work should preserve semantic meaning and source provenance without
++encoding optimizer, scheduler, runtime, or target-specific realization choices.
++
++The project-wide transformation/revision design is recorded in:
++
++```text
++docs/architecture/compiler-transformation-revision-model.md
++```
++
++The v0.24-specific boundary note is:
++
++```text
++Flowmini/flowmini_v24_explicit_ast/docs/v0.24-future-transformation-boundary.md
++```
++
+ ## Current important language rule
+ 
+ For v0.24:
+--- /dev/null
++++ b/docs/architecture/compiler-transformation-revision-model.md
+@@ -0,0 +1,593 @@
++---
++title: Flowcore Transformation and Revision Architecture
++status: foundational-direction
++kind: architecture-note
++tags:
++  - flowcore
++  - compiler
++  - ast
++  - graph-ir
++  - transformation
++  - optimization
++  - policy
++  - provenance
++  - revision
++---
++
++# Flowcore Transformation and Revision Architecture
++
++## Purpose
++
++This note records the intended architecture between semantic analysis and target
++emission.
++
++It does not specify a finished optimizer implementation.
++
++It defines the boundaries and laws that current Flowmini work must preserve so
++that future optimization, policy, Graph IR, target lowering, and plugin
++implementations can evolve without rewriting the compiler around one early
++implementation.
++
++The governing development order is:
++
++```text
++analysis
++  -> architecture
++  -> contracts and invariants
++  -> default implementation
++  -> alternative implementations
++```
++
++## Core premise
++
++Flowcore expresses programmer intent and source-visible architecture first.
++
++The compiler is then free to derive a better equivalent computational form
++before choosing a concrete target realization.
++
++The programmer's spelling is not automatically the required execution
++mechanism.
++
++The compiler may transform implementation shape when it can prove that required
++observable semantics are preserved.
++
++Examples include:
++
++```text
++constant expression
++    -> constant fold
++
++provably dead flow
++    -> remove it
++
++linear recursion
++    -> iterative candidate
++
++independent work
++    -> expose parallel topology
++
++equivalent algebraic form
++    -> choose according to policy and cost
++```
++
++A useful rule is:
++
++> Preserve observable meaning. Do not preserve accidental mechanics merely
++> because the programmer used them to express the intent.
++
++## Default compiler stages
++
++The intended default pipeline is:
++
++```text
++SOURCE / SEMANTIC DOMAIN
++────────────────────────────────────────────
++
++source
++  -> lexer / TokenTree
++  -> parser / AST builder
++  -> semantic AST
++  -> semantic validation
++  -> canonicalization
++  -> target-independent semantic simplification
++
++FLOW DOMAIN
++────────────────────────────────────────────
++
++canonical Graph IR
++  -> graph analysis
++  -> pruning
++  -> semantic/topology transformation
++  -> cost reasoning
++  -> policy-directed selection
++  -> optimized Graph IR
++
++TARGET BOUNDARY
++════════════════════════════════════════════
++
++optimized Graph IR
++  -> target lowering
++  -> target IR
++  -> target-specific optimization
++  -> emitter
++  -> artifact
++```
++
++The default implementation may initially collapse some adjacent stages into one
++executable path, but the boundaries are architectural contracts and must remain
++recoverable.
++
++## Domain responsibilities
++
++### TokenTree
++
++TokenTree records source structure and spelling.
++
++```text
++TokenTree remembers what the source looked like.
++```
++
++Later compiler stages may retain source provenance, but must not need to
++reinterpret raw source syntax to recover semantic meaning.
++
++### Semantic AST
++
++The AST states what the source means.
++
++It owns semantic structure, not preferred machine realization.
++
++Examples:
++
++```text
++multiply remains multiply
++call remains call
++flow remains flow
++condition remains condition
++type reference remains a semantic type reference
++```
++
++The AST must preserve enough information for later analysis and Graph IR
++construction without consulting the original source representation.
++
++The AST must not gradually become a storage location for target decisions such
++as instruction choice, register selection, CPU feature assumptions, or
++scheduler decisions.
++
++### Graph IR
++
++Graph IR owns abstract computational topology.
++
++It is where Flowcore can represent and reason about:
++
++```text
++nodes
++ports
++wires
++signals
++dependencies
++ordering
++fan-in
++fan-out
++joins
++cycles
++effects
++contracts
++resource relationships
++possible parallelism
++possible fusion or splitting
++placement opportunities
++```
++
++Graph IR is not merely a conventional low-level control-flow graph. It must
++retain the Flowcore concepts that make source-level architecture
++compiler-visible.
++
++### Target lowering
++
++Target knowledge belongs beyond an explicit target boundary.
++
++Above the boundary, reasoning may use target-independent facts such as:
++
++```text
++operation count
++dependency depth
++duplicate work
++known constants
++abstract storage requirements
++parallel potential
++effect constraints
++```
++
++Below the boundary, reasoning may use implementation facts such as:
++
++```text
++ISA
++registers
++SIMD width
++calling convention
++ABI
++instruction availability
++cache and memory characteristics
++accelerators
++target runtime requirements
++```
++
++A target-specific optimization must not silently become the definition of
++Flowcore semantics.
++
++## Transformation rules, policy, and providers
++
++These are separate concepts.
++
++### Transformation rule
++
++A transformation rule establishes that one form may legally become another
++under explicit conditions.
++
++Conceptually:
++
++```text
++A <=> B
++when conditions X hold
++```
++
++The transformation engine owns the question:
++
++```text
++What changes are semantically legal?
++```
++
++### Policy
++
++Policy chooses between legal alternatives.
++
++Examples:
++
++```text
++prefer throughput
++prefer low memory
++prefer exposed parallelism
++prefer source-shape preservation for diagnostics
++prefer conservative transformation
++```
++
++Policy owns the question:
++
++```text
++Which legal result do we prefer?
++```
++
++Policy must not redefine language semantics.
++
++### Provider / strategy
++
++A provider or strategy chooses machinery used to implement a stage.
++
++Examples may eventually include:
++
++```text
++mutable arena graph
++persistent graph
++equality-saturation optimizer
++conventional rewrite optimizer
++research graph builder
++debug-oriented builder
++```
++
++This owns the question:
++
++```text
++Which implementation performs the stage?
++```
++
++Policy and provider selection are orthogonal.
++
++## Versioned intermediate representations
++
++Flowcore intermediate representations should support versioned transformation
++history.
++
++The preferred human-facing identity form is:
++
++```text
++Node 42:r7
++```
++
++meaning:
++
++```text
++entity identity: Node 42
++revision:        7
++```
++
++The identity answers:
++
++```text
++What conceptual entity is this?
++```
++
++The revision answers:
++
++```text
++Which published state of that entity is this?
++```
++
++### Published revisions are stable
++
++Once a revision is published, it does not change.
++
++A later modification creates another revision:
++
++```text
++Node 42:r7
++    -> transformation
++Node 42:r8
++```
++
++Internal implementation may use mutation while constructing `r8`, but `r7`
++remains observable history.
++
++### Revision versus derivation
++
++A revision represents the same conceptual entity in a changed state:
++
++```text
++Node 42:r7
++    -> simplify
++Node 42:r8
++```
++
++A derivation creates new conceptual entities:
++
++```text
++Node 42:r7
++    -> split
++Node 81:r1
++Node 82:r1
++```
++
++with provenance such as:
++
++```text
++Node 81:r1 derived-from Node 42:r7
++Node 82:r1 derived-from Node 42:r7
++```
++
++Fusion likewise creates a new entity derived from multiple ancestors.
++
++The architecture should distinguish at least:
++
++```text
++revision-of
++derived-from
++replaces
++```
++
++More specific reasons such as split or fusion can be transformation metadata.
++
++## Layered deltas and structural sharing
++
++A new representation state does not require a full copy.
++
++Conceptually:
++
++```text
++Snapshot S1 = Root + Delta 1
++Snapshot S2 = S1   + Delta 2
++```
++
++Unchanged structure can be shared.
++
++A delta may contain changes such as:
++
++```text
++replace entity revision
++add entity
++tombstone entity
++change relationship
++attach derived analysis/provenance
++```
++
++Deletion in a newer snapshot need not destroy historical state. It may be
++represented as a tombstone or equivalent delta operation.
++
++Implementations may periodically materialize or compact deep delta chains
++without changing semantic identity.
++
++## Branching transformation lineage
++
++Transformation history is not required to be linear.
++
++A snapshot may have multiple legal descendants:
++
++```text
++                    S12
++                   /   \
++                  /     \
++        iteration       parallel
++            |              |
++           S13            S14
++```
++
++Policy or cost analysis may compare candidates and select one.
++
++Retention of unselected branches is itself a policy decision.
++
++This permits exploratory optimization without destructively erasing the common
++ancestor.
++
++## Snapshots
++
++A snapshot is a coherent observable view of IR entity revisions.
++
++It need not physically contain a complete copied graph.
++
++Conceptually:
++
++```text
++GraphSnapshot 27
++  root: GraphRoot 1
++  visible revisions:
++    Node 1:r4
++    Node 2:r9
++    Node 3:r2
++    Wire 7:r5
++```
++
++Another snapshot may share almost everything and differ only through a small
++delta.
++
++Snapshots give passes and analyses stable inputs while later transformations
++produce new descendants.
++
++## Pass protocol
++
++A transformation pass should conceptually follow:
++
++```text
++take published snapshot S
++
++derive candidate delta D
++
++construct candidate snapshot S'
++
++validate required invariants
++
++if valid:
++    publish S'
++else:
++    reject D
++    retain S
++```
++
++This provides natural rollback and isolates experimental or plugin passes from
++corrupting a valid published input.
++
++A pass contract should state:
++
++```text
++required input representation
++required invariants
++semantic changes it is allowed to make
++invariants it preserves
++invariants it establishes
++diagnostics/provenance it emits
++```
++
++It should not prescribe storage details such as vectors, maps, arenas, heaps,
++copy-on-write, or persistent maps unless a specific provider requires them.
++
++## Provenance and explainability
++
++Transformation history is first-class compiler data.
++
++The compiler should be able to retain a lineage such as:
++
++```text
++source location
++  -> AST entity/revision
++  -> Graph entity/revision
++  -> optimized Graph entity/revision
++  -> Target IR entity/revision
++  -> emitted artifact location
++```
++
++A transformation log can therefore explain:
++
++```text
++entity
++old revision
++new revision or derived entities
++pass
++reason
++policy
++relevant cost decision
++diagnostics
++```
++
++The long-term goal is abstraction without opacity.
++
++Optimization should be inspectable and forensically traceable rather than
++becoming an unexplained black box.
++
++## Replaceable stages
++
++The default path is only the implementation shipped by the project.
++
++It is not the definition of the architecture.
++
++Future selection may include forms such as:
++
++```text
++--use-policy <policy>
++--emit-for <target>
++```
++
++and may later expose alternative stage providers.
++
++The architectural law is:
++
++> The stage contract is stable enough that a different valid provider can
++> replace the default without redefining adjacent stages.
++
++## Sane default direction
++
++Until experiments prove otherwise, a reasonable default direction is:
++
++```text
++AST
++  explicit semantic structures
++  stable identity where transformation/provenance benefits from it
++  source provenance retained
++
++Graph IR
++  stable opaque entity IDs
++  revisioned published states
++  shared ancestry through layered deltas
++  controlled pass-local construction/mutation
++  invariant validation before publication
++
++Pipeline
++  externally transformational
++  internally free to use efficient mutation and structural sharing
++
++Policy
++  selects desirable legal transformations
++
++Provider
++  selects implementation machinery
++```
++
++This is a default engineering choice, not a permanent language law.
++
++## Meta-method
++
++The architecture itself was reached through iterative problem-solving:
++
++```text
++state current model
++  -> challenge assumptions
++  -> construct counterexample
++  -> revise model
++  -> compare alternatives
++  -> retain stronger model
++```
++
++This is a useful project method in its own right.
++
++Design discussions are not merely commentary around implementation. They are
++iterative reasoning tools used to expose assumptions before those assumptions
++become expensive code.
++
++## Governing laws
++
++1. Syntax provenance survives, but syntax does not govern later stages.
++2. Semantic AST expresses meaning, not preferred realization.
++3. Graph IR owns abstract computational topology.
++4. Transformations establish legal equivalence; policy chooses preferences.
++5. Target-specific facts enter only beyond an explicit target boundary.
++6. Stage contracts are stronger than stage implementations.
++7. Published IR revisions are stable.
++8. Transformations may branch from shared ancestry.
++9. Provenance and revision lineage are first-class compiler data.
++10. The default implementation is a provider, not the architecture itself.
+--- /dev/null
++++ b/Flowmini/flowmini_v24_explicit_ast/docs/v0.24-future-transformation-boundary.md
+@@ -0,0 +1,182 @@
++# Flowmini v0.24 — Future Transformation Boundary
++
++## Purpose
++
++Flowmini v0.24 is not implementing the future optimizer or Graph IR machinery.
++
++Its job is to make the AST explicit and semantically reliable enough that those
++later stages can be added without reinterpreting source syntax or rewriting the
++AST around one backend.
++
++This note records the constraints that the broader Flowcore transformation
++architecture places on current v0.24 work.
++
++The project-wide design is documented in:
++
++```text
++docs/architecture/compiler-transformation-revision-model.md
++```
++
++## Current law
++
++```text
++TokenTree remembers what the source looked like.
++AST states what the source means.
++```
++
++v0.24 should continue deepening that boundary.
++
++## What the v0.24 AST must preserve
++
++The AST should make semantic roles explicit enough that later stages can reason
++without consulting raw token spelling.
++
++Current examples already moving in this direction include:
++
++```text
++explicit expression payloads
++explicit type-reference payloads
++return value ownership
++typed-binding initializer ownership
++assignment value ownership
++if/while condition ownership
++if-owned optional else branch
++```
++
++Future AST deepening should follow the same rule.
++
++## What must not leak into the AST
++
++The semantic AST should not become storage for decisions that belong to later
++stages.
++
++Do not encode target or optimizer preferences such as:
++
++```text
++x86_64 instruction selection
++register choice
++SIMD width
++backend ABI details
++scheduler decisions
++prefer recursion/iteration/parallel execution
++optimizer cost scores
++target-specific lowering shortcuts
++```
++
++unless some future language semantic explicitly requires such a fact.
++
++The AST should say what an operation is, not how a particular target should
++execute it.
++
++## Preparing for Graph IR
++
++Before Graph IR lowering begins, the semantic AST should be sufficiently
++canonical that one semantic fact does not have several competing authoritative
++locations.
++
++Temporary compatibility projections are acceptable during migration, but the
++future Graph IR builder should consume canonical semantic ownership rather than
++guess between legacy and new representations.
++
++The gate into Graph IR should eventually include facts such as:
++
++```text
++names resolved
++type references semantically validated
++calls/identities resolved
++flow relationships semantically valid
++effects represented sufficiently for ordering decisions
++source provenance retained
++invalid programs rejected with structured diagnostics
++```
++
++The exact completion list remains future design work.
++
++## Identity and revision readiness
++
++Future Flowcore IRs are intended to support stable entity identity and published
++revisions such as:
++
++```text
++Node 42:r7
++```
++
++v0.24 does not need to retrofit revision machinery into every AST object now.
++
++However, current decisions should avoid making stable identity impossible.
++
++Where cross-reference, provenance, or later transformation history benefits
++from stable identity, prefer opaque/stable IDs over raw memory identity.
++
++The existing expression-pool index model is therefore architecturally useful:
++semantic structures can refer to expressions without depending on object
++addresses.
++
++Whether those IDs later become revision-aware is a separate implementation
++decision.
++
++## Source provenance
++
++Source location must continue to survive semantic deepening.
++
++The long-term provenance chain should be able to relate:
++
++```text
++source
++  -> AST
++  -> Graph IR
++  -> optimized Graph IR
++  -> target IR
++  -> artifact
++```
++
++v0.24 owns the first durable link in that chain.
++
++## Default implementation versus future alternatives
++
++Flowmini should implement one sane default path.
++
++It does not need dynamic plugin loading, multiple AST engines, multiple graph
++stores, or multiple optimization policies now.
++
++What it must do is preserve boundaries so future providers can be substituted
++without redefining semantics.
++
++Therefore:
++
++```text
++default != definition
++```
++
++The current implementation is a prototype provider for the architecture, not
++the permanent representation law.
++
++## Immediate review rule for v0.24 changes
++
++For every AST change ask:
++
++```text
++1. Does this make source meaning more explicit?
++
++2. Can a future semantic/Graph IR stage consume this without reparsing source?
++
++3. Does it preserve provenance needed for diagnostics?
++
++4. Is this semantic fact represented canonically?
++
++5. Are we accidentally encoding an optimizer, scheduler, runtime, or target
++   preference into the AST?
++```
++
++If questions 1-4 are satisfied and question 5 is no, the change is aligned with
++the future architecture.
++
++## Current development consequence
++
++Continue C5 AST stabilization.
++
++Do not interrupt v0.24 to implement the future optimizer.
++
++The value of this architecture checkpoint is that C5 and later semantic work can
++now be judged against known downstream requirements before those requirements
++become expensive implementation constraints.
