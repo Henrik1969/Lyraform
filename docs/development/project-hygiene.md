@@ -12,6 +12,22 @@ Build and test artifacts are generated output.
 Old experiments are archaeology, not garbage.
 ```
 
+## Convergence comes first
+
+Workspace hygiene serves the standing
+[Mission Convergence Rule](mission-convergence-rule.md). Every maturation
+mission prioritizes:
+
+1. a bounded vertical slice;
+2. checks against accepted canonical law;
+3. explicit identification of meaning still requiring canonization;
+4. deliberate simplification and reuse; and
+5. consolidation before adjacent expansion.
+
+File placement, runner state, and generated-output conventions make those
+priorities inspectable and reproducible. They do not replace semantic evidence
+or grant task, Git, policy, syntax, or architecture authority.
+
 ## Tracked project material
 
 The following belongs in Git:

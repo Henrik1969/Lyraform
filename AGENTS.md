@@ -7,6 +7,11 @@ future task.
 
 Compiler and architecture maturation stages follow the standing
 [`Stage Execution Protocol`](docs/development/stage-execution-protocol.md).
+Every explicitly selected maturation mission follows the [Mission
+Convergence Rule](docs/development/mission-convergence-rule.md): prioritize
+vertical slices, check accepted law, identify missing canon, simplify and
+reuse, and consolidate at each gate. A prerequisite stage must name its
+executable dependency and state its narrower maturity claim.
 An explicitly invoked stage mission supplies its bounded objective and may
 override the protocol only where it says so directly.
 After a gate, use

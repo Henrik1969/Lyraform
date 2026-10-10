@@ -43,6 +43,7 @@ This is the soul of Lyraform.
 ## Development policy
 
 - [Verification gates and Firetest policy](development/verification-gates.md)
+- [Mission convergence rule](development/mission-convergence-rule.md)
 - [Project hygiene](development/project-hygiene.md)
 - [Documentation style](development/documentation-style.md)
 
