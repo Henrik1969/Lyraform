@@ -18,10 +18,11 @@ tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 
 # The ABI example intentionally uses its declared relative provider path. Keep
-# the generated test dependency at that declared location while the pipeline
-# is run from the compiler project directory.
-mkdir -p "$root/Lyraform/compiler/build"
-cp "$provider_library" "$root/Lyraform/compiler/build/libflowmini_testabi.so"
+# the generated test dependency in the disposable test workspace so tests do
+# not write generated output into the source tree.
+provider_dir="$tmpdir/build"
+mkdir -p "$provider_dir"
+cp "$provider_library" "$provider_dir/libflowmini_testabi.so"
 
 printf '%s\n' \
     'allow ./build/libflowmini_testabi.so point_input c pure - Point' \
@@ -30,8 +31,8 @@ printf '%s\n' \
 printf '%s\n' '{"format":"flowcore.graph_provider_map","version":1,"providers":[{"implementation":"testabi.aggregate","source_callable":"testabi.point_input","activation":"startup_once","output_port":"out"}]}' > "$tmpdir/providers.json"
 "$layout" > "$tmpdir/layout.json"
 
-cd "$root/Lyraform/compiler"
-"$flowmini" --dump-frontend-bundle examples/graph/abi_aggregate_graph.flow > "$tmpdir/frontend.json"
+cd "$tmpdir"
+"$flowmini" --dump-frontend-bundle "$root/Lyraform/compiler/examples/graph/abi_aggregate_graph.flow" > "$tmpdir/frontend.json"
 "$analyst" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
 "$bind" --policy "$tmpdir/policy" --abi-manifest "$tmpdir/layout.json" < "$tmpdir/semantic.json" > "$tmpdir/binding.json"
 "$parallel" < "$tmpdir/semantic.json" > "$tmpdir/execution.json"

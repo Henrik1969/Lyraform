@@ -7,8 +7,11 @@ not grant task authority.
 
 ## Current mission
 
-None. Selecting a mission requires an explicit current request or an authorized
-continuation with a fresh mission identity and convergence contract.
+[Gate 2 and hygiene convergence integration](gate2-hygiene-convergence-integration.md)
+is in final fresh-clone verification on `codex/gate2-hygiene-convergence`.
+Its [dated checkpoint](../checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md)
+records the combined local evidence. This is a review-branch candidate, not
+integrated `main` truth, and it does not authorize Gate 3.
 
 ## Completed missions with explicit task-local result
 
@@ -16,6 +19,9 @@ continuation with a fresh mission identity and convergence contract.
   — task records PASS on 2026-09-26 and links its checkpoint.
 - [Agent authority and workspace hygiene](agent-authority-and-workspace-hygiene.md)
   — PASS on 2026-10-10; operational tooling only, with no language change.
+- [Disposition foundation and source authority through Gate 2](disposition-foundation-and-source-authority-gate2.md)
+  — PASS on 2026-10-10; source-derived topology remains declarative and
+  execution-unsupported.
 
 ## Superseded missions
 

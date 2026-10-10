@@ -24,6 +24,7 @@ cp "$root/tools/run-autonomous-codex" "$repo/runner"
 chmod +x "$repo/runner"
 git -C "$repo" add .
 git -C "$repo" commit -qm baseline
+starting_branch=$(git -C "$repo" branch --show-current)
 
 # This stub is the only codex command visible to the runner tests.
 cat >"$fakebin/codex" <<'EOF'
@@ -71,7 +72,7 @@ manifest=$(dirname "$state")/manifest
 test -f "$manifest"
 test "$(tr -d '[:space:]' <"$state")" = CONTINUE
 grep -Fq 'task_path=docs/tasks/task.md' "$manifest"
-grep -Fq 'starting_branch=master' "$manifest"
+grep -Fq "starting_branch=$starting_branch" "$manifest"
 test -z "$(git -C "$repo" status --porcelain)"
 test "$(find "$tmpdir/logs" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1
 

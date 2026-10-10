@@ -282,6 +282,21 @@ WAITING FOR HUMAN REVIEW AND MERGE
 Do not start the next mission until this branch is merged into synchronized
 `main`.
 
+## Task-local result
+
+**LOCAL GATES PASS — FRESH-CLONE PUBLICATION GATE PENDING.**
+
+Both source tips are present through ordinary merge ancestry. The combined
+tree preserves the Gate 2 declarative boundary and the mission/workspace
+hygiene authority, retires the tracked root run-state file, and passes its
+clean local verification. No Gate 3 work was started. The task becomes PASS
+only after the pushed branch passes its required fresh-clone proof.
+
+See the
+[dated integration checkpoint](../checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md)
+for exact evidence and the two bounded test-hygiene repairs made during
+integration.
+
 ## Final report
 
 Return:

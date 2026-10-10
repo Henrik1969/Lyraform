@@ -16,16 +16,17 @@ cxx=${FLOWGRAPH_CXX:?FLOWGRAPH_CXX is required}
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
-mkdir -p "$root/Lyraform/compiler/build"
-cp "$provider_library" "$root/Lyraform/compiler/build/libflowmini_testabi.so"
+provider_dir="$tmpdir/build"
+mkdir -p "$provider_dir"
+cp "$provider_library" "$provider_dir/libflowmini_testabi.so"
 printf '%s\n' \
     'allow ./build/libflowmini_testabi.so point_input c pure - Point' \
     'allow ./build/libflowmini_testabi.so point_sum c pure Point c_int' > "$tmpdir/policy"
 printf '%s\n' '{"format":"flowcore.graph_provider_map","version":3,"providers":[{"implementation":"testabi.aggregate","source_callable":"testabi.point_input","activation":"startup_once","output_port":"out","schedule_policy":"parallel_independent_v1"}]}' > "$tmpdir/providers.json"
 "$layout" > "$tmpdir/layout.json"
 
-cd "$root/Lyraform/compiler"
-"$flowmini" --dump-frontend-bundle examples/graph/abi_aggregate_parallel_graph.flow > "$tmpdir/frontend.json"
+cd "$tmpdir"
+"$flowmini" --dump-frontend-bundle "$root/Lyraform/compiler/examples/graph/abi_aggregate_parallel_graph.flow" > "$tmpdir/frontend.json"
 "$analyst" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
 "$bind" --policy "$tmpdir/policy" --abi-manifest "$tmpdir/layout.json" < "$tmpdir/semantic.json" > "$tmpdir/binding.json"
 "$parallel" < "$tmpdir/semantic.json" > "$tmpdir/execution.json"
