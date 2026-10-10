@@ -8,10 +8,10 @@ not grant task authority.
 ## Current mission
 
 [Gate 2 and hygiene convergence integration](gate2-hygiene-convergence-integration.md)
-is in final fresh-clone verification on `codex/gate2-hygiene-convergence`.
-Its [dated checkpoint](../checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md)
-records the combined local evidence. This is a review-branch candidate, not
-integrated `main` truth, and it does not authorize Gate 3.
+is **PASS on `codex/gate2-hygiene-convergence` and waiting for human review and
+merge**. Its [dated checkpoint](../checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md)
+records the combined evidence. This is a review-branch result, not integrated
+`main` truth, and it does not authorize Gate 3.
 
 ## Completed missions with explicit task-local result
 

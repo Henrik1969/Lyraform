@@ -8,7 +8,7 @@ Branch: `codex/gate2-hygiene-convergence`
 
 ## Result
 
-**LOCAL GATES PASS — FRESH-CLONE PUBLICATION GATE PENDING.**
+**PASS — WAITING FOR HUMAN REVIEW AND MERGE.**
 
 The review branch contains the complete ordinary merge ancestry of the
 mission/workspace hygiene branch and the source-disposition Gate 2 branch.
@@ -114,8 +114,26 @@ Normal external build tree:
 The normal build retains two pre-existing `-Wunused-function` warnings in
 `Flowparallel/src/graph_cuda.cpp`. They are unrelated to this integration.
 
-Fresh-clone verification remains mandatory before publication is declared
-complete.
+## Fresh-clone verification
+
+Pushed candidate:
+`388bf9567c650b245233f292843458eee02036a0`.
+
+The candidate was cloned from
+`git@github.com:Henrik1969/Lyraform.git`, selecting only
+`codex/gate2-hygiene-convergence`, into a brand-new temporary directory.
+
+- clean clone and exact remote branch tip: PASS;
+- `./igor ... doctor`: PASS;
+- clean configure and 324-step build: PASS;
+- canonical suite: **187/187 PASS** in 59.38 seconds;
+- source checkout remained clean after the suite.
+
+The first build attempt stopped when the host `/tmp` filesystem reached zero
+free space. Only four disposable directories created by this mission were
+removed; no repository or user data was touched. The same untouched fresh
+clone then configured and built successfully, so this was an environmental
+capacity failure rather than source or semantic evidence.
 
 ## Final safety accounting
 

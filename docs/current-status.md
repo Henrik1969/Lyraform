@@ -25,7 +25,7 @@ remains the detailed authority for the original documentation landing page.
 
 ## Pending review branch
 
-The short-lived branch `codex/gate2-hygiene-convergence` has a locally passing
+The short-lived branch `codex/gate2-hygiene-convergence` has a passing
 [Gate 2 and hygiene convergence checkpoint](checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md).
 It combines the complete mission/workspace hygiene ancestry with the complete
 source-disposition Gate 2 ancestry. The Gate 2 topology is source-derived,
@@ -34,8 +34,8 @@ executable Graph IR, backend routing, and runtime containment are not admitted.
 
 This paragraph reports review evidence only. `main` remains the current project
 authority until that branch is reviewed and merged, and no Gate 3 work is
-authorized from the unmerged branch. Final fresh-clone verification remains
-the branch's publication gate.
+authorized from the unmerged branch. Its pushed candidate was rebuilt and
+tested from a clean GitHub clone before the review result was recorded.
 
 ## Latest semantic checkpoint
 
