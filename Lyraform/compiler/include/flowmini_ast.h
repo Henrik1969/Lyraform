@@ -29,6 +29,7 @@ enum class SourceUnitKind {
 enum class TopLevelKind {
     Import,
     Function,
+    Consumer,
     Record,
     RefinedType,
     Abi,
@@ -115,9 +116,16 @@ struct TypeRef {
 };
 
 struct Parameter {
+    enum class TypeForm {
+        Ordinary,
+        FailureEnvelope
+    };
+
     std::string name;
     TypeRef type;
     SourceLocation location;
+    TypeForm type_form = TypeForm::Ordinary;
+    SourceLocation type_form_location;
 };
 
 struct Expression;
@@ -322,9 +330,21 @@ struct Block {
 };
 
 struct FunctionDecl {
+    enum class ResultForm {
+        Ordinary,
+        Recover,
+        Transform
+    };
+
     std::string name;
     std::vector<Parameter> parameters;
     TypeRef return_type;
+    ResultForm result_form = ResultForm::Ordinary;
+    SourceLocation result_form_location;
+    std::vector<TypeRef> failure_types;
+    std::vector<TypeRef> fault_types;
+    std::optional<SourceLocation> failures_location;
+    std::optional<SourceLocation> faults_location;
     std::optional<BlockId> body;
     SourceLocation location;
 
@@ -341,6 +361,18 @@ struct ImportDecl {
     // Source-level namespace alias. Empty means legacy unaliased import.
     std::string alias;
     SourceLocation location;
+};
+
+struct ConsumerMember {
+    std::string function_name;
+    SourceLocation location;
+};
+
+struct ConsumerDecl {
+    std::string name;
+    std::vector<ConsumerMember> members;
+    SourceLocation location;
+    SourceLocation body_location;
 };
 
 struct RecordField {
@@ -498,6 +530,7 @@ struct TargetDecl {
 using TopLevelDecl = std::variant<
     ImportDecl,
     FunctionDecl,
+    ConsumerDecl,
     RecordDecl,
     RefinedTypeDecl,
     AbiDecl,
@@ -548,6 +581,13 @@ struct GraphStateSyntax {
     SourceLocation location;
 };
 
+struct DispositionGraphNodeSyntax {
+    std::string name;
+    std::string implementation_kind;
+    std::string implementation_name;
+    SourceLocation location;
+};
+
 struct ParseValidity {
     std::string state = "outside_scope";
     std::string scope = "compatibility";
@@ -570,6 +610,10 @@ struct AstModule {
     std::vector<GraphWireSyntax> graph_wires;
     std::vector<GraphPolicySyntax> graph_policies;
     std::vector<GraphStateSyntax> graph_states;
+    // ADR 0066/0067 source topology is deliberately separate from executable
+    // flowmini.graph_syntax/v1 until policy, Graph IR and backends exist.
+    std::vector<DispositionGraphNodeSyntax> disposition_graph_nodes;
+    std::vector<GraphWireSyntax> disposition_graph_wires;
 };
 
 const char* to_string(SourceUnitKind kind);
@@ -578,6 +622,8 @@ const char* to_string(StatementKind kind);
 const char* to_string(StatementSourceForm form);
 const char* to_string(ExpressionKind kind);
 const char* to_string(TypeRefKind kind);
+const char* to_string(Parameter::TypeForm form);
+const char* to_string(FunctionDecl::ResultForm form);
 
 TypeRefKind type_ref_kind(const TypeRef& type);
 std::string type_ref_text(const TypeRef& type);

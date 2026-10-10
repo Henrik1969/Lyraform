@@ -31,6 +31,14 @@ At the end of every completed stage:
 
 3. Frame that stage using the standing Stage Execution Protocol.
 
+4. Give the continuation a fresh mission identity, convergence contract, and
+   isolated Git-local run state. It must not inherit an earlier mission's
+   `DONE`, `BLOCKED`, manifest, or transcript directory.
+
+5. Check the five Mission Convergence Rule priorities before expanding:
+   vertical slice, canonical law, missing canon, simplification/reuse, and
+   consolidation.
+
 Do not create broad roadmap missions when one bounded stage is sufficient.
 
 ---
@@ -63,6 +71,10 @@ identify next stage
 ```
 
 No human confirmation is required merely because a new stage has begun.
+
+Autonomous continuation does not make an old task ambient authority. Record a
+new bounded mission or convergence addendum directly under `docs/tasks/`, then
+launch that exact tracked file.
 
 ---
 

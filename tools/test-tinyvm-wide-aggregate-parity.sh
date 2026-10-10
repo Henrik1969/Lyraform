@@ -19,8 +19,9 @@ graph_cxx=${FLOWGRAPH_CXX:?FLOWGRAPH_CXX is required}
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
-mkdir -p "$root/Lyraform/compiler/build"
-cp "$provider_library" "$root/Lyraform/compiler/build/libflowmini_testabi.so"
+provider_dir="$tmpdir/build"
+mkdir -p "$provider_dir"
+cp "$provider_library" "$provider_dir/libflowmini_testabi.so"
 cat > "$tmpdir/policy" <<'POLICY'
 allow ./build/libflowmini_testabi.so long_input c pure
 allow ./build/libflowmini_testabi.so long_sum c pure LongValue c_int
@@ -47,7 +48,7 @@ fn consume_long(value : LongValue): c_int {
 main { return 0 }
 FLOW
 
-cd "$root/Lyraform/compiler"
+cd "$tmpdir"
 "$flowmini" --dump-frontend-bundle "$tmpdir/program.flow" > "$tmpdir/frontend.json"
 "$analyst" --lowering-plan-version 2 --graph-plan-version 2 --graph-providers "$tmpdir/providers.json" < "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
 "$layout" > "$tmpdir/layout.json"
@@ -57,7 +58,7 @@ cd "$root/Lyraform/compiler"
 "$prepare" --binding-report "$tmpdir/binding.json" --target-policy "$root/Flowlower/target-policies/llvm-host.json" "$tmpdir/optimization.json" > "$tmpdir/llvm.backend.json"
 "$llvm_lower" --emit-llvm "$tmpdir/program.ll" "$tmpdir/llvm.backend.json" >/dev/null
 clang -c "$tmpdir/program.ll" -o "$tmpdir/program.o"
-"$graph_cxx" ${FLOWGRAPH_LINK_FLAGS:-} "$tmpdir/program.o" "-Wl,-rpath,$(dirname "$graph_runtime")" "-Wl,-rpath,$root/Lyraform/compiler/build" "$graph_runtime" "$root/Lyraform/compiler/build/libflowmini_testabi.so" -o "$tmpdir/program.llvm"
+"$graph_cxx" ${FLOWGRAPH_LINK_FLAGS:-} "$tmpdir/program.o" "-Wl,-rpath,$(dirname "$graph_runtime")" "-Wl,-rpath,$provider_dir" "$graph_runtime" "$provider_dir/libflowmini_testabi.so" -o "$tmpdir/program.llvm"
 "$prepare" --binding-report "$tmpdir/binding.json" --target-policy "$root/Flowlower/target-policies/tinyvm-portable.json" "$tmpdir/optimization.json" > "$tmpdir/tiny.backend.json"
 "$tiny_lower" "$tmpdir/tiny.backend.json" "$tmpdir/program.tvm" > "$tmpdir/tiny.report.json"
 "$tiny_validate" "$tmpdir/program.tvm" | grep -q '"status":"valid"'

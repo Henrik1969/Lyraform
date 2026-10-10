@@ -1,0 +1,17 @@
+import "imported_response.flow"
+
+program imported_disposition
+
+fn produce(): Text fails { TextFailure } {
+    value : TextOutcome(make_outcome())
+    value -> return
+}
+
+node producer_node : fn produce
+node handled : consumer imported_failures
+wire producer_node.out => handled.success
+wire producer_node.failure => handled.failure
+
+main {
+    return 0
+}

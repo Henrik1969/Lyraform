@@ -1,0 +1,176 @@
+{
+  "format": "lyraform.disposition_seam_inventory",
+  "version": 1,
+  "date": "2026-10-09",
+  "base_sha": "86a5c69d58bacb09f393cef2a3d4e798ac9fe3ad",
+  "authority": "ADRs 0054-0065 and selected canonical-disposition-lanes-and-wire-closure mission",
+  "maturity": {
+    "source_tagged_outcome": "backend_executable",
+    "source_typed_response_lane": "blocked_missing_association_and_envelope_input_contract",
+    "route_bridge": "declarative_consistency_only",
+    "fault_containment": "reference_execution_only",
+    "evidence_epoch": "reference_contract_only"
+  },
+  "identities": [
+    {
+      "identity": "source location / statement / expression / scope / function",
+      "first_producer": "canonical structural AST and symbol table",
+      "path": "Lyraform/compiler/src/flowmini_ast_builder.cpp"
+    },
+    {
+      "identity": "graph node and string wire",
+      "first_producer": "canonical graph syntax capture and frontend serializer",
+      "path": "Lyraform/compiler/src/flowmini_frontend_bundle.cpp",
+      "note": "wire:<ordinal>; not a numeric failure-plan wire"
+    },
+    {
+      "identity": "operation",
+      "first_producer": "Flowanalyst lowering_operations",
+      "path": "Flowanalyst/src/main.cpp"
+    },
+    {
+      "identity": "source disposition fact and tagged obligation",
+      "first_producer": "Flowanalyst OutcomeAccounting and disposition_facts",
+      "path": "Flowanalyst/src/main.cpp",
+      "note": "fact_id ordinal and operation:<id>:outcome remain distinct"
+    },
+    {
+      "identity": "graph activation / signal / delivery",
+      "first_producer": "shared graph execution planning; finite stream runtime instantiation",
+      "path": "Flowcontracts/include/flowcontracts/graph_execution.hpp",
+      "note": "separate fields even where bounded counters coincide; fan-out has separate deliveries"
+    },
+    {
+      "identity": "failure/fault plan disposition / route / numeric wire / attempt / obligation / policy",
+      "first_producer": "caller-supplied reference plan/envelope/selection",
+      "path": "Flowcontracts/include/flowcontracts/failure_flow_execution.hpp",
+      "note": "no canonical source producer for this family"
+    },
+    {
+      "identity": "bridge graph identity and semantic node binding",
+      "first_producer": "explicit declarative graph-side input",
+      "path": "Flowcontracts/include/flowcontracts/disposition_route_projection.hpp",
+      "note": "no source emission; consistency is not authenticity or source admission"
+    },
+    {
+      "identity": "stable bridge route",
+      "first_producer": "shared deterministic plan projection",
+      "path": "Flowcontracts/include/flowcontracts/disposition_route_projection.hpp",
+      "note": "failure:plan:<plan>:route:<route> or fault:plan:<plan>:wire:<wire>; explicit string/numeric wire mapping"
+    },
+    {
+      "identity": "epoch and runtime correlation",
+      "first_producer": "reference caller, independently validated against envelope",
+      "path": "Flowcontracts/include/flowcontracts/disposition_evidence_epoch.hpp",
+      "note": "no native or TinyVM epoch integration"
+    }
+  ],
+  "paths": [
+    {
+      "stage": "producer",
+      "path": "Flowanalyst/src/main.cpp",
+      "fact": "text_outcome derives Success<Text> and Failure<TextFailure>, atomic_tagged_result, tagged_owner, must_account"
+    },
+    {
+      "stage": "route",
+      "path": "Flowcontracts/include/flowcontracts/disposition_facts.hpp",
+      "fact": "validates complementary local branches and bounded unique return transfer; no envelope response association"
+    },
+    {
+      "stage": "selection",
+      "path": "Flowcontracts/include/flowcontracts/failure_consumer.hpp",
+      "fact": "declarative closed consumer and policy, supplied separately from source"
+    },
+    {
+      "stage": "graph",
+      "path": "Flowcontracts/include/flowcontracts/source_graph.hpp",
+      "fact": "native value graph only accepts resolved in/out endpoints; declarative v1 can preserve unresolved endpoint syntax"
+    },
+    {
+      "stage": "artifact",
+      "path": "Flowcontracts/include/flowcontracts/disposition_route_projection.hpp",
+      "fact": "new standalone declarative bundle cross-validates graph, plan and bridge; ready is refused"
+    },
+    {
+      "stage": "backend",
+      "paths": [
+        "Flowlower/src",
+        "subprojects/TinyVM"
+      ],
+      "fact": "existing TextOutcome parity; no ordinary response call lowering from failure_flow_plan"
+    },
+    {
+      "stage": "runtime",
+      "path": "Flowlower/src/graph_runtime.cpp",
+      "fact": "flow_graph_fail emits diagnostic then exit(70); not activation quarantine"
+    },
+    {
+      "stage": "reference_runtime",
+      "paths": [
+        "Flowcontracts/include/flowcontracts/failure_flow_execution.hpp",
+        "Flowcontracts/include/flowcontracts/fault_containment.hpp"
+      ],
+      "fact": "caller-provided exact C++ callback identity and receipts, not compiled ordinary source function"
+    }
+  ],
+  "error_classes": [
+    {
+      "condition": "invalid syntax, type, unresolved binding or missing outcome accounting",
+      "class": "refusal",
+      "attempt_created": false
+    },
+    {
+      "condition": "unknown runtime guard preservation",
+      "class": "refusal",
+      "attempt_created": false
+    },
+    {
+      "condition": "admitted TextOutcome invalid_input/exhausted/provider_unavailable",
+      "class": "expected_failure",
+      "route": "tagged owner and complementary branches"
+    },
+    {
+      "condition": "reference Failure<E>",
+      "class": "expected_failure",
+      "route": "explicit plan/consumer/function/transition; no source claim"
+    },
+    {
+      "condition": "reference Fault<F>",
+      "class": "integrity_fault",
+      "route": "activation halt_and_quarantine"
+    },
+    {
+      "condition": "native flow_graph_fail/source_failure",
+      "class": "terminal_legacy_behavior",
+      "note": "current implementation, not canonical disposition-lane authority"
+    },
+    {
+      "condition": "source response-envelope association, native fault containment state, executable epoch policy",
+      "class": "undefined",
+      "note": "requires reviewed boundary contract; no implicit fallback"
+    }
+  ],
+  "candidate": {
+    "source": "Lyraform/compiler/examples/text/text_outcome.flow",
+    "line": 7,
+    "column": 5,
+    "operation_id": 0,
+    "disposition_fact_id": 0,
+    "owner_symbol_id": 38,
+    "obligation": "operation:0:outcome",
+    "failure_type": "TextFailure",
+    "commit": "atomic_tagged_result",
+    "missing": [
+      "typed read-only failure-envelope parameter projection for an ordinary source function",
+      "producer-to-consumer association",
+      "declared recover transition attached to source function",
+      "compatible atomic-tagged-result to no-normal-publication proof",
+      "selected policy and typed graph endpoint mapping"
+    ]
+  },
+  "gate0": "PASS",
+  "gate2": "BLOCKED",
+  "gate3": "BLOCKED",
+  "gate4": "BLOCKED",
+  "gate5": "REFERENCE_ONLY"
+}

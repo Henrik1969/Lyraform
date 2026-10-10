@@ -318,3 +318,8 @@ add_test(NAME flowmini_publication_fault
         FLOWMINI_PUBLICATION_FAULT_BIN=$<TARGET_FILE:flowmini_publication_fault>
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/run-flowmini-publication-fault.sh)
+add_test(NAME lyraform_disposition_syntax
+        COMMAND ${CMAKE_COMMAND} -E env
+        FLOWMINI_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
+        FLOWMINI_BIN=$<TARGET_FILE:flowmini>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/run-flowmini-disposition-syntax-tests.sh)

@@ -45,6 +45,17 @@ int main(int argc, char** argv) {
         throw std::bad_alloc();
 #endif
         const auto value = flowcontracts::json::parse(read(path));
+        const auto& root = flowcontracts::json::object(value, "$");
+        const auto* format = flowcontracts::json::optional(root, "format");
+        if (format && flowcontracts::json::string(*format, "$.format") == "lyraform.disposition_route_bundle") {
+            try { flowcontracts::validate_disposition_route_bundle(value); }
+            catch (const flowcontracts::json::Error& error) {
+                const auto diagnostic = flowcontracts::disposition_bundle_refusal(value, error);
+                std::cout << (human ? flowcontracts::render_disposition_diagnostic(diagnostic)
+                                   : flowcontracts::json::serialize(diagnostic)) << '\n';
+                return 1;
+            }
+        }
         const auto result = flowcontracts::validate(value);
         if (canonical && result.classification == flowcontracts::ValidationClass::valid) std::cout << flowcontracts::json::serialize(value) << '\n';
         else if (human) std::cout << flowcontracts::name(result.classification) << ": " << result.format << " v" << result.version << " " << result.path << ": " << result.reason << (result.source.empty() ? "" : " [source: " + result.source + "]") << '\n';

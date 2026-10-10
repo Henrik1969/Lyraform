@@ -7,12 +7,36 @@ future task.
 
 Compiler and architecture maturation stages follow the standing
 [`Stage Execution Protocol`](docs/development/stage-execution-protocol.md).
+Every explicitly selected maturation mission follows the [Mission
+Convergence Rule](docs/development/mission-convergence-rule.md): prioritize
+vertical slices, check accepted law, identify missing canon, simplify and
+reuse, and consolidate at each gate. A prerequisite stage must name its
+executable dependency and state its narrower maturity claim.
 An explicitly invoked stage mission supplies its bounded objective and may
 override the protocol only where it says so directly.
 After a gate, use
 [`Autonomous Next-Stage Selection`](docs/development/autonomous-next-stage-selection.md)
 to continue obvious engineering work or stop with a decision brief when the
 next step would establish language, architecture, or policy meaning.
+
+## Authority and placement
+
+Use this direction chain, in order:
+
+1. the applicable `AGENTS.md` files;
+2. the standing development rules linked above;
+3. one explicitly selected tracked mission directly under `docs/tasks/`;
+4. only the ADRs, protocols, and evidence named by that mission;
+5. Git-local run state and a new dated checkpoint as administrative state and
+   result evidence, never as semantic authority.
+
+Chat history, historical tasks and checkpoints, `.agents/`, `.codex/`, local
+`output/`, and stale runner-state files do not select or authorize work.
+Mission run state belongs under `.git/codex/runs/<mission-id>/`; ephemeral
+transcripts belong under `/tmp/lyraform-codex-$UID/<mission-id>/`; persistent
+local scratch may use ignored `.local/codex/<mission-id>/`. Curated artifacts
+must be promoted deliberately to the tracked directory that owns their
+meaning and provenance.
 
 ## Working safely
 
