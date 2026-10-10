@@ -59,6 +59,40 @@ cache files
 accidental nested directories
 ```
 
+## Agent and mission placement
+
+```text
+AGENTS.md
+    durable repository law
+
+docs/tasks/
+    selectable missions plus lifecycle index
+
+docs/architecture/decisions/
+    accepted semantic and architectural meaning
+
+docs/checkpoints/
+    dated result evidence; never ambient task authority
+
+.git/codex/runs/<mission-id>/
+    local launch manifest and state; never tracked
+
+/tmp/lyraform-codex-$UID/<mission-id>/
+    ephemeral transcripts and working artifacts
+
+.local/codex/<mission-id>/
+    optional ignored persistent scratch
+
+output/
+    ignored local delivery/export area
+```
+
+One tracked mission directly under `docs/tasks/` owns scope, permissions, and
+definition of done. A mission-specific run directory prevents stale or
+cross-mission state from changing what an agent believes it may do. Curated
+output is moved to the tracked directory that owns its meaning only through an
+explicit mission with recorded provenance.
+
 The repository may track selected IDE files when they intentionally describe
 the development cockpit. For Lyraform, CLion exposes maintained CMake targets
 such as `flowmini`, `flowmini_suite`, `flowmini_ast_golden_tests`,

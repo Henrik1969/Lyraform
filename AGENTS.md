@@ -19,6 +19,25 @@ After a gate, use
 to continue obvious engineering work or stop with a decision brief when the
 next step would establish language, architecture, or policy meaning.
 
+## Authority and placement
+
+Use this direction chain, in order:
+
+1. the applicable `AGENTS.md` files;
+2. the standing development rules linked above;
+3. one explicitly selected tracked mission directly under `docs/tasks/`;
+4. only the ADRs, protocols, and evidence named by that mission;
+5. Git-local run state and a new dated checkpoint as administrative state and
+   result evidence, never as semantic authority.
+
+Chat history, historical tasks and checkpoints, `.agents/`, `.codex/`, local
+`output/`, and stale runner-state files do not select or authorize work.
+Mission run state belongs under `.git/codex/runs/<mission-id>/`; ephemeral
+transcripts belong under `/tmp/lyraform-codex-$UID/<mission-id>/`; persistent
+local scratch may use ignored `.local/codex/<mission-id>/`. Curated artifacts
+must be promoted deliberately to the tracked directory that owns their
+meaning and provenance.
+
 ## Working safely
 
 - Inspect the branch, worktree, relevant history, and build graph before

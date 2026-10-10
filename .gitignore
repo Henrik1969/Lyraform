@@ -39,6 +39,9 @@ Pattern_explored/src/hex
 
 # Generated reports and local operational state
 .codex-run-state
+.agents/
+.codex/
+output/
 flowparallel-smoketest-report.json
 *.log
 *.tmp

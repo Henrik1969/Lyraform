@@ -43,9 +43,12 @@ This is the soul of Lyraform.
 ## Development policy
 
 - [Verification gates and Firetest policy](development/verification-gates.md)
+- [Stage execution protocol](development/stage-execution-protocol.md)
 - [Mission convergence rule](development/mission-convergence-rule.md)
+- [Autonomous next-stage selection](development/autonomous-next-stage-selection.md)
 - [Project hygiene](development/project-hygiene.md)
 - [Documentation style](development/documentation-style.md)
+- [Mission lifecycle and selection](tasks/README.md)
 
 ## Current Lyraform version
 

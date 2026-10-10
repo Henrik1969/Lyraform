@@ -2,10 +2,10 @@
 
 Date: 2026-10-10
 
-Status: explicitly selected by Henrik on 2026-10-10 and installed at
-`docs/tasks/agent-authority-and-workspace-hygiene.md`. This initial commit
-preserves the mission and standing priorities for the next stage; execution of
-the cleanup work packages has not yet begun.
+Status: PASS on 2026-10-10. The authority chain, mission lifecycle index,
+isolated runner state/manifest, local-output placement, and executable hygiene
+guard are implemented. See
+[`2026-10-10-agent-authority-workspace-hygiene.md`](../checkpoints/2026-10-10-agent-authority-workspace-hygiene.md).
 
 ## Objective
 
