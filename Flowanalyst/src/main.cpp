@@ -7,6 +7,7 @@
 #include <flowcontracts/parse_validity.hpp>
 #include <flowcontracts/ownership_transfer.hpp>
 #include <flowcontracts/effect_scheduling.hpp>
+#include <flowcontracts/source_disposition.hpp>
 #include "scalar_analysis.hpp"
 #include "target_analysis.hpp"
 #include <cctype>
@@ -24,6 +25,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <variant>
 #include <vector>
 
@@ -1401,6 +1403,9 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     }
     Array guard_facts;
     Array disposition_facts;
+    Json source_disposition = nullptr;
+    bool disposition_execution_unsupported = false;
+    std::set<int> source_disposition_outcomes;
     std::map<int, std::vector<int>> proven_guard_facts_by_operation;
     struct OutcomeAccounting {
         int owner = -1, code_projection_operation = -1, code_symbol = -1;
@@ -1691,6 +1696,413 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         return ((is_code(left) && is_zero(right)) || (is_code(right) && is_zero(left)))
             ? relation : std::string{};
     };
+
+    // ADR 0066/0067 Gate-2 authority.  The structural frontend is input; this
+    // is the sole component that resolves its identities and legality.  The
+    // resulting contract remains declarative and explicitly non-executable.
+    if (const auto* syntax = field(bundle, "disposition_syntax");
+        syntax && (!list(field(syntax, "functions")).empty() ||
+                   !list(field(syntax, "consumers")).empty() ||
+                   !list(field(syntax, "nodes")).empty() ||
+                   !list(field(syntax, "wires")).empty())) {
+        const auto issue_begin = diagnostics.size();
+        auto disposition_issue = [&](std::string code, std::string message, const Json& subject) {
+            Diagnostic item{std::move(code), "error", std::move(message), {}, "disposition",
+                            text(field(field(bundle, "source"), "path")), -1};
+            const auto* p = field(subject, "provenance");
+            if (!p && field(subject, "source")) p = &subject;
+            if (p) {
+                item.source = text(field(p, "source"), item.source);
+                item.line = integer(field(p, "line"));
+                item.column = integer(field(p, "column"));
+            }
+            diagnostics.push_back(std::move(item));
+        };
+        auto type_fact = [&](const std::string& spelling, const Json& provenance) -> Json {
+            return Object{{"spelling", spelling}, {"identity", "type:" + spelling},
+                          {"provenance", provenance}};
+        };
+        std::map<int, const Callable*> callable_by_declaration;
+        std::map<std::string, std::vector<const Callable*>> callables_by_name;
+        for (const auto& callable : callables) callables_by_name[callable.name].push_back(&callable);
+        for (const auto& [declaration_id, declaration] : declarations) {
+            if (text(field(*declaration, "kind")) != "function") continue;
+            const int scope = declaration_scopes.count(declaration_id) ? declaration_scopes.at(declaration_id) : -1;
+            if (!scopes.count(scope)) continue;
+            const int owner = integer(field(*scopes.at(scope), "owner_symbol_id"));
+            for (const auto& callable : callables)
+                if (callable.symbol == owner) callable_by_declaration.emplace(declaration_id, &callable);
+        }
+
+        std::map<int, const Json*> function_syntax_by_symbol;
+        for (const auto& function_syntax : list(field(syntax, "functions"))) {
+            const int declaration = integer(field(function_syntax, "declaration_id"));
+            const auto found = callable_by_declaration.find(declaration);
+            if (found == callable_by_declaration.end()) {
+                disposition_issue("FLOWANALYST_DISPOSITION_UNKNOWN_FUNCTION",
+                    "disposition declaration has no exact semantic function identity", function_syntax);
+                continue;
+            }
+            function_syntax_by_symbol.emplace(found->second->symbol, &function_syntax);
+            for (const auto* set_name : {"failures", "faults"})
+                for (const auto& raw_type : list(field(field(function_syntax, set_name), "types"))) {
+                    const auto spelling = text(field(raw_type, "spelling"));
+                    if (!is_resolved_type(spelling))
+                        disposition_issue("FLOWANALYST_DISPOSITION_UNKNOWN_TYPE",
+                            "unknown disposition type '" + spelling + "'", raw_type);
+                }
+            for (const auto& parameter : list(field(function_syntax, "parameters"))) {
+                const auto spelling = text(field(parameter, "payload_type"));
+                if (!is_resolved_type(spelling))
+                    disposition_issue("FLOWANALYST_DISPOSITION_UNKNOWN_TYPE",
+                        "unknown failure-envelope payload type '" + spelling + "'", parameter);
+            }
+            const auto result = text(field(function_syntax, "result_type"));
+            if (!is_resolved_type(result))
+                disposition_issue("FLOWANALYST_DISPOSITION_UNKNOWN_TYPE",
+                    "unknown response result type '" + result + "'", function_syntax);
+        }
+
+        std::map<std::string, const Json*> nodes;
+        for (const auto& node : list(field(syntax, "nodes"))) {
+            const auto id = text(field(node, "node_id"));
+            if (id.empty() || !nodes.emplace(id, &node).second)
+                disposition_issue("FLOWANALYST_DISPOSITION_DUPLICATE_NODE",
+                    "empty or duplicate disposition node identity", node);
+        }
+        std::map<std::string, const Json*> consumers;
+        for (const auto& consumer : list(field(syntax, "consumers"))) {
+            const auto name = text(field(consumer, "name"));
+            if (name.empty() || !consumers.emplace(name, &consumer).second)
+                disposition_issue("FLOWANALYST_DISPOSITION_DUPLICATE_CONSUMER",
+                    "empty or duplicate consumer identity", consumer);
+        }
+
+        const Json* producer_node = nullptr;
+        const Json* consumer_node = nullptr;
+        const Json* containment_node = nullptr;
+        const Json* rejoin_node = nullptr;
+        const Callable* producer_function = nullptr;
+        const Json* producer_syntax = nullptr;
+        const Json* consumer_declaration = nullptr;
+        for (const auto& [id, node] : nodes) {
+            const auto kind = text(field(*node, "implementation_kind"));
+            const auto implementation = text(field(*node, "implementation_name"));
+            if (kind == "source_function") {
+                const auto candidates = callables_by_name.find(implementation);
+                if (candidates == callables_by_name.end() || candidates->second.size() != 1) {
+                    disposition_issue("FLOWANALYST_DISPOSITION_UNKNOWN_FUNCTION",
+                        "graph node does not resolve to one source function", *node);
+                    continue;
+                }
+                const auto* callable = candidates->second.front();
+                const auto disposition_function = function_syntax_by_symbol.find(callable->symbol);
+                const bool produces = disposition_function != function_syntax_by_symbol.end() &&
+                    (!list(field(field(*disposition_function->second, "failures"), "types")).empty() ||
+                     !list(field(field(*disposition_function->second, "faults"), "types")).empty());
+                if (produces) {
+                    if (producer_node)
+                        disposition_issue("FLOWANALYST_DISPOSITION_AMBIGUOUS_PRODUCER",
+                            "bounded Gate-2 topology requires one producer function", *node);
+                    else {
+                        producer_node = node;
+                        producer_function = callable;
+                        producer_syntax = disposition_function->second;
+                    }
+                } else if (!rejoin_node) rejoin_node = node;
+            } else if (kind == "consumer_instance") {
+                if (consumer_node)
+                    disposition_issue("FLOWANALYST_DISPOSITION_AMBIGUOUS_CONSUMER",
+                        "bounded Gate-2 topology requires one consumer instance", *node);
+                consumer_node = node;
+                const auto found = consumers.find(implementation);
+                if (found == consumers.end())
+                    disposition_issue("FLOWANALYST_DISPOSITION_UNKNOWN_CONSUMER",
+                        "consumer instance names no closed consumer declaration", *node);
+                else consumer_declaration = found->second;
+            } else if (kind == "activation_containment") {
+                if (containment_node || implementation != "activation")
+                    disposition_issue("FLOWANALYST_DISPOSITION_CONTAINMENT_SCOPE",
+                        "fault containment must name exactly one activation scope", *node);
+                containment_node = node;
+            }
+        }
+        if (!producer_node)
+            disposition_issue("FLOWANALYST_DISPOSITION_MISSING_PRODUCER",
+                "disposition topology has no exact producer function", *syntax);
+        if (!consumer_node || !consumer_declaration)
+            disposition_issue("FLOWANALYST_DISPOSITION_MISSING_CONSUMER",
+                "disposition topology has no exact closed consumer", *syntax);
+
+        int producer_operation = -1, producer_owner = -1, return_operation = -1;
+        if (producer_function) {
+            for (std::size_t id = 0; id < lowering_operations.size(); ++id) {
+                const auto& operation = lowering_operations[id];
+                if (operation.function_symbol != producer_function->symbol) continue;
+                if (operation.kind == "text_outcome" && operation.return_type == "TextOutcome") {
+                    if (producer_operation >= 0)
+                        disposition_issue("FLOWANALYST_DISPOSITION_AMBIGUOUS_CARRIER",
+                            "producer has more than one TextOutcome carrier", *producer_syntax);
+                    producer_operation = static_cast<int>(id);
+                    producer_owner = operation.result_symbol;
+                }
+            }
+            if (producer_operation >= 0) {
+                source_disposition_outcomes.insert(producer_operation);
+                for (std::size_t id = 0; id < lowering_operations.size(); ++id) {
+                    const auto& operation = lowering_operations[id];
+                    if (operation.function_symbol == producer_function->symbol && operation.kind == "return_value" &&
+                        operation.arguments.size() == 1 && resolved_expression_symbols.count(operation.arguments.front()) &&
+                        resolved_expression_symbols.at(operation.arguments.front()) == producer_owner) {
+                        if (return_operation >= 0)
+                            disposition_issue("FLOWANALYST_DISPOSITION_AMBIGUOUS_TRANSFER",
+                                "TextOutcome carrier is returned more than once", *producer_syntax);
+                        return_operation = static_cast<int>(id);
+                    }
+                }
+            }
+            if (producer_operation < 0 || producer_owner < 0 || return_operation < 0)
+                disposition_issue("FLOWANALYST_DISPOSITION_CARRIER_BOUNDARY",
+                    "producer must transfer exactly one owned TextOutcome directly to its declared function boundary",
+                    *producer_syntax);
+        }
+
+        std::vector<std::string> failure_types, fault_types;
+        if (producer_syntax) {
+            for (const auto& raw : list(field(field(*producer_syntax, "failures"), "types")))
+                failure_types.push_back(text(field(raw, "spelling")));
+            for (const auto& raw : list(field(field(*producer_syntax, "faults"), "types")))
+                fault_types.push_back(text(field(raw, "spelling")));
+            if (failure_types != std::vector<std::string>{"TextFailure"})
+                disposition_issue("FLOWANALYST_DISPOSITION_CARRIER_MISMATCH",
+                    "TextOutcome producer requires the exact closed failure set { TextFailure }", *producer_syntax);
+        }
+
+        struct ResponseAuthority {
+            const Callable* callable = nullptr;
+            const Json* syntax = nullptr;
+            std::string incoming, response_class, outgoing;
+        };
+        std::vector<ResponseAuthority> responses;
+        if (consumer_declaration) for (const auto& member : list(field(*consumer_declaration, "members"))) {
+            const auto name = text(field(member, "function_name"));
+            const auto candidates = callables_by_name.find(name);
+            if (candidates == callables_by_name.end() || candidates->second.size() != 1 ||
+                !function_syntax_by_symbol.count(candidates->second.front()->symbol)) {
+                disposition_issue("FLOWANALYST_DISPOSITION_UNKNOWN_RESPONSE",
+                    "consumer member does not resolve to one ordinary response function", member);
+                continue;
+            }
+            const auto* callable = candidates->second.front();
+            const auto* fn = function_syntax_by_symbol.at(callable->symbol);
+            const auto& parameters = list(field(fn, "parameters"));
+            if (parameters.size() != 1 || text(field(parameters.front(), "type_form")) != "failure_envelope") {
+                disposition_issue("FLOWANALYST_DISPOSITION_ENVELOPE",
+                    "response function requires one immutable typed failure-envelope input", *fn);
+                continue;
+            }
+            const auto incoming = text(field(parameters.front(), "payload_type"));
+            const auto response_class = text(field(fn, "result_form"));
+            const auto outgoing = text(field(fn, "result_type"));
+            if (std::find(failure_types.begin(), failure_types.end(), incoming) == failure_types.end())
+                disposition_issue("FLOWANALYST_DISPOSITION_ENVELOPE_TYPE",
+                    "response envelope type is outside the producer failure set", parameters.front());
+            if (response_class == "recover" && producer_function && outgoing != producer_function->return_type)
+                disposition_issue("FLOWANALYST_DISPOSITION_REJOIN_TYPE",
+                    "recovery type does not equal the producer success type", *fn);
+            if (response_class != "recover" && response_class != "transform")
+                disposition_issue("FLOWANALYST_DISPOSITION_RESPONSE_CLASS",
+                    "response must declare recover or transform", *fn);
+            responses.push_back({callable, fn, incoming, response_class, outgoing});
+        }
+        std::set<std::string> accepted;
+        for (const auto& response : responses) accepted.insert(response.incoming);
+        if (accepted != std::set<std::string>(failure_types.begin(), failure_types.end()))
+            disposition_issue("FLOWANALYST_DISPOSITION_CONSUMER_SET",
+                "closed consumer set does not account for every producer failure type", *consumer_declaration);
+
+        const Json *success_wire = nullptr, *failure_wire = nullptr, *fault_wire = nullptr, *rejoin_wire = nullptr,
+                   *successor_wire = nullptr;
+        if (producer_node && consumer_node) for (const auto& wire : list(field(syntax, "wires"))) {
+            const auto* from = field(wire, "from"); const auto* to = field(wire, "to");
+            const auto from_node = text(field(from, "node_id")), from_port = text(field(from, "port_id"));
+            const auto to_node = text(field(to, "node_id")), to_port = text(field(to, "port_id"));
+            auto bind_once = [&](const Json*& slot, const char* code) {
+                if (slot) disposition_issue(code, "duplicate disposition wire", wire); else slot = &wire;
+            };
+            if (from_node == text(field(*producer_node, "node_id")) && from_port == "out" &&
+                to_node == text(field(*consumer_node, "node_id")) && to_port == "success")
+                bind_once(success_wire, "FLOWANALYST_DISPOSITION_COEMISSION");
+            else if (from_node == text(field(*producer_node, "node_id")) && from_port == "failure" &&
+                to_node == text(field(*consumer_node, "node_id")) && to_port == "failure")
+                bind_once(failure_wire, "FLOWANALYST_DISPOSITION_AMBIGUOUS_ROUTE");
+            else if (containment_node && from_node == text(field(*producer_node, "node_id")) && from_port == "fault" &&
+                to_node == text(field(*containment_node, "node_id")) && to_port == "fault")
+                bind_once(fault_wire, "FLOWANALYST_DISPOSITION_AMBIGUOUS_ROUTE");
+            else if (from_node == text(field(*consumer_node, "node_id")) && from_port == "out" && to_port == "in") {
+                bind_once(rejoin_wire, "FLOWANALYST_DISPOSITION_COEMISSION");
+                rejoin_node = nodes.count(to_node) ? nodes.at(to_node) : nullptr;
+            } else if (from_node == text(field(*consumer_node, "node_id")) && from_port == "failure" && to_port == "failure")
+                bind_once(successor_wire, "FLOWANALYST_DISPOSITION_AMBIGUOUS_ROUTE");
+            else if (from_node == text(field(*producer_node, "node_id")) && from_port == "fault" &&
+                     to_node == text(field(*consumer_node, "node_id")))
+                disposition_issue("FLOWANALYST_DISPOSITION_FAULT_TO_CONSUMER",
+                    "a fault cannot enter an ordinary failure consumer", wire);
+            else if (from_port == "failure" || from_port == "fault" || to_port == "failure" || to_port == "fault")
+                disposition_issue("FLOWANALYST_DISPOSITION_DANGLING_ROUTE",
+                    "unsuccessful wire does not belong to the exact bounded topology", wire);
+        }
+
+        std::map<std::string, std::vector<std::string>> disposition_edges;
+        for (const auto& wire : list(field(syntax, "wires"))) {
+            const auto from = text(field(field(wire, "from"), "node_id"));
+            const auto to = text(field(field(wire, "to"), "node_id"));
+            if (nodes.count(from) && nodes.count(to)) disposition_edges[from].push_back(to);
+        }
+        std::set<std::string> visiting, visited;
+        std::function<bool(const std::string&)> has_cycle = [&](const std::string& node) {
+            if (visiting.count(node)) return true;
+            if (visited.count(node)) return false;
+            visiting.insert(node);
+            for (const auto& next : disposition_edges[node]) if (has_cycle(next)) return true;
+            visiting.erase(node);
+            visited.insert(node);
+            return false;
+        };
+        for (const auto& [node, unused] : nodes) {
+            (void)unused;
+            if (has_cycle(node)) {
+                disposition_issue("FLOWANALYST_DISPOSITION_CYCLE_UNSUPPORTED",
+                    "recursive or cyclic disposition composition is unsupported at Gate 2", *nodes.at(node));
+                break;
+            }
+        }
+        if (!success_wire || !failure_wire)
+            disposition_issue("FLOWANALYST_DISPOSITION_DANGLING_ROUTE",
+                "producer success and failure must both enter the same consumer junction", *producer_node);
+        if (!fault_types.empty() && (!containment_node || !fault_wire))
+            disposition_issue("FLOWANALYST_DISPOSITION_MISSING_CONTAINMENT",
+                "every declared fault requires one activation-containment route", *producer_node);
+        if (fault_types.empty() && fault_wire)
+            disposition_issue("FLOWANALYST_DISPOSITION_EXTRA_FAULT_ROUTE",
+                "fault route has no declared producer fault type", *fault_wire);
+        const bool transforms = std::any_of(responses.begin(), responses.end(), [](const auto& r) {
+            return r.response_class == "transform";
+        });
+        if (transforms && !successor_wire)
+            disposition_issue("FLOWANALYST_DISPOSITION_UNACCOUNTED_TRANSFORM",
+                "transformed failure successor has no accountable route", *consumer_node);
+        if (!transforms && successor_wire)
+            disposition_issue("FLOWANALYST_DISPOSITION_EXTRA_FAILURE_ROUTE",
+                "consumer failure output has no transformed successor", *successor_wire);
+        if (!rejoin_wire || !rejoin_node)
+            disposition_issue("FLOWANALYST_DISPOSITION_MISSING_REJOIN",
+                "consumer has no explicit typed success rejoin", *consumer_node);
+        if (rejoin_node) {
+            const auto name = text(field(*rejoin_node, "implementation_name"));
+            const auto found = callables_by_name.find(name);
+            if (found == callables_by_name.end() || found->second.size() != 1 ||
+                found->second.front()->parameters.size() != 1 || !producer_function ||
+                found->second.front()->parameters.front().second != producer_function->return_type)
+                disposition_issue("FLOWANALYST_DISPOSITION_REJOIN_TYPE",
+                    "rejoin destination does not accept the exact producer success type", *rejoin_node);
+        }
+
+        if (diagnostics.size() == issue_begin && producer_function && producer_syntax && consumer_declaration &&
+            producer_node && consumer_node && containment_node && success_wire && failure_wire && fault_wire &&
+            rejoin_wire && rejoin_node && producer_operation >= 0) {
+            const int disposition_id = static_cast<int>(disposition_facts.size());
+            const auto producer_provenance = *field(*producer_syntax, "provenance");
+            Array failure_type_facts, fault_type_facts, accepted_type_facts, response_facts, route_facts;
+            for (const auto& raw : list(field(field(*producer_syntax, "failures"), "types"))) {
+                auto fact = type_fact(text(field(raw, "spelling")), *field(raw, "provenance"));
+                failure_type_facts.push_back(fact); accepted_type_facts.push_back(std::move(fact));
+            }
+            for (const auto& raw : list(field(field(*producer_syntax, "faults"), "types")))
+                fault_type_facts.push_back(type_fact(text(field(raw, "spelling")), *field(raw, "provenance")));
+            int route_id = 0;
+            for (const auto& response : responses) {
+                const auto& parameter = list(field(response.syntax, "parameters")).front();
+                response_facts.emplace_back(Object{
+                    {"function_symbol_id", response.callable->symbol}, {"name", response.callable->name},
+                    {"input_projection", "immutable_failure_envelope"},
+                    {"incoming_failure_type", type_fact(response.incoming, *field(parameter, "provenance"))},
+                    {"response_class", response.response_class},
+                    {"outgoing_type", type_fact(response.outgoing, *field(response.syntax, "provenance"))},
+                    {"obligation_transition", response.response_class == "recover" ? "close_original" : "linked_successor"},
+                    {"provenance", *field(response.syntax, "provenance")}});
+                route_facts.emplace_back(Object{{"route_id", route_id++}, {"failure_type", response.incoming},
+                                                {"function_symbol_id", response.callable->symbol}});
+            }
+            const auto module_name = text(field(field(ast, "source_unit"), "name"));
+            const auto module_identity = "module:" + module_name;
+            const auto module_revision = "frontend-v2:disposition-v1:decls-" +
+                std::to_string(declarations.size()) + ":ops-" + std::to_string(lowering_operations.size());
+            Array source_origins;
+            std::set<std::string> unique_origins;
+            for (const auto& file : list(field(field(bundle, "source_map"), "files"))) {
+                const auto path = text(field(file, "path"));
+                if (!path.empty() && unique_origins.insert(path).second) source_origins.emplace_back(path);
+            }
+            const auto success_spelling = producer_function->return_type;
+            const auto consumer_id = "consumer-declaration:" +
+                std::to_string(integer(field(*consumer_declaration, "declaration_id")));
+            const auto producer_node_id = text(field(*producer_node, "node_id"));
+            const auto consumer_node_id = text(field(*consumer_node, "node_id"));
+            const auto containment_node_id = text(field(*containment_node, "node_id"));
+            const auto wire_id = [](const Json* wire) { return text(field(wire, "wire_id")); };
+            Object producer_fact{{"operation_id", producer_operation}, {"disposition_id", disposition_id},
+                {"function_symbol_id", producer_function->symbol}, {"owner_symbol_id", producer_owner},
+                {"graph_node_id", producer_node_id},
+                {"return_operation_id", return_operation}, {"completion", "exactly_one"},
+                {"commit_law", "atomic_tagged_result"},
+                {"obligation_id", "operation:" + std::to_string(producer_operation) + ":outcome"},
+                {"success_type", type_fact(success_spelling, producer_provenance)},
+                {"failure_types", failure_type_facts}, {"fault_types", fault_type_facts},
+                {"provenance", producer_provenance}};
+            Object bridge{{"format", "lyraform.source_disposition_bridge"}, {"version", 1},
+                {"status", "declarative"}, {"execution", "unsupported"},
+                {"module_identity", module_identity}, {"module_revision", module_revision},
+                {"policy_selection", "not_materialized_gate_3"},
+                {"producer_mapping", Object{{"operation_id", producer_operation},
+                    {"disposition_id", disposition_id}, {"function_symbol_id", producer_function->symbol},
+                    {"owner_symbol_id", producer_owner}, {"graph_node_id", producer_node_id}}},
+                {"wire_mapping", Array{
+                    Object{{"semantic", "success_input"}, {"graph_wire_id", wire_id(success_wire)}},
+                    Object{{"semantic", "failure_input"}, {"graph_wire_id", wire_id(failure_wire)}},
+                    Object{{"semantic", "fault_containment"}, {"graph_wire_id", wire_id(fault_wire)}},
+                    Object{{"semantic", "typed_rejoin"}, {"graph_wire_id", wire_id(rejoin_wire)}}}}};
+            source_disposition = Object{
+                {"format", "lyraform.source_disposition_topology"}, {"version", 1},
+                {"status", "semantic"}, {"execution", "unsupported"},
+                {"module", Object{{"identity", module_identity}, {"revision", module_revision},
+                    {"source_origins", source_origins}, {"provenance", producer_provenance}}},
+                {"producer", producer_fact}, {"response_functions", response_facts},
+                {"consumer", Object{{"declaration_id", integer(field(*consumer_declaration, "declaration_id"))},
+                    {"semantic_id", consumer_id},
+                    {"instance_structural_id", integer(field(*consumer_node, "structural_id"))},
+                    {"instance_node_id", consumer_node_id}, {"closed_set", true},
+                    {"accepted_failure_types", accepted_type_facts}, {"routes", route_facts},
+                    {"selection_requirement", responses.size() == 1 ? "fixed_single_route_gate_3" : "explicit_policy_gate_3"},
+                    {"provenance", *field(*consumer_declaration, "provenance")}}},
+                {"junction", Object{{"pairing", "same_producer_attempt_exclusive"},
+                    {"producer_function_symbol_id", producer_function->symbol},
+                    {"producer_operation_id", producer_operation}, {"producer_node_id", producer_node_id},
+                    {"consumer_node_id", consumer_node_id}, {"success_wire_id", wire_id(success_wire)},
+                    {"failure_wire_id", wire_id(failure_wire)}, {"rejoin_wire_id", wire_id(rejoin_wire)},
+                    {"success_type", success_spelling}, {"rejoin_type", success_spelling},
+                    {"provenance", *field(*success_wire, "provenance")}}},
+                {"containment", Object{{"node_id", containment_node_id}, {"scope_kind", "activation"},
+                    {"action", "halt_and_quarantine"}, {"accepted_fault_types", fault_type_facts},
+                    {"wire_id", wire_id(fault_wire)}, {"execution", "unsupported"},
+                    {"provenance", *field(*containment_node, "provenance")}}},
+                {"bridge", bridge},
+                {"execution_claims", Object{{"policy_selected", false}, {"graph_ir_ready", false},
+                    {"llvm_ready", false}, {"tinyvm_ready", false}, {"runtime_route_ready", false}}}};
+            flowcontracts::validate_source_disposition_topology(source_disposition);
+            disposition_execution_unsupported = true;
+        }
+    }
     std::vector<flowcontracts::OwnershipOperation> ownership_operations;
     std::vector<flowcontracts::OwnershipFunction> ownership_functions;
     for (std::size_t id=0; id<lowering_operations.size(); ++id) {
@@ -1708,6 +2120,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         // text_outcome lowering kind. Only the existing atomic tagged carrier
         // is in this bounded must-account stage.
         if (producer.kind != "text_outcome" || producer.return_type != "TextOutcome") continue;
+        if (source_disposition_outcomes.count(static_cast<int>(outcome_id))) continue;
         OutcomeAccounting accounting;
         accounting.owner = producer.result_symbol;
         accounting.obligation_identity = "operation:" + std::to_string(outcome_id) + ":outcome";
@@ -2038,7 +2451,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     }
     std::cout << "],\n  \"graph_analysis\":{\"format\":\"flowanalyst.graph_analysis\",\"version\":1,\"status\":\"" << (graph_native ? "ready" : "non_executable") << "\",\"receivers\":"
               << flowcontracts::json::serialize(graph_receivers) << "},\n  \"lowering_plan\": {\"format\":\"flowcore.lowering_plan\",\"version\":" << lowering_plan_version << ",\"status\":\""
-              << (diagnostics.empty() ? "ready" : "blocked") << "\"";
+              << (diagnostics.empty() && !disposition_execution_unsupported ? "ready" : "blocked") << "\"";
     if (const auto* validity = field(bundle, "parse_validity"))
         std::cout << ",\"parse_validity\":" << flowcontracts::json::serialize(*validity);
     std::cout << ",\"source_operation_coverage\":"
@@ -2074,6 +2487,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     }
     std::cout << ",\"guard_facts\":" << flowcontracts::json::serialize(guard_facts);
     std::cout << ",\"disposition_facts\":" << flowcontracts::json::serialize(disposition_facts);
+    if (!std::holds_alternative<std::nullptr_t>(source_disposition))
+        std::cout << ",\"source_disposition\":" << flowcontracts::json::serialize(source_disposition);
     std::cout << ",\"operations\":[";
     std::function<void(int, const std::string&)> emit_operand = [&](int expression_id, const std::string& declared_type) {
         const auto* expression = expressions.count(expression_id) ? expressions.at(expression_id) : nullptr;

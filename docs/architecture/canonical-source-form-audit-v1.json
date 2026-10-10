@@ -1,7 +1,7 @@
 {
   "schema": "lyraform.canonical-source-form-audit/v1",
   "status": "complete_under_language_freeze",
-  "as_of": "2026-09-27",
+  "as_of": "2026-10-10",
   "baseline_commit": "ecdac7184236dab24423ca7495e882f771cdf287",
   "categories": [
     "canonical_and_connected_end_to_end",
@@ -17,7 +17,9 @@
 
     {"id":"top.import","family":"top_level","ast_kind":"import","classification":"canonical_and_connected_end_to_end","scope":"bounded declared contract imports and namespace resolution","authority":"structural frontend plus Flowanalyst resolution"},
     {"id":"top.function","family":"top_level","ast_kind":"function","classification":"canonical_and_connected_end_to_end","scope":"bounded callable-plan-v2 declarations and definitions","authority":"Flowanalyst callable and operation authority"},
-    {"id":"top.consumer","family":"top_level","ast_kind":"consumer","classification":"recognized_but_explicitly_unsupported","scope":"closed disposition-consumer syntax and source provenance are preserved structurally; semantic admission and execution require their own gates","authority":"structural frontend disposition-syntax projection"},
+    {"id":"top.consumer","family":"top_level","ast_kind":"consumer","classification":"recognized_but_explicitly_unsupported","scope":"bounded closed disposition consumers are structurally and semantically admitted; policy selection and execution remain unsupported","authority":"Flowanalyst source-disposition topology v1"},
+    {"id":"function.disposition_clauses","family":"function_signature","ast_kind":"fails_faults","classification":"recognized_but_explicitly_unsupported","scope":"bounded closed failure/fault sets are canonical source and semantic authority; executable routing remains unsupported","authority":"Flowanalyst source-disposition topology v1"},
+    {"id":"function.failure_response","family":"function_signature","ast_kind":"failure_recover_transform","classification":"recognized_but_explicitly_unsupported","scope":"bounded immutable failure-envelope input and recover/transform result meaning are semantically validated; execution remains unsupported","authority":"Flowanalyst source-disposition topology v1"},
     {"id":"top.record","family":"top_level","ast_kind":"record","classification":"recognized_but_explicitly_unsupported","scope":"ordinary record declaration is structural; general construction/layout/execution is not admitted","authority":"structural frontend"},
     {"id":"top.refined_type","family":"top_level","ast_kind":"refined_type","classification":"recognized_but_explicitly_unsupported","scope":"identity and invariant syntax are preserved; invariant evaluation is not admitted","authority":"structural frontend and symbol projection"},
     {"id":"top.abi","family":"top_level","ast_kind":"abi","classification":"canonical_and_connected_end_to_end","scope":"bounded declared ABI contracts with exact provider authorization","authority":"Flowanalyst provider requirements plus Flowbind policy"},
@@ -80,6 +82,8 @@
     {"id":"graph.node","family":"graph","ast_kind":"node","classification":"canonical_and_connected_end_to_end","scope":"bounded source-function receiver in native graph plan v2","authority":"Flowanalyst source graph"},
     {"id":"graph.sink","family":"graph","ast_kind":"sink","classification":"recognized_but_explicitly_unsupported","scope":"captured but no current native sink implementation contract is admitted","authority":"graph syntax capture"},
     {"id":"graph.wire","family":"graph","ast_kind":"wire","classification":"canonical_and_connected_end_to_end","scope":"bounded validated native graph plan v2 endpoint connection","authority":"Flowanalyst source graph"},
+    {"id":"graph.disposition_node","family":"graph","ast_kind":"disposition_node","classification":"recognized_but_explicitly_unsupported","scope":"bounded producer, consumer-instance and activation-containment identities are semantically validated; Graph IR execution remains unsupported","authority":"Flowanalyst source-disposition topology v1"},
+    {"id":"graph.disposition_wire","family":"graph","ast_kind":"disposition_wire","classification":"recognized_but_explicitly_unsupported","scope":"bounded success, failure, fault and typed-rejoin wires are closed and validated; policy and execution remain unsupported","authority":"Flowanalyst source-disposition topology v1 and Flowcontracts validation"},
     {"id":"graph.policy","family":"graph","ast_kind":"policy","classification":"canonical_and_connected_end_to_end","scope":"only currently validated bounded graph policies; unsupported receiver policies are refused","authority":"Flowanalyst source graph validation"},
     {"id":"graph.state","family":"graph","ast_kind":"state","classification":"canonical_and_connected_end_to_end","scope":"bounded persistent c_long or declared ABI aggregate receiver state","authority":"Flowanalyst source graph validation"},
 

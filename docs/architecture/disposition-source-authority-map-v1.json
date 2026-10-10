@@ -96,7 +96,7 @@
       "carrier_operation_line": 10,
       "carrier_transfer_line": 11,
       "required_law": "the TextOutcome value is transferred once to the matching function boundary; atomic_tagged_result projects either Text success or TextFailure without normal publication on failure",
-      "classification": "accepted_unimplemented_adr_meaning"
+      "classification": "existing_source_authority"
     },
     "response_function": {
       "spelling": "use_fallback",
@@ -115,7 +115,7 @@
         ]
       },
       "transition": "recover Text",
-      "classification": "accepted_unimplemented_adr_meaning"
+      "classification": "existing_source_authority"
     },
     "consumer": {
       "spelling": "text_failures",
@@ -124,7 +124,7 @@
         "use_fallback"
       ],
       "selection_requirement": "fixed_single_route",
-      "classification": "accepted_unimplemented_adr_meaning"
+      "classification": "existing_source_authority"
     },
     "graph": {
       "producer_instance": "producer_node",
@@ -157,7 +157,7 @@
           "type": "Text"
         }
       ],
-      "classification": "accepted_unimplemented_adr_meaning"
+      "classification": "existing_source_authority"
     },
     "lexer_evidence": {
       "status": "punctuation_available",
@@ -186,36 +186,70 @@
       "adjustment_required": false
     }
   },
+  "gate_2_semantic_projection": {
+    "format": "lyraform.source_disposition_topology/v1",
+    "module_identity": "module:text_outcome_consumer",
+    "module_revision": "frontend-v2:disposition-v1:decls-12:ops-9",
+    "producer": {
+      "operation_id": 0,
+      "disposition_id": 0,
+      "function_symbol_id": 38,
+      "owner_symbol_id": 39,
+      "return_operation_id": 5,
+      "obligation": "operation:0:outcome",
+      "commit_law": "atomic_tagged_result"
+    },
+    "response": {
+      "function_symbol_id": 40,
+      "input": "immutable Failure<TextFailure> projection",
+      "transition": "recover Text",
+      "obligation_transition": "close_original"
+    },
+    "consumer": {
+      "declaration_id": 10,
+      "instance_structural_id": 1,
+      "semantic_id": "consumer-declaration:10",
+      "closed_set": ["TextFailure"]
+    },
+    "wires": {
+      "success_input": "disposition-wire:0",
+      "failure_input": "disposition-wire:1",
+      "fault_containment": "disposition-wire:2",
+      "typed_rejoin": "disposition-wire:3"
+    },
+    "classification": "validated_declarative_consistency",
+    "execution": "unsupported"
+  },
   "future_identity_chain": [
     {
       "link": "source/import span -> structural declaration",
       "owner": "canonical lexer/parser/AST/frontend bundle",
-      "classification": "not_implemented"
+      "classification": "existing_source_authority"
     },
     {
       "link": "structural declaration -> resolved type/function/consumer identities",
       "owner": "one canonical semantic component in Flowanalyst",
-      "classification": "not_implemented"
+      "classification": "existing_source_authority"
     },
     {
       "link": "TextOutcome operation -> function disposition and owned obligation",
       "owner": "one canonical semantic component in Flowanalyst",
-      "classification": "not_implemented"
+      "classification": "existing_source_authority"
     },
     {
       "link": "producer attempt -> paired success/failure junction inputs",
       "owner": "one canonical semantic component in Flowanalyst",
-      "classification": "not_implemented"
+      "classification": "existing_source_authority"
     },
     {
       "link": "fault disposition -> activation containment input",
       "owner": "one canonical semantic component in Flowanalyst",
-      "classification": "not_implemented"
+      "classification": "existing_source_authority"
     },
     {
       "link": "semantic topology -> declarative route bridge",
       "owner": "semantic producer with independent Flowcontracts validation",
-      "classification": "not_implemented"
+      "classification": "validated_declarative_consistency"
     },
     {
       "link": "declarative bridge -> execution",
@@ -250,9 +284,9 @@
     }
   },
   "execution_boundary": {
-    "source_parser_support": false,
-    "source_semantic_support": false,
-    "source_derived_bridge": false,
+    "source_parser_support": true,
+    "source_semantic_support": true,
+    "source_derived_bridge": true,
     "policy_selection": false,
     "graph_ir_execution": false,
     "llvm_failure_routing": false,

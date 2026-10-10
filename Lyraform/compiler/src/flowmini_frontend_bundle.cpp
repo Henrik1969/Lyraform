@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <map>
 #include <ostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -301,9 +302,17 @@ void dump_frontend_bundle_json(std::ostream& out,
         out << ",\"provenance\":"; provenance(wire.location); out << '}';
     }
     out << "]},\n  \"diagnostics\": [";
+    std::set<int> disposition_graph_lines;
+    for (const auto& node : module.disposition_graph_nodes)
+        disposition_graph_lines.insert(node.location.line);
+    for (const auto& wire : module.disposition_graph_wires)
+        disposition_graph_lines.insert(wire.location.line);
+    bool first_diagnostic = true;
     for (std::size_t index = 0; index < module.unsupported_graph_locations.size(); ++index) {
         const auto& location = module.unsupported_graph_locations[index];
-        if (index) out << ',';
+        if (disposition_graph_lines.contains(location.line)) continue;
+        if (!first_diagnostic) out << ',';
+        first_diagnostic = false;
         out << "{\"code\":\"FLOWMINI_GRAPH_LOWERING_UNSUPPORTED\",\"severity\":\"error\","
                "\"message\":\"graph syntax is interpreter-only; no structured graph lowering contract is implemented\","
                "\"provenance\":{\"source\":";

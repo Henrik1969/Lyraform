@@ -80,3 +80,5 @@ add_test(NAME lyraform_field_path_resolution
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-field-resolution-tests.sh ${CMAKE_BINARY_DIR})
 add_test(NAME lyraform_guard_static_lifecycle
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-guard-static-tests.sh ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_source_disposition_gate2
+    COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-source-disposition-tests.sh ${CMAKE_BINARY_DIR})
