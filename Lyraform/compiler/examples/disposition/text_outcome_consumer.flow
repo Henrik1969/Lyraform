@@ -1,0 +1,41 @@
+import "../../std/abi/libc.flow"
+import "../../std/abi/text.flow"
+
+program text_outcome_consumer
+
+type TextIntegrityFault refines c_int {
+}
+
+fn compose_text(): Text fails { TextFailure } faults { TextIntegrityFault } {
+    produced : TextOutcome(concat_outcome("Lyra", "form"))
+    produced -> return
+}
+
+fn use_fallback(problem : failure TextFailure): recover Text {
+    fallback : Text("text unavailable")
+    fallback -> return
+}
+
+fn display_text(value : Text): c_int {
+    status : c_int(0)
+    puts_text(value) -> status
+    status -> return
+}
+
+consumer text_failures {
+    use_fallback
+}
+
+node producer_node : fn compose_text
+node handled       : consumer text_failures
+node display       : fn display_text
+node quarantine    : containment activation
+
+wire producer_node.out     => handled.success
+wire producer_node.failure => handled.failure
+wire producer_node.fault   => quarantine.fault
+wire handled.out           => display.in
+
+main {
+    return 0
+}

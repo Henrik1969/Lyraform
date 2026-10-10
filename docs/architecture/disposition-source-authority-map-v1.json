@@ -1,0 +1,262 @@
+{
+  "format": "lyraform.disposition_source_authority_map",
+  "version": 1,
+  "date": "2026-10-10",
+  "mission": "docs/tasks/disposition-foundation-and-source-authority-gate2.md",
+  "branch_base": "86a5c69d58bacb09f393cef2a3d4e798ac9fe3ad",
+  "source_specimen": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow",
+  "classifications": [
+    "existing_source_authority",
+    "accepted_unimplemented_adr_meaning",
+    "validated_declarative_consistency",
+    "executable_behavior",
+    "not_implemented"
+  ],
+  "existing_text_outcome_trace": {
+    "source": {
+      "path": "Lyraform/compiler/examples/text/text_outcome.flow",
+      "line": 7,
+      "column": 5,
+      "classification": "existing_source_authority"
+    },
+    "imported_declarations": [
+      {
+        "identity": "concat_outcome",
+        "path": "Lyraform/compiler/std/abi/text.flow",
+        "line": 23,
+        "return_type": "TextOutcome",
+        "classification": "existing_source_authority"
+      },
+      {
+        "identity": "TextFailure",
+        "path": "Lyraform/compiler/std/abi/text.flow",
+        "line": 39,
+        "classification": "existing_source_authority"
+      },
+      {
+        "identity": "TextOutcome",
+        "path": "Lyraform/compiler/std/abi/text.flow",
+        "line": 42,
+        "fields": {
+          "code": "TextFailure",
+          "value": "Text"
+        },
+        "classification": "existing_source_authority"
+      }
+    ],
+    "frontend": {
+      "ast_statement_id": 0,
+      "initializer_expression_id": 0,
+      "initializer_kind": "call",
+      "callee_symbol_id": 25,
+      "owner_symbol_id": 38,
+      "owner_type": "TextOutcome",
+      "scope_id": 16,
+      "source_map": "flowmini.frontend_bundle/v2 imported expanded-line map",
+      "classification": "existing_source_authority"
+    },
+    "semantic": {
+      "operation_id": 0,
+      "operation_kind": "text_outcome",
+      "disposition_fact_id": 0,
+      "completion": "exactly_one",
+      "success_type": "Text",
+      "failure_type": "TextFailure",
+      "failure_codes": [
+        "invalid_input",
+        "exhausted",
+        "provider_unavailable"
+      ],
+      "commit_law": "atomic_tagged_result",
+      "route_kind": "tagged_owner",
+      "owner_symbol_id": 38,
+      "obligation_identity": "operation:0:outcome",
+      "obligation_kind": "must_account",
+      "accounting_proof": "complementary_zero_code_branches",
+      "classification": "executable_behavior"
+    },
+    "preserved_local_meaning": {
+      "success_branch": "outcome.code == 0 publishes and disposes outcome.value",
+      "failure_branch": "outcome.code != 0 prints the local diagnostic",
+      "not_a_response_consumer": true,
+      "not_a_function_failure_declaration": true
+    }
+  },
+  "selected_source_boundary": {
+    "producer_function": {
+      "spelling": "compose_text",
+      "source_line": 9,
+      "success_type": "Text",
+      "declared_failures": [
+        "TextFailure"
+      ],
+      "declared_faults": [
+        "TextIntegrityFault"
+      ],
+      "carrier_operation_line": 10,
+      "carrier_transfer_line": 11,
+      "required_law": "the TextOutcome value is transferred once to the matching function boundary; atomic_tagged_result projects either Text success or TextFailure without normal publication on failure",
+      "classification": "accepted_unimplemented_adr_meaning"
+    },
+    "response_function": {
+      "spelling": "use_fallback",
+      "source_line": 14,
+      "envelope": {
+        "form": "failure TextFailure",
+        "access": "read_only",
+        "evidence": [
+          "producer",
+          "disposition",
+          "attempt",
+          "obligation",
+          "commit",
+          "provenance",
+          "payload"
+        ]
+      },
+      "transition": "recover Text",
+      "classification": "accepted_unimplemented_adr_meaning"
+    },
+    "consumer": {
+      "spelling": "text_failures",
+      "source_line": 25,
+      "members": [
+        "use_fallback"
+      ],
+      "selection_requirement": "fixed_single_route",
+      "classification": "accepted_unimplemented_adr_meaning"
+    },
+    "graph": {
+      "producer_instance": "producer_node",
+      "consumer_instance": "handled",
+      "containment_instance": "quarantine",
+      "normal_destination": "display",
+      "wires": [
+        {
+          "line": 34,
+          "from": "producer_node.out",
+          "to": "handled.success",
+          "type": "Text"
+        },
+        {
+          "line": 35,
+          "from": "producer_node.failure",
+          "to": "handled.failure",
+          "type": "TextFailure"
+        },
+        {
+          "line": 36,
+          "from": "producer_node.fault",
+          "to": "quarantine.fault",
+          "type": "TextIntegrityFault"
+        },
+        {
+          "line": 37,
+          "from": "handled.out",
+          "to": "display.in",
+          "type": "Text"
+        }
+      ],
+      "classification": "accepted_unimplemented_adr_meaning"
+    },
+    "lexer_evidence": {
+      "status": "punctuation_available",
+      "keywords_currently_lexed_as_identifiers": [
+        "fails",
+        "faults",
+        "failure",
+        "recover",
+        "consumer",
+        "containment",
+        "activation",
+        "success",
+        "fault"
+      ],
+      "punctuation": [
+        "(",
+        ")",
+        "{",
+        "}",
+        ":",
+        ",",
+        ".",
+        "->",
+        "=>"
+      ],
+      "adjustment_required": false
+    }
+  },
+  "future_identity_chain": [
+    {
+      "link": "source/import span -> structural declaration",
+      "owner": "canonical lexer/parser/AST/frontend bundle",
+      "classification": "not_implemented"
+    },
+    {
+      "link": "structural declaration -> resolved type/function/consumer identities",
+      "owner": "one canonical semantic component in Flowanalyst",
+      "classification": "not_implemented"
+    },
+    {
+      "link": "TextOutcome operation -> function disposition and owned obligation",
+      "owner": "one canonical semantic component in Flowanalyst",
+      "classification": "not_implemented"
+    },
+    {
+      "link": "producer attempt -> paired success/failure junction inputs",
+      "owner": "one canonical semantic component in Flowanalyst",
+      "classification": "not_implemented"
+    },
+    {
+      "link": "fault disposition -> activation containment input",
+      "owner": "one canonical semantic component in Flowanalyst",
+      "classification": "not_implemented"
+    },
+    {
+      "link": "semantic topology -> declarative route bridge",
+      "owner": "semantic producer with independent Flowcontracts validation",
+      "classification": "not_implemented"
+    },
+    {
+      "link": "declarative bridge -> execution",
+      "owner": "future policy, Graph IR and backend stages",
+      "classification": "not_implemented"
+    }
+  ],
+  "caller_supplied_reference_ids": {
+    "source": "Flowcontracts/tests/disposition_route_projection_tests.cpp",
+    "classification": "validated_declarative_consistency",
+    "not_source_authority": true,
+    "failure_plan": {
+      "plan": 100,
+      "producer_disposition": 10,
+      "producer_operation": 20,
+      "producer_function": 30,
+      "wire": 40,
+      "consumer": 50,
+      "route": 60,
+      "scope": 70,
+      "response_function": 80,
+      "transition": 90
+    },
+    "fault_plan": {
+      "plan": 101,
+      "producer_disposition": 11,
+      "producer_operation": 21,
+      "producer_function": 80,
+      "wire": 41,
+      "containment_authority": 51,
+      "scope": 71
+    }
+  },
+  "execution_boundary": {
+    "source_parser_support": false,
+    "source_semantic_support": false,
+    "source_derived_bridge": false,
+    "policy_selection": false,
+    "graph_ir_execution": false,
+    "llvm_failure_routing": false,
+    "tinyvm_failure_routing": false,
+    "fault_quarantine_execution": false
+  }
+}
