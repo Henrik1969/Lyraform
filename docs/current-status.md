@@ -246,3 +246,40 @@ for admitted semantics; it may not redefine source validity.
 
 Historical Flowcore, Flowmini, version, and test-count references remain valid
 when they describe an actual historical state or compatibility contract.
+
+## Disposition lane bridge investigation (2026-10-09)
+
+The dedicated disposition-lanes mission adds a declarative graph/plan bridge,
+bounded explanatory refusal projections and a reference evidence epoch. These
+are consistency contracts, not new source admission or LLVM/TinyVM failure-lane
+execution. TextOutcome remains the existing executable tagged projection.
+The mission is blocked on the source producer-to-consumer association and
+read-only envelope signature/commit projection; native activation quarantine
+also lacks an observable receipt-bearing result boundary. See the
+[seam inventory](architecture/disposition-seam-inventory-v1.json),
+[decision brief](checkpoints/2026-10-09-disposition-lanes-decision-brief.md) and
+[stage evidence](checkpoints/2026-10-09-disposition-lanes-and-wire-closure.md).
+
+### Decision resolution (2026-10-10)
+
+The semantic blocker is resolved. Source will declare closed producer
+disposition sets, typed read-only failure-envelope response functions, closed
+consumer membership, and explicit graph association through a typed consumer
+junction. Versioned policy may select only among those source-authorized routes
+and uses the same artifact whether supplied externally or embedded. Faults
+return an explicit quarantined activation result and containment receipt;
+command exit belongs only to an explicit host policy. See
+[ADR 0066](architecture/decisions/0066-source-declared-disposition-consumers-and-policy-selection.md),
+[ADR 0067](architecture/decisions/0067-explicit-quarantined-activation-results.md),
+and the bounded [Mission 07](tasks/canonical-source-disposition-and-quarantine-execution-mission-07.md).
+
+This resolves the design decision, not the implementation campaign. The
+current parser does not yet admit these source forms; no production policy
+artifact selects consumer routes; Graph IR, LLVM, and TinyVM do not yet execute
+the consumer junction; native `flow_graph_fail` still terminates compatibility
+paths with `exit(70)`; and TinyVM has no executable quarantined-activation
+result. General retry, propagation, cancellation, backpressure, concurrent
+failure composition, and broader containment scopes remain outside the
+admitted language. Lyraform remains experimental, unstable, not
+safety-certified, and not production-ready. Mission 07 must prove each gate
+before any of these decisions may be described as executable support.
