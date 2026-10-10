@@ -1,0 +1,139 @@
+diff --git a/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_assignment_probe.flow b/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_assignment_probe.flow
+new file mode 100644
+index 0000000..79ebce4
+--- /dev/null
++++ b/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_assignment_probe.flow
+@@ -0,0 +1,18 @@
++program statement_assignment_probe
++
++fn adjust(x : int) -> int {
++    value : int(x)
++    value = value + 1
++
++    if value > 0 {
++        value = value * 2
++    }
++
++    return value
++}
++
++main {
++    a : int(1)
++    b : int(2)
++    a = b + 3
++}
+diff --git a/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h b/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
+index fedb199..1bd9b60 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
++++ b/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
+@@ -223,8 +223,10 @@ struct Statement {
+ 
+     // C5 canonical statement expression roles.
+     // Let owns initializer_expression when initializer syntax contains a value
+-    // expression. Return owns value_expression. expression_ids remains a
+-    // derived JSON compatibility projection while C5 migration is in progress.
++    // expression. Return and plain-name Assignment own value_expression.
++    // expression_ids remains a derived JSON compatibility projection while C5
++    // migration is in progress. Assignment target generalization is deferred;
++    // the current Assignment name remains the canonical plain identifier target.
+     std::optional<std::size_t> initializer_expression;
+     std::optional<std::size_t> value_expression;
+ 
+diff --git a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
+index 689423d..9519dfb 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
++++ b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
+@@ -314,10 +314,11 @@ namespace flowmini::ast {
+                     const bool hasInitializer =
+                         hasCanonicalInitializer || statement.has_initializer;
+ 
+-                    const bool hasCanonicalReturnValue =
+-                        statement.kind == StatementKind::Return &&
++                    const bool hasCanonicalValue =
++                        (statement.kind == StatementKind::Return ||
++                         statement.kind == StatementKind::Assignment) &&
+                         statement.value_expression.has_value();
+-                    const bool hasValue = hasCanonicalReturnValue || statement.has_value;
++                    const bool hasValue = hasCanonicalValue || statement.has_value;
+ 
+                     std::vector<std::size_t> projectedExpressionIds = statement.expressions;
+                     if (statement.kind == StatementKind::Let) {
+@@ -325,7 +326,8 @@ namespace flowmini::ast {
+                         if (statement.initializer_expression) {
+                             projectedExpressionIds.push_back(*statement.initializer_expression);
+                         }
+-                    } else if (statement.kind == StatementKind::Return) {
++                    } else if (statement.kind == StatementKind::Return ||
++                               statement.kind == StatementKind::Assignment) {
+                         projectedExpressionIds.clear();
+                         if (statement.value_expression) {
+                             projectedExpressionIds.push_back(*statement.value_expression);
+@@ -376,7 +378,7 @@ namespace flowmini::ast {
+                         out << "\"has_value\": true";
+                     }
+ 
+-                    if (hasCanonicalReturnValue) {
++                    if (hasCanonicalValue) {
+                         out << ",\n";
+                         dump_indent(out, indent + 4);
+                         out << "\"value_expression_id\": " << *statement.value_expression;
+diff --git a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
+index c783d7a..dde6d7a 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
++++ b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
+@@ -1911,10 +1911,11 @@ namespace flowmini::ast {
+ 
+             i += 2; // consume name and '='
+ 
+-            statement.has_value = has_expression_until_statement_boundary(tokens, i);
++            const bool hasValue = has_expression_until_statement_boundary(tokens, i);
+ 
+-            if (statement.has_value && i < tokens.size()) {
+-                add_expression_placeholder_at(expressionPool, statement, tokens, i);
++            if (hasValue && i < tokens.size()) {
++                statement.value_expression = add_expression_placeholder_at(
++                    expressionPool, statement, tokens, i, false);
+             }
+ 
+             body.push_back(std::move(statement));
+diff --git a/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py b/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
+index c523c0b..371598e 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
++++ b/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
+@@ -184,25 +184,31 @@ def validate_statement_types(statements: object, context: str, expression_count:
+                         f"{statement_context}: initializer does not match expression_ids projection"
+                     )
+ 
+-        if statement.get("kind") == "return":
++        if statement.get("kind") in {"return", "assignment"}:
++            value_role = statement["kind"]
+             value_expression_id = statement.get("value_expression_id")
+             if value_expression_id is None:
+                 if statement.get("has_value") is True or expression_ids:
+                     raise ValueError(
+-                        f"{statement_context}: valueless return disagrees with compatibility projection"
++                        f"{statement_context}: valueless {value_role} disagrees with "
++                        "compatibility projection"
+                     )
+             else:
+                 if not isinstance(value_expression_id, int):
+                     raise TypeError(f"{statement_context}: value_expression_id must be an integer")
+                 if value_expression_id < 0 or value_expression_id >= expression_count:
+                     raise ValueError(
+-                        f"{statement_context}: dangling return value expression id {value_expression_id}"
++                        f"{statement_context}: dangling {value_role} value expression id "
++                        f"{value_expression_id}"
+                     )
+                 if statement.get("has_value") is not True:
+-                    raise ValueError(f"{statement_context}: return value requires has_value projection")
++                    raise ValueError(
++                        f"{statement_context}: {value_role} value requires has_value projection"
++                    )
+                 if expression_ids != [value_expression_id]:
+                     raise ValueError(
+-                        f"{statement_context}: return value does not match expression_ids projection"
++                        f"{statement_context}: {value_role} value does not match "
++                        "expression_ids projection"
+                     )
+ 
+         if "type" in statement or "type_ref" in statement:

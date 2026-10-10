@@ -1,0 +1,350 @@
+diff --git a/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h b/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
+--- a/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
++++ b/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
+@@ -208,13 +208,18 @@
+     bool has_value = false;
+     bool has_condition = false;
+ 
++    // C5 statement-role deepening starts with Return.
++    // For Return this is canonical ownership; expression_ids remains a
++    // derived JSON compatibility projection.
++    std::optional<std::size_t> value_expression;
++
+     bool has_body = false;
+     SourceLocation body_location;
+ 
+     std::vector<Statement> body;
+ 
+-    // For v24 this remains intentionally skeletal.
+-    // Expressions and nested statement bodies are populated in later steps.
++    // Legacy statement-expression storage retained while the remaining
++    // statement kinds migrate to explicit semantic roles during C5.
+     std::vector<std::size_t> child_statements;
+     std::vector<std::size_t> expressions;
+ };
+diff --git a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
+--- a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
++++ b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
+@@ -540,12 +540,15 @@
+         std::size_t add_expression_placeholder(std::vector<Expression>& expressionPool,
+                                                Statement& statement,
+-                                               const flowmini::Token& token) {
++                                               const flowmini::Token& token,
++                                               const bool attachToLegacyProjection = true) {
+             Expression expression;
+             expression.location = location_from_token(token);
+             expression.payload = make_leaf_payload(token);
+ 
+             expressionPool.push_back(std::move(expression));
+             const auto expressionId = expressionPool.size() - 1;
+-            statement.expressions.push_back(expressionId);
++            if (attachToLegacyProjection) {
++                statement.expressions.push_back(expressionId);
++            }
+             return expressionId;
+         }
+@@ -1780,25 +1780,30 @@
+     std::size_t add_expression_placeholder_at(std::vector<Expression>& expressionPool,
+                                               Statement& statement,
+                                               const std::vector<flowmini::Token>& tokens,
+-                                              const std::size_t i) {
++                                              const std::size_t i,
++                                              const bool attachToLegacyProjection = true) {
+             if (tokens.empty()) {
+                 return 0;
+             }
+ 
+             if (i >= tokens.size()) {
+-                return add_expression_placeholder(expressionPool, statement, tokens.back());
++                return add_expression_placeholder(
++                    expressionPool, statement, tokens.back(), attachToLegacyProjection);
+             }
+ 
+             auto expressionTokens = strip_enclosing_parentheses(expression_token_slice(tokens, i));
+             if (expressionTokens.empty()) {
+-                return add_expression_placeholder(expressionPool, statement, tokens[i]);
++                return add_expression_placeholder(
++                    expressionPool, statement, tokens[i], attachToLegacyProjection);
+             }
+ 
+             Expression expression = make_shallow_expression_from_tokens(expressionTokens, 0);
+ 
+             expressionPool.push_back(std::move(expression));
+             const auto expressionId = expressionPool.size() - 1;
+-            statement.expressions.push_back(expressionId);
++            if (attachToLegacyProjection) {
++                statement.expressions.push_back(expressionId);
++            }
+ 
+             populate_expression_children(expressionPool, expressionId, expressionTokens, 0, 0);
+ 
+@@ -1902,4 +1902,25 @@
+                                                 std::vector<Statement>& body,
+                                                 std::vector<Expression>& expressionPool);
+ 
++        std::size_t parse_return_statement_shell(const std::vector<flowmini::Token>& tokens,
++                                                 std::size_t i,
++                                                 std::vector<Statement>& body,
++                                                 std::vector<Expression>& expressionPool) {
++            Statement statement = make_statement_shell(StatementKind::Return, tokens[i]);
++            const auto valueStart = i + 1;
++
++            if (valueStart < tokens.size() &&
++                has_expression_until_statement_boundary(tokens, valueStart)) {
++                statement.value_expression = add_expression_placeholder_at(
++                    expressionPool,
++                    statement,
++                    tokens,
++                    valueStart,
++                    false);
++            }
++
++            body.push_back(std::move(statement));
++            return valueStart;
++        }
++
+         std::size_t parse_if_statement_shell(const std::vector<flowmini::Token>& tokens,
+@@ -2010,10 +2010,4 @@
+                 if (is_return_token(tokens[i])) {
+-                    Statement statement = make_statement_shell(StatementKind::Return, tokens[i]);
+-                    statement.has_value = has_expression_until_statement_boundary(tokens, i + 1);
+-                    if (statement.has_value && i + 1 < tokens.size()) {
+-                        add_expression_placeholder_at(expressionPool, statement, tokens, i + 1);
+-                    }
+-                    body.push_back(std::move(statement));
+-                    ++i;
++                    i = parse_return_statement_shell(tokens, i, body, expressionPool);
+                     continue;
+                 }
+@@ -2052,69 +2052,7 @@
+             hasBody = true;
+             bodyLocation = location_from_token(tokens[i]);
+ 
+-            ++i; // consume '{'
+-            std::size_t braceDepth = 1;
+-
+-            while (i < tokens.size() && !is_end_token(tokens[i])) {
+-                if (tokens[i].kind == flowmini::TokenKind::LeftBrace) {
+-                    ++braceDepth;
+-                    ++i;
+-                    continue;
+-                }
+-
+-                if (tokens[i].kind == flowmini::TokenKind::RightBrace) {
+-                    --braceDepth;
+-                    ++i;
+-
+-                    if (braceDepth == 0) {
+-                        return i;
+-                    }
+-
+-                    continue;
+-                }
+-
+-                if (braceDepth == 1) {
+-                    if (is_typed_binding_start(tokens, i)) {
+-                        i = parse_typed_binding_statement_shell(tokens, i, body, expressionPool);
+-                        continue;
+-                    }
+-
+-                    if (is_if_token(tokens[i])) {
+-                        i = parse_if_statement_shell(tokens, i, body, expressionPool);
+-                        continue;
+-                    }
+-
+-                    if (is_while_token(tokens[i])) {
+-                        i = parse_while_statement_shell(tokens, i, body, expressionPool);
+-                        continue;
+-                    }
+-
+-                    if (is_plain_assignment_start(tokens, i)) {
+-                        i = parse_plain_assignment_statement_shell(tokens, i, body, expressionPool);
+-                        continue;
+-                    }
+-
+-                    if (is_return_token(tokens[i])) {
+-                        body.push_back(make_statement_shell(StatementKind::Return, tokens[i]));
+-                        ++i;
+-                        continue;
+-                    }
+-
+-                    if (is_break_token(tokens[i])) {
+-                        body.push_back(make_statement_shell(StatementKind::Break, tokens[i]));
+-                        ++i;
+-                        continue;
+-                    }
+-
+-                    if (is_continue_token(tokens[i])) {
+-                        body.push_back(make_statement_shell(StatementKind::Continue, tokens[i]));
+-                        ++i;
+-                        continue;
+-                    }
+-                }
+-
+-                ++i;
+-            }
+-
+-            return i;
++            // All statement bodies, whether function/main or nested control-flow
++            // bodies, must pass through the same parser.
++            return parse_body_statement_shells(tokens, i, body, expressionPool);
+         }
+diff --git a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
+--- a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
++++ b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
+@@ -307,5 +307,18 @@
+                 for (std::size_t i = 0; i < statements.size(); ++i) {
+                     const auto& statement = statements[i];
++
++                    const bool hasCanonicalReturnValue =
++                        statement.kind == StatementKind::Return &&
++                        statement.value_expression.has_value();
++                    const bool hasValue = hasCanonicalReturnValue || statement.has_value;
++
++                    std::vector<std::size_t> projectedExpressionIds = statement.expressions;
++                    if (statement.kind == StatementKind::Return) {
++                        projectedExpressionIds.clear();
++                        if (statement.value_expression) {
++                            projectedExpressionIds.push_back(*statement.value_expression);
++                        }
++                    }
+ 
+                     dump_indent(out, indent + 2);
+                     out << "{\n";
+@@ -338,10 +351,16 @@
+                         out << "\"has_initializer\": true";
+                     }
+ 
+-                    if (statement.has_value) {
++                    if (hasValue) {
+                         out << ",\n";
+                         dump_indent(out, indent + 4);
+                         out << "\"has_value\": true";
++                    }
++
++                    if (hasCanonicalReturnValue) {
++                        out << ",\n";
++                        dump_indent(out, indent + 4);
++                        out << "\"value_expression_id\": " << *statement.value_expression;
+                     }
+ 
+                     if (statement.has_condition) {
+@@ -350,15 +369,15 @@
+                         out << "\"has_condition\": true";
+                     }
+ 
+-                    if (!statement.expressions.empty()) {
++                    if (!projectedExpressionIds.empty()) {
+                         out << ",\n";
+                         dump_indent(out, indent + 4);
+                         out << "\"expression_ids\": [";
+-                        for (std::size_t exprIndex = 0; exprIndex < statement.expressions.size(); ++exprIndex) {
++                        for (std::size_t exprIndex = 0; exprIndex < projectedExpressionIds.size(); ++exprIndex) {
+                             if (exprIndex > 0) {
+                                 out << ", ";
+                             }
+-                            out << statement.expressions[exprIndex];
++                            out << projectedExpressionIds[exprIndex];
+                         }
+                         out << "]";
+                     }
+diff --git a/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py b/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
+--- a/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
++++ b/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
+@@ -143,16 +143,49 @@
+-def validate_statement_types(statements: object, context: str) -> None:
++def validate_statement_types(statements: object, context: str, expression_count: int) -> None:
+     if not isinstance(statements, list):
+         raise TypeError(f"{context}: body_statements must be an array")
+     for index, statement in enumerate(statements):
+         statement_context = f"{context}: statement {index}"
+         if not isinstance(statement, dict):
+             raise TypeError(f"{statement_context} must be an object")
++
++        expression_ids = statement.get("expression_ids", [])
++        if not isinstance(expression_ids, list) or not all(
++            isinstance(expression_id, int) for expression_id in expression_ids
++        ):
++            raise TypeError(f"{statement_context}: expression_ids must be an integer array")
++        for expression_id in expression_ids:
++            if expression_id < 0 or expression_id >= expression_count:
++                raise ValueError(f"{statement_context}: dangling statement expression id {expression_id}")
++
++        if statement.get("kind") == "return":
++            value_expression_id = statement.get("value_expression_id")
++            if value_expression_id is None:
++                if statement.get("has_value") is True or expression_ids:
++                    raise ValueError(
++                        f"{statement_context}: valueless return disagrees with compatibility projection"
++                    )
++            else:
++                if not isinstance(value_expression_id, int):
++                    raise TypeError(f"{statement_context}: value_expression_id must be an integer")
++                if value_expression_id < 0 or value_expression_id >= expression_count:
++                    raise ValueError(
++                        f"{statement_context}: dangling return value expression id {value_expression_id}"
++                    )
++                if statement.get("has_value") is not True:
++                    raise ValueError(f"{statement_context}: return value requires has_value projection")
++                if expression_ids != [value_expression_id]:
++                    raise ValueError(
++                        f"{statement_context}: return value does not match expression_ids projection"
++                    )
++
+         if "type" in statement or "type_ref" in statement:
+             canonical = validate_type_ref(statement.get("type_ref"), statement_context)
+             if statement.get("type") != canonical:
+                 raise ValueError(f"{statement_context}: type string disagrees with canonical type_ref")
+         if "body_statements" in statement:
+-            validate_statement_types(statement["body_statements"], statement_context)
++            validate_statement_types(
++                statement["body_statements"], statement_context, expression_count
++            )
+ 
+ 
+-def validate_declaration_types(document: dict, path: Path) -> None:
++def validate_declaration_types(document: dict, path: Path, expression_count: int) -> None:
+@@ -180,2 +180,4 @@
+-            validate_statement_types(declaration.get("body_statements"), context)
++            validate_statement_types(
++                declaration.get("body_statements"), context, expression_count
++            )
+         elif kind == "record":
+@@ -205,15 +205,17 @@
+         elif kind == "main_block":
+-            validate_statement_types(declaration.get("body_statements"), context)
++            validate_statement_types(
++                declaration.get("body_statements"), context, expression_count
++            )
+ 
+ 
+ def validate(path: Path) -> None:
+     with path.open(encoding="utf-8") as stream:
+         document = json.load(stream)
+ 
+-    validate_declaration_types(document, path)
+-
+     expressions = document.get("expression_pool")
+     if not isinstance(expressions, list):
+         raise TypeError(f"{path}: expression_pool must be an array")
+     if document.get("expression_pool_size") != len(expressions):
+         raise ValueError(f"{path}: expression_pool_size does not match expression_pool")
++
++    validate_declaration_types(document, path, len(expressions))
+diff --git a/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_return_probe.flow b/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_return_probe.flow
+new file mode 100644
+--- /dev/null
++++ b/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_return_probe.flow
+@@ -0,0 +1,12 @@
++program statement_return_probe
++
++fn direct(x : int) -> int {
++    return x + 1
++}
++
++fn nested(x : int, ready : bool) -> int {
++    if ready {
++        return x + 1
++    }
++    return x
++}

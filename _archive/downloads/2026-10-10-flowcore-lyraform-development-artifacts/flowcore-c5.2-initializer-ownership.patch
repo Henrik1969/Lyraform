@@ -1,0 +1,149 @@
+diff --git a/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_initializer_probe.flow b/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_initializer_probe.flow
+new file mode 100644
+index 0000000..8b2ecbf
+--- /dev/null
++++ b/Flowmini/flowmini_v24_explicit_ast/examples/ast/statement_initializer_probe.flow
+@@ -0,0 +1,15 @@
++program statement_initializer_probe
++
++fn seed() -> int {
++    return 3
++}
++
++main {
++    scalar : int(1 + seed())
++    values : list<int>([1, 2, 3])
++    source : stdin.text()
++
++    if true {
++        nested : int(scalar + 1)
++    }
++}
+diff --git a/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h b/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
+index 93bd8fd..fedb199 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
++++ b/Flowmini/flowmini_v24_explicit_ast/include/flowmini_ast.h
+@@ -221,9 +221,11 @@ struct Statement {
+     bool has_value = false;
+     bool has_condition = false;
+ 
+-    // C5 statement-role deepening starts with Return.
+-    // For Return this is canonical ownership; expression_ids remains a
+-    // derived JSON compatibility projection.
++    // C5 canonical statement expression roles.
++    // Let owns initializer_expression when initializer syntax contains a value
++    // expression. Return owns value_expression. expression_ids remains a
++    // derived JSON compatibility projection while C5 migration is in progress.
++    std::optional<std::size_t> initializer_expression;
+     std::optional<std::size_t> value_expression;
+ 
+     bool has_body = false;
+diff --git a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
+index dc39fd2..689423d 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
++++ b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast.cpp
+@@ -308,13 +308,24 @@ namespace flowmini::ast {
+                 for (std::size_t i = 0; i < statements.size(); ++i) {
+                     const auto& statement = statements[i];
+ 
++                    const bool hasCanonicalInitializer =
++                        statement.kind == StatementKind::Let &&
++                        statement.initializer_expression.has_value();
++                    const bool hasInitializer =
++                        hasCanonicalInitializer || statement.has_initializer;
++
+                     const bool hasCanonicalReturnValue =
+                         statement.kind == StatementKind::Return &&
+                         statement.value_expression.has_value();
+                     const bool hasValue = hasCanonicalReturnValue || statement.has_value;
+ 
+                     std::vector<std::size_t> projectedExpressionIds = statement.expressions;
+-                    if (statement.kind == StatementKind::Return) {
++                    if (statement.kind == StatementKind::Let) {
++                        projectedExpressionIds.clear();
++                        if (statement.initializer_expression) {
++                            projectedExpressionIds.push_back(*statement.initializer_expression);
++                        }
++                    } else if (statement.kind == StatementKind::Return) {
+                         projectedExpressionIds.clear();
+                         if (statement.value_expression) {
+                             projectedExpressionIds.push_back(*statement.value_expression);
+@@ -346,12 +357,19 @@ namespace flowmini::ast {
+                         dump_type_ref_json(out, statement.type);
+                     }
+ 
+-                    if (statement.has_initializer) {
++                    if (hasInitializer) {
+                         out << ",\n";
+                         dump_indent(out, indent + 4);
+                         out << "\"has_initializer\": true";
+                     }
+ 
++                    if (hasCanonicalInitializer) {
++                        out << ",\n";
++                        dump_indent(out, indent + 4);
++                        out << "\"initializer_expression_id\": "
++                            << *statement.initializer_expression;
++                    }
++
+                     if (hasValue) {
+                         out << ",\n";
+                         dump_indent(out, indent + 4);
+diff --git a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
+index 4d78fc2..c783d7a 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
++++ b/Flowmini/flowmini_v24_explicit_ast/src/flowmini_ast_builder.cpp
+@@ -1879,9 +1879,12 @@ namespace flowmini::ast {
+                 const auto expressionStart = i + 1;
+                 if (expressionStart < tokens.size() &&
+                     tokens[expressionStart].kind != flowmini::TokenKind::RightParen) {
+-                    add_expression_placeholder_at(expressionPool, statement, tokens, expressionStart);
+-                } else {
+-                    add_expression_placeholder_at(expressionPool, statement, tokens, i);
++                    statement.initializer_expression = add_expression_placeholder_at(
++                        expressionPool,
++                        statement,
++                        tokens,
++                        expressionStart,
++                        false);
+                 }
+             }
+ 
+diff --git a/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py b/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
+index 32b7d85..c523c0b 100644
+--- a/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
++++ b/Flowmini/flowmini_v24_explicit_ast/tools/validate-flowmini-ast-payloads.py
+@@ -157,6 +157,33 @@ def validate_statement_types(statements: object, context: str, expression_count:
+             if expression_id < 0 or expression_id >= expression_count:
+                 raise ValueError(f"{statement_context}: dangling statement expression id {expression_id}")
+ 
++        if statement.get("kind") == "let":
++            initializer_expression_id = statement.get("initializer_expression_id")
++            if initializer_expression_id is None:
++                if expression_ids:
++                    raise ValueError(
++                        f"{statement_context}: let expression_ids require canonical initializer ownership"
++                    )
++            else:
++                if not isinstance(initializer_expression_id, int):
++                    raise TypeError(
++                        f"{statement_context}: initializer_expression_id must be an integer"
++                    )
++                if initializer_expression_id < 0 or initializer_expression_id >= expression_count:
++                    raise ValueError(
++                        f"{statement_context}: dangling initializer expression id "
++                        f"{initializer_expression_id}"
++                    )
++                if statement.get("has_initializer") is not True:
++                    raise ValueError(
++                        f"{statement_context}: initializer expression requires "
++                        "has_initializer projection"
++                    )
++                if expression_ids != [initializer_expression_id]:
++                    raise ValueError(
++                        f"{statement_context}: initializer does not match expression_ids projection"
++                    )
++
+         if statement.get("kind") == "return":
+             value_expression_id = statement.get("value_expression_id")
+             if value_expression_id is None:
