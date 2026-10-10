@@ -2,7 +2,7 @@
 
 Date: 2026-10-09. Base: `86a5c69d58bacb09f393cef2a3d4e798ac9fe3ad`.
 Selected mission: [canonical disposition lanes and wire closure](../tasks/canonical-disposition-lanes-and-wire-closure.md).
-Status: **BLOCKED at source admission; no source/backend lane claim**.
+Status: **DECIDED on 2026-10-10; implementation remains pending**.
 
 ## Exact missing source fact
 
@@ -71,10 +71,28 @@ state. Whole-graph/process quarantine, restart and implicit termination remain
 unselected. The new declarative bridge validates only activation scope; it does
 not implement this protocol or claim that process termination is containment.
 
-## Decision required
+## Decision — 2026-10-10
 
-Select A (external semantic declarations), B (source associations), or C
-(defer), and review the envelope/commit boundary before source implementation.
-Separately select an observable activation containment protocol before native
-fault execution. Stages 3 and executable 5 depend on these decisions; completed
-independent bridge, diagnostic and reference evidence work is retained.
+The selected model is a deliberate combination with strict authority
+boundaries:
+
+- source-visible declarations own producer disposition sets, typed read-only
+  envelope inputs, exact recovery/transformation meaning, closed consumer
+  membership, graph association, and typed rejoin;
+- versioned policy selects only among the exact source-authorized response
+  functions and may be external or embedded without changing its authority;
+- runtime executes an explicit activation disposition and returns a validated
+  quarantined result for faults instead of terminating below the host boundary;
+- a versioned host policy owns the command-host `report_and_fail` projection.
+
+This adopts Candidate B for semantic meaning and the safe portion of Candidate
+A only for route selection. External declarations may not invent source
+semantics.
+
+The exact accepted language and policy model is [ADR 0066](../architecture/decisions/0066-source-declared-disposition-consumers-and-policy-selection.md).
+The exact activation and host-boundary model is [ADR 0067](../architecture/decisions/0067-explicit-quarantined-activation-results.md).
+The bounded implementation campaign is [Mission 07](../tasks/canonical-source-disposition-and-quarantine-execution-mission-07.md).
+
+The prior `BLOCKED` result remains historically accurate for the autonomous run
+that discovered the decision boundary. The human decision is now complete; a
+new explicitly invoked mission may proceed without reopening these semantics.
