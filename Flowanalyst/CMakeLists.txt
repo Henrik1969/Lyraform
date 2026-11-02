@@ -107,3 +107,7 @@ add_test(NAME lyraform_arithmetic_division_canon
 add_test(NAME lyraform_numeric_promotion_canon
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-numeric-promotion-canon.py
         --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_unreachable_invalid_branch
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-unreachable-invalid-branch.py
+        --build ${CMAKE_BINARY_DIR})

@@ -56,10 +56,12 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest current-truth verification is the
-[2026-11-02 numeric promotion vertical slice](checkpoints/2026-11-02-numeric-promotion-slice.md).
-It records the focused cross-backend arithmetic evidence and the current
+[2026-11-02 unreachable-invalid-branch vertical slice](checkpoints/2026-11-02-unreachable-invalid-branch.md),
+which locks the whole-program semantic admission boundary. The preceding
+[numeric promotion vertical slice](checkpoints/2026-11-02-numeric-promotion-slice.md)
+records the focused cross-backend arithmetic evidence and the current
 whole-suite result of 160/198 tests; the repository remains non-green during
-the explicit-width and integration migrations. The preceding
+the explicit-width and integration migrations. The earlier
 [Lyraform language-maturation publication](reports/2026-11-02-lyraform-language-maturation-publication.md)
 records the earlier 166/196 measurement. Neither is a claim of language-
 maturation completion.

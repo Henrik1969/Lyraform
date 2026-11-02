@@ -613,6 +613,15 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     std::vector<Resolution> resolutions;
     std::map<int, std::pair<int, int>> expression_context;
     std::set<std::pair<int, int>> visited_expressions;
+    auto set_resolution_provenance = [&](Diagnostic& diagnostic, int statement_id) {
+        if (!statements.count(statement_id)) return;
+        const Json origin = statement_source_provenance(
+            bundle, statement_id, field(*statements.at(statement_id), "location"));
+        diagnostic.ast_path = text(field(origin, "ast_path"));
+        diagnostic.source = text(field(origin, "source"));
+        diagnostic.line = integer(field(origin, "line"));
+        diagnostic.column = integer(field(origin, "column"));
+    };
     std::function<void(int, int, int)> resolve_expression = [&](int expression_id, int statement_id, int scope_id) {
         if (!expressions.count(expression_id) || scope_id < 0 || !visited_expressions.emplace(expression_id, scope_id).second) return;
         expression_context[expression_id] = {statement_id, scope_id};
@@ -633,6 +642,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     else if (contract_matches.size() > 1) {
                         ambiguous = true;
                         add_diagnostic("FLOWANALYST_AMBIGUOUS_NAME", "unqualified name '" + name + "' is provided by multiple imported contracts; qualify it with its namespace", -1, "scope:" + std::to_string(scope_id));
+                        set_resolution_provenance(diagnostics.back(), statement_id);
                         break;
                     }
                 }
@@ -640,7 +650,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             }
             resolutions.push_back({expression_id, statement_id, scope_id, found, name});
             bool intrinsic = false; for (const auto& item : intrinsic_roots) if (item == name) intrinsic = true; for (const auto& item : intrinsic_functions) if (item == name) intrinsic = true;
-            if (found < 0 && !intrinsic && !ambiguous) add_diagnostic("FLOWANALYST_UNRESOLVED_NAME", "name '" + name + "' cannot be resolved", -1, "scope:" + std::to_string(scope_id));
+            if (found < 0 && !intrinsic && !ambiguous) {
+                add_diagnostic("FLOWANALYST_UNRESOLVED_NAME", "name '" + name + "' cannot be resolved", -1, "scope:" + std::to_string(scope_id));
+                set_resolution_provenance(diagnostics.back(), statement_id);
+            }
         }
         for (const auto& child : list(field(*expression, "child_expressions"))) resolve_expression(integer(&child), statement_id, scope_id);
     };
