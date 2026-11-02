@@ -3,14 +3,20 @@
 ## Stabilization work in progress — 2026-11-01
 
 [G1 passed on its preserved snapshot](checkpoints/2026-11-01-contract-stabilization-g1.md); G2 is active. The safety checks
-now admit only the bounded R1/R2/R3/R4/R5 scalar refinement lifecycle: direct
+now admit only the bounded R1/R2/R3/R4/R5/R6 scalar and aggregate refinement lifecycle: direct
 construction, assignment, function argument/return boundaries, and finite
 aggregate field boundaries, including nested finite aggregates, whose
 predicates are statically proved; other
 value-bearing refinements with unenforced predicates remain refused. Integer
 quotients (`div`) whose safety
 cannot be established and has no admitted failure route remain refused. The
-bounded numeric slice now also admits `+`, `-`, `*`, and
+R6 aggregate slice now admits explicit record cross-field invariants for
+finite integer literals and arithmetic/comparison expressions during aggregate
+construction. Violations, unknown field names, and values that cannot be
+statically proved remain refused; this is a semantic admission fact, not a
+backend execution claim.
+
+The bounded numeric slice now also admits `+`, `-`, `*`, and
 true division (`/`) with explicit integer-to-`float64` promotion; static zero
 divisors remain refused. The accepted cases execute on LLVM and TinyVM.
 
@@ -61,6 +67,9 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest current-truth verification is the
+[2026-11-02 aggregate cross-field invariant vertical slice](checkpoints/2026-11-02-aggregate-cross-field-invariant-slice.md),
+which adds explicit record-level laws to the structured frontend and checks
+them before aggregate admission. The
 [2026-11-02 nested refined-aggregate vertical slice](checkpoints/2026-11-02-refinement-nested-aggregates-slice.md),
 which proves that refined-field construction, projection, and reconstruction
 facts compose through nested finite aggregates. Invalid and unknown nested

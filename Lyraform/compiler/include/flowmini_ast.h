@@ -375,6 +375,11 @@ struct ConsumerDecl {
     SourceLocation body_location;
 };
 
+struct InvariantClause {
+    std::size_t condition_expression = 0;
+    SourceLocation location;
+};
+
 struct RecordField {
     std::string name;
     TypeRef type;
@@ -384,11 +389,7 @@ struct RecordField {
 struct RecordDecl {
     std::string name;
     std::vector<RecordField> fields;
-    SourceLocation location;
-};
-
-struct InvariantClause {
-    std::size_t condition_expression = 0;
+    std::vector<InvariantClause> invariants;
     SourceLocation location;
 };
 

@@ -394,6 +394,7 @@ void project_function_decl(symboltable::SymbolTable& table,
 }
 
 void project_record_decl(symboltable::SymbolTable& table,
+                         const AstModule& module,
                          const symboltable::ScopeId moduleScope,
                          const RecordDecl& decl,
                          std::vector<SymbolAstOrigin>& symbolOrigins,
@@ -449,6 +450,18 @@ void project_record_decl(symboltable::SymbolTable& table,
                                fieldSymbol,
                                "declared_type_spelling",
                                field.type);
+    }
+
+    for (const auto& invariant : decl.invariants) {
+        const auto spelling = expression_tree_text(invariant.condition_expression,
+                                                   module.expression_pool);
+        if (!spelling.empty()) {
+            add_string_fact(table,
+                            recordSymbol,
+                            symboltable::FactoidKind::Custom,
+                            "aggregate_invariant_spelling",
+                            spelling);
+        }
     }
 }
 
@@ -810,6 +823,7 @@ struct ProjectTopLevelDecl {
 
     void operator()(const RecordDecl& decl) const {
         project_record_decl(table,
+                            module,
                             moduleScope,
                             decl,
                             symbolOrigins,

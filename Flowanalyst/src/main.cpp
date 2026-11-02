@@ -1086,6 +1086,22 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     // R4 carries the same proof into finite ordinary-record construction. The
     // record artifact uses the proven base carrier, while this pass retains
     // the source refinement identity and refuses invalid or unknown fields.
+    std::map<int, std::vector<int>> record_invariants;
+    for (const auto& [declaration_id, declaration] : declarations) {
+        if (text(field(*declaration, "kind")) != "record") continue;
+        int record_symbol = -1;
+        for (const auto& [symbol_id, origin] : origins) {
+            if (text(field(*origin, "ast_path")) ==
+                "/declaration_pool/" + std::to_string(declaration_id)) {
+                record_symbol = symbol_id;
+                break;
+            }
+        }
+        if (record_symbol < 0) continue;
+        for (const auto& invariant : list(field(*declaration, "invariants")))
+            record_invariants[record_symbol].push_back(
+                integer(field(&invariant, "condition_expression")));
+    }
     std::map<int, std::vector<std::pair<std::string, std::string>>> record_fields;
     for (const auto& [record_symbol, symbol] : symbols) {
         if (text(field(*symbol, "kind")) != "Struct") continue;
@@ -1099,6 +1115,82 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 fact_value(*symbols.at(field_symbol), "declared_type_spelling"));
         }
     }
+    std::function<ConstantValue(int, const std::map<std::string, std::int64_t>&)> evaluate_record_constant =
+        [&](int expression_id, const std::map<std::string, std::int64_t>& values) -> ConstantValue {
+            if (!expressions.count(expression_id)) return {};
+            const auto* expression = expressions.at(expression_id);
+            const auto kind = text(field(*expression, "kind"));
+            const auto* payload = field(*expression, "payload");
+            if (kind == "integer_literal") {
+                try {
+                    std::size_t consumed = 0;
+                    const auto spelling = text(field(payload, "value_text"));
+                    const auto value = std::stoll(spelling, &consumed, 10);
+                    if (consumed == spelling.size())
+                        return {ConstantValue::Kind::integer, value, false};
+                } catch (const std::exception&) {}
+                return {};
+            }
+            if (kind == "identifier") {
+                const auto found = values.find(text(field(payload, "name")));
+                if (found != values.end())
+                    return {ConstantValue::Kind::integer, found->second, false};
+                return {};
+            }
+            if (kind == "unary") {
+                const auto operand = evaluate_record_constant(
+                    integer(field(payload, "operand")), values);
+                if (operand.kind != ConstantValue::Kind::integer) return {};
+                const auto operation = text(field(payload, "operator"));
+                if (operation == "+") return operand;
+                if (operation == "-" &&
+                    operand.integer != std::numeric_limits<std::int64_t>::min())
+                    return {ConstantValue::Kind::integer, -operand.integer, false};
+                return {};
+            }
+            if (kind != "binary") return {};
+            const auto left = evaluate_record_constant(
+                integer(field(payload, "left")), values);
+            const auto right = evaluate_record_constant(
+                integer(field(payload, "right")), values);
+            const auto operation = text(field(payload, "operator"));
+            if (left.kind != ConstantValue::Kind::integer ||
+                right.kind != ConstantValue::Kind::integer) return {};
+            if (operation == "+" || operation == "-" || operation == "*") {
+                std::int64_t result = 0;
+                const bool overflow = operation == "+"
+                    ? __builtin_add_overflow(left.integer, right.integer, &result)
+                    : operation == "-"
+                        ? __builtin_sub_overflow(left.integer, right.integer, &result)
+                        : __builtin_mul_overflow(left.integer, right.integer, &result);
+                return overflow ? ConstantValue{} :
+                    ConstantValue{ConstantValue::Kind::integer, result, false};
+            }
+            if (operation == "div") {
+                if (right.integer == 0 ||
+                    (left.integer == std::numeric_limits<std::int64_t>::min() &&
+                     right.integer == -1)) return {};
+                return {ConstantValue::Kind::integer, left.integer / right.integer, false};
+            }
+            if (operation == "==") return {ConstantValue::Kind::boolean, 0, left.integer == right.integer};
+            if (operation == "!=") return {ConstantValue::Kind::boolean, 0, left.integer != right.integer};
+            if (operation == "<") return {ConstantValue::Kind::boolean, 0, left.integer < right.integer};
+            if (operation == "<=") return {ConstantValue::Kind::boolean, 0, left.integer <= right.integer};
+            if (operation == ">") return {ConstantValue::Kind::boolean, 0, left.integer > right.integer};
+            if (operation == ">=") return {ConstantValue::Kind::boolean, 0, left.integer >= right.integer};
+            return {};
+        };
+    std::function<void(int, const std::set<std::string>&, bool&)> check_record_invariant_names =
+        [&](int expression_id, const std::set<std::string>& field_names, bool& valid) {
+            if (!expressions.count(expression_id)) { valid = false; return; }
+            const auto* expression = expressions.at(expression_id);
+            if (text(field(*expression, "kind")) == "identifier") {
+                const auto name = text(field(field(*expression, "payload"), "name"));
+                if (!field_names.count(name)) valid = false;
+            }
+            for (const auto& child : list(field(*expression, "child_expressions")))
+                check_record_invariant_names(integer(&child), field_names, valid);
+        };
     std::function<void(int, int, int, const std::string&, std::set<int>&)> check_record_refinements;
     check_record_refinements = [&](int statement_id, int expression_id, int scope,
                                    const std::string& type_name, std::set<int>& active) {
@@ -1112,6 +1204,42 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         std::map<std::string, int> supplied;
         for (const auto& item : list(field(field(*expressions.at(expression_id), "payload"), "fields")))
             supplied[text(field(&item, "name"))] = integer(field(&item, "value"));
+        if (record_invariants.count(record_symbol)) {
+            std::set<std::string> field_names;
+            for (const auto& [name, field_type] : record_fields.at(record_symbol)) {
+                (void)field_type;
+                field_names.insert(name);
+            }
+            for (const int invariant : record_invariants.at(record_symbol)) {
+                bool names_valid = true;
+                check_record_invariant_names(invariant, field_names, names_valid);
+                if (!names_valid) {
+                    add_diagnostic("FLOWANALYST_RECORD_INVARIANT_NAME",
+                        "aggregate invariant references a field that is not declared by the record",
+                        record_symbol, "symbol:" + std::to_string(record_symbol));
+                    set_resolution_provenance(diagnostics.back(), statement_id);
+                    continue;
+                }
+                std::map<std::string, std::int64_t> values;
+                for (const auto& [name, value_expression] : supplied) {
+                    const auto value = evaluate_record_constant(value_expression, {});
+                    if (value.kind == ConstantValue::Kind::integer)
+                        values[name] = value.integer;
+                }
+                const auto result = evaluate_record_constant(invariant, values);
+                if (result.kind != ConstantValue::Kind::boolean) {
+                    add_diagnostic("FLOWANALYST_RECORD_INVARIANT_UNPROVEN",
+                        "aggregate invariant requires statically known integer fields or an admitted runtime enforcement route",
+                        record_symbol, "symbol:" + std::to_string(record_symbol));
+                    set_resolution_provenance(diagnostics.back(), statement_id);
+                } else if (!result.boolean) {
+                    add_diagnostic("FLOWANALYST_RECORD_INVARIANT_VIOLATION",
+                        "aggregate construction violates a cross-field invariant",
+                        record_symbol, "symbol:" + std::to_string(record_symbol));
+                    set_resolution_provenance(diagnostics.back(), statement_id);
+                }
+            }
+        }
         for (const auto& [name, field_type] : record_fields.at(record_symbol)) {
             if (!supplied.count(name)) continue;
             const int field_type_symbol = visible_refinement_type(record_scope, field_type);

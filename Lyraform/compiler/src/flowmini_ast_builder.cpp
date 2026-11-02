@@ -409,6 +409,11 @@ namespace flowmini::ast {
             return id;
         }
 
+        std::size_t add_expression_placeholder_at(
+            std::vector<Expression>& expressionPool,
+            const std::vector<flowmini::Token>& tokens,
+            std::size_t i);
+
         std::size_t parse_import_declaration(const std::vector<flowmini::Token>& tokens,
                                              std::size_t i,
                                              AstModule& module) {
@@ -437,7 +442,8 @@ namespace flowmini::ast {
 
         std::size_t parse_record_fields(const std::vector<flowmini::Token>& tokens,
                                         std::size_t i,
-                                        RecordDecl& recordDecl) {
+                                        RecordDecl& recordDecl,
+                                        AstModule& module) {
             if (i >= tokens.size() || tokens[i].kind != flowmini::TokenKind::LeftBrace) {
                 return i;
             }
@@ -450,6 +456,30 @@ namespace flowmini::ast {
                 if (tokens[i].kind == flowmini::TokenKind::Newline ||
                     tokens[i].kind == flowmini::TokenKind::Comma) {
                     ++i;
+                    continue;
+                }
+
+                if (is_identifier_text(tokens[i], "invariant")) {
+                    InvariantClause clause;
+                    clause.location = location_from_token(tokens[i]);
+                    ++i;
+
+                    std::vector<flowmini::Token> expressionTokens;
+                    while (i < tokens.size() &&
+                           tokens[i].kind != flowmini::TokenKind::Newline &&
+                           tokens[i].kind != flowmini::TokenKind::RightBrace &&
+                           !is_end_token(tokens[i])) {
+                        expressionTokens.push_back(tokens[i]);
+                        ++i;
+                    }
+
+                    if (expressionTokens.empty()) {
+                        throw flow::DiagnosticError{"ast", "record invariant requires a comparison expression"};
+                    }
+
+                    clause.condition_expression = add_expression_placeholder_at(
+                        module.expression_pool, expressionTokens, 0);
+                    recordDecl.invariants.push_back(std::move(clause));
                     continue;
                 }
 
@@ -617,7 +647,7 @@ namespace flowmini::ast {
             recordDecl.location = nameLocation;
 
             if (i < tokens.size() && tokens[i].kind == flowmini::TokenKind::LeftBrace) {
-                i = parse_record_fields(tokens, i, recordDecl);
+                i = parse_record_fields(tokens, i, recordDecl, module);
             }
 
             append_top_level_declaration(module, std::move(recordDecl));
@@ -3340,7 +3370,7 @@ namespace flowmini::ast {
                     ++i;
                 }
 
-                i = parse_record_fields(tokens, i, recordDecl);
+                i = parse_record_fields(tokens, i, recordDecl, module);
                 append_top_level_declaration(module, std::move(recordDecl));
                 i = skip_until_next_top_levelish_token(tokens, i);
                 continue;

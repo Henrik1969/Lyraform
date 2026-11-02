@@ -126,3 +126,6 @@ add_test(NAME lyraform_refinement_aggregate_fields
 add_test(NAME lyraform_refinement_nested_aggregates
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-nested-aggregates.py
         --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_record_cross_field_invariants
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-record-cross-field-invariant-tests.py
+        ${CMAKE_BINARY_DIR})
