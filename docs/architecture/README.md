@@ -143,6 +143,7 @@ Foundational notes:
 - [ADR-0065: Fault containment halts and quarantines the exact scope](decisions/0065-fault-containment-halts-and-quarantines-scope.md)
 - [ADR-0066: Source declares disposition consumers; policy selects authorized routes](decisions/0066-source-declared-disposition-consumers-and-policy-selection.md)
 - [ADR-0067: Fault containment returns an explicit quarantined activation result](decisions/0067-explicit-quarantined-activation-results.md)
+- [ADR-0074: True division and integer quotient are distinct operations](decisions/0074-true-division-and-integer-quotient.md)
 - [Failure-flow semantic--syntax--graph projection map](failure-flow-semantic-syntax-graph-map.tex)
 - [Canonical executable failure flow — Mission 01](../tasks/canonical-executable-failure-flow-mission-01.md)
 - [Canonical executable failure flow — Mission 02](../tasks/canonical-executable-failure-flow-mission-02.md)
