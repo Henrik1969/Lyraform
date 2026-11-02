@@ -972,6 +972,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     // is statically provable. Calls, returns, assignments, aggregates and
     // dynamic values remain refused until their own lifecycle contracts exist.
     std::set<int> admitted_refinement_values;
+    std::map<int, int> admitted_refinement_types;
     std::set<int> rejected_refinement_constructions;
     std::function<ConstantValue(int, std::int64_t)> evaluate_refinement_constant =
         [&](int expression_id, std::int64_t value) -> ConstantValue {
@@ -1057,6 +1058,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             rejected_refinement_constructions.insert(symbol);
         } else if (proven) {
             admitted_refinement_values.insert(symbol);
+            admitted_refinement_types[symbol] = refinement;
             symbol_types[symbol] = base;
         }
     }
@@ -2268,6 +2270,29 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             if (candidate.kind == ConstantValue::Kind::integer) candidate_state[destination] = candidate.integer;
             else candidate_state.erase(destination);
             bool admitted = true;
+            if (admitted_refinement_values.count(destination)) {
+                const int refinement = admitted_refinement_types.at(destination);
+                bool proven = candidate.kind == ConstantValue::Kind::integer;
+                bool violated = false;
+                if (proven) for (const int invariant : refinement_invariants.at(refinement)) {
+                    const auto result = evaluate_refinement_constant(invariant, candidate.integer);
+                    if (result.kind != ConstantValue::Kind::boolean) { proven = false; break; }
+                    if (!result.boolean) violated = true;
+                }
+                if (violated) {
+                    add_diagnostic("FLOWANALYST_REFINED_ASSIGNMENT_VIOLATION",
+                        "assignment violates the refined value invariant",
+                        destination, "symbol:" + std::to_string(destination));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                    admitted = false;
+                } else if (!proven) {
+                    add_diagnostic("FLOWANALYST_REFINED_ASSIGNMENT_UNPROVEN",
+                        "refined assignment requires a statically provable invariant or an admitted runtime enforcement route",
+                        destination, "symbol:" + std::to_string(destination));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                    admitted = false;
+                }
+            }
             for (const auto& [name, guard] : active_guards) {
                 (void)name;
                 if (!guard.dependencies.count(destination)) continue;

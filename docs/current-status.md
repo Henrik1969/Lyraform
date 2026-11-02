@@ -3,9 +3,10 @@
 ## Stabilization work in progress — 2026-11-01
 
 [G1 passed on its preserved snapshot](checkpoints/2026-11-01-contract-stabilization-g1.md); G2 is active. The safety checks
-now admit only the bounded R1 case of a directly constructed scalar refinement
-whose predicates are statically proved; other value-bearing refinements with
-unenforced predicates remain refused. Integer quotients (`div`) whose safety
+now admit only the bounded R1/R2 scalar refinement lifecycle: direct
+construction and assignment whose predicates are statically proved; other
+value-bearing refinements with unenforced predicates remain refused. Integer
+quotients (`div`) whose safety
 cannot be established and has no admitted failure route remain refused. The
 bounded numeric slice now also admits `+`, `-`, `*`, and
 true division (`/`) with explicit integer-to-`float64` promotion; static zero
@@ -58,9 +59,13 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest current-truth verification is the
+[2026-11-02 refinement assignment vertical slice](checkpoints/2026-11-02-refinement-assignment-slice.md),
+which preserves the R1 construction proof when a refined scalar local is
+assigned a new statically valid value. Invalid and unknown assignments remain
+refused. The preceding
 [2026-11-02 refinement construction vertical slice](checkpoints/2026-11-02-refinement-construction-slice.md),
 which admits one statically proved scalar refinement construction through LLVM
-and TinyVM while retaining refusal for invalid and unknown values. The
+and TinyVM, remains the construction authority. The
 [unreachable-invalid-branch vertical slice](checkpoints/2026-11-02-unreachable-invalid-branch.md),
 which locks the whole-program semantic admission boundary, remains the
 preceding control-flow checkpoint. The
