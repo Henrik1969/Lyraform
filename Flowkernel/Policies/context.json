@@ -1,0 +1,36 @@
+{
+  "format": "development.policy-context.v1",
+  "project": "LyraForm/Flowkernel",
+  "title": "Lyraform component Flowkernel",
+  "shared_registry": "../../../Policies/PROJECTS.json",
+  "shared_baseline": "1.3",
+  "parent_context": "../../Policies/context.json",
+  "agent": "../AGENTS.md",
+  "policy_index": "README.md",
+  "local_policies": [
+    {
+      "path": "LOCAL-001.md",
+      "version": "1.1",
+      "status": "active policy map and scope record; not a conformance certificate"
+    }
+  ],
+  "state_location": "../.mission-state/<mission-id>/<revision>/",
+  "capabilities": [
+    "libraries"
+  ],
+  "audit": "AUDIT.md",
+  "evidence": [
+    {
+      "path": "../README.md",
+      "sha256": "47c17088447fcf8bc83d79c5bfa14af04a2663ea579a70d1e825008e42e9e920",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../CMakeLists.txt",
+      "sha256": "87d1586e2db7c47db4e4b57459a1ac15e1869c5a1a0902fa5a3d16655c875fb6",
+      "observed": "2026-10-17"
+    }
+  ],
+  "open_decisions": [],
+  "runtime_compliance": "not-certified"
+}

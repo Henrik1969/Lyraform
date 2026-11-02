@@ -6,6 +6,7 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowcontracts/bounded_input.hpp>
 #include <flowcontracts/diagnostics.hpp>
+#include <flowcontracts/disposition_facts.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
@@ -235,6 +236,7 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
     if (plan == nullptr) return;
     flowcontracts::validate_provider_authority(flowcontracts::json::object(root));
     flowcontracts::validate_scalar_facts(*plan, "$.lowering_plan");
+    flowcontracts::validate_disposition_facts(*plan, "$.lowering_plan");
     if (const auto* graph = json_field(*plan, "source_graph")) {
         const auto model = flowcontracts::source_graph(*graph, "$.lowering_plan.source_graph");
         if (!model.executable) throw std::runtime_error("source graph execution is not admitted");
@@ -658,8 +660,18 @@ int verify(const std::string& report, const std::string& policy_path, const std:
     } catch (const std::exception&) {
         generic_operation_count = 0;
     }
+    flowcontracts::json::Object disposition_projection;
+    if (const auto* plan = json_field(semantic_root, "lowering_plan")) {
+        if (json_field(*plan, "disposition_graph_version")) {
+            for (const auto* key : {"disposition_graph_version", "disposition_graph",
+                    "source_disposition", "source_disposition_policy", "host_disposition_policy"})
+                disposition_projection.emplace(key,
+                    flowcontracts::json::required(flowcontracts::json::object(*plan), key));
+        }
+    }
     std::cout << "],\n  \"aggregate_abi_layouts\": " << flowcontracts::json::serialize(verified_layouts)
               << ",\n  \"target_facts\":" << flowcontracts::json::serialize(target_facts)
+              << ",\n  \"disposition_projection\":" << flowcontracts::json::serialize(disposition_projection)
               << ",\n  \"lowering_plan\": {\"kind\": \"generic\""
               << ",\"contract\":\"flowcore.lowering_plan\",\"operation_count\":" << generic_operation_count;
     std::cout << "},\n  \"policy\": {\"status\": \"authorized\", \"grants\": " << grants.size() << "},\n  \"abi\": {\"convention\": \"c\", \"carrier_types_supported\": true, \"provider_signature_evidence\": \"not-provided\", \"sizeof_int\": " << sizeof(int) << ", \"sizeof_long\": " << sizeof(long) << ", \"sizeof_size_t\": " << sizeof(std::size_t) << ", \"sizeof_pointer\": " << sizeof(void*) << "},\n  \"execution\": \"not-performed\"\n}\n";

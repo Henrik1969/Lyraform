@@ -4,6 +4,8 @@
 #include <flowcontracts/outcome_execution.hpp>
 #include <flowcontracts/ownership_transfer.hpp>
 #include <flowcontracts/source_disposition.hpp>
+#include <flowcontracts/source_disposition_policy.hpp>
+#include <flowcontracts/disposition_graph.hpp>
 
 #include <map>
 #include <set>
@@ -91,8 +93,41 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
         source_disposition_operations.insert(integer(required(producer, "operation_id"),
             std::string(base) + ".source_disposition.producer.operation_id"));
     }
+    const auto* source_policy = optional(plan, "source_disposition_policy");
+    const auto* host_policy = optional(plan, "host_disposition_policy");
+    if ((source_policy || host_policy) && !source_disposition)
+        throw Error(std::string(base) + ".source_disposition",
+                    "policy selection has no source disposition topology");
+    if (source_policy != nullptr || host_policy != nullptr) {
+        if (!source_policy || !host_policy)
+            throw Error(std::string(base),
+                        "Gate 3 requires both route and host policy selections");
+        validate_source_disposition_policy_selection(
+            *source_policy, *optional(plan, "source_disposition"),
+            std::string(base) + ".source_disposition_policy",
+            std::string(base) + ".source_disposition");
+        validate_host_disposition_policy_selection(
+            *host_policy, *optional(plan, "source_disposition"),
+            std::string(base) + ".host_disposition_policy",
+            std::string(base) + ".source_disposition");
+    }
+    validate_disposition_graph(plan, std::string(base));
+    if (const auto* functions = optional(plan, "functions"))
+        for (const auto& raw : array(*functions, std::string(base) + ".functions")) {
+            const auto& function = object(raw);
+            if (!optional(function, "result_projection")) continue;
+            if (!source_disposition)
+                throw Error(std::string(base), "callable result projection lacks source disposition authority");
+            const auto& producer = object(required(*source_disposition, "producer"));
+            if (integer(required(function, "symbol_id")) != integer(required(producer, "function_symbol_id")) ||
+                serialize(required(function, "result_projection")) != serialize(required(producer, "result_projection")))
+                throw Error(std::string(base), "callable result projection is foreign to its producer");
+        }
+
     const auto* raw_facts = optional(plan, "disposition_facts");
     if (!raw_facts) {
+        if (source_disposition)
+            throw Error(std::string(base) + ".disposition_facts", "source disposition topology lacks its operation authority");
         // Artifacts predating guard/disposition authority make no claim. Once
         // guard facts exist, removing disposition authority is a downgrade.
         if (const auto* raw_guards = optional(plan, "guard_facts");
@@ -149,6 +184,53 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
         const auto topology_path = std::string(base) + ".source_disposition";
         const auto& producer = object(required(*source_disposition, "producer", topology_path),
                                       topology_path + ".producer");
+        for (const auto& raw : array(required(*source_disposition, "response_functions"), topology_path + ".response_functions")) {
+            const auto& response = object(raw);
+            const auto* parameter_id = optional(response, "parameter_symbol_id");
+            if (!parameter_id) continue; // Historical, non-executable topology witnesses.
+            const auto function_id = integer(required(response, "function_symbol_id"));
+            const Object* resolved = nullptr;
+            for (const auto& candidate : array(required(plan, "functions", base), std::string(base) + ".functions")) {
+                const auto& function = object(candidate);
+                if (integer(required(function, "symbol_id")) == function_id) {
+                    if (resolved) throw Error(topology_path, "duplicate response callable identity");
+                    resolved = &function;
+                }
+            }
+            if (!resolved || string(required(*resolved, "availability")) != "definition")
+                throw Error(topology_path, "response lacks its exact ordinary function definition");
+            const auto& parameters = array(required(*resolved, "parameters"), topology_path + ".response.parameters");
+            if (parameters.size() != 1)
+                throw Error(topology_path, "response requires exactly one envelope parameter");
+            const auto& parameter = object(parameters.front());
+            if (integer(required(parameter, "symbol_id")) != integer(*parameter_id) ||
+                string(required(parameter, "type")) != string(required(object(required(response, "incoming_failure_type")), "spelling")) ||
+                string(required(parameter, "input_projection")) != "immutable_failure_envelope" ||
+                string(required(*resolved, "return_type")) != string(required(object(required(response, "outgoing_type")), "spelling")))
+                throw Error(topology_path, "response callable disagrees with its envelope or result witness");
+        }
+        if (const auto* raw_rejoin = optional(*source_disposition, "rejoin")) {
+            const auto rejoin_path = topology_path + ".rejoin";
+            const auto& rejoin = object(*raw_rejoin, rejoin_path);
+            const auto function_id = integer(required(rejoin, "function_symbol_id", rejoin_path));
+            const Object* resolved = nullptr;
+            for (const auto& candidate : array(required(plan, "functions", base), std::string(base) + ".functions")) {
+                const auto& function = object(candidate);
+                if (integer(required(function, "symbol_id")) == function_id) {
+                    if (resolved) throw Error(rejoin_path, "duplicate rejoin callable identity");
+                    resolved = &function;
+                }
+            }
+            if (!resolved || string(required(*resolved, "availability")) != "definition")
+                throw Error(rejoin_path, "rejoin destination lacks its exact ordinary function definition");
+            const auto& parameters = array(required(*resolved, "parameters"), rejoin_path + ".parameters");
+            if (parameters.size() != 1 ||
+                integer(required(object(parameters.front()), "symbol_id")) !=
+                    integer(required(rejoin, "parameter_symbol_id")) ||
+                string(required(object(parameters.front()), "type")) !=
+                    string(required(rejoin, "input_type")))
+                throw Error(rejoin_path, "rejoin parameter identity or type disagrees with its callable");
+        }
         const auto operation_id = integer(required(producer, "operation_id", topology_path),
                                           topology_path + ".producer.operation_id");
         const auto found = operations_by_id.find(operation_id);
@@ -174,6 +256,30 @@ inline void validate_disposition_facts(const json::Value& value, std::string_vie
                         topology_path + ".producer.function_symbol_id"))
             throw Error(topology_path + ".producer.return_operation_id",
                         "source topology return boundary is foreign");
+        if (const auto* projection = optional(producer, "result_projection")) {
+            const auto function_id = integer(required(producer, "function_symbol_id"));
+            const Object* resolved = nullptr;
+            for (const auto& candidate : array(required(plan, "functions", base), std::string(base) + ".functions")) {
+                const auto& function = object(candidate);
+                if (integer(required(function, "symbol_id")) == function_id) {
+                    if (resolved) throw Error(topology_path, "duplicate producer callable identity");
+                    resolved = &function;
+                }
+            }
+            if (!resolved || string(required(*resolved, "availability")) != "definition" ||
+                string(required(*resolved, "return_type")) != string(required(object(required(producer, "success_type")), "spelling")) ||
+                serialize(required(*resolved, "result_projection")) != serialize(*projection))
+                throw Error(topology_path, "producer callable lost its tagged result projection");
+            const auto& operands = array(required(*returned->second, "operands"), topology_path + ".producer.return.operands");
+            if (operands.size() != 1)
+                throw Error(topology_path, "producer return must transfer exactly one tagged owner");
+            const auto& operand = object(operands.front());
+            if (string(required(operand, "kind")) != "identifier" ||
+                string(required(operand, "type")) != string(required(object(*projection), "carrier_type")) ||
+                integer(required(operand, "symbol_id")) != integer(required(producer, "owner_symbol_id")))
+                throw Error(topology_path, "producer return does not preserve its exact tagged owner");
+        }
+
     }
     std::map<Integer, const Object*> guards_by_id;
     std::map<Integer, std::vector<Integer>> safe_guards_by_operation;

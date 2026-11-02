@@ -1,0 +1,1 @@
+{'cases': 4, 'results': {'highest-tie-last': {'native': 33, 'tinyvm': 33}, 'highest-first': {'native': 11, 'tinyvm': 11}, 'missing': {'native': 1, 'tinyvm': 1}, 'reject-tie': {'native': 3, 'tinyvm': 3}}}

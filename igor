@@ -49,7 +49,18 @@ configure() {
     cmake -S "$ROOT" -B "$BUILD_DIR" -G "$GENERATOR"
 }
 
+check_build_context() {
+    [[ -f "$BUILD_DIR/CMakeCache.txt" ]] || return 0
+    local cached_source canonical_source canonical_root
+    cached_source=$(sed -n 's/^CMAKE_HOME_DIRECTORY:INTERNAL=//p' "$BUILD_DIR/CMakeCache.txt")
+    [[ -n "$cached_source" ]] || die "build cache has no source identity: $BUILD_DIR; select a fresh --build-dir"
+    canonical_source=$(cd -- "$cached_source" 2>/dev/null && pwd -P) || canonical_source="$cached_source"
+    canonical_root=$(cd -- "$ROOT" && pwd -P)
+    [[ "$canonical_source" == "$canonical_root" ]] || die "build cache belongs to $cached_source, not $canonical_root; select a fresh --build-dir (existing files were preserved)"
+}
+
 build() {
+    check_build_context
     if [[ ! -f "$BUILD_DIR/CMakeCache.txt" ]]; then
         configure
     fi
@@ -150,6 +161,7 @@ case "$command" in
     doctor)
         [[ "$#" -eq 0 ]] || die "doctor does not accept positional arguments"
         say "checking Lyraform toolchain readiness..."
+        check_build_context
         failures=0
         for tool in cmake ctest git jq clang; do
             if command -v "$tool" >/dev/null 2>&1; then
@@ -165,7 +177,7 @@ case "$command" in
             printf '  %-10s MISSING (required by generator %s)\n' ninja "$GENERATOR"
             failures=$((failures + 1))
         fi
-        for path in CMakeLists.txt Lyraform/compiler README.md REFERENCES.md; do
+        for path in CMakeLists.txt Lyraform/compiler Capabilities/Contracts Capabilities/LanguageMap Capabilities/Requirements Capabilities/Provenance Capabilities/ConfigResolveAdapter Capabilities/DebianPackages Capabilities/RuntimeDiscovery README.md REFERENCES.md; do
             if [[ -e "$ROOT/$path" ]]; then
                 printf '  %-10s present\n' "$path"
             else

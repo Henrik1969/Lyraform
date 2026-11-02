@@ -8,18 +8,22 @@
 // parser. No JSON, AST layout, backend carrier, or application policy lives here.
 namespace lyraform::scalar {
 
-enum class Type { integer, boolean, other, outside_slice, invalid };
+enum class Type { integer, boolean, text, other, outside_slice, invalid };
 
 constexpr Type type(std::string_view name) noexcept {
-    return name == "int" ? Type::integer : name == "Bool" ? Type::boolean : Type::outside_slice;
+    return name == "int" ? Type::integer : name == "Bool" ? Type::boolean : name == "Text" ? Type::text : Type::outside_slice;
 }
 constexpr bool selected(Type value) noexcept {
     return value == Type::integer || value == Type::boolean;
+}
+constexpr bool record_selected(Type value) noexcept {
+    return selected(value) || value == Type::text;
 }
 constexpr std::string_view name(Type value) noexcept {
     switch (value) {
         case Type::integer: return "int";
         case Type::boolean: return "Bool";
+        case Type::text: return "Text";
         case Type::other: return "other";
         case Type::invalid: return "invalid";
         default: return "outside_slice";

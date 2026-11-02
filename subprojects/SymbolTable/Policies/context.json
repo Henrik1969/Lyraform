@@ -1,0 +1,36 @@
+{
+  "format": "development.policy-context.v1",
+  "project": "LyraForm/subprojects/SymbolTable",
+  "title": "Lyraform-scoped SymbolTable",
+  "shared_registry": "../../../../Policies/PROJECTS.json",
+  "shared_baseline": "1.3",
+  "parent_context": "../../../Policies/context.json",
+  "agent": "../AGENTS.md",
+  "policy_index": "README.md",
+  "local_policies": [
+    {
+      "path": "LOCAL-001.md",
+      "version": "1.1",
+      "status": "active policy map and scope record; not a conformance certificate"
+    }
+  ],
+  "state_location": "../.mission-state/<mission-id>/<revision>/",
+  "capabilities": [
+    "libraries"
+  ],
+  "audit": "AUDIT.md",
+  "evidence": [
+    {
+      "path": "../README.md",
+      "sha256": "01dd5478c7e841a4d22f86b18fa30f02f163be934ec12b227076cd94f9fc426c",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../CHANGELOG.md",
+      "sha256": "4d493ad5c521acedede84a59608b50addfa2baefe99bed073b1ca6233125491e",
+      "observed": "2026-10-17"
+    }
+  ],
+  "open_decisions": [],
+  "runtime_compliance": "not-certified"
+}

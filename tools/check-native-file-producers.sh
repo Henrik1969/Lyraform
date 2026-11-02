@@ -12,7 +12,7 @@ source_roots=(
     Flowlower/src
     Flowoptimize/src
     Flowparallel/src
-    Frankencore/Core
+    Capabilities
     Lyraform/compiler/src
     subprojects/TinyVM/src
     subprojects/TinyVM/tools
@@ -27,9 +27,9 @@ mapfile -t observed < <(
 )
 
 expected=(
+    Capabilities/Provenance/provenance.cpp
     Flowkernel/src/main.cpp
     Flowlower/src/main.cpp
-    Frankencore/Core/Provenance/provenance.cpp
     Lyraform/compiler/src/main.cpp
     subprojects/TinyVM/src/artifact.c
     subprojects/TinyVM/src/artifact_v2.c
@@ -58,8 +58,8 @@ for source in "${compiler_publishers[@]}"; do
     rg -q 'fsync\(directory\)' "$source"
 done
 
-rg -q 'append_serialized' Frankencore/Core/Provenance/provenance.cpp
-rg -q 'sync_parent_directory' Frankencore/Core/Provenance/provenance.cpp
+rg -q 'append_serialized' Capabilities/Provenance/provenance.cpp
+rg -q 'sync_parent_directory' Capabilities/Provenance/provenance.cpp
 rg -q 'mkdtemp' Flowkernel/src/main.cpp
 rg -q 'unlinkat\(directory, "probe\.bin"' Flowkernel/src/main.cpp
 rg -q 'rmdir\(directory_template\)' Flowkernel/src/main.cpp

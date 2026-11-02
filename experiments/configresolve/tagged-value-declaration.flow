@@ -1,0 +1,13 @@
+program configresolve_tagged_value_declaration
+
+type Value variant {
+    case Null
+    case Bool : Bool
+    case Int : int
+    case Text : Text
+    case Double : float64
+}
+
+main {
+    noop : int(0)
+}

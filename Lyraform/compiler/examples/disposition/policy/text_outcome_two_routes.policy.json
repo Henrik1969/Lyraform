@@ -1,0 +1,43 @@
+{
+  "format": "lyraform.source_disposition_policy_selection",
+  "version": 1,
+  "status": "selected",
+  "execution": "unsupported",
+  "module": {
+    "identity": "module:text_outcome_two_routes",
+    "revision": "frontend-v2:disposition-v1:decls-13:ops-11"
+  },
+  "selection_kind": "supplied",
+  "selections": [
+    {
+      "declaration_id": 11,
+      "semantic_id": "consumer-declaration:11",
+      "instance_structural_id": 1,
+      "instance_node_id": "handled",
+      "incoming_failure_type": {
+        "identity": "type:TextFailure",
+        "spelling": "TextFailure"
+      },
+      "route_id": 1,
+      "response_function_symbol_id": 43,
+      "response_transition": {
+        "response_class": "recover",
+        "outgoing_type": {
+          "identity": "type:Text",
+          "spelling": "Text"
+        },
+        "obligation_transition": "close_original"
+      }
+    }
+  ],
+  "policy": {
+    "profile": "text.fallback-selection",
+    "revision": "1",
+    "authority": "lyraform.example-deployment-policy",
+    "provenance": {
+      "source": "Lyraform/compiler/examples/disposition/policy/text_outcome_two_routes.policy.json",
+      "line": 1,
+      "column": 1
+    }
+  }
+}

@@ -1,0 +1,19 @@
+program configresolve_text_record
+
+record Message {
+ text : Text
+ flag : Bool
+}
+
+target Demo {
+fn read(message : Message): int {
+ if message.flag { 7 -> return }
+ 3 -> return
+}
+
+main {
+ message : Message({text: "hello", flag: true})
+ result : int(read(message))
+ result -> return
+}
+}

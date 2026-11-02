@@ -1,6 +1,8 @@
 #pragma once
 
 #include <flowcontracts/json.hpp>
+#include <flowcontracts/ordinary_record_types.hpp>
+#include <flowcontracts/ordinary_record_operands.hpp>
 #include <flowcontracts/scheduling.hpp>
 #include <flowcontracts/source_graph.hpp>
 #include <flowcontracts/graph_execution.hpp>
@@ -473,6 +475,9 @@ inline void validate_parallel_candidate_projection(const json::Object& root,
 inline void validate_lowering_authority(const json::Value& value, std::string_view base = "$.lowering_plan") {
     validate_scalar_facts(value, base);
     const auto& plan = json::object(value, base);
+    if (const auto* records = json::optional(plan, "ordinary_record_types"))
+        validate_ordinary_record_types(*records);
+    validate_ordinary_record_operands(value);
     if (const auto* coverage = json::optional(plan, "source_operation_coverage"))
         validate_source_operation_coverage(*coverage, std::string(base) + ".source_operation_coverage");
     if (const auto* graph = json::optional(plan, "source_graph")) {

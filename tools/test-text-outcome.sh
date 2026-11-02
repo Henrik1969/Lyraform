@@ -272,21 +272,23 @@ reject_hostile_plan() {
         jq "$mutation" "$tmpdir/$hostile_baseline.$stage.json" > "$tmpdir/hostile.$stage.json"
     done
     if "$validator" "$tmpdir/hostile.semantic.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
-    jq -e '(.path + " " + .reason) | test("disposition|outcome"; "i")' "$tmpdir/rejection" >/dev/null
+    # A forged scalar return for a TextOutcome function can fail first at the
+    # shared no-implicit-conversion boundary, before disposition validation.
+    jq -e '(.path + " " + .reason) | test("disposition|outcome|implicit integer conversion"; "i")' "$tmpdir/rejection" >/dev/null
     if "$llvm_lower" --emit-llvm "$tmpdir/forbidden.ll" --binding-report "$tmpdir/$hostile_baseline.binding.json" "$tmpdir/hostile.optimized.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
-    grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
+    grep -Eiq 'disposition|outcome|implicit integer conversion' "$tmpdir/rejection"
     if "$tiny_lower" "$tmpdir/hostile.lowering.json" "$tmpdir/forbidden.tvm" >"$tmpdir/rejection" 2>&1; then exit 1; fi
-    grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
+    grep -Eiq 'disposition|outcome|implicit integer conversion' "$tmpdir/rejection"
     if "$parallel" "$tmpdir/hostile.semantic.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
-    grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
+    grep -Eiq 'disposition|outcome|implicit integer conversion' "$tmpdir/rejection"
     if "$optimize" "$tmpdir/hostile.parallel.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
-    grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
+    grep -Eiq 'disposition|outcome|implicit integer conversion' "$tmpdir/rejection"
     if "$bind" --policy "$policy" "$tmpdir/hostile.semantic.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
     # A provider-changing mutation may now be rejected even earlier by the
     # exact binding-requirement/operation authority check.
-    grep -Eiq 'disposition|outcome|provider|binding requirement' "$tmpdir/rejection"
+    grep -Eiq 'disposition|outcome|implicit integer conversion|provider|binding requirement' "$tmpdir/rejection"
     if "$prepare" --binding-report "$tmpdir/$hostile_baseline.binding.json" "$tmpdir/hostile.optimized.json" >"$tmpdir/rejection" 2>&1; then exit 1; fi
-    grep -Eiq 'disposition|outcome' "$tmpdir/rejection"
+    grep -Eiq 'disposition|outcome|implicit integer conversion' "$tmpdir/rejection"
     hostile_count=$((hostile_count + 1))
 }
 

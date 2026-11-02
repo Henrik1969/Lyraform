@@ -1,1 +1,1 @@
-fatal in lowerer: initializer for Bool 'flag' is not Bool
+fatal in canonical-scalar: FLOWANALYST_SCALAR_FLOW_REFUSED

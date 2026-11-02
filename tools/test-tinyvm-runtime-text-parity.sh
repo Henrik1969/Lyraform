@@ -19,6 +19,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 policy=$tmpdir/policy
 printf '%s\n' \
   'allow libflowtext.so flow_text_concat c memory Text,Text Text' \
+  'allow libflowtext.so flow_text_dispose c memory Text c_int' \
   'allow libc.so.6 puts c io Text c_int' > "$policy"
 export LD_LIBRARY_PATH=$(dirname "$text_runtime")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 

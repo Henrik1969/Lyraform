@@ -1,5 +1,7 @@
 #pragma once
 #include <flowcontracts/parse_validity.hpp>
+#include <flowcontracts/integer_admission.hpp>
+#include <flowcontracts/explicit_integer_width.hpp>
 #include <flowcontracts/target_facts.hpp>
 #include <flowcontracts/guard_facts.hpp>
 #include <flowcontracts/disposition_facts.hpp>
@@ -60,6 +62,8 @@ inline lyraform::scalar::Type scalar_operand_type(const json::Value& value, cons
 
 inline void validate_scalar_facts(const json::Value& value, std::string_view base) {
     require_plan_parse_validity(value);
+    validate_explicit_integer_width(value, std::string(base));
+    validate_integer_admission(value, base);
     validate_target_facts(value);
     validate_guard_facts(value, base);
     using namespace json;

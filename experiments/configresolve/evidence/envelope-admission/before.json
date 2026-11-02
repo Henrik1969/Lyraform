@@ -1,0 +1,7 @@
+{
+  "probe": "bare TextFailure variable passed to failure TextFailure parameter",
+  "status": "ok",
+  "diagnostics": [],
+  "lowering_plan_status": "blocked",
+  "execution_claim": "none; existing graph blocked"
+}

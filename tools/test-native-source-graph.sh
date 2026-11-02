@@ -629,32 +629,34 @@ compile
 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
 printf '9\n8\n9\n8\n' > "$tmpdir/expected"
 cmp "$tmpdir/output" "$tmpdir/expected"
-# A failed receiver produces no normal result and never activates its fan-out.
-sed 's/local + value -> local/value \/ 0 -> local/; s/program fresh_native_graph/program renamed_failed_graph/' "$tmpdir/program.flow" > "$tmpdir/failure.flow"
-mv "$tmpdir/failure.flow" "$tmpdir/program.flow"
+# A safe scalar receiver division stays executable with a complete value check.
+cp "$tmpdir/program.flow" "$tmpdir/division-base.flow"
+sed 's/local + value -> local/value \/ 2 -> local/' "$tmpdir/division-base.flow" > "$tmpdir/program.flow"
 compile
-set +e
-FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
-status=$?
-set -e
-test "$status" -eq 70
-test ! -s "$tmpdir/output"
-python3 - "$tmpdir/trace" <<'PY'
-import json, sys
-records = [json.loads(line) for line in open(sys.argv[1])]
-failures = [r for r in records if r['format'] == 'flowcore.graph_failure']
-assert len(failures) == 1
-failure = failures[0]
-assert failure['reason'] == 'invalid_division' and failure['operation_id'] >= 0
-assert failure['activation']['node_id'] == 'receiver' and failure['activation']['wire_id'] == 'wire:0'
-assert not any(r.get('event') == 'output' and r['node_id'] == 'receiver' for r in records)
-assert not any(r.get('node_id') in ['left', 'right'] for r in records)
-PY
+"$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf '5\n4\n5\n4\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+cp "$tmpdir/division-base.flow" "$tmpdir/program.flow"
+# Unsafe or unproved graph division is refused without a private process-exit
+# disposition. A possible minimum/-1 is as unsafe as a possible zero divisor.
+for divisor in value -1 0; do
+    sed "s/local + value -> local/value \/ $divisor -> local/" "$tmpdir/program.flow" > "$tmpdir/failure.flow"
+    "$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/failure.flow" > "$tmpdir/failure.frontend.json"
+    if "$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 \
+        --graph-providers "$tmpdir/selection.json" < "$tmpdir/failure.frontend.json" \
+        > "$tmpdir/failure.semantic.json"; then
+        echo 'unsafe division admitted by graph analysis' >&2
+        exit 1
+    fi
+    jq -e '.status == "error" and .lowering_plan.status == "blocked" and
+        any(.diagnostics[]; .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED")' \
+        "$tmpdir/failure.semantic.json" >/dev/null
+done
 # Source can reject an activation through an explicitly authorized runtime ABI.
 jq -n --arg path "$FLOWGRAPH_RUNTIME" '{format:"flowcore.native_binding_spec",version:1,unit:"graph_failures",namespace:"runtime",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"raise",symbol:"flow_graph_raise",effect:"failure",parameters:[{name:"code",type:"c_int"}],return_type:"c_int"}]}' > "$tmpdir/runtime.spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/runtime.spec.json" --flow-output "$tmpdir/runtime.flow" --policy-output "$tmpdir/runtime.policy" --manifest-output "$tmpdir/runtime.manifest.json" >/dev/null
 cat "$tmpdir/runtime.policy" >> "$tmpdir/policy"
-sed '1i import "runtime.flow" as runtime' "$tmpdir/program.flow" | sed 's/value \/ 0 -> local/runtime.raise(17) -> local/' > "$tmpdir/raised.flow"
+sed '1i import "runtime.flow" as runtime' "$tmpdir/failure.flow" | sed 's/value \/ 0 -> local/runtime.raise(17) -> local/' > "$tmpdir/raised.flow"
 mv "$tmpdir/raised.flow" "$tmpdir/program.flow"
 compile
 set +e

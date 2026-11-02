@@ -14,19 +14,20 @@ add_custom_target(flowcore_architecture_check
 
 add_subdirectory(reference/clock)
 add_subdirectory(reference/text)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Provenance
+add_subdirectory(reference/disposition)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Capabilities/Provenance
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-provenance)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Packages
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Capabilities/DebianPackages
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-packages)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Contracts
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Capabilities/Contracts
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-contracts)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Policy
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Capabilities/ConfigResolveAdapter
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-policy)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Language
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Capabilities/LanguageMap
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-language)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Requirements
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Capabilities/Requirements
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-requirements)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Frankencore/Core/Runtime
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Capabilities/RuntimeDiscovery
     ${CMAKE_CURRENT_BINARY_DIR}/frankencore-core-runtime)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Flowparallel
     ${CMAKE_CURRENT_BINARY_DIR}/flowparallel)

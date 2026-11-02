@@ -108,6 +108,24 @@ profiled, read-only, infallible by-value scalar observation. Unprofiled calls,
 mixed bodies, pointer or aggregate carriers, mutation, and unknown shapes do
 not acquire parallel authority.
 
+For the bounded source-disposition Gate 3 slice,
+`--disposition-policy PATH` accepts one
+`lyraform.source_disposition_policy_selection/v1` artifact when a closed
+consumer exposes more than one legal response route. A one-route consumer does
+not accept external route policy: Flowanalyst emits the deterministic
+`fixed_single_route` selection from source-owned semantic identities.
+`--host-disposition-policy PATH` supplies the separate
+`lyraform.host_disposition_policy_selection/v1` artifact; the only currently
+admitted command-host action is `report_and_fail`.
+
+Both artifacts remain declarative and `execution: unsupported`. Flowanalyst
+binds them to the exact module revision, consumer instance, failure type,
+route, response function and transition, or containment scope. Policy cannot
+add a route, change a type or transition, create success, or make the lowering
+plan executable. The canonical supplied artifact is embedded unchanged in the
+blocked semantic report so independent validation can verify the same object
+that deployment supplied.
+
 The independent consumer boundary is specified in
 [`docs/flowanalyst/v0.1-consumer-contract.md`](../docs/flowanalyst/v0.1-consumer-contract.md).
 

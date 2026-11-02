@@ -1,5 +1,15 @@
 # Canonical scalar semantic authority, Phase 2
 
+Latest owner decision (2026-11-01): [explicit integer widths](decisions/0071-explicit-integer-width.md)
+require concrete width-bearing integer types and refuse bare `int`; this supersedes
+the fixed-default supplement below. Earlier records are historical provenance.
+
+
+Earlier supplement (2026-11-01), default alias now superseded: [ADR 0070](decisions/0070-fixed-integer-default-and-explicit-conversion.md)
+ratifies the fixed signed-int64 default and explicit conversion/overflow law.
+The implementation coverage described below predates G2 alignment; it must not
+be read as authority for 32-bit `int` or implicit carrier conversion.
+
 This is the bounded compiler-unification slice implemented for Mission 02.
 It is subject to Gate 2 review. It does not define the rest of Lyraform v1.
 
@@ -129,3 +139,13 @@ facts, mapped source origins, and six malformed or contradictory captured
 artifacts refused before executable publication. The canonical suite also
 retains the earlier captured-artifact, ABI, graph, callable, Text and runtime
 coverage. Exact execution results are in the Phase 2 Gate 2 report.
+
+## Subsequent backend implementation (2026-10-17)
+
+The structured native and TinyVM lowerers now implement the existing Bool `not`
+rule: native emits `xor i1` with true, TinyVM compares the Bool operand with false
+using its existing equality instruction. Both require a Boolean carrier. This
+supersedes the specific missing-operator example above; it does not change the
+historical Phase 2 scope or establish additional arithmetic semantics.
+Record-value unit evidence covers true, false, nested negation, independent copies
+and malformed integer operands. Public record admission remains blocked.

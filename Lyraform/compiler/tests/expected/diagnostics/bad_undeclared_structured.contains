@@ -1,1 +1,1 @@
-fatal in lowerer: cannot assign to undeclared target 'one'
+fatal in canonical-scalar: FLOWANALYST_SCALAR_FLOW_REFUSED

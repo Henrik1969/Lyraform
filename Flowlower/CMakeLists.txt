@@ -119,3 +119,12 @@ target_compile_definitions(flowgraph_runtime_launch_fault_test PRIVATE FLOWCORE_
 target_compile_options(flowgraph_runtime_launch_fault_test PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(flowgraph_runtime_launch_fault_test PRIVATE Threads::Threads)
 add_test(NAME flowgraph_runtime_launch_fault COMMAND flowgraph_runtime_launch_fault_test)
+
+# Unit helper is not installed and does not grant graph execution admission.
+add_executable(flowlower_callable_abi_unit tests/callable-abi-unit.cpp)
+target_link_libraries(flowlower_callable_abi_unit PRIVATE flowcontracts)
+target_compile_options(flowlower_callable_abi_unit PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME flowlower_source_callable_abi
+    COMMAND ${CMAKE_COMMAND} -E env "FLOWCALLABLE_C_FLAGS=${CMAKE_C_FLAGS}"
+        python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-callable-abi-unit.py
+        ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR} $<TARGET_FILE:flowlower_callable_abi_unit>)

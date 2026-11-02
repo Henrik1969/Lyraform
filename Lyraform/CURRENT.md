@@ -1,11 +1,15 @@
 # Current Lyraform version
 
+Current identity: **Lyraform**. Canonical development directory: **LyraForm/**.
+See [placement and historical naming policy](../Policies/PLACEMENT-001.md). Earlier names and
+version labels are historical evidence, not competing current authority.
+
 ```text
 project:        Lyraform
 implementation: Lyraform/compiler
 toolchain:      Igor
 authority:      main
-lineage:        v0.29 reusable native language chain
+historical lineage: v0.29 reusable native language chain
 status:         experimental / unstable / not production-ready
 ```
 

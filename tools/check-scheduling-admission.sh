@@ -13,7 +13,7 @@ source_roots=(
     Flowlower/src
     Flowoptimize/src
     Flowparallel/src
-    Frankencore/Core
+    Capabilities
     Lyraform/compiler/src
     subprojects/TinyVM/src
     subprojects/TinyVM/tools

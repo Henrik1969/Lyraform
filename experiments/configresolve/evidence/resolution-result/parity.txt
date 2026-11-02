@@ -1,0 +1,2 @@
+native=33
+tinyvm=result:33 trap:0

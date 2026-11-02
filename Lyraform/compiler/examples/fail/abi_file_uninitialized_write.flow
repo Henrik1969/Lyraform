@@ -7,9 +7,10 @@ main {
     buffer : c_pointer(8)
     count : c_size_t(8)
     result : c_long(0)
+    closed : c_int(0)
 
     if descriptor >= 0 {
         write(descriptor, buffer, count) -> result
-        close(descriptor) -> result
+        close(descriptor) -> closed
     }
 }

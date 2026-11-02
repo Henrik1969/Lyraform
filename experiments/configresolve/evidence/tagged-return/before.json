@@ -1,0 +1,90 @@
+{
+  "plan_status": "blocked",
+  "producer": {
+    "commit_law": "atomic_tagged_result",
+    "completion": "exactly_one",
+    "disposition_id": 0,
+    "failure_types": [
+      {
+        "identity": "type:TextFailure",
+        "provenance": {
+          "column": 33,
+          "line": 9,
+          "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+        },
+        "spelling": "TextFailure"
+      }
+    ],
+    "fault_types": [
+      {
+        "identity": "type:TextIntegrityFault",
+        "provenance": {
+          "column": 56,
+          "line": 9,
+          "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+        },
+        "spelling": "TextIntegrityFault"
+      }
+    ],
+    "function_symbol_id": 38,
+    "graph_node_id": "producer_node",
+    "obligation_id": "operation:0:outcome",
+    "operation_id": 0,
+    "owner_symbol_id": 39,
+    "provenance": {
+      "column": 1,
+      "line": 9,
+      "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+    },
+    "return_operation_id": 5,
+    "success_type": {
+      "identity": "type:Text",
+      "provenance": {
+        "column": 1,
+        "line": 9,
+        "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+      },
+      "spelling": "Text"
+    }
+  },
+  "callable": {
+    "symbol_id": 38,
+    "name": "compose_text",
+    "scope_id": 16,
+    "body_block_id": 0,
+    "return_type": "Text",
+    "entry": false,
+    "availability": "definition",
+    "parameters": []
+  },
+  "return_operation": {
+    "id": 5,
+    "kind": "return_value",
+    "source_call_projection": false,
+    "expression_id": 4,
+    "statement_id": 1,
+    "scope_id": 16,
+    "function_symbol_id": 38,
+    "block_id": 0,
+    "callee": "",
+    "callee_symbol_id": -1,
+    "arguments": [
+      4
+    ],
+    "operands": [
+      {
+        "expression_id": 4,
+        "kind": "conversion",
+        "type": "Text",
+        "from_type": "TextOutcome",
+        "conversion": "explicit_typed_initializer",
+        "operand": {
+          "expression_id": 4,
+          "kind": "identifier",
+          "type": "TextOutcome",
+          "symbol_id": 39
+        }
+      }
+    ]
+  }
+}

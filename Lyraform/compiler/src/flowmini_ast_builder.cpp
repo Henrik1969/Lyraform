@@ -901,6 +901,7 @@ namespace flowmini::ast {
                     is_main_token(token) ||
                     is_import_token(token) ||
                     is_type_token(token) ||
+                    is_record_token(token) ||
                     is_abi_token(token) ||
                     is_identifier_text(token, "consumer") ||
                     token.kind == flowmini::TokenKind::KeywordMain ||

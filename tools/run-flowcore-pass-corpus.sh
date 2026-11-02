@@ -69,6 +69,8 @@ done
 count=0
 unsupported_targets=0
 unsupported_source_operations=0
+unsupported_contracts=0
+admitted=0
 check_lowering() {
     if jq -e 'any(.lowering_plan.operations[]; .target_fact.execution? == "unsupported")' "$optimized" >/dev/null; then
         if "$lowerer" "$@" < "$optimized" > "$lowered" 2> "$tmpdir/lowering.err"; then
@@ -97,13 +99,24 @@ for source in "$pass_root"/*.flow; do
     set -e
     if test "$analysis_rc" -ne 0; then
         test "$analysis_rc" -eq 2
-        jq -e '(.diagnostics | length) > 0 and all(.diagnostics[]; .code == "FLOWANALYST_SOURCE_OPERATION_GAP")' "$semantic" >/dev/null
-        jq -e '.lowering_plan.source_operation_coverage.status == "refused"' "$semantic" >/dev/null
-        unsupported_source_operations=$((unsupported_source_operations + 1))
+        jq -e '.status == "error" and .lowering_plan.status == "blocked" and
+            (.diagnostics | length) > 0 and all(.diagnostics[];
+                .code == "FLOWANALYST_SOURCE_OPERATION_GAP" or
+                .code == "FLOWANALYST_REFINED_VALUE_UNSUPPORTED" or
+                .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED")' "$semantic" >/dev/null
+        if jq -e 'any(.diagnostics[]; .code == "FLOWANALYST_SOURCE_OPERATION_GAP")' "$semantic" >/dev/null; then
+            jq -e '.lowering_plan.source_operation_coverage.status == "refused"' "$semantic" >/dev/null
+            unsupported_source_operations=$((unsupported_source_operations + 1))
+        fi
+        if jq -e 'any(.diagnostics[]; .code == "FLOWANALYST_REFINED_VALUE_UNSUPPORTED" or .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED")' "$semantic" >/dev/null; then
+            unsupported_contracts=$((unsupported_contracts + 1))
+            printf 'contract admission refused: %s\n' "$name"
+        fi
         count=$((count + 1))
         continue
     fi
     grep -q '"status": "ok"' "$semantic"
+    admitted=$((admitted + 1))
     "$parallel" < "$semantic" > "$tmpdir/$name.parallel.json"
     "$optimizer" < "$tmpdir/$name.parallel.json" > "$optimized"
     jq -e '.status == "ready"' "$optimized" >/dev/null
@@ -117,4 +130,4 @@ for source in "$pass_root"/*.flow; do
     count=$((count + 1))
 done
 
-echo "Flowcore pass corpus: $count programs checked; $unsupported_source_operations explicitly refused source-operation gaps; $unsupported_targets explicitly refused preserved member/index targets; remaining lowering reports ready"
+echo "Flowcore pass corpus: $count programs checked; $unsupported_contracts explicitly refused unenforced contracts; $unsupported_source_operations explicitly refused source-operation gaps; $unsupported_targets explicitly refused preserved member/index targets; refusal categories may overlap; $admitted semantic reports admitted"

@@ -1,0 +1,234 @@
+[
+  {
+    "case": "valid",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/valid/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "reordered",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/reordered/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "missing",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/missing/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "extra",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/extra/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "wrong-type",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/wrong-type/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "unknown-record",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_UNKNOWN_TYPE",
+        "severity": "error",
+        "message": "declared type 'Unknown' cannot be resolved",
+        "root_cause": true,
+        "subject": {
+          "kind": "symbol",
+          "id": 6
+        },
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/unknown-record/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "symbol:6"
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/unknown-record/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "unknown-member",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_UNKNOWN_FIELD",
+        "severity": "error",
+        "message": "record type 'Candidate' has no field 'absent'",
+        "root_cause": true,
+        "subject": {
+          "kind": "symbol",
+          "id": 6
+        },
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/unknown-member/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "expression:3"
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/unknown-member/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "copy",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/copy/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  },
+  {
+    "case": "renamed",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "severity": "error",
+        "message": "ordinary record construction has no canonical executable operand; execution admission is refused",
+        "root_cause": true,
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix-after/renamed/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "statement:0"
+      }
+    ]
+  }
+]

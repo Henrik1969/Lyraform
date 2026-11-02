@@ -17,7 +17,12 @@ test -f "$root/docs/tasks/README.md" || fail 'mission lifecycle index is missing
 test -f "$root/docs/development/mission-convergence-rule.md" || fail 'mission convergence rule is missing'
 
 require_text "$root/AGENTS.md" 'Convergence Rule]'
-require_text "$root/AGENTS.md" '.git/codex/runs/<mission-id>/'
+require_text "$root/AGENTS.md" '.mission-state/<mission-id>/<revision>/'
+require_text "$root/AGENTS.md" 'Policies/context.json'
+test -f "$root/Policies/README.md" || fail 'local policy map is missing'
+test -f "$root/Policies/context.json" || fail 'resolved policy context is missing'
+git -C "$root" check-ignore --no-index .mission-state/hygiene-probe/state.json >/dev/null ||
+    fail 'private mission state is not ignored'
 require_text "$root/docs/development/project-hygiene.md" 'output/'
 require_text "$root/docs/tasks/README.md" 'New-mission convergence contract'
 require_text "$root/.gitignore" '.codex-run-state'

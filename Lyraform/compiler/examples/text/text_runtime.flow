@@ -16,4 +16,8 @@ main {
     print value
     print alternate
     print value
+    disposed : c_int(0)
+    dispose(alternate) -> disposed
+    dispose(value) -> disposed
+    dispose(prefix) -> disposed
 }

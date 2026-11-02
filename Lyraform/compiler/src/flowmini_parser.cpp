@@ -79,11 +79,18 @@ struct TypeField {
     std::string type;
 };
 
+struct VariantCase {
+    std::string name;
+    std::string payloadType;
+};
+
 struct TypeDef {
     std::string name;
     std::string base;
     std::vector<TypeInvariant> invariants;
     std::vector<TypeField> fields;
+    bool isVariant = false;
+    std::vector<VariantCase> variants;
 };
 
 struct AbiTypeDef {
@@ -137,6 +144,8 @@ public:
     explicit Parser(const std::vector<Token>& tokens) : tokens_(tokens) {
         types_.emplace("int", TypeDef{"int", "", {}, {}});
         types_.emplace("Bool", TypeDef{"Bool", "", {}, {}});
+        types_.emplace("Text", TypeDef{"Text", "", {}, {}});
+        types_.emplace("float64", TypeDef{"float64", "", {}, {}});
         types_.emplace("c_int", TypeDef{"c_int", "int", {}, {}});
         types_.emplace("c_long", TypeDef{"c_long", "int", {}, {}});
         types_.emplace("c_ulong", TypeDef{"c_ulong", "int", {}, {}});
@@ -432,6 +441,11 @@ private:
         return def != nullptr && !def->fields.empty();
     }
 
+    [[nodiscard]] bool isVariantType(const std::string& type) const {
+        const TypeDef* def = lookupType(type);
+        return def != nullptr && def->isVariant;
+    }
+
     [[nodiscard]] const TypeField* findTypeField(const std::string& type, const std::string& field) const {
         const TypeDef* def = lookupType(type);
         if (def == nullptr) { return nullptr; }
@@ -469,7 +483,7 @@ private:
     }
 
     [[nodiscard]] bool isCallableType(const std::string& type) const {
-        return isIntLikeType(type) || type == "Bool" || type == "c_string" || isAbiStructType(type) || isRecordType(type);
+        return isIntLikeType(type) || type == "Bool" || type == "Text" || type == "c_string" || isAbiStructType(type) || isRecordType(type);
     }
 
     [[nodiscard]] bool isSubtypeOf(const std::string& actual, const std::string& wanted) const {
@@ -1102,6 +1116,35 @@ private:
         TypeDef def;
         def.name = nameToken.text;
         if (types_.count(def.name) != 0) { fail(nameToken, "duplicate type declaration '" + def.name + "'"); }
+
+        if (check(TokenKind::Identifier) && peek().text == "variant") {
+            static_cast<void>(expectIdentifier("expected 'variant' after type name"));
+            def.isVariant = true;
+            expect(TokenKind::LeftBrace, "expected '{' before variant body");
+            skipNewlines();
+            while (!check(TokenKind::RightBrace) && !check(TokenKind::End)) {
+                const Token& caseToken = expectIdentifier("expected 'case' in variant body");
+                if (caseToken.text != "case") { fail(caseToken, "expected 'case' in variant body"); }
+                const Token& name = expectIdentifier("expected variant case name");
+                std::string payloadType;
+                if (match(TokenKind::Colon)) {
+                    payloadType = expectIdentifier("expected variant payload type").text;
+                    if (!typeExists(payloadType) || isAbiPointerType(payloadType)) {
+                        fail(name, "variant case '" + name.text + "' uses unknown or sealed payload type '" + payloadType + "'");
+                    }
+                }
+                for (const auto& existing : def.variants) {
+                    if (existing.name == name.text) { fail(name, "duplicate variant case '" + name.text + "'"); }
+                }
+                def.variants.push_back(VariantCase{name.text, payloadType});
+                expectLineEnd("expected newline after variant case");
+                skipNewlines();
+            }
+            expect(TokenKind::RightBrace, "expected '}' after variant body");
+            if (def.variants.empty()) { fail(nameToken, "variant '" + def.name + "' must declare at least one case"); }
+            types_[def.name] = std::move(def);
+            return;
+        }
 
         if (check(TokenKind::Identifier) && peek().text == "refines") {
             static_cast<void>(expectIdentifier("expected 'refines' after type name"));

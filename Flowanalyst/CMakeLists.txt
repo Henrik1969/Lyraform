@@ -82,3 +82,20 @@ add_test(NAME lyraform_guard_static_lifecycle
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-guard-static-tests.sh ${CMAKE_BINARY_DIR})
 add_test(NAME lyraform_source_disposition_gate2
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-source-disposition-tests.sh ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_source_disposition_policy_gate3
+    COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-source-disposition-policy-tests.sh ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_record_execution_admission
+    COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-record-admission-tests.sh ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_disposition_graph_preservation
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-disposition-graph-tests.py ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_contract_stabilization
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-contract-stabilization.py --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_explicit_integer_width
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-explicit-integer-width.py
+        --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_integer_conversions
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-integer-conversions.py
+        --build ${CMAKE_BINARY_DIR})

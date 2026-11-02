@@ -78,6 +78,15 @@ int prepare(const Options& option) {
         validate_binding_report(binding);
         const auto binding_header = header(binding);
         if (binding_header.status != "ready") throw Error("$.status", "binding artifact is not ready");
+        const auto& plan = object(required(root, "lowering_plan"));
+        if (optional(plan, "disposition_graph_version")) {
+            const auto& projection = object(required(object(binding), "disposition_projection"));
+            for (const auto* key : {"disposition_graph_version", "disposition_graph",
+                    "source_disposition", "source_disposition_policy", "host_disposition_policy"}) {
+                if (serialize(required(projection, key)) != serialize(required(plan, key)))
+                    throw Error("$.disposition_projection", "binding disposition projection differs from the exact lowering plan");
+            }
+        }
         capabilities = required_array(object(binding), "capabilities");
         if (const auto* layouts = optional(object(binding), "aggregate_abi_layouts"))
             if (!array(*layouts, "$.aggregate_abi_layouts").empty()) aggregate_layouts = array(*layouts, "$.aggregate_abi_layouts");

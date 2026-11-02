@@ -4,7 +4,24 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 example="$root/Lyraform/compiler/examples/apps/flow_less"
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
-"$example/build-flow-less.sh" "$tmpdir/app" >/dev/null
+# The current pager has provider-dependent integer division without an admitted
+# numeric failure route. Refusal is the current support boundary, not evidence
+# that paging or terminal interaction executed successfully.
+set +e
+"$example/build-flow-less.sh" "$tmpdir/app" > "$tmpdir/build.log" 2>&1
+build_status=$?
+set -e
+if test "$build_status" -ne 0; then
+    test "$build_status" -eq 2
+    jq -e '.status == "error" and .lowering_plan.status == "blocked" and
+        (.diagnostics | length) > 0 and all(.diagnostics[];
+            .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED" and
+            (.message | contains("integer division safety is unproved")))' \
+        "$tmpdir/app/semantic.json" >/dev/null
+    test ! -e "$tmpdir/app/flow_less"
+    echo 'pager admission: refused unproved division; runtime paging NOT exercised'
+    exit 0
+fi
 printf '%s\n' alpha beta gamma delta epsilon > "$tmpdir/input.txt"
 printf q | FLOW_PAGER_PATH="$tmpdir/input.txt" FLOWCORE_GRAPH_TRACE=1 TERM=xterm script -qec "$tmpdir/app/flow_less" "$tmpdir/terminal.log" >/dev/null
 grep -Fq -- '-- page 1/3 --' "$tmpdir/terminal.log"

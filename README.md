@@ -1,5 +1,9 @@
 # Lyraform
 
+Current identity: **Lyraform**. Canonical development directory: **LyraForm/**.
+See [placement and historical naming policy](Policies/PLACEMENT-001.md). Earlier names and
+version labels are historical evidence, not competing current authority.
+
 Lyraform is an experimental programming language and system-architecture
 project built around explicit contracts, compiler-visible graph structure,
 provider boundaries, provenance, and governed executable projections.
@@ -22,7 +26,7 @@ project:          Lyraform
 active branch:    main
 toolchain:        Igor
 status:           experimental / unstable / not production-ready
-current lineage:  v0.29 reusable native language chain
+historical lineage: v0.29 reusable native language chain
 ```
 
 The authoritative current-status landing page is
@@ -80,7 +84,7 @@ authority, and the canonical path never falls back to it.
 
 ```text
 Lyraform/compiler/
-    current v0.29 compiler implementation
+    historical v0.29 compiler implementation
 
 Lyraform/flowmini_v24_explicit_ast/
     preserved historical Flowmini v0.24 checkpoint
@@ -88,8 +92,8 @@ Lyraform/flowmini_v24_explicit_ast/
 Flowanalyst/ Flowbind/ Flowparallel/ Flowoptimize/ Flowlower/
     independent semantic, binding, planning, optimization, and lowering stages
 
-Frankencore/
-    governance and constitutional architecture reference material
+Capabilities/
+    capability implementations and adapters; architectural authority is external FrankenCore
 
 subprojects/TinyVM/
     independent governed backend experiment
@@ -131,3 +135,9 @@ those names describe the state that existed at the time.
 This project remains under the existing MIT license. It is not intended for
 production, safety-critical, security-critical, financial, legal, medical, or
 operational use.
+
+## Development workspace health
+
+[2026-10-17 capability naming and development verification](docs/development/workspace-health.md)
+records the current layout, clean build/test results, cache ownership checks and
+remaining configuration limits. Test results are dated evidence, not standing release claims.

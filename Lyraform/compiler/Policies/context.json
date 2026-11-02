@@ -1,0 +1,38 @@
+{
+  "format": "development.policy-context.v1",
+  "project": "LyraForm/Lyraform/compiler",
+  "title": "Lyraform component Lyraform/compiler",
+  "shared_registry": "../../../../Policies/PROJECTS.json",
+  "shared_baseline": "1.3",
+  "parent_context": "../../../Policies/context.json",
+  "agent": "../AGENTS.md",
+  "policy_index": "README.md",
+  "local_policies": [
+    {
+      "path": "LOCAL-001.md",
+      "version": "1.1",
+      "status": "active policy map and scope record; not a conformance certificate"
+    }
+  ],
+  "state_location": "../.mission-state/<mission-id>/<revision>/",
+  "capabilities": [
+    "libraries"
+  ],
+  "audit": "AUDIT.md",
+  "evidence": [
+    {
+      "path": "../README.md",
+      "sha256": "3c3d9669017cca9d34d801ada095dcdf87ed82987bab57ef574f408f9910b677",
+      "observed": "2026-10-17",
+      "previous_sha256": "4a9d24e494cf04461a7a33fdd13cee17a52d5807e75515a1e8e6fd7e1b22d112",
+      "review": "Placement/identity documentation edit reviewed; original preserved in shared placement history."
+    },
+    {
+      "path": "../CMakeLists.txt",
+      "sha256": "ed2ac1e35d2ac36a539e337f33c3fcee5b0842540c820db228ccfba169e3b5e9",
+      "observed": "2026-10-17"
+    }
+  ],
+  "open_decisions": [],
+  "runtime_compliance": "not-certified"
+}

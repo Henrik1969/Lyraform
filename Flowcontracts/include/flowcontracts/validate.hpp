@@ -3,6 +3,8 @@
 #include <flowcontracts/artifacts.hpp>
 #include <flowcontracts/disposition_route_projection.hpp>
 #include <flowcontracts/source_disposition.hpp>
+#include <flowcontracts/ordinary_record_types.hpp>
+#include <flowcontracts/ordinary_record_operands.hpp>
 
 #include <set>
 #include <string>
@@ -37,6 +39,9 @@ inline void validate_identity_array(const json::Object& parent, std::string_view
 inline void validate_lowering_plan(const json::Value& value, std::string_view path = "$") {
     validate_scalar_facts(value, path);
     const auto& plan = json::object(value, path);
+    if (const auto* records = json::optional(plan, "ordinary_record_types"))
+        validate_ordinary_record_types(*records);
+    validate_ordinary_record_operands(value);
     if (const auto* coverage = json::optional(plan, "source_operation_coverage"))
         validate_source_operation_coverage(*coverage, std::string(path) + ".source_operation_coverage");
     if (json::string(json::required(plan, "format", path), std::string(path) + ".format") != "flowcore.lowering_plan")
@@ -103,6 +108,9 @@ inline void validate_binding_report(const json::Value& value) {
     const auto artifact = require_header(value, "flowbind.binding_report", 1);
     if (artifact.status != "ready") return;
     const auto& root = json::object(value);
+    if (const auto* projection = json::optional(root, "disposition_projection"))
+        validate_disposition_graph(json::object(*projection, "$.disposition_projection"),
+                                   "$.disposition_projection");
     if (const auto* targets = json::optional(root, "target_facts"))
         for (const auto& target : json::array(*targets, "$.target_facts")) validate_target_fact(target);
     if (const auto* layouts = json::optional(root, "aggregate_abi_layouts")) validate_aggregate_abi_layouts(json::array(*layouts, "$.aggregate_abi_layouts"));

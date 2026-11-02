@@ -1,7 +1,7 @@
 {
   "schema": "lyraform.canonical-source-form-audit/v1",
   "status": "complete_under_language_freeze",
-  "as_of": "2026-10-10",
+  "as_of": "2026-10-13",
   "baseline_commit": "ecdac7184236dab24423ca7495e882f771cdf287",
   "categories": [
     "canonical_and_connected_end_to_end",
@@ -17,7 +17,7 @@
 
     {"id":"top.import","family":"top_level","ast_kind":"import","classification":"canonical_and_connected_end_to_end","scope":"bounded declared contract imports and namespace resolution","authority":"structural frontend plus Flowanalyst resolution"},
     {"id":"top.function","family":"top_level","ast_kind":"function","classification":"canonical_and_connected_end_to_end","scope":"bounded callable-plan-v2 declarations and definitions","authority":"Flowanalyst callable and operation authority"},
-    {"id":"top.consumer","family":"top_level","ast_kind":"consumer","classification":"recognized_but_explicitly_unsupported","scope":"bounded closed disposition consumers are structurally and semantically admitted; policy selection and execution remain unsupported","authority":"Flowanalyst source-disposition topology v1"},
+    {"id":"top.consumer","family":"top_level","ast_kind":"consumer","classification":"recognized_but_explicitly_unsupported","scope":"bounded closed disposition consumers and exact route selection are structurally and semantically admitted; executable Graph IR and runtime dispatch remain unsupported","authority":"Flowanalyst source-disposition topology v1 plus validated Gate 3 policy selection"},
     {"id":"function.disposition_clauses","family":"function_signature","ast_kind":"fails_faults","classification":"recognized_but_explicitly_unsupported","scope":"bounded closed failure/fault sets are canonical source and semantic authority; executable routing remains unsupported","authority":"Flowanalyst source-disposition topology v1"},
     {"id":"function.failure_response","family":"function_signature","ast_kind":"failure_recover_transform","classification":"recognized_but_explicitly_unsupported","scope":"bounded immutable failure-envelope input and recover/transform result meaning are semantically validated; execution remains unsupported","authority":"Flowanalyst source-disposition topology v1"},
     {"id":"top.record","family":"top_level","ast_kind":"record","classification":"recognized_but_explicitly_unsupported","scope":"ordinary record declaration is structural; general construction/layout/execution is not admitted","authority":"structural frontend"},

@@ -12,7 +12,8 @@ inventory="$root/docs/architecture/frankencore-contract-inventory.json"
 if command -v jq >/dev/null 2>&1; then
     jq empty "$inventory"
 else
-    echo "architecture check: jq unavailable; inventory syntax not validated" >&2
+    echo "architecture check: jq unavailable; inventory syntax cannot be validated" >&2
+    exit 2
 fi
 
 debt=0
@@ -25,9 +26,9 @@ active_cmake=(
     "$root/Lyraform/compiler/CMakeLists.txt"
 )
 
-echo "Frankencore architecture check"
-echo "  constitution: PASS"
-echo "  contract inventory: PASS"
+echo "Lyraform capability architecture checks"
+echo "  scope: build paths and presentation boundaries; not constitutional certification"
+echo "  contract inventory JSON syntax: PASS"
 
 if rg -n '\.\./(Flowmini|Flowanalyst|Flowbind|Flowoptimize|Flowlower)/((cmake-)?build[^/]*)' "${active_cmake[@]}"; then
     debt=1

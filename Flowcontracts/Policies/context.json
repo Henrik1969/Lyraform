@@ -1,0 +1,36 @@
+{
+  "format": "development.policy-context.v1",
+  "project": "LyraForm/Flowcontracts",
+  "title": "Lyraform component Flowcontracts",
+  "shared_registry": "../../../Policies/PROJECTS.json",
+  "shared_baseline": "1.3",
+  "parent_context": "../../Policies/context.json",
+  "agent": "../AGENTS.md",
+  "policy_index": "README.md",
+  "local_policies": [
+    {
+      "path": "LOCAL-001.md",
+      "version": "1.1",
+      "status": "active policy map and scope record; not a conformance certificate"
+    }
+  ],
+  "state_location": "../.mission-state/<mission-id>/<revision>/",
+  "capabilities": [
+    "libraries"
+  ],
+  "audit": "AUDIT.md",
+  "evidence": [
+    {
+      "path": "../README.md",
+      "sha256": "34cb83a830ef9ba795a06d5bc8abd628aef99ac09404703f315ba925b66fb5d0",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../CMakeLists.txt",
+      "sha256": "17ace1e0a8524497ab7776072d6757792986d509d7d62e24065f2a479f0d4aac",
+      "observed": "2026-10-17"
+    }
+  ],
+  "open_decisions": [],
+  "runtime_compliance": "not-certified"
+}

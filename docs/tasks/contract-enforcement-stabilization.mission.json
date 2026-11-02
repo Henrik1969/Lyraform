@@ -1,0 +1,164 @@
+{
+  "format": "development.mission.v1",
+  "id": "lyraform.contract-stabilization",
+  "revision": "1",
+  "owner": "Henrik Sørensen",
+  "context": "LyraForm",
+  "intent": "Close and stabilize the existing language vertically without inventing language or contract semantics.",
+  "canonical_definition": {
+    "path": "contract-enforcement-stabilization.md",
+    "sha256": "807b9fffdaa2156c181f575379469246e632428dafd300cad0553f06e7ec489b"
+  },
+  "scope": [
+    "T0 and G1–G5 exactly as bounded in the canonical Markdown; priority order and existing semantic decision gates apply."
+  ],
+  "non_goals": [
+    "No new language, contract language, syntax, policy powers, failure dispositions or unaccepted semantics.",
+    "No full ConfigResolve port, generalized concurrency, new ownership/storage/collection model, self-hosting or production-readiness claim.",
+    "No staging, commits, pushes, merges, release or unrelated source changes."
+  ],
+  "authorization": {
+    "status": "granted",
+    "reference": "Henrik, 2026-11-01, this chat: form a mission from the five assessment priorities; close holes vertically in priority order; do not invent contract language or language; stabilize safe inner workings consistent with design and intent.",
+    "scope": "Prepare this mission and its fresh planned record. It defines the bounded local stabilization work; implementation has not started and execution selects this exact revision under actual permissions."
+  },
+  "policies": [
+    {
+      "id": "GOV-001",
+      "revision": "1.1",
+      "uri": "../../../Policies/rules/GOV-001.md"
+    },
+    {
+      "id": "WORK-001",
+      "revision": "1.0",
+      "uri": "../../../Policies/rules/WORK-001.md"
+    },
+    {
+      "id": "STATE-001",
+      "revision": "1.0",
+      "uri": "../../../Policies/rules/STATE-001.md"
+    },
+    {
+      "id": "AGENT-001",
+      "revision": "1.0",
+      "uri": "../../../Policies/rules/AGENT-001.md"
+    },
+    {
+      "id": "Lyraform/EXECUTION-001",
+      "revision": "1.0",
+      "uri": "../../Policies/EXECUTION-001.md"
+    },
+    {
+      "id": "LyraForm/STAGE-001",
+      "revision": "1.1",
+      "uri": "../../Policies/STAGE-001.md"
+    }
+  ],
+  "external_dependencies": [
+    {
+      "id": "assessment",
+      "context": "FrankenCore chat review workspace; evidence only",
+      "condition": "Read the dated assessment or reproduce the embedded counterexamples; never inherit completion or authority.",
+      "evidence": "/home/henrik/Dokumenter/ChatGPT/FrankenCore/reviews/lyraform-2026-11-01/assessment.md"
+    },
+    {
+      "id": "configresolve-reference",
+      "context": "ConfigResolve; read-only reference",
+      "condition": "If reference behavior is used, pin exact accepted source and fixtures; no edits or semantic promotion of experiments.",
+      "evidence": "../../../ConfigResolve/README.md"
+    }
+  ],
+  "goal": {
+    "outcome": "All five gates pass: unsafe admissions closed, accepted semantic enforcement unified, documentation executable, bounded recovery executable on LLVM/TinyVM, and real application composition verified.",
+    "criteria": [
+      {
+        "id": "C1",
+        "metric": "G1 required boundary or positive-control failures",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Evaluate the entire corresponding G1 rubric in canonical Markdown, including positive controls, mandatory execution, hostile cases and required verification. Missing or unmeasured evidence is not zero. Attach exact source, commands, outputs and gate checkpoint."
+      },
+      {
+        "id": "C2",
+        "metric": "G2 unsupported admissions or unexplained semantic differences",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Evaluate the entire corresponding G2 rubric in canonical Markdown, including positive controls, mandatory execution, hostile cases and required verification. Missing or unmeasured evidence is not zero. Attach exact source, commands, outputs and gate checkpoint."
+      },
+      {
+        "id": "C3",
+        "metric": "G3 incorrect current claims or failing advertised examples",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Evaluate the entire corresponding G3 rubric in canonical Markdown, including positive controls, mandatory execution, hostile cases and required verification. Missing or unmeasured evidence is not zero. Attach exact source, commands, outputs and gate checkpoint."
+      },
+      {
+        "id": "C4",
+        "metric": "G4 required source-to-runtime recovery cases missing or failing",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Evaluate the entire corresponding G4 rubric in canonical Markdown, including positive controls, mandatory execution, hostile cases and required verification. Missing or unmeasured evidence is not zero. Attach exact source, commands, outputs and gate checkpoint."
+      },
+      {
+        "id": "C5",
+        "metric": "G5 required application, reproduction or verification cases missing or failing",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Evaluate the entire corresponding G5 rubric in canonical Markdown, including positive controls, mandatory execution, hostile cases and required verification. Missing or unmeasured evidence is not zero. Attach exact source, commands, outputs and gate checkpoint."
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "context": "LyraForm",
+      "work": "Record exact source baseline and accepted-law register.",
+      "depends_on": []
+    },
+    {
+      "id": "T1",
+      "context": "LyraForm",
+      "work": "G1: close refinement and division acceptance holes vertically.",
+      "depends_on": [
+        "T0"
+      ]
+    },
+    {
+      "id": "T2",
+      "context": "LyraForm",
+      "work": "G2: enforce and consolidate accepted numeric/predicate meaning.",
+      "depends_on": [
+        "T1"
+      ]
+    },
+    {
+      "id": "T3",
+      "context": "LyraForm",
+      "work": "G3: reconcile executable support inventory and current examples.",
+      "depends_on": [
+        "T2"
+      ]
+    },
+    {
+      "id": "T4",
+      "context": "LyraForm",
+      "work": "G4: execute the accepted bounded failure/recovery path on both backends.",
+      "depends_on": [
+        "T3"
+      ]
+    },
+    {
+      "id": "T5",
+      "context": "LyraForm",
+      "work": "G5: prove real bounded application composition and consolidate.",
+      "depends_on": [
+        "T4"
+      ]
+    }
+  ]
+}

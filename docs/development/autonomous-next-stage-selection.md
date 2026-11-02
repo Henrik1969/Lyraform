@@ -1,16 +1,23 @@
-# Codex Meta-Mission — Autonomous Next-Stage Selection
+# Mission — Autonomous Next-Stage Selection
+
+## Policy binding
+
+[EXECUTION-001](../../Policies/EXECUTION-001.md) governs portable state and
+executor identity. Continuation remains within actual authorization; a new
+mission receives its own state and measurable goal. Earlier outcomes are
+referenced evidence, never inherited completion or permission.
 
 ## Purpose
 
-Extend the standing Stage Execution Protocol so Codex can determine and execute the **next logical maturation stage** without requiring a separately authored mission each time.
+Extend the standing Stage Execution Protocol so The executor can determine and execute the **next logical maturation stage** without requiring a separately authored mission each time.
 
 The standing rule is:
 
 > Use the latest durable checkpoint and gate result to determine the next bounded stage.
 
-Codex should continue autonomously when the next stage is technically and semantically obvious.
+The executor should continue autonomously when the next stage is technically and semantically obvious.
 
-Codex should stop for human review only when progress requires a genuine language, architecture, or policy decision.
+The executor should stop for human review only when progress requires a genuine language, architecture, or policy decision.
 
 ---
 
@@ -32,7 +39,7 @@ At the end of every completed stage:
 3. Frame that stage using the standing Stage Execution Protocol.
 
 4. Give the continuation a fresh mission identity, convergence contract, and
-   isolated Git-local run state. It must not inherit an earlier mission's
+   isolated mission-bound state. It must not inherit an earlier mission's
    `DONE`, `BLOCKED`, manifest, or transcript directory.
 
 5. Check the five Mission Convergence Rule priorities before expanding:
@@ -59,7 +66,7 @@ Examples include:
 * correcting a contract-preservation defect;
 * tightening refusal of malformed artifacts.
 
-Codex should:
+The executor should:
 
 ```text
 identify next stage
@@ -184,7 +191,7 @@ Whether existing syntax/tests/runtime behavior would need to change.
 
 # 5. Recommendation
 
-Codex may identify a technically preferred candidate if the evidence supports one.
+The executor may identify a technically preferred candidate if the evidence supports one.
 
 The recommendation must be explicit about why.
 
@@ -237,7 +244,7 @@ Do not stop merely because:
 * a bug has an obvious correction;
 * contract validation needs tightening.
 
-Those are engineering decisions Codex should make autonomously.
+Those are engineering decisions The executor should make autonomously.
 
 Human review is reserved for choices that change or establish **meaning**, public contracts, or major architecture.
 

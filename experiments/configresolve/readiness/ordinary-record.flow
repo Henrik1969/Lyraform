@@ -1,0 +1,12 @@
+program ordinary_record_readiness
+
+record Candidate {
+    value : int
+    rank : int
+}
+
+main {
+    candidate : Candidate({value: 7, rank: 30})
+    observed : int(candidate.value)
+    observed -> return
+}

@@ -47,7 +47,7 @@ test ! -e "$build/nonempty.tvm"
 
 jq '
   .authorization = {"status":"authorized","capabilities":[{"contract":"kernel","library":"libc.so.6","symbol":"fork","convention":"c","effect":"process_ipc","parameter_types":"","return_type":"c_int","status":"authorized"}]} |
-  .lowering_plan.operations = [{"id":0,"kind":"external_call","block_id":0,"statement_id":0,"result_symbol_id":1,"operands":[],"provider":{"contract":"kernel","library":"libc.so.6","symbol":"fork","convention":"c","effect":"process_ipc","parameter_types":"","return_type":"c_int"},"effect_contract":{"external":"process_ipc","determinism":"nondeterministic","certainty":"declared"},"argument_resources":[]}]
+  .lowering_plan.operations = [{"id":0,"kind":"value_definition","block_id":0,"statement_id":0,"result_symbol_id":1,"operands":[{"kind":"integer_literal","type":"c_int","value":"0"}]},{"id":1,"kind":"external_call","block_id":0,"statement_id":1,"result_symbol_id":1,"operands":[],"provider":{"contract":"kernel","library":"libc.so.6","symbol":"fork","convention":"c","effect":"process_ipc","parameter_types":"","return_type":"c_int"},"effect_contract":{"external":"process_ipc","determinism":"nondeterministic","certainty":"declared"},"argument_resources":[]}]
 ' "$fixture" > "$build/unsupported-provider.json"
 rm -f "$build/unsupported-provider.tvm"
 set +e

@@ -1,5 +1,43 @@
 # Lyraform current status
 
+## Stabilization work in progress — 2026-11-01
+
+[G1 passed on its preserved snapshot](checkpoints/2026-11-01-contract-stabilization-g1.md); G2 is active. The safety checks
+refuse value-bearing refinements with unenforced predicates and integer division
+whose safety cannot be established and has no admitted failure route. Small
+proven-safe division cases still execute on LLVM and TinyVM.
+
+The historical pass corpus now reports these contract refusals separately.
+The two `flow_less` integration tests currently verify admission refusal, not
+successful paging or terminal interaction: provider-dependent division in the
+pager lacks an admitted numeric failure route. Their original execution checks
+remain in place for when that source is legitimately admitted. A green test
+entry is not a claim that these applications currently execute.
+
+Owner clarification: integer overflow must follow an explicitly authorized
+conversion route to a wider integer type or fail. Silent wrap, truncation, or
+implicit widening is not permitted. Missing failure routing cannot be repaired
+by a backend-selected trap or default handler. [ADR 0071](architecture/decisions/0071-explicit-integer-width.md) now requires
+explicit-width concrete integer types and rejects bare `int`. Active examples
+and tests using bare int require migration; the earlier G1 test counts do not
+claim that the current migration passes the full suite. The [entry-result model](architecture/decisions/0073-explicit-entry-result-host-mapping.md)
+is now approved: an explicitly typed language result and a separately selected
+host mapping. Its concrete declaration and implementation remain under review.
+
+
+Explicit integer conversion checks now enforce
+[ADR 0072](architecture/decisions/0072-explicit-value-preserving-integer-conversion.md).
+Typed initialization preserves conversion intent; assignment, call, return and
+mixed arithmetic cannot silently change integer identities. Signed int32/int64
+widening and proved narrowing have native/TinyVM regression coverage. Unknown
+narrowing remains refused without an admitted failure route. The broad G2
+migration and its integration tests remain open.
+
+
+Current identity: **Lyraform**. Canonical development directory: **LyraForm/**.
+See [placement and historical naming policy](../Policies/PLACEMENT-001.md). Earlier names and
+version labels are historical evidence, not competing current authority.
+
 **Current:** this page is the landing point for present project truth.
 Exact verification totals and timings belong to the linked dated checkpoint,
 not to evergreen orientation documents.
@@ -8,18 +46,26 @@ not to evergreen orientation documents.
 project:       Lyraform
 authority:     main
 toolchain:     Igor
-lineage:       v0.29 reusable native language chain
+historical lineage: v0.29 reusable native language chain
 maturity:      experimental / unstable / not production-ready
 certification: none claimed
 ```
 
 ## Latest verification checkpoint
 
-The latest current-truth verification is
-[Gate 2 and hygiene convergence integration — 2026-10-10](checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md).
-It verifies the complete mission/workspace hygiene authority together with the
-source-derived disposition topology through Gate 2. The reviewed branch was
-merged into `main` with ordinary ancestry after clean and fresh-clone proof.
+The latest current-truth verification is the
+[2026-11-02 Lyraform language-maturation publication](reports/2026-11-02-lyraform-language-maturation-publication.md).
+It records a clean doctor/check/build result and the current canonical suite
+result of 166/196 tests, with 30 documented failures during the explicit-width
+migration. This is an experimental branch publication, not a green baseline
+or a claim of language-maturation completion.
+
+The preceding
+[Gate 2 and hygiene convergence integration — 2026-10-10](checkpoints/2026-10-10-gate2-hygiene-convergence-integration.md)
+remains the authority for the integrated `main` snapshot. It verifies the
+complete mission/workspace hygiene authority together with the source-derived
+disposition topology through Gate 2. The reviewed branch was merged into
+`main` with ordinary ancestry after clean and fresh-clone proof.
 The earlier
 [canonical convergence integration](checkpoints/2026-10-07-convergence-integration.md)
 remains the detailed verification of the preceding compiler campaign, and the
@@ -38,6 +84,17 @@ The earlier stage checkpoints below remain the detailed authority for each
 bounded semantic slice. The
 [bounded unique-transfer forwarding checkpoint](checkpoints/2026-09-26-bounded-unique-transfer-forwarding-chain.md)
 remains the focused execution evidence for that ownership slice.
+
+### Active bounded review work
+
+The selected [source-disposition policy-selection Gate 3 mission](tasks/source-disposition-policy-selection-gate3.md)
+is confined to the review branch `codex/disposition-policy-selection-gate3`.
+It binds deterministic one-route and explicitly supplied multi-route policy to
+the exact Gate 2 source topology and admits only ADR 0067's initial
+`report_and_fail` host action. The artifacts remain declarative, lowering stays
+blocked, and this branch does not claim Gate 3 is integrated into `main`. Its
+[review checkpoint](checkpoints/2026-10-13-source-disposition-policy-gate-3.md)
+records the exact clean and hostile evidence.
 
 ## Canonical convergence campaign
 
@@ -278,12 +335,220 @@ command exit belongs only to an explicit host policy. See
 and the bounded [Mission 07](tasks/canonical-source-disposition-and-quarantine-execution-mission-07.md).
 
 This resolves the design decision, not the implementation campaign. The
-current parser does not yet admit these source forms; no production policy
-artifact selects consumer routes; Graph IR, LLVM, and TinyVM do not yet execute
-the consumer junction; native `flow_graph_fail` still terminates compatibility
-paths with `exit(70)`; and TinyVM has no executable quarantined-activation
-result. General retry, propagation, cancellation, backpressure, concurrent
-failure composition, and broader containment scopes remain outside the
-admitted language. Lyraform remains experimental, unstable, not
-safety-certified, and not production-ready. Mission 07 must prove each gate
-before any of these decisions may be described as executable support.
+canonical parser and semantic analyzer now admit the bounded source forms and
+produce the Gate 2 source topology. The selected Gate 3 review branch adds
+declarative route and host-policy selection, but no production executable
+policy path exists. Graph IR, LLVM, and TinyVM do not yet execute the consumer
+junction; native `flow_graph_fail` still terminates compatibility paths with
+`exit(70)`; and TinyVM has no executable quarantined-activation result.
+General retry, propagation, cancellation, backpressure, concurrent failure
+composition, and broader containment scopes remain outside the admitted
+language. Lyraform remains experimental, unstable, not safety-certified, and
+not production-ready. Mission 07 must prove each later gate before any of
+these decisions may be described as executable support.
+
+## Branch experiment observation — 2026-10-17
+
+On `experiment/configresolve-lyraform`, an explicitly requested disposition graph
+projection now preserves the selected recovery route, exclusive success junction,
+resolved rejoin destination and activation containment through binding and plan
+stages. Request it with the existing `--graph-plan-version 2` alongside the v2
+lowering plan and required policy artifacts. The plan remains blocked for runtime
+execution. This is partial Gate 4 work, not main integration or Gate 5/6 support.
+Transformation projection still requires preserved successor authority.
+See [projection contract](architecture/disposition-graph-projection.md).
+
+The same experiment corrected ordinary-record v2 admission (unsupported literals
+are refused early) and TinyVM admission (blocked plans cannot emit a misleading
+entry-only executable). Ordinary record execution remains unsupported pending
+its explicit construction decision. The ConfigResolve port currently has only a
+bounded scalar differential probe; full library/application parity is unfinished.
+
+2026-10-17 experiment-only envelope admission checkpoint: ordinary calls now
+reject bare failure payloads where immutable failure envelopes are required;
+direct same-type envelope forwarding retains semantic admission. Full suite
+191/191; integer ConfigResolve probe still passes. Envelope runtime representation
+and full Gate 4 remain incomplete. See
+[checkpoint](checkpoints/2026-10-17-failure-envelope-admission.md).
+
+2026-10-17 experiment-only envelope identity checkpoint: disposition graph
+version 2 preserves the response parameter identity and immutable envelope
+projection; shared validation checks its callable signature through preparation
+and binding. Full suite 191/191; 136 hostile graph-stage mutations rejected;
+96-case integer probe retained native/TinyVM parity. Runtime envelopes and
+recovery execution remain unsupported. See
+[checkpoint](checkpoints/2026-10-17-failure-envelope-identity.md).
+
+2026-10-17 experiment-only activation-frame prerequisite passed: a private C
+runtime retains immutable evidence, enforces exclusive publication/recovery and
+returns quarantine without process exit. 192/192 CTests, two ASan/UBSan cases
+(leak check replaced by Valgrind due ptrace), two clean Valgrind cases, scalar
+probe retained. Source response execution is still unsupported. See
+[checkpoint](checkpoints/2026-10-17-source-activation-runtime.md) and selected
+[source recovery execution mission](tasks/source-recovery-execution.md).
+
+2026-10-17 experiment recovery mission: graph version 3 preserves the complete
+tagged producer return and exact owner. Native prepared-artifact lowering now
+explicitly refuses blocked plans; earlier refusal had depended on an unsupported
+signature. 192/192 tests and 200 hostile graph-stage mutations pass; scalar probe
+retains parity. Source recovery execution is still unsupported. See
+[checkpoint](checkpoints/2026-10-17-tagged-producer-return.md).
+
+## 2026-10-17 — complete record construction accepted
+
+Henrik adopted the bounded complete-construction proposal; ADR 0068 is now
+canonical authority. The selected implementation mission is
+[ordinary record construction](tasks/ordinary-record-construction.md).
+Implementation is pending. Earlier record-decision-pending statements describe
+their historical checkpoint, not current authority. The recovery mission remains
+incomplete; its [native callable ABI checkpoint](checkpoints/2026-10-17-native-envelope-callable-abi.md)
+records 193/193 regression tests without claiming whole-graph execution.
+
+### Record construction: first implementation evidence
+
+[Shape validation checkpoint](checkpoints/2026-10-17-record-construction-shape.md):
+missing, duplicate and unknown fields are now diagnosed in local/nested
+construction; consecutive record declarations are preserved. All 193 regression
+tests pass. Record execution and the broader port remain incomplete; the active
+record mission continues with typed values and backend support.
+
+### Record scalar field typing
+
+[Bounded field typing checkpoint](checkpoints/2026-10-17-record-scalar-field-types.md):
+int/Bool record fields now use established scalar compatibility and operator
+rules. The 193-test suite passes; general record values and execution remain
+unfinished under the active construction mission.
+
+### Record construction bounds
+
+[Record literal bounds checkpoint](checkpoints/2026-10-17-record-construction-bounds.md):
+recursive by-value record dependencies and unproved initializer calls now cause
+explicit refusal for record literals. Provider-result bindings remain unaffected.
+All 193 regression tests pass; typed record values and execution remain unfinished.
+
+### Ordinary record type projection
+
+[Type catalog checkpoint](checkpoints/2026-10-17-ordinary-record-type-catalog.md):
+finite int/Bool/nested record identities and fields now survive the compilation
+pipeline in a validated private catalog. Forty hostile contracts are rejected;
+193/193 tests pass. The catalog is non-executable; typed value operands and
+backend support remain unfinished under the active record construction mission.
+
+### Typed record construction operands
+
+[Construction operand checkpoint](checkpoints/2026-10-17-ordinary-record-construction-operands.md):
+local nested literal records now carry typed named fields referencing the private
+catalog. Shared validation rejects eleven hostile operand changes and premature
+execution status. Refused coverage no longer claims executable operation IDs.
+All 193 tests pass. Projection, copies and native/TinyVM execution remain unfinished.
+
+### Typed record reads and field projection
+
+[Projection operand checkpoint](checkpoints/2026-10-17-ordinary-record-projection-operands.md):
+typed local copies and nested field reads now preserve variable/type/field identity.
+Shared validation rejects ten hostile identity and type changes. All 193 tests
+pass. Runtime independence, control-flow admission and backend execution remain
+unfinished; the record mission and complete port stay active.
+
+### Native record value units
+
+[Native value checkpoint](checkpoints/2026-10-17-native-record-values.md):
+private aggregate construction, copies and projection execute correctly in six
+native emitter unit binaries at O0/O2. Instrumented ASan and Valgrind checks pass;
+193/193 regression tests pass. The source plan remains blocked, public admission
+is unchanged, and TinyVM parity/function record ABIs remain unfinished.
+
+### TinyVM record value parity
+
+[TinyVM value checkpoint](checkpoints/2026-10-17-tinyvm-record-values.md):
+private scalar-slot records now match native unit results in both VM engines.
+Copied field storage independence is checked after execution; all nine Valgrind
+runs report zero errors. The 193-test suite passes. Public admission and function
+record ABIs remain unfinished; the overall ConfigResolve port is not complete.
+
+### Record construction control flow
+
+[Control-flow checkpoint](checkpoints/2026-10-17-record-control-flow.md):
+shared validation now proves local record definitions precede reads through
+structured branches and loops. Eight hostile mutations are rejected, including
+branch-local escapes and reads after a possibly skipped loop. All 193 tests and
+the 96-case scalar probe pass. Public execution remains blocked pending remaining
+admission checks; the record mission and complete ConfigResolve port stay active.
+
+### Boolean record initializers
+
+[Boolean initializer checkpoint](checkpoints/2026-10-17-record-boolean-not.md):
+both backends now implement the established Bool `not` rule. Six record source
+variants agree across native O0/O2 and both VM engines, with malformed operands
+refused. All 193 tests, instrumented native ASan runs and 18 Valgrind runs pass.
+Public record execution and the full ConfigResolve port remain unfinished.
+
+### Record facts before admission
+
+[Fact ordering checkpoint](checkpoints/2026-10-17-record-fact-ordering.md):
+record catalog, local types and operands now resolve before statement admission;
+serialization consumes immutable facts. Twelve pre/post reports are byte-identical
+and all 193 tests pass. This removes a dependency-order barrier to executable
+record admission; public execution restrictions remain in force.
+
+### Public finite record execution
+
+The finite scalar/nested ordinary-record bound now has an explicit execution
+contract. A target-wrapped Lyraform program constructs, copies and projects
+private records through the public LLVM path and produces a real binary with
+exit result 12. The same optimized artifact reaches TinyVM and returns 12 with
+no trap. Hostile contract mutations are rejected. Broader initializers, record
+function ABIs and complete arithmetic admission remain unfinished.
+### Public finite record function boundaries (2026-10-17)
+
+Pure finite scalar/nested records now cross ordinary source function
+parameters and returns in both native LLVM and TinyVM lowering. The accepted
+slice includes nested `read(make())` calls with private layout and independent
+value copies. Member writes, resource lifetimes, recursive records, and other
+unsupported callable forms remain outside the bound; see
+`docs/checkpoints/2026-10-17-record-function-boundaries.md`.
+
+### Finite ConfigResolve fact resolution (2026-10-17)
+
+Three scalar `Fact` records now cross a Lyraform function boundary and execute
+all four bounded conflict policies, with missing and rejected-tie outcomes.
+Six generated cases match native LLVM and TinyVM; the accepted scope is recorded in
+`docs/checkpoints/2026-10-17-finite-fact-resolution.md`.
+
+Record-valued returns from both sides of a conditional now use one stable
+private TinyVM result tree, so branch selection preserves initialized values;
+the bounded evidence is in `docs/checkpoints/2026-10-17-record-result-branch.md`.
+
+The finite resolver also validates integer facts against a source `Policy`
+record before selection; native and TinyVM agree on valid, out-of-range, and
+missing cases. See `docs/checkpoints/2026-10-17-finite-policy-validation.md`.
+
+The resolver now exposes its checked outcome through a typed `Resolution` record
+(`status`, `value`, `chosen`). The source constructs each branch result once,
+reads it through a function boundary, and produces exit result 33 in both native
+LLVM and TinyVM (`trap:0`). This remains the finite ConfigResolve acceptance
+slice; diagnostics, collections, mutation, and resource lifetimes are still
+separate missions.
+
+### Finite ConfigResolve Text records (2026-10-17)
+
+The generic finite record bound now admits immutable `Text` fields alongside
+`int` and `Bool`. A `Message{Text, Bool}` source record crosses a function
+boundary and returns 7 in native LLVM and TinyVM (`trap:0`); see
+`docs/checkpoints/2026-10-17-configresolve-text-value-record.md`.
+
+### Tagged ConfigResolve `Value` boundary (2026-10-17)
+
+The experiment is frozen after defining a generic closed tagged scalar carrier for
+ConfigResolve's `Null | Bool | Int | Double | Text` value model. Ordinary
+records are deliberately not being used as a fake union: they cannot enforce
+one active alternative. The first proposed executable slice is `Null`, `Bool`,
+`Int`, and `Text`; floating-point admission remains pending explicit policy
+decisions.
+
+The source boundary is now concrete: `type Value variant { case ... }` is
+parsed as a closed declaration with five unique, typed cases. A declaration
+probe accepts the generic shape and lowers an independent integer main path;
+construction, checked projection, and backend execution remain deliberately
+refused until their carrier semantics are implemented. The end report is
+`docs/reports/2026-10-17-configresolve-lyraform-experiment-end-report.md`.

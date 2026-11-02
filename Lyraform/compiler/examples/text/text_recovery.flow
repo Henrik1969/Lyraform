@@ -20,6 +20,7 @@ main {
     if code == zero {
         value : Text(join("Lyra", "form"))
         print value
+        disposed : c_int(dispose(value))
     }
     if code != zero {
         puts("concat failed") -> code

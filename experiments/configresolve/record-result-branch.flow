@@ -1,0 +1,26 @@
+program configresolve_record_result_branch
+
+record Outcome {
+ status : int
+ value : int
+}
+
+target Demo {
+fn choose(flag : int): Outcome {
+ if flag == 0 {
+  zero : Outcome({status: 0, value: 11})
+  zero -> return
+ }
+ one : Outcome({status: 0, value: 22})
+ one -> return
+}
+
+fn read(result : Outcome): int {
+ result.value -> return
+}
+
+main {
+ selected : int(read(choose(0)))
+ selected -> return
+}
+}

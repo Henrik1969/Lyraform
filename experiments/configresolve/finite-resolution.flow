@@ -1,0 +1,127 @@
+program configresolve_finite_resolution
+
+record Fact {
+ present : int
+ value : int
+ precedence : int
+ order : int
+}
+record Policy {
+ required : int
+ minimum : int
+ maximum : int
+}
+record Resolution {
+ status : int
+ value : int
+ chosen : int
+}
+
+target Demo {
+// Bounded resolution slice: three structured candidates. Modes: 0 highest
+// precedence with last-order ties, 1 reject ties, 2 first wins, 3 last wins.
+// Result codes: 1 missing, 3 rejected tie, otherwise the selected value.
+fn resolve_highest(first : Fact, second : Fact, third : Fact, mode : int): int {
+ if mode == 2 {
+  if first.present != 0 { first.value -> return }
+  if second.present != 0 { second.value -> return }
+  if third.present != 0 { third.value -> return }
+  1 -> return
+ }
+ if mode == 3 {
+  if third.present != 0 { third.value -> return }
+  if second.present != 0 { second.value -> return }
+  if first.present != 0 { first.value -> return }
+  1 -> return
+ }
+ if first.present == 0 {
+  if second.present == 0 {
+   if third.present == 0 { 1 -> return }
+   third.value -> return
+  }
+  if third.present == 0 { second.value -> return }
+  if second.precedence > third.precedence { second.value -> return }
+  if third.precedence > second.precedence { third.value -> return }
+  if mode == 1 { 3 -> return }
+  if third.order > second.order { third.value -> return }
+  second.value -> return
+ }
+ if second.present == 0 {
+  if third.present == 0 { first.value -> return }
+  if first.precedence > third.precedence { first.value -> return }
+  if third.precedence > first.precedence { third.value -> return }
+  if mode == 1 { 3 -> return }
+  if third.order > first.order { third.value -> return }
+  first.value -> return
+ }
+ if third.present == 0 {
+  if first.precedence > second.precedence { first.value -> return }
+  if second.precedence > first.precedence { second.value -> return }
+  if mode == 1 { 3 -> return }
+  if second.order > first.order { second.value -> return }
+  first.value -> return
+ }
+ if first.precedence > second.precedence {
+  if first.precedence > third.precedence { first.value -> return }
+ } else {
+  if second.precedence > third.precedence { second.value -> return }
+ }
+ if third.precedence > first.precedence {
+  if third.precedence > second.precedence { third.value -> return }
+ }
+ if mode == 1 { 3 -> return }
+ if third.order > second.order { third.value -> return }
+ second.value -> return
+}
+
+// Validation code 0 means valid, 4 means an admitted fact is outside the
+// policy range. Missing facts remain an explicit resolver result (1).
+fn validate_fact(fact : Fact, rule : Policy): int {
+ if fact.present == 0 { 0 -> return }
+ if fact.value < rule.minimum { 4 -> return }
+ if fact.value > rule.maximum { 4 -> return }
+ 0 -> return
+}
+
+fn resolve_checked(first : Fact, second : Fact, third : Fact, rule : Policy, mode : int): int {
+ first_check : int(validate_fact(first, rule))
+ if first_check != 0 { 4 -> return }
+ second_check : int(validate_fact(second, rule))
+ if second_check != 0 { 4 -> return }
+ third_check : int(validate_fact(third, rule))
+ if third_check != 0 { 4 -> return }
+ selected : int(resolve_highest(first, second, third, mode))
+ selected -> return
+}
+
+fn resolve_result(first : Fact, second : Fact, third : Fact, rule : Policy, mode : int): Resolution {
+ code : int(resolve_checked(first, second, third, rule, mode))
+ if code == 1 {
+  missing_result : Resolution({status: 1, value: 0, chosen: 0})
+  missing_result -> return
+ }
+ if code == 3 {
+  conflict_result : Resolution({status: 3, value: 0, chosen: 0})
+  conflict_result -> return
+ }
+ if code == 4 {
+  invalid_result : Resolution({status: 4, value: 0, chosen: 0})
+  invalid_result -> return
+ }
+ success_result : Resolution({status: 0, value: code, chosen: 0})
+ success_result -> return
+}
+
+fn read_result(result : Resolution): int {
+ result.value -> return
+}
+
+main {
+ first : Fact({present: 1, value: 11, precedence: 10, order: 1})
+ second : Fact({present: 1, value: 22, precedence: 20, order: 2})
+ third : Fact({present: 1, value: 33, precedence: 20, order: 3})
+ rule : Policy({required: 1, minimum: 0, maximum: 100})
+ result : int(read_result(resolve_result(first, second, third, rule, 0)))
+ result -> return
+}
+}
