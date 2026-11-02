@@ -123,3 +123,6 @@ add_test(NAME lyraform_refinement_function_boundaries
 add_test(NAME lyraform_refinement_aggregate_fields
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-aggregate-fields.py
         --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_nested_aggregates
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-nested-aggregates.py
+        --build ${CMAKE_BINARY_DIR})
