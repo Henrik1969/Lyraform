@@ -117,3 +117,6 @@ add_test(NAME lyraform_refinement_construction
 add_test(NAME lyraform_refinement_assignment
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-assignment.py
         --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_function_boundaries
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-function-boundaries.py
+        --build ${CMAKE_BINARY_DIR})

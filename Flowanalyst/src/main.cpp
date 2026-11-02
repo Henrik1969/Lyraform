@@ -938,6 +938,26 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             check_invariant(condition, refined_symbol);
         }
     }
+    // R3 permits refined types at ordinary function boundaries, but only
+    // after the boundary value itself is proven. Internally these callables
+    // use their explicit base carrier; the source refinement identity remains
+    // tracked in these maps for call and return checks below.
+    std::map<int, int> refined_parameter_types;
+    std::map<int, int> refined_callable_returns;
+    for (auto& callable : callables) {
+        for (auto& parameter : callable.parameters) {
+            const int refinement = visible_refinement_type(callable.scope, parameter.second);
+            if (!refinement_invariants.count(refinement) || refinement_invariants.at(refinement).empty()) continue;
+            refined_parameter_types[parameter.first] = refinement;
+            parameter.second = refinement_base_types.at(refinement);
+            symbol_types[parameter.first] = parameter.second;
+        }
+        const int refinement = visible_refinement_type(callable.scope, callable.return_type);
+        if (refinement_invariants.count(refinement) && !refinement_invariants.at(refinement).empty()) {
+            refined_callable_returns[callable.symbol] = refinement;
+            callable.return_type = refinement_base_types.at(refinement);
+        }
+    }
     // Generic/array spelling is structural type context, not permission to
     // erase the obligations of an enclosed named refinement.
     std::function<bool(int, const std::string&, unsigned)> requires_refinement_check;
@@ -1029,6 +1049,71 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             if (operation == ">=") return {ConstantValue::Kind::boolean, 0, left.integer >= right.integer};
             return {};
         };
+    auto refinement_boundary_check = [&](int refinement, int expression_id, int statement_id,
+                                         int subject, const char* violation_code,
+                                         const char* unproven_code, const char* label) {
+        const auto candidate = evaluate_refinement_constant(expression_id, 0);
+        bool proven = candidate.kind == ConstantValue::Kind::integer;
+        bool violated = false;
+        if (proven) for (const int invariant : refinement_invariants.at(refinement)) {
+            const auto result = evaluate_refinement_constant(invariant, candidate.integer);
+            if (result.kind != ConstantValue::Kind::boolean) { proven = false; break; }
+            if (!result.boolean) violated = true;
+        }
+        if (violated) {
+            add_diagnostic(violation_code,
+                std::string(label) + " violates the refined value invariant",
+                subject, "symbol:" + std::to_string(subject));
+            set_resolution_provenance(diagnostics.back(), statement_id);
+            return false;
+        }
+        if (!proven) {
+            add_diagnostic(unproven_code,
+                std::string(label) + " requires a statically provable invariant or an admitted runtime enforcement route",
+                subject, "symbol:" + std::to_string(subject));
+            set_resolution_provenance(diagnostics.back(), statement_id);
+            return false;
+        }
+        return true;
+    };
+    for (const auto& [expression_id, expression] : expressions) {
+        if (text(field(*expression, "kind")) != "call") continue;
+        const auto* payload = field(*expression, "payload");
+        const int base = integer(field(payload, "base"));
+        const int callee = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
+        const auto callable = std::find_if(callables.begin(), callables.end(),
+            [&](const Callable& candidate) { return candidate.symbol == callee; });
+        if (callable == callables.end()) continue;
+        const int statement = expression_context.count(expression_id) ? expression_context.at(expression_id).first : -1;
+        const auto& arguments = list(field(payload, "arguments"));
+        for (std::size_t index = 0; index < arguments.size() && index < callable->parameters.size(); ++index) {
+            const int parameter = callable->parameters[index].first;
+            const auto refined = refined_parameter_types.find(parameter);
+            if (refined == refined_parameter_types.end()) continue;
+            refinement_boundary_check(refined->second, integer(&arguments[index]), statement, parameter,
+                "FLOWANALYST_REFINED_ARGUMENT_VIOLATION", "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+                "refined function argument");
+        }
+    }
+    auto function_for_scope = [&](int scope) {
+        int current = scope;
+        while (current >= 0 && scopes.count(current)) {
+            const int owner = integer(field(*scopes.at(current), "owner_symbol_id"));
+            for (const auto& callable : callables) if (callable.symbol == owner) return owner;
+            current = integer(field(*scopes.at(current), "parent_id"));
+        }
+        return -1;
+    };
+    for (const auto& [statement_id, statement] : statements) {
+        if (text(field(*statement, "kind")) != "return") continue;
+        const int function = function_for_scope(statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1);
+        const auto refined = refined_callable_returns.find(function);
+        if (refined == refined_callable_returns.end()) continue;
+        refinement_boundary_check(refined->second,
+            integer(field(field(*statement, "payload"), "value_expression")), statement_id, function,
+            "FLOWANALYST_REFINED_RETURN_VIOLATION", "FLOWANALYST_REFINED_RETURN_UNPROVEN",
+            "refined function return");
+    }
     for (const auto& [statement_id, statement] : statements) {
         if (text(field(*statement, "kind")) != "let") continue;
         const auto* payload = field(*statement, "payload");
@@ -1071,7 +1156,9 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             if (!spelling.empty() && requires_refinement_check(
                     integer(field(*symbol, "owning_scope_id")), spelling, 0) &&
                 !admitted_refinement_values.count(id) &&
-                !rejected_refinement_constructions.count(id))
+                !rejected_refinement_constructions.count(id) &&
+                !refined_parameter_types.count(id) &&
+                !refined_callable_returns.count(id))
                 add_diagnostic("FLOWANALYST_REFINED_VALUE_UNSUPPORTED",
                     "refined value '" + spelling + "' requires invariant enforcement before execution",
                     id, "symbol:" + std::to_string(id));
@@ -3320,8 +3407,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             if (expressions.count(base) &&
                 text(field(field(*expressions.at(base), "payload"), "name")) == "length") return "c_int";
             const auto found = resolved_expression_symbols.find(base);
-            if (found != resolved_expression_symbols.end() && symbols.count(found->second))
+            if (found != resolved_expression_symbols.end() && symbols.count(found->second)) {
+                for (const auto& callable : callables)
+                    if (callable.symbol == found->second) return callable.return_type;
                 return fact_value(*symbols.at(found->second), "return_type_spelling");
+            }
         }
         if (kind == "unary") return operand_spelling(integer(field(payload, "operand")), context, depth + 1);
         if (kind == "binary") {
@@ -3437,7 +3527,9 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             } else {
                 const int callee_symbol = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
                 if (lowering_plan_version == 2 && symbols.count(callee_symbol) && text(field(*symbols.at(callee_symbol), "kind")) == "Function") {
-                    const auto result_spelling = fact_value(*symbols.at(callee_symbol), "return_type_spelling");
+                    auto result_spelling = fact_value(*symbols.at(callee_symbol), "return_type_spelling");
+                    for (const auto& callable : callables)
+                        if (callable.symbol == callee_symbol) { result_spelling = callable.return_type; break; }
                     const int result_record = visible_symbol(expression_context.count(expression_id) ? expression_context.at(expression_id).second : -1, result_spelling);
                     bool result_is_record = false;
                     for (const auto& type : list(field(record_types, "types")))
