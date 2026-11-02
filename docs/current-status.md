@@ -3,9 +3,9 @@
 ## Stabilization work in progress — 2026-11-01
 
 [G1 passed on its preserved snapshot](checkpoints/2026-11-01-contract-stabilization-g1.md); G2 is active. The safety checks
-now admit only the bounded R1/R2/R3 scalar refinement lifecycle: direct
-construction, assignment, and function argument/return boundaries whose
-predicates are statically proved; other
+now admit only the bounded R1/R2/R3/R4 scalar refinement lifecycle: direct
+construction, assignment, function argument/return boundaries, and finite
+aggregate field boundaries whose predicates are statically proved; other
 value-bearing refinements with unenforced predicates remain refused. Integer
 quotients (`div`) whose safety
 cannot be established and has no admitted failure route remain refused. The
@@ -60,10 +60,15 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest current-truth verification is the
+[2026-11-02 refined aggregate-field vertical slice](checkpoints/2026-11-02-refinement-aggregate-fields-slice.md),
+which extends the bounded scalar lifecycle into finite record construction,
+projection, and statically proven member-update boundaries. Invalid and
+unknown field values remain refused, while physical member execution remains
+explicitly backend-refused. The preceding
 [2026-11-02 refined function-boundary vertical slice](checkpoints/2026-11-02-refinement-function-boundaries-slice.md),
 which extends the bounded scalar lifecycle through statically proven refined
-function arguments and returns. Invalid and unknown boundary values remain
-refused. The preceding
+function arguments and returns, remains the function-boundary authority.
+The preceding
 [2026-11-02 refinement assignment vertical slice](checkpoints/2026-11-02-refinement-assignment-slice.md),
 which preserves the R1 construction proof when a refined scalar local is
 assigned a new statically valid value, remains the assignment authority.

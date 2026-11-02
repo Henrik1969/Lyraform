@@ -8,7 +8,8 @@ using namespace lyraform::scalar::frontend;
 // Source type identity and field identity only. This is deliberately separate
 // from provider-verified aggregate ABI layout, byte offsets and foreign names.
 inline Json type_catalog(const Index& declarations, const Index& symbols,
-                         const Index& scopes, const Index& origins) {
+                         const Index& scopes, const Index& origins,
+                         const std::map<int, std::string>& refinement_base_types = {}) {
     using flowcontracts::json::Array;
     using flowcontracts::json::Object;
     using flowcontracts::json::Integer;
@@ -33,10 +34,15 @@ inline Json type_catalog(const Index& declarations, const Index& symbols,
             const auto spelling = text(get(&field, "type"));
             if (name.empty() || !names.insert(name).second) return false;
             Json type;
-            if (lyraform::scalar::record_selected(lyraform::scalar::type(spelling)))
+            const int field_type_symbol = visible_symbol(scopes, symbols, scope, spelling);
+            const auto refinement = refinement_base_types.find(field_type_symbol);
+            const bool explicit_integer = spelling == "int32" || spelling == "int64";
+            if (refinement != refinement_base_types.end())
+                type = Object{{"kind", std::string("scalar")}, {"name", refinement->second}};
+            else if (lyraform::scalar::record_selected(lyraform::scalar::type(spelling)) || explicit_integer)
                 type = Object{{"kind", std::string("scalar")}, {"name", spelling}};
             else {
-                const int child = visible_symbol(scopes, symbols, scope, spelling);
+                const int child = field_type_symbol;
                 if (!project(child)) return false;
                 type = Object{{"kind", std::string("record")}, {"symbol_id", Integer{child}}};
             }

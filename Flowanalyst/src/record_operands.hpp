@@ -11,6 +11,13 @@ inline Json read_operand(int expression, const Index& expressions, const Json& c
 }
 
 namespace flowanalyst::record {
+inline lyraform::scalar::Type scalar_type(std::string_view name) {
+    if (name == "int32" || name == "int64") return lyraform::scalar::Type::integer;
+    return lyraform::scalar::type(name);
+}
+inline bool scalar_selected(std::string_view name) {
+    return lyraform::scalar::record_selected(scalar_type(name));
+}
 // Initial typed operand projection: literal/scalar-expression construction only.
 // Other expressions keep their explicit unsupported representation until typed.
 inline Json construction_operand(int expression, const Json& expected,
@@ -52,8 +59,8 @@ inline Json construction_operand(int expression, const Json& expected,
             {"type", std::string("ordinary_record")}, {"record_symbol_id", Integer{symbol}}, {"fields", fields}};
     }
     const auto type = text(get(&expected, "name"));
-    const auto scalar = lyraform::scalar::type(type);
-    if (!lyraform::scalar::record_selected(scalar)) return nullptr;
+    const auto scalar = scalar_type(type);
+    if (!scalar_selected(type)) return nullptr;
     if (kind == "identifier" && resolved_symbols.count(expression) &&
         symbol_types.count(resolved_symbols.at(expression)) &&
         symbol_types.at(resolved_symbols.at(expression)) == type) {

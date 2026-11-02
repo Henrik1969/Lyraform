@@ -5,6 +5,13 @@
 #include <algorithm>
 
 namespace flowcontracts {
+inline lyraform::scalar::Type ordinary_record_scalar_type(std::string_view name) {
+    if (name == "int32" || name == "int64") return lyraform::scalar::Type::integer;
+    return lyraform::scalar::type(name);
+}
+inline bool ordinary_record_scalar_selected(std::string_view name) {
+    return lyraform::scalar::record_selected(ordinary_record_scalar_type(name));
+}
 inline void validate_ordinary_record_operands(const json::Value& value) {
     using namespace json;
     const std::string path = "$.lowering_plan.record_operand";
@@ -92,7 +99,7 @@ inline void validate_ordinary_record_operands(const json::Value& value) {
         if (kind == "identifier") {
             exact(operand, {"kind", "expression_id", "type", "symbol_id"});
             if (integer(required(operand, "symbol_id"), path) < 0 ||
-                !lyraform::scalar::record_selected(lyraform::scalar::type(text(operand, "type"))))
+                !ordinary_record_scalar_selected(text(operand, "type")))
                 fail("record scalar identifier has invalid type or symbol identity");
             return text(operand, "type");
         }
@@ -141,12 +148,12 @@ inline void validate_ordinary_record_operands(const json::Value& value) {
             return "record:" + std::to_string(symbol);
         }
         const auto type = text(operand, "type");
-        if (!lyraform::scalar::record_selected(lyraform::scalar::type(type))) fail("unsupported record scalar operand type");
+        if (!ordinary_record_scalar_selected(type)) fail("unsupported record scalar operand type");
         if (kind == "integer_literal" || kind == "bool_literal" || kind == "string_literal") {
             exact(operand, {"kind", "expression_id", "type", "value"});
             const auto literal = text(operand, "value");
             if (kind == "integer_literal") {
-                if (type != "int" || literal.empty()) fail("invalid record integer operand");
+                if (!ordinary_record_scalar_selected(type) || ordinary_record_scalar_type(type) != lyraform::scalar::Type::integer || literal.empty()) fail("invalid record integer operand");
                 for (const unsigned char character : literal)
                     if (!std::isdigit(character)) fail("record integer literal must be unsigned decimal syntax; signs use unary operators");
             } else if (kind == "bool_literal") {
@@ -158,14 +165,16 @@ inline void validate_ordinary_record_operands(const json::Value& value) {
         auto result = lyraform::scalar::Type::invalid;
         if (kind == "unary") {
             exact(operand, {"kind", "expression_id", "type", "operator", "operand"});
-            result = lyraform::scalar::unary(operation, lyraform::scalar::type(validate(required(operand, "operand"), depth + 1)));
+            result = lyraform::scalar::unary(operation, ordinary_record_scalar_type(validate(required(operand, "operand"), depth + 1)));
         } else if (kind == "binary") {
             exact(operand, {"kind", "expression_id", "type", "operator", "left", "right"});
             result = lyraform::scalar::binary(operation,
-                lyraform::scalar::type(validate(required(operand, "left"), depth + 1)),
-                lyraform::scalar::type(validate(required(operand, "right"), depth + 1)));
+                ordinary_record_scalar_type(validate(required(operand, "left"), depth + 1)),
+                ordinary_record_scalar_type(validate(required(operand, "right"), depth + 1)));
         } else fail("unsupported record value operand");
-        if (!lyraform::scalar::selected(result) || lyraform::scalar::name(result) != type)
+        const bool same_integer = result == lyraform::scalar::Type::integer &&
+            ordinary_record_scalar_type(type) == lyraform::scalar::Type::integer;
+        if (!lyraform::scalar::selected(result) || (!same_integer && lyraform::scalar::name(result) != type))
             fail("record scalar operator type is invalid");
         return type;
     };

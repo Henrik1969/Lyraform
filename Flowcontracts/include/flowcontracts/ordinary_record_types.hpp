@@ -45,7 +45,9 @@ inline void validate_ordinary_record_types(const json::Value& value) {
             const auto kind = string(required(reference, "kind", path), path);
             if (kind == "scalar") {
                 exact(reference, {"kind", "name"});
-                if (!lyraform::scalar::record_selected(lyraform::scalar::type(string(required(reference, "name", path), path))))
+                const auto name = string(required(reference, "name", path), path);
+                if (!lyraform::scalar::record_selected(lyraform::scalar::type(name)) &&
+                    name != "int32" && name != "int64")
                     fail("record scalar type is outside the projected bound");
             } else if (kind == "record") {
                 exact(reference, {"kind", "symbol_id"});

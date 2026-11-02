@@ -938,6 +938,13 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             check_invariant(condition, refined_symbol);
         }
     }
+    const std::map<int, std::string> admitted_refinement_base_types = [&] {
+        std::map<int, std::string> result;
+        for (const auto& [symbol, base] : refinement_base_types)
+            if (refinement_invariants.count(symbol) && !refinement_invariants.at(symbol).empty())
+                result.emplace(symbol, base);
+        return result;
+    }();
     // R3 permits refined types at ordinary function boundaries, but only
     // after the boundary value itself is proven. Internally these callables
     // use their explicit base carrier; the source refinement identity remains
@@ -1076,6 +1083,54 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         }
         return true;
     };
+    // R4 carries the same proof into finite ordinary-record construction. The
+    // record artifact uses the proven base carrier, while this pass retains
+    // the source refinement identity and refuses invalid or unknown fields.
+    std::map<int, std::vector<std::pair<std::string, std::string>>> record_fields;
+    for (const auto& [record_symbol, symbol] : symbols) {
+        if (text(field(*symbol, "kind")) != "Struct") continue;
+        const int scope = integer(field(*symbol, "introduced_scope_id"));
+        if (!scopes.count(scope)) continue;
+        for (const auto& child : list(field(*scopes.at(scope), "symbol_ids"))) {
+            const int field_symbol = integer(&child);
+            if (!symbols.count(field_symbol) || text(field(*symbols.at(field_symbol), "kind")) != "Field") continue;
+            record_fields[record_symbol].emplace_back(
+                text(field(*symbols.at(field_symbol), "name")),
+                fact_value(*symbols.at(field_symbol), "declared_type_spelling"));
+        }
+    }
+    std::function<void(int, int, int, const std::string&, std::set<int>&)> check_record_refinements;
+    check_record_refinements = [&](int statement_id, int expression_id, int scope,
+                                   const std::string& type_name, std::set<int>& active) {
+        if (!expressions.count(expression_id) ||
+            text(field(*expressions.at(expression_id), "kind")) != "record_literal") return;
+        if (active.size() >= 256 || !active.insert(expression_id).second) return;
+        struct Erase { std::set<int>& ids; int value; ~Erase() { ids.erase(value); } } erase{active, expression_id};
+        const int record_symbol = visible_refinement_type(scope, type_name);
+        if (!record_fields.count(record_symbol) || !symbols.count(record_symbol)) return;
+        const int record_scope = integer(field(*symbols.at(record_symbol), "introduced_scope_id"));
+        std::map<std::string, int> supplied;
+        for (const auto& item : list(field(field(*expressions.at(expression_id), "payload"), "fields")))
+            supplied[text(field(&item, "name"))] = integer(field(&item, "value"));
+        for (const auto& [name, field_type] : record_fields.at(record_symbol)) {
+            if (!supplied.count(name)) continue;
+            const int field_type_symbol = visible_refinement_type(record_scope, field_type);
+            if (refinement_invariants.count(field_type_symbol) && !refinement_invariants.at(field_type_symbol).empty())
+                refinement_boundary_check(field_type_symbol, supplied.at(name), statement_id, field_type_symbol,
+                    "FLOWANALYST_REFINED_RECORD_FIELD_VIOLATION", "FLOWANALYST_REFINED_RECORD_FIELD_UNPROVEN",
+                    "refined record field");
+            if (record_fields.count(field_type_symbol))
+                check_record_refinements(statement_id, supplied.at(name), record_scope, field_type, active);
+        }
+    };
+    for (const auto& [statement_id, statement] : statements) {
+        if (text(field(*statement, "kind")) != "let") continue;
+        const int initializer = integer(field(field(*statement, "payload"), "initializer_expression"));
+        if (initializer < 0) continue;
+        const int scope = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
+        std::set<int> active;
+        check_record_refinements(statement_id, initializer, scope, text(field(*statement, "type")), active);
+    }
     for (const auto& [expression_id, expression] : expressions) {
         if (text(field(*expression, "kind")) != "call") continue;
         const auto* payload = field(*expression, "payload");
@@ -1153,7 +1208,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     for (const auto& [id, symbol] : symbols) {
         for (const auto* key : {"declared_type_spelling", "return_type_spelling"}) {
             const auto spelling = declared_symbol_types.count(id) ? declared_symbol_types.at(id) : fact_value(*symbol, key);
-            if (!spelling.empty() && requires_refinement_check(
+            if (!spelling.empty() && text(field(*symbol, "kind")) != "Field" && requires_refinement_check(
                     integer(field(*symbol, "owning_scope_id")), spelling, 0) &&
                 !admitted_refinement_values.count(id) &&
                 !rejected_refinement_constructions.count(id) &&
@@ -1202,7 +1257,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     for (const auto& fact : effect_facts) if (fact.symbol >= 0) pure_symbols[fact.symbol] = fact.effect == "pure" && fact.certainty == "proven";
     for (const auto& issue : flowanalyst::record::construction_shape(
             declarations, statements, expressions, symbols, scopes, origins, statement_scopes,
-            resolved_expression_symbols, symbol_types, pure_symbols, lowering_plan_version == 2)) {
+            resolved_expression_symbols, symbol_types, pure_symbols, lowering_plan_version == 2,
+            admitted_refinement_base_types)) {
         add_diagnostic(issue.code, issue.message, -1,
             "expression:" + std::to_string(issue.expression));
         auto& diagnostic = diagnostics.back();
@@ -1715,7 +1771,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         graph["provider_effect_profiles"] = std::move(profiles);
         graph["effect_access_facts"] = std::move(accesses);
     }
-    const auto record_types = flowanalyst::record::type_catalog(declarations, symbols, scopes, origins);
+    const auto record_types = flowanalyst::record::type_catalog(
+        declarations, symbols, scopes, origins, admitted_refinement_base_types);
     std::map<int, int> record_local_types;
     std::map<int, int> record_local_statements;
     if (lowering_plan_version == 2) {
@@ -1802,9 +1859,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     compatible = compatible || visible_symbol(expression_context.at(expression_id).second, declared_type) == actual;
                 } else {
                     const auto actual_type = text(field(operand, "type"));
+                    const auto integer_carrier = [](const std::string& type) {
+                        return type == "int" || type == "int32" || type == "int64" ||
+                            type == "c_int" || type == "c_long" || type == "c_size_t" || type == "c_ulong";
+                    };
                     compatible = compatible || actual_type == declared_type ||
-                        ((declared_type == "c_int" || declared_type == "int") &&
-                         (actual_type == "c_int" || actual_type == "int"));
+                        (integer_carrier(declared_type) && integer_carrier(actual_type));
                 }
             }
             if (compatible && !std::holds_alternative<std::nullptr_t>(operand)) {
@@ -1831,6 +1891,34 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (operation.kind == "external_call" || operation.kind == "text_outcome") {
             const auto parameter_types = split_generic_arguments(operation.parameter_types);
             if (argument < parameter_types.size()) declared_type = parameter_types[argument];
+        }
+        if (operation.kind == "assignment" && statements.count(operation.statement)) {
+            const auto* target = field(field(*statements.at(operation.statement), "payload"), "target");
+            if (text(field(target, "kind")) == "field_path") {
+                int current = visible_symbol(operation.scope, text(field(target, "base_identifier")));
+                std::string current_type = symbol_types.count(current) ? symbol_types.at(current) : std::string{};
+                int current_scope = operation.scope;
+                for (const auto& entry : list(field(target, "fields"))) {
+                    const int owner = visible_refinement_type(current_scope, current_type);
+                    if (!symbols.count(owner)) { current_type.clear(); break; }
+                    const int owner_scope = integer(field(*symbols.at(owner), "introduced_scope_id"));
+                    int field_symbol = -1;
+                    for (const auto& child : list(field(*scopes.at(owner_scope), "symbol_ids"))) {
+                        const int candidate = integer(&child);
+                        if (symbols.count(candidate) && text(field(*symbols.at(candidate), "kind")) == "Field" &&
+                            text(field(*symbols.at(candidate), "name")) == text(field(&entry, "name"))) {
+                            field_symbol = candidate;
+                            break;
+                        }
+                    }
+                    if (field_symbol < 0) { current_type.clear(); break; }
+                    current_type = fact_value(*symbols.at(field_symbol), "declared_type_spelling");
+                    current_scope = owner_scope;
+                }
+                const int refinement = visible_refinement_type(current_scope, current_type);
+                if (admitted_refinement_base_types.count(refinement)) declared_type = admitted_refinement_base_types.at(refinement);
+                else if (!current_type.empty()) declared_type = current_type;
+            }
         }
         return declared_type;
     };
@@ -1966,6 +2054,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         else uninitialized_local_declarations.insert(symbol);
     }
     for (const auto& [statement_id, fact] : scalar_facts) if (!fact.admitted()) {
+        const auto* statement = statements.count(statement_id) ? statements.at(statement_id) : nullptr;
+        const auto* payload = field(statement, "payload");
+        const auto* target = field(payload, "target");
+        const bool aggregate_target = statement && text(field(statement, "kind")) == "placement" &&
+            text(field(target, "kind")) == "field_path";
+        if (aggregate_target) continue;
         add_diagnostic("FLOWANALYST_SCALAR_FLOW_REFUSED",
             "scalar flow requires an established destination of the same type (source " +
                 std::string(lyraform::scalar::name(fact.source_type)) + ", destination " +
@@ -1977,7 +2071,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         diagnostic.line = static_cast<int>(fact.origin.line);
         diagnostic.column = static_cast<int>(fact.origin.column);
     }
-    const auto target_catalog = flowanalyst::target::catalog(symbols, scopes, origins);
+    const auto target_catalog = flowanalyst::target::catalog(symbols, scopes, origins, admitted_refinement_base_types);
     std::map<int, flowanalyst::target::Result> target_facts;
     for (std::size_t operation_id = 0; operation_id < lowering_operations.size(); ++operation_id) {
         const auto& operation = lowering_operations[operation_id];
@@ -2007,8 +2101,42 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             root_declaration = found->second;
         auto result = flowanalyst::target::resolve(bundle, *target, operation.statement,
             static_cast<int>(operation_id), base, base_type, destination_type, target_catalog,
-            operation.expression, source_type, root_declaration);
-        if (!result.admitted) {
+            operation.expression, source_type, root_declaration, admitted_refinement_base_types);
+        bool refinement_target_failure = false;
+        if (kind == "field_path" && result.admitted) {
+            auto& evidence = std::get<Object>(result.evidence);
+            const auto* members = field(result.evidence, "members");
+            if (members && !list(members).empty()) {
+                const auto& last = list(members).back();
+                const int member_symbol = integer(field(&last, "member_symbol_id"));
+                int refinement = integer(field(&last, "member_type_symbol_id"));
+                if ((!refinement_invariants.count(refinement) || refinement_invariants.at(refinement).empty()) &&
+                    symbols.count(member_symbol)) {
+                    const auto raw_type = fact_value(*symbols.at(member_symbol), "declared_type_spelling");
+                    refinement = visible_refinement_type(operation.scope, raw_type);
+                }
+                if (refinement_invariants.count(refinement) && !refinement_invariants.at(refinement).empty()) {
+                    if (!refinement_boundary_check(refinement, operation.expression, operation.statement,
+                            member_symbol, "FLOWANALYST_REFINED_MEMBER_VIOLATION",
+                            "FLOWANALYST_REFINED_MEMBER_UNPROVEN", "refined aggregate member")) {
+                        refinement_target_failure = true;
+                        result.admitted = false;
+                        result.code = diagnostics.back().code;
+                        result.message = diagnostics.back().message;
+                        evidence["resolution"] = "refused";
+                        evidence["destination_type"] = nullptr;
+                        evidence["destination_type_symbol_id"] = nullptr;
+                        evidence["assignability"] = Object{
+                            {"state", "unresolved"}, {"authority", nullptr},
+                            {"root_authority", nullptr}, {"update", nullptr},
+                            {"source_expression_id", nullptr}, {"source_type", nullptr},
+                            {"destination_type", nullptr}, {"root_declaration_statement_id", nullptr}};
+                        evidence["failure"] = Object{{"code", result.code}, {"message", result.message}};
+                    }
+                }
+            }
+        }
+        if (!result.admitted && !refinement_target_failure) {
             add_diagnostic(result.code, result.message, base, "scope:" + std::to_string(operation.scope));
             const auto& origin = flowcontracts::json::object(flowcontracts::json::required(
                 flowcontracts::json::object(result.evidence), "provenance"));

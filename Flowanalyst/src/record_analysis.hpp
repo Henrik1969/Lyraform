@@ -22,7 +22,8 @@ inline std::vector<Issue> construction_shape(
     const std::map<int, int>& statement_scopes,
     const std::map<int, int>& resolved_symbols,
     const std::map<int, std::string>& symbol_types,
-    const std::map<int, bool>& pure_symbols, bool executable) {
+    const std::map<int, bool>& pure_symbols, bool executable,
+    const std::map<int, std::string>& refinement_base_types = {}) {
     std::vector<Issue> issues;
     std::map<int, const Json*> records;
     for (const auto& [symbol, origin] : origins) {
@@ -121,12 +122,18 @@ inline std::vector<Issue> construction_shape(
             const int nested_scope = symbols.count(symbol)
                 ? id(get(symbols.at(symbol), "introduced_scope_id")) : -1;
             const int initializer = id(get(&value, "value"));
-            const auto destination = lyraform::scalar::type(declared->second);
+            const int field_type_symbol = visible_symbol(scopes, symbols, nested_scope, declared->second);
+            const auto refinement = refinement_base_types.find(field_type_symbol);
+            const auto destination_name = refinement == refinement_base_types.end()
+                ? declared->second : refinement->second;
+            const auto destination = lyraform::scalar::type(destination_name);
             const auto source = infer_expression_type(statement, initializer, statements,
                 expressions, resolved_symbols, symbol_types, initialized, uninitialized);
-            if (lyraform::scalar::selected(destination) &&
+            const bool explicit_integer = destination_name == "int32" || destination_name == "int64";
+            if ((lyraform::scalar::selected(destination) || explicit_integer) &&
                 source != lyraform::scalar::Type::outside_slice &&
-                !lyraform::scalar::compatible(source, destination)) {
+                !(explicit_integer ? source == lyraform::scalar::Type::integer
+                                    : lyraform::scalar::compatible(source, destination))) {
                 issues.push_back({statement, initializer, "FLOWANALYST_RECORD_FIELD_TYPE",
                     "record field '" + name + "' requires '" + declared->second +
                     "', but its initializer has scalar classification '" +
