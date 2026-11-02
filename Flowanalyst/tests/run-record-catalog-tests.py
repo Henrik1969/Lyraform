@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory(prefix='lyraform-record-catalog-') as directory
     source = out / 'input.flow'
     source.write_text('''program typed_record_declarations
 record Leaf { enabled : Bool
-count : int
+count : int32
 }
 record Pair { left : Leaf
 right : Leaf
@@ -33,15 +33,19 @@ main { 0 -> return
     front = run('flowmini/flowmini', args=['--dump-frontend-bundle', source])
     sem = run('flowanalyst/flowanalyst', front, ['--lowering-plan-version', '2'])
     catalog = json.loads(sem)['lowering_plan']['ordinary_record_types']
+    assert catalog['ownership'] == 'value'
+    assert catalog['lifetime'] == 'enclosing_value'
     types = {t['name']: t for t in catalog['types']}
     assert set(types) == {'Leaf', 'Pair', 'Resource'}, types
     assert types['Leaf']['fields'] == [
         {'name': 'enabled', 'type': {'kind': 'scalar', 'name': 'Bool'}},
-        {'name': 'count', 'type': {'kind': 'scalar', 'name': 'int'}}]
+        {'name': 'count', 'type': {'kind': 'scalar', 'name': 'int32'}}]
     assert [f['type'] for f in types['Pair']['fields']] == [
         {'kind': 'record', 'symbol_id': types['Leaf']['symbol_id']}] * 2
     assert types['Resource']['fields'] == [
         {'name': 'value', 'type': {'kind': 'scalar', 'name': 'Text'}}]
+    assert all(t['ownership'] == 'value' and t['lifetime'] == 'enclosing_value'
+               for t in types.values())
     parallel = run('flowtools/flowparallel/flowparallel', sem)
     optimized = run('flowoptimize/flowoptimize', parallel)
     prepared = run('flowlower/flowprepare', optimized)
@@ -55,7 +59,7 @@ main { 0 -> return
         assert doc['lowering_plan']['ordinary_record_types'] == catalog, stage
         run('flowcontracts/flowvalidate', raw)
         for mutation in ('missing-ref', 'cycle', 'duplicate-id', 'duplicate-field', 'scalar',
-                         'layout', 'offset', 'semantics', 'ready', 'version'):
+                         'layout', 'offset', 'semantics', 'ownership', 'lifetime', 'ready', 'version'):
             bad = copy.deepcopy(doc)
             c = bad['lowering_plan']['ordinary_record_types']
             t = {entry['name']: entry for entry in c['types']}
@@ -67,6 +71,8 @@ main { 0 -> return
             elif mutation == 'layout': c['layout'] = 'c_abi'
             elif mutation == 'offset': t['Leaf']['fields'][0]['offset'] = 0
             elif mutation == 'semantics': c['semantics'] = 'shared_reference'
+            elif mutation == 'ownership': c['ownership'] = 'shared'
+            elif mutation == 'lifetime': c['lifetime'] = 'process'
             elif mutation == 'ready': c['status'] = 'ready'
             elif mutation == 'version': c['version'] = 2
             encoded = json.dumps(bad)

@@ -67,6 +67,9 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest current-truth verification is the
+[2026-11-02 aggregate ownership/lifetime composition vertical slice](checkpoints/2026-11-02-aggregate-ownership-lifetime-composition-slice.md),
+which makes the independent-value and enclosing-value lifetime law explicit
+in the ordinary-record catalog and executable record contract. The
 [2026-11-02 aggregate cross-field invariant vertical slice](checkpoints/2026-11-02-aggregate-cross-field-invariant-slice.md),
 which adds explicit record-level laws to the structured frontend and checks
 them before aggregate admission. The

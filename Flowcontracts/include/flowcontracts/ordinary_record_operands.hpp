@@ -198,7 +198,9 @@ inline void validate_ordinary_record_operands(const json::Value& value) {
                         string(required(contract, "status"), path) != "ready" ||
                         string(required(contract, "bound"), path) != "finite_scalar_nested" ||
                         string(required(contract, "semantics"), path) != "independent_value" ||
-                        string(required(contract, "layout"), path) != "private")
+                        string(required(contract, "layout"), path) != "private" ||
+                        string(required(contract, "ownership"), path) != "value" ||
+                        string(required(contract, "lifetime"), path) != "enclosing_value")
                         fail("record execution contract is inconsistent");
                     if (text(plan, "status") != "ready") fail("ready record execution requires a ready lowering plan");
                 }

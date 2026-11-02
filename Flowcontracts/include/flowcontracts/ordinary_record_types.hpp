@@ -19,20 +19,25 @@ inline void validate_ordinary_record_types(const json::Value& value) {
         }
     };
     const auto& root = object(value, path);
-    exact(root, {"format", "version", "status", "layout", "semantics", "types"});
+    exact(root, {"format", "version", "status", "layout", "semantics", "ownership", "lifetime", "types"});
     if (string(required(root, "format", path), path) != "lyraform.ordinary_record_types" ||
         integer(required(root, "version", path), path) != 1 ||
         string(required(root, "status", path), path) != "non_executable" ||
         string(required(root, "layout", path), path) != "private" ||
-        string(required(root, "semantics", path), path) != "independent_value") fail("unsupported ordinary record type contract");
+        string(required(root, "semantics", path), path) != "independent_value" ||
+        string(required(root, "ownership", path), path) != "value" ||
+        string(required(root, "lifetime", path), path) != "enclosing_value") fail("unsupported ordinary record type contract");
     std::map<Integer, std::vector<Integer>> dependencies;
     std::set<Integer> declarations;
     for (const auto& entry : array(required(root, "types", path), path)) {
         const auto& type = object(entry);
-        exact(type, {"symbol_id", "declaration_id", "name", "fields"});
+        exact(type, {"symbol_id", "declaration_id", "name", "fields", "ownership", "lifetime"});
         const auto symbol = integer(required(type, "symbol_id", path), path);
         const auto declaration = integer(required(type, "declaration_id", path), path);
-        if (symbol < 0 || declaration < 0 || !dependencies.emplace(symbol, std::vector<Integer>{}).second ||
+        if (symbol < 0 || declaration < 0 ||
+            string(required(type, "ownership", path), path) != "value" ||
+            string(required(type, "lifetime", path), path) != "enclosing_value" ||
+            !dependencies.emplace(symbol, std::vector<Integer>{}).second ||
             !declarations.insert(declaration).second || string(required(type, "name", path), path).empty())
             fail("invalid or duplicate record declaration identity");
         std::set<std::string> names;

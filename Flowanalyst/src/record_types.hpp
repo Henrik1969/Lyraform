@@ -50,7 +50,10 @@ inline Json type_catalog(const Index& declarations, const Index& symbols,
         }
         projected.emplace(symbol, Object{{"symbol_id", Integer{symbol}},
             {"declaration_id", Integer{records.at(symbol).first}},
-            {"name", text(get(records.at(symbol).second, "name"))}, {"fields", fields}});
+            {"name", text(get(records.at(symbol).second, "name"))},
+            {"fields", fields},
+            {"ownership", std::string("value")},
+            {"lifetime", std::string("enclosing_value")}});
         return true;
     };
     for (const auto& [symbol, declaration] : records) { (void)declaration; project(symbol); }
@@ -60,6 +63,8 @@ inline Json type_catalog(const Index& declarations, const Index& symbols,
     return Object{{"format", std::string("lyraform.ordinary_record_types")},
         {"version", Integer{1}}, {"status", std::string("non_executable")},
         {"layout", std::string("private")}, {"semantics", std::string("independent_value")},
+        {"ownership", std::string("value")},
+        {"lifetime", std::string("enclosing_value")},
         {"types", types}};
 }
 }

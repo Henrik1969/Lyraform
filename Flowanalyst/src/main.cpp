@@ -3630,7 +3630,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             out << ",\"ordinary_record_types\":" << flowcontracts::json::serialize(record_types);
         if (!std::holds_alternative<std::nullptr_t>(record_types) &&
             source_operation_refusals == 0 && targets.size() == 1 && targets.front().mains == 1 && diagnostics.empty())
-            out << ",\"ordinary_record_execution\":{\"format\":\"lyraform.ordinary_record_execution\",\"version\":1,\"status\":\"ready\",\"bound\":\"finite_scalar_nested\",\"semantics\":\"independent_value\",\"layout\":\"private\"}";
+            out << ",\"ordinary_record_execution\":{\"format\":\"lyraform.ordinary_record_execution\",\"version\":1,\"status\":\"ready\",\"bound\":\"finite_scalar_nested\",\"semantics\":\"independent_value\",\"layout\":\"private\",\"ownership\":\"value\",\"lifetime\":\"enclosing_value\"}";
     }
     out << ",\"guard_facts\":" << flowcontracts::json::serialize(guard_facts);
     out << ",\"disposition_facts\":" << flowcontracts::json::serialize(disposition_facts);
