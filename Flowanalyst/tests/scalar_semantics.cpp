@@ -8,11 +8,14 @@ int main() {
         for (const auto target : {Type::integer, Type::boolean})
             require(compatible(source, target) == (source == target));
     require(type("int") == Type::integer && type("Bool") == Type::boolean);
+    require(type("float64") == Type::floating);
     require(type("c_int") == Type::outside_slice && type("bool") == Type::outside_slice);
     require(binary("<", Type::integer, Type::integer) == Type::boolean);
     require(binary("+", Type::integer, Type::integer) == Type::integer);
     require(binary("div", Type::integer, Type::integer) == Type::integer);
-    require(binary("/", Type::integer, Type::integer) == Type::invalid);
+    require(binary("*", Type::floating, Type::integer) == Type::floating);
+    require(binary("/", Type::integer, Type::integer) == Type::floating);
+    require(binary("div", Type::floating, Type::integer) == Type::invalid);
     require(binary("+", Type::boolean, Type::integer) == Type::invalid);
     require(binary("+", Type::boolean, Type::boolean) == Type::invalid);
     require(unary("not", Type::boolean) == Type::boolean);

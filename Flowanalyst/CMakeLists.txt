@@ -103,3 +103,7 @@ add_test(NAME lyraform_integer_conversions
 add_test(NAME lyraform_arithmetic_division_canon
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-arithmetic-division-canon.py
         --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_numeric_promotion_canon
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-numeric-promotion-canon.py
+        --build ${CMAKE_BINARY_DIR})

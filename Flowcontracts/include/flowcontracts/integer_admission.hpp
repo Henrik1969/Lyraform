@@ -244,32 +244,43 @@ inline void validate_integer_admission(const json::Value& value,
         if (kind == "conversion") {
             const auto source = str(*item, "from_type"), destination = str(*item, "type");
             if (numeric(source) || numeric(destination)) {
-                if (str(operation, "kind") != "value_definition" || depth != 1 ||
-                    str(*item, "conversion") != "explicit_typed_initializer" ||
-                    number(*item, "expression_id") != number(operation, "expression_id"))
-                    throw Error(where, "integer conversion lacks explicit initializer intent at this boundary");
                 const auto& input = required(*item, "operand", where);
                 if (str(object(input, where), "type") != source)
                     throw Error(where, "integer conversion source type does not match its operand");
-                const auto from = minimum(source), to = minimum(destination);
-                const auto unsigned_type = [](const std::string& name) {
-                    return name == "c_ulong" || name == "c_size_t";
-                };
-                if (!from || !to)
-                    throw Error(where, "integer conversion range contract is unsupported");
-                if (unsigned_type(source) || unsigned_type(destination)) {
-                    std::set<Integer> active;
-                    const auto n = constant(input, operation, active, 0);
-                    const bool known_fit = n && *n >= 0 && (*to == INT64_MIN || *n <= INT32_MAX);
-                    const bool guarded_fit = !unsigned_type(source) && unsigned_type(destination) &&
-                        positive_branch(input, operation);
-                    if (!known_fit && !guarded_fit)
-                        throw Error(where, "integer signedness conversion is not proved value-preserving; an explicit failure route is required");
-                } else if (*to > *from) {
-                    std::set<Integer> active;
-                    const auto n = constant(input, operation, active, 0);
-                    if (!n || *n < INT32_MIN || *n > INT32_MAX)
-                        throw Error(where, "integer narrowing is not proved value-preserving; an explicit failure route is required");
+                if (str(*item, "conversion") == "numeric_promotion" &&
+                    (source == "int" || source == "int32" || source == "int64" ||
+                     source == "c_int" || source == "c_long" || source == "c_ulong" ||
+                     source == "c_size_t") &&
+                    (destination == "float" || destination == "float64")) {
+                    // Mixed numeric arithmetic has an explicit carrier change
+                    // in the lowering plan. It is not an integer conversion
+                    // policy route and therefore does not require an
+                    // initializer-bound proof.
+                } else {
+                    if (str(operation, "kind") != "value_definition" || depth != 1 ||
+                        str(*item, "conversion") != "explicit_typed_initializer" ||
+                        number(*item, "expression_id") != number(operation, "expression_id"))
+                        throw Error(where, "integer conversion lacks explicit initializer intent at this boundary");
+                    const auto from = minimum(source), to = minimum(destination);
+                    const auto unsigned_type = [](const std::string& name) {
+                        return name == "c_ulong" || name == "c_size_t";
+                    };
+                    if (!from || !to)
+                        throw Error(where, "integer conversion range contract is unsupported");
+                    if (unsigned_type(source) || unsigned_type(destination)) {
+                        std::set<Integer> active;
+                        const auto n = constant(input, operation, active, 0);
+                        const bool known_fit = n && *n >= 0 && (*to == INT64_MIN || *n <= INT32_MAX);
+                        const bool guarded_fit = !unsigned_type(source) && unsigned_type(destination) &&
+                            positive_branch(input, operation);
+                        if (!known_fit && !guarded_fit)
+                            throw Error(where, "integer signedness conversion is not proved value-preserving; an explicit failure route is required");
+                    } else if (*to > *from) {
+                        std::set<Integer> active;
+                        const auto n = constant(input, operation, active, 0);
+                        if (!n || *n < INT32_MIN || *n > INT32_MAX)
+                            throw Error(where, "integer narrowing is not proved value-preserving; an explicit failure route is required");
+                    }
                 }
             }
         }
@@ -281,12 +292,12 @@ inline void validate_integer_admission(const json::Value& value,
             const auto& right = object(required(*item, "right", where), where);
             require_identity(str(left, "type"), str(right, "type"), where);
             const auto op = str(*item, "operator");
-            if (op == "/")
-                throw Error(where, "true division is not admitted in the integer quotient slice; use div or an admitted floating-point contract");
             if (op == "%")
                 throw Error(where, "integer remainder is not admitted until its backend opcode contract is available");
             if (op == "+" || op == "-" || op == "*" || op == "div" || op == "%")
                 require_identity(str(*item, "type"), str(left, "type"), where);
+            if (op == "/" && str(*item, "type") != "float64")
+                throw Error(where, "true division requires a float64 result carrier");
         }
         if (kind == "call_result") {
             const auto found = functions.find(number(*item, "callee_symbol_id"));

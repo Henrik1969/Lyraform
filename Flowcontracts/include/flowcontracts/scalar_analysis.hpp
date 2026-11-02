@@ -82,7 +82,8 @@ inline Type infer_expression_type(
         const auto* payload = get(value, "payload");
         if (kind == "integer_literal") return Type::integer;
         if (kind == "bool_literal") return Type::boolean;
-        if (kind == "string_literal" || kind == "float_literal" || kind == "list_literal" || kind == "record_literal") return Type::other;
+        if (kind == "float_literal") return Type::floating;
+        if (kind == "string_literal" || kind == "list_literal" || kind == "record_literal") return Type::other;
         if (kind == "identifier") {
             const auto symbol = resolved_symbols.find(expression_id);
             if (symbol == resolved_symbols.end()) return Type::invalid;

@@ -11,6 +11,7 @@ extern "C" {
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <cstdint>
 #include <deque>
 #include <fstream>
 #include <functional>
@@ -503,6 +504,7 @@ private:
         if (type == "bool" || type == "Bool") return TINYVM_CARRIER_I1;
         if (type == "int32" || type == "c_int") return TINYVM_CARRIER_I32;
         if (type == "int64" || type == "c_long" || type == "c_ulong" || type == "c_size_t") return TINYVM_CARRIER_I64;
+        if (type == "float" || type == "float64" || type == "c_double") return TINYVM_CARRIER_F64;
         if (type == "c_string" || type == "c_pointer" || type == "Text") return TINYVM_CARRIER_OPAQUE_HANDLE;
         if (type == "TextOutcome") return TINYVM_CARRIER_TEXT_OUTCOME;
         if (aggregate_types_.count(std::string{type})) return TINYVM_CARRIER_I64;
@@ -632,11 +634,22 @@ private:
         if (kind == "integer_literal") {
             const auto type = carrier(string(required(node, "type", "$.expression"), "$.expression.type"));
             const auto text = string(required(node, "value", "$.expression"), "$.expression.value");
+            if (type == TINYVM_CARRIER_F64) {
+                std::size_t consumed = 0; const double value = std::stod(text, &consumed);
+                if (consumed != text.size()) throw Unsupported("non-canonical floating literal");
+                std::uint64_t bits = 0; std::memcpy(&bits, &value, sizeof bits); return literal(type, bits);
+            }
             std::size_t consumed = 0; const auto signed_value = std::stoll(text, &consumed, 10);
             if (consumed != text.size()) throw Unsupported("non-canonical integer literal");
             if (type == TINYVM_CARRIER_I32 && (signed_value < INT32_MIN || signed_value > INT32_MAX)) throw Unsupported("i32 literal is out of range");
             const auto bits = type == TINYVM_CARRIER_I32 ? static_cast<std::uint64_t>(static_cast<std::int64_t>(static_cast<std::int32_t>(signed_value))) : static_cast<std::uint64_t>(signed_value);
             return literal(type, bits);
+        }
+        if (kind == "float_literal") {
+            const auto text = string(required(node, "value", "$.expression"), "$.expression.value");
+            std::size_t consumed = 0; const double value = std::stod(text, &consumed);
+            if (consumed != text.size()) throw Unsupported("non-canonical floating literal");
+            std::uint64_t bits = 0; std::memcpy(&bits, &value, sizeof bits); return literal(TINYVM_CARRIER_F64, bits);
         }
         if (kind == "bool_literal") {
             const auto text = string(required(node, "value", "$.expression"), "$.expression.value");
@@ -699,26 +712,40 @@ private:
             if (operation != "-") throw Unsupported("unary operator '" + operation + "' is not admitted");
             // Negation preserves the operand carrier, as the LLVM backend does.
             // The surrounding expression's type may describe its return context.
-            const auto zero = literal(slot_types_.at(operand), 0), result = slot();
-            slot_types_[result] = slot_types_.at(operand); emit(TV1_SUB, result, zero, operand); return result;
+            const auto operand_type = slot_types_.at(operand);
+            const auto zero = literal(operand_type, 0), result = slot();
+            slot_types_[result] = operand_type;
+            emit(operand_type == TINYVM_CARRIER_F64 ? TV1_FSUB : TV1_SUB, result, zero, operand); return result;
         }
         if (kind == "binary") {
-            const auto left = expression(required(node, "left", "$.expression"));
+            auto left = expression(required(node, "left", "$.expression"));
             auto right = expression(required(node, "right", "$.expression"));
-            const auto left_type = slot_types_.at(left), right_type = slot_types_.at(right);
+            auto left_type = slot_types_.at(left), right_type = slot_types_.at(right);
             if (left_type != right_type) {
-                const bool integers = (left_type == TINYVM_CARRIER_I32 || left_type == TINYVM_CARRIER_I64) &&
-                                      (right_type == TINYVM_CARRIER_I32 || right_type == TINYVM_CARRIER_I64);
-                if (!integers) throw Unsupported("binary operand carrier mismatch");
-                const auto converted = slot(); slot_types_[converted] = left_type;
-                emit(TV1_CONVERT, converted, right, left_type); right = converted;
+                const bool left_float = left_type == TINYVM_CARRIER_F64, right_float = right_type == TINYVM_CARRIER_F64;
+                const bool left_integer = left_type == TINYVM_CARRIER_I32 || left_type == TINYVM_CARRIER_I64;
+                const bool right_integer = right_type == TINYVM_CARRIER_I32 || right_type == TINYVM_CARRIER_I64;
+                if (left_float && right_integer) {
+                    const auto converted = slot(); slot_types_[converted] = TINYVM_CARRIER_F64;
+                    emit(TV1_CONVERT, converted, right, TINYVM_CARRIER_F64); right = converted; right_type = TINYVM_CARRIER_F64;
+                } else if (right_float && left_integer) {
+                    const auto converted = slot(); slot_types_[converted] = TINYVM_CARRIER_F64;
+                    emit(TV1_CONVERT, converted, left, TINYVM_CARRIER_F64); left = converted; left_type = TINYVM_CARRIER_F64;
+                } else if (left_integer && right_integer) {
+                    const auto converted = slot(); slot_types_[converted] = left_type;
+                    emit(TV1_CONVERT, converted, right, left_type); right = converted; right_type = left_type;
+                } else throw Unsupported("binary operand carrier mismatch");
             }
             if (left_type == TINYVM_CARRIER_OPAQUE_HANDLE)
                 throw Unsupported("opaque handle binary operations are not admitted");
             const auto operation = string(required(node, "operator", "$.expression"), "$.expression.operator");
-            const std::map<std::string, std::int64_t> opcodes{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"div",TV1_SDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
+            const bool floating = left_type == TINYVM_CARRIER_F64;
+            const std::map<std::string, std::int64_t> opcodes = floating
+                ? std::map<std::string, std::int64_t>{{"+",TV1_FADD},{"-",TV1_FSUB},{"*",TV1_FMUL},{"/",TV1_FDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}}
+                : std::map<std::string, std::int64_t>{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"div",TV1_SDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
             const auto found = opcodes.find(operation); if (found == opcodes.end()) throw Unsupported("binary operator '" + operation + "' is not admitted");
-            const auto result = slot(); slot_types_[result] = found->second >= TV1_CMP_EQ ? static_cast<std::uint32_t>(TINYVM_CARRIER_I1) : slot_types_.at(left); emit(found->second, result, left, right); return result;
+            const bool comparison = operation == "==" || operation == "!=" || operation == "<" || operation == "<=" || operation == ">" || operation == ">=";
+            const auto result = slot(); slot_types_[result] = comparison ? static_cast<std::uint32_t>(TINYVM_CARRIER_I1) : slot_types_.at(left); emit(found->second, result, left, right); return result;
         }
         throw Unsupported("expression kind '" + kind + "' is not admitted by the scalar slice");
     }

@@ -5,8 +5,10 @@ Prerequisite: [G1 passed](../checkpoints/2026-11-01-contract-stabilization-g1.md
 Selected under the owner's existing mission execution instruction.
 
 Implement the [owner's numeric rulings](contract-stabilization-numeric-decision.md):
-explicit-width concrete integer types (ADR 0071), no bare-int default, no implicit conversions,
-authorized overflow conversion or failure route, otherwise admission refusal.
+explicit-width concrete integer types (ADR 0071), no bare-int default, no
+implicit integer-identity conversions, authorized overflow conversion or
+failure route, otherwise admission refusal. Bounded arithmetic promotion is
+admitted only where its operator contract explicitly says so.
 Do not add syntax, short aliases, numeric failure types or invented host policy.
 
 Inventory literals, arithmetic, conversions, parameters/results, records,

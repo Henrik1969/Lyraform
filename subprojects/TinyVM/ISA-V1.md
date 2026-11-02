@@ -16,6 +16,7 @@ use. Opaque handles are stable artifact/runtime identities, not addresses.
 | `MOVE` | destination slot | source slot | 0 |
 | `CONVERT` | destination slot | source slot | target carrier |
 | `ADD/SUB/MUL/SDIV` | destination slot | left slot | right slot |
+| `FADD/FSUB/FMUL/FDIV` | destination slot | left `f64` slot | right `f64` slot |
 | comparisons | destination `i1` slot | left slot | right slot |
 | `JMP` | absolute instruction target | 0 | 0 |
 | `BRANCH` | condition `i1` slot | true target | false target |
@@ -32,12 +33,15 @@ separate governed provider boundary. Until it is supplied, `CALL_IMPORT`
 deterministically traps as unresolved rather than embedding or discovering a
 host symbol opportunistically.
 
-Arithmetic operates on equal `i32` or `i64` carriers. `ADD`, `SUB`, and `MUL`
-use modulo-2^width results, matching the current LLVM lowerer's plain integer
-instructions without `nsw`/`nuw`. Division by zero and signed minimum divided
-by minus one are explicit traps rather than host-language undefined behavior.
-Future checked arithmetic requires distinct semantic operations. Conversions
-support `i1`, `i32` and `i64`; narrowing to
+Integer arithmetic operates on equal `i32` or `i64` carriers. `ADD`, `SUB`, and
+`MUL` use modulo-2^width results, matching the current LLVM lowerer's plain
+integer instructions without `nsw`/`nuw`. Floating arithmetic operates on
+equal `f64` carriers and uses IEEE-754 host operations for the currently
+admitted finite slice; `FDIV` explicitly traps on a zero divisor. Integer
+division by zero and signed minimum divided by minus one are explicit traps
+rather than host-language undefined behavior. Future checked arithmetic
+requires distinct semantic operations. Conversions support `i1`, `i32`, `i64`
+and integer-to-`f64`; narrowing to
 `i1` accepts only canonical zero or one. Comparisons are signed for integer
 carriers and produce `i1`.
 

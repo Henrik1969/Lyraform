@@ -28,6 +28,10 @@ typedef enum {
     TV1_TEXT_OUTCOME_CODE = 22,
     TV1_TEXT_OUTCOME_VALUE = 23,
     TV1_GRAPH_ACTIVATE = 24,
+    TV1_FADD = 25,
+    TV1_FSUB = 26,
+    TV1_FMUL = 27,
+    TV1_FDIV = 28,
     TV1_OPCODE_COUNT
 } TinyvmIsaV1Opcode;
 

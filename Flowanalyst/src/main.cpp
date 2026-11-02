@@ -1925,10 +1925,30 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     // Every expression that can reach lowering must pass the same numeric
     // operator boundary.  Scalar facts cover declarations and placements,
     // but a direct return or branch predicate can otherwise bypass them.
-    // Keep the first division slice deliberately narrow: `div` is admitted
-    // only when both operands are statically established integers, while `/`
-    // is reserved for the later floating-point true-division slice.
+    // Keep the integer quotient slice narrow: `div` is admitted only when both
+    // operands are statically established integers. True division is handled
+    // by the separate float64 promotion contract below.
     std::set<int> checked_numeric_expressions;
+    std::function<std::optional<long double>(int)> numeric_constant =
+        [&](int expression_id) -> std::optional<long double> {
+            if (!expressions.count(expression_id)) return std::nullopt;
+            const auto* expression = expressions.at(expression_id);
+            const auto kind = text(field(*expression, "kind"));
+            const auto* payload = field(*expression, "payload");
+            if (kind == "integer_literal" || kind == "float_literal") {
+                try {
+                    std::size_t consumed = 0;
+                    const auto value = std::stold(text(field(payload, "value_text")), &consumed);
+                    if (consumed == text(field(payload, "value_text")).size()) return value;
+                } catch (const std::exception&) {}
+                return std::nullopt;
+            }
+            if (kind == "unary" && text(field(payload, "operator")) == "-") {
+                const auto value = numeric_constant(integer(field(payload, "operand")));
+                return value ? std::optional<long double>{-*value} : std::nullopt;
+            }
+            return std::nullopt;
+        };
     std::function<void(int, int)> check_numeric_expression =
         [&](int expression_id, int statement_id) {
             if (!expressions.count(expression_id) ||
@@ -1940,17 +1960,44 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 const auto operation = text(field(payload, "operator"));
                 const int left_id = integer(field(payload, "left"));
                 const int right_id = integer(field(payload, "right"));
+                const auto left_type = lyraform::scalar::frontend::infer_expression_type(
+                    statement_id, left_id, statements, expressions, resolved_expression_symbols,
+                    symbol_types, initialized_local_declarations, uninitialized_local_declarations);
+                const auto right_type = lyraform::scalar::frontend::infer_expression_type(
+                    statement_id, right_id, statements, expressions, resolved_expression_symbols,
+                    symbol_types, initialized_local_declarations, uninitialized_local_declarations);
+                const auto result_type = lyraform::scalar::binary(operation, left_type, right_type);
                 if (operation == "/") {
-                    add_diagnostic("FLOWANALYST_TRUE_DIVISION_NOT_ADMITTED",
-                        "`/` is reserved for true division; this slice admits integer quotient only via `div`",
-                        -1, "expression:" + std::to_string(expression_id));
-                    set_statement_provenance(diagnostics.back(), statement_id);
+                    if (result_type != lyraform::scalar::Type::floating) {
+                        add_diagnostic("FLOWANALYST_NUMERIC_OPERATOR_TYPE",
+                            "true division requires numeric operands",
+                            -1, "expression:" + std::to_string(expression_id));
+                        set_statement_provenance(diagnostics.back(), statement_id);
+                    } else if (const auto divisor = numeric_constant(right_id)) {
+                        if (*divisor == 0.0L) {
+                            add_diagnostic("FLOWANALYST_DIVISION_ZERO",
+                                "division divisor is zero",
+                                -1, "expression:" + std::to_string(expression_id));
+                            set_statement_provenance(diagnostics.back(), statement_id);
+                        }
+                    } else {
+                        add_diagnostic("FLOWANALYST_DIVISION_UNPROVEN",
+                            "division requires a statically established non-zero divisor in the current slice",
+                            -1, "expression:" + std::to_string(expression_id));
+                        set_statement_provenance(diagnostics.back(), statement_id);
+                    }
                 } else if (operation == "%") {
                     add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_NOT_ADMITTED",
                         "`%` remains paired with integer quotient semantics but its backend opcode is not admitted in this slice",
                         -1, "expression:" + std::to_string(expression_id));
                     set_statement_provenance(diagnostics.back(), statement_id);
                 } else if (operation == "div") {
+                    if (result_type != lyraform::scalar::Type::integer) {
+                        add_diagnostic("FLOWANALYST_INTEGER_DIVISION_TYPE",
+                            "integer quotient requires integer operands",
+                            -1, "expression:" + std::to_string(expression_id));
+                        set_statement_provenance(diagnostics.back(), statement_id);
+                    }
                     const auto left = evaluate_constant(left_id, {});
                     const auto right = evaluate_constant(right_id, {});
                     if (left.kind != ConstantValue::Kind::integer || right.kind != ConstantValue::Kind::integer) {
@@ -1964,11 +2011,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                             -1, "expression:" + std::to_string(expression_id));
                         set_statement_provenance(diagnostics.back(), statement_id);
                     } else {
-                        const auto left_type = text(field(*expressions.at(left_id), "type"));
+                        const auto carrier_type = text(field(*expressions.at(left_id), "type"));
                         // Bare literal expressions are currently carried by
                         // the compatibility c_int path and have no `type`
                         // field in the source expression pool.
-                        const bool int32_carrier = left_type.empty() || left_type == "int" || left_type == "int32" || left_type == "c_int";
+                        const bool int32_carrier = carrier_type.empty() || carrier_type == "int" || carrier_type == "int32" || carrier_type == "c_int";
                         const bool overflow = (int32_carrier && left.integer == std::numeric_limits<std::int32_t>::min() && right.integer == -1) ||
                             (left.integer == std::numeric_limits<std::int64_t>::min() && right.integer == -1);
                         if (!overflow) {
@@ -1981,6 +2028,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                             -1, "expression:" + std::to_string(expression_id));
                         set_statement_provenance(diagnostics.back(), statement_id);
                     }
+                } else if (result_type == lyraform::scalar::Type::invalid) {
+                    add_diagnostic("FLOWANALYST_NUMERIC_OPERATOR_TYPE",
+                        "numeric operator has incompatible operand types",
+                        -1, "expression:" + std::to_string(expression_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
                 }
                 check_numeric_expression(left_id, statement_id);
                 check_numeric_expression(right_id, statement_id);
@@ -3123,6 +3175,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             return found != resolved_expression_symbols.end() && symbol_types.count(found->second)
                 ? symbol_types.at(found->second) : std::string{};
         }
+        if (kind == "float_literal") return context.empty() ? "float64" : context;
         if (kind == "call") {
             const int base = integer(field(payload, "base"));
             if (expressions.count(base) &&
@@ -3132,7 +3185,13 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 return fact_value(*symbols.at(found->second), "return_type_spelling");
         }
         if (kind == "unary") return operand_spelling(integer(field(payload, "operand")), context, depth + 1);
-        if (kind == "binary") return operand_spelling(integer(field(payload, "left")), context, depth + 1);
+        if (kind == "binary") {
+            const auto op = text(field(payload, "operator"));
+            const auto left = operand_spelling(integer(field(payload, "left")), {}, depth + 1);
+            const auto right = operand_spelling(integer(field(payload, "right")), {}, depth + 1);
+            const bool floating = left == "float" || left == "float64" || right == "float" || right == "float64" || op == "/";
+            return floating ? "float64" : left;
+        }
         return context.empty() ? "c_int" : context;
     };
     std::set<int> explicit_initializer_expressions;
@@ -3152,11 +3211,16 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             ? resolved_expression_symbols.at(expression_id) : -1;
         const auto identifier_type = symbol_types.count(identifier_symbol) ? symbol_types.at(identifier_symbol) : std::string{};
         const auto conversion_source_type = kind == "identifier" ? identifier_type :
+            (kind == "integer_literal" && declared_type == "float64") ? "c_int" :
             (kind == "call" || kind == "binary" || kind == "unary")
                 ? operand_spelling(expression_id, declared_type, 0) : std::string{};
+        const bool numeric_promotion = declared_type == "float64" &&
+            (conversion_source_type == "int32" || conversion_source_type == "int64" ||
+             conversion_source_type == "c_int" || conversion_source_type == "c_long" ||
+             conversion_source_type == "c_ulong" || conversion_source_type == "c_size_t");
         const bool carrier_conversion = !declared_type.empty() &&
             !conversion_source_type.empty() && conversion_source_type != declared_type &&
-            explicit_initializer_expressions.count(expression_id);
+            (explicit_initializer_expressions.count(expression_id) || numeric_promotion);
         const bool writable_storage = kind == "integer_literal" && declared_type == "c_pointer" &&
             !literal.empty() && literal != "0" && literal.front() != '-';
         bool ordinary_call = false;
@@ -3173,7 +3237,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                   << quote(carrier_conversion ? "conversion" : (writable_storage ? "writable_storage" : (ordinary_call || runtime_text ? "call_result" : (folded_text ? "string_literal" : kind))));
         if (carrier_conversion) {
             out << ",\"type\":" << quote(declared_type) << ",\"from_type\":" << quote(conversion_source_type)
-                      << ",\"conversion\":\"explicit_typed_initializer\",\"operand\":";
+                      << ",\"conversion\":" << quote(numeric_promotion ? "numeric_promotion" : "explicit_typed_initializer") << ",\"operand\":";
             emit_operand(expression_id, {});
         } else if (writable_storage) {
             out << ",\"type\":\"c_pointer\",\"storage\":{\"bytes\":" << literal

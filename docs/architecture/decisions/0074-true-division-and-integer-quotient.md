@@ -1,6 +1,6 @@
 # 0074 — True division and integer quotient are distinct operations
 
-**Status:** accepted initial arithmetic canon; integer quotient slice implemented
+**Status:** accepted initial arithmetic canon; integer quotient and bounded numeric-promotion slices implemented
 **Date:** 2026-11-02
 **Mission:** Lyraform numeric-semantics foundation
 
@@ -14,9 +14,15 @@ particular quotient happens to have no fractional part.
 The initial bounded type rules are:
 
 ```text
-intN div intN     -> intN
-intN / intN       -> float64
-floatN / floatN   -> floatN
+intN div intN       -> intN
+intN / intN         -> float64
+float64 / float64   -> float64
+intN + float64      -> float64
+float64 + intN      -> float64
+intN - float64      -> float64
+float64 - intN      -> float64
+intN * float64      -> float64
+float64 * intN      -> float64
 ```
 
 The first executable integer quotient law truncates toward zero. For integer
@@ -60,7 +66,9 @@ a separate future decision.
   failure route. It must not wrap or trap through an unselected backend policy.
 - Integer widths remain distinct identities. Mixed-width arithmetic requires
   explicit value-preserving conversion.
-- Integer/float mixing requires an explicit conversion in this initial slice.
+- Integer/float mixing for `+`, `-`, `*`, and `/` uses an admitted numeric
+  promotion to the `float64` carrier. The lowering artifact records the
+  promotion explicitly; source syntax does not require a conversion wrapper.
 - `%` belongs to the integer-quotient family and is not initially defined for
   floating-point operands.
 - LLVM and TinyVM must preserve the same result type, value, and refusal
@@ -68,12 +76,12 @@ a separate future decision.
 
 ## Boundary
 
-The current vertical slice implements `div` for statically established
-compatibility-width integer operands, with LLVM/TinyVM parity and explicit
-analysis-time refusal for zero divisors and `INT_MIN div -1`. `%` is reserved
-for the integer family but remains refused until its backend opcode contract is
-available. `/` remains explicitly refused until the floating-point true-
-division slice is implemented end to end.
+The current vertical slices implement `div` for statically established
+compatibility-width integer operands and bounded `float64` promotion for
+`+`, `-`, `*`, and `/`. LLVM/TinyVM parity covers mixed operands, integer
+operands used with true division, static zero-divisor refusal, and the explicit
+numeric-promotion artifact boundary. `%` is reserved for the integer family
+but remains refused until its backend opcode contract is available.
 
 This decision does not complete floating-point semantics. NaN, infinity,
 signed zero, precision guarantees, rounding modes, literal suffixes, rational

@@ -8,20 +8,24 @@
 // parser. No JSON, AST layout, backend carrier, or application policy lives here.
 namespace lyraform::scalar {
 
-enum class Type { integer, boolean, text, other, outside_slice, invalid };
+enum class Type { integer, floating, boolean, text, other, outside_slice, invalid };
 
 constexpr Type type(std::string_view name) noexcept {
-    return name == "int" ? Type::integer : name == "Bool" ? Type::boolean : name == "Text" ? Type::text : Type::outside_slice;
+    return name == "int" ? Type::integer :
+        (name == "float" || name == "float64") ? Type::floating :
+        name == "Bool" ? Type::boolean : name == "Text" ? Type::text : Type::outside_slice;
 }
 constexpr bool selected(Type value) noexcept {
-    return value == Type::integer || value == Type::boolean;
+    return value == Type::integer || value == Type::floating || value == Type::boolean;
 }
+constexpr bool numeric(Type value) noexcept { return value == Type::integer || value == Type::floating; }
 constexpr bool record_selected(Type value) noexcept {
     return selected(value) || value == Type::text;
 }
 constexpr std::string_view name(Type value) noexcept {
     switch (value) {
         case Type::integer: return "int";
+        case Type::floating: return "float64";
         case Type::boolean: return "Bool";
         case Type::text: return "Text";
         case Type::other: return "other";
@@ -35,17 +39,20 @@ constexpr bool compatible(Type source, Type destination) noexcept {
 constexpr Type unary(std::string_view op, Type operand) noexcept {
     if (operand == Type::outside_slice) return operand;
     if (op == "not" && operand == Type::boolean) return Type::boolean;
-    if ((op == "-" || op == "+") && operand == Type::integer) return Type::integer;
+    if ((op == "-" || op == "+") && numeric(operand)) return operand;
     return Type::invalid;
 }
 constexpr Type binary(std::string_view op, Type left, Type right) noexcept {
     if (left == Type::invalid || right == Type::invalid) return Type::invalid;
     if (left == Type::outside_slice || right == Type::outside_slice) return Type::outside_slice;
-    if (!compatible(left, right)) return Type::invalid;
-    if (op == "==" || op == "!=") return Type::boolean;
-    if (left != Type::integer) return Type::invalid;
-    if (op == "<" || op == ">" || op == "<=" || op == ">=") return Type::boolean;
-    if (op == "+" || op == "-" || op == "*" || op == "div" || op == "%") return Type::integer;
+    if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=")
+        return numeric(left) && numeric(right) ? Type::boolean :
+            (left == right && left == Type::boolean ? Type::boolean : Type::invalid);
+    if (op == "div" || op == "%")
+        return left == Type::integer && right == Type::integer ? Type::integer : Type::invalid;
+    if (op == "+" || op == "-" || op == "*" || op == "/") {
+        if (numeric(left) && numeric(right)) return left == Type::floating || right == Type::floating || op == "/" ? Type::floating : Type::integer;
+    }
     return Type::invalid;
 }
 

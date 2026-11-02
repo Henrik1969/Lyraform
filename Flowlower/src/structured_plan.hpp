@@ -880,6 +880,11 @@ private:
         if(kind=="integer_literal") {
             const auto literal=text(field(value,"value"));
             if (llvm_type(type)=="ptr" && literal=="0") return {"ptr","null"};
+            if (llvm_type(type)=="double") {
+                auto floating = literal;
+                if (floating.find_first_of(".eE") == std::string::npos) floating += ".0";
+                return {"double", floating};
+            }
             return {llvm_type(type),literal};
         }
         if(kind=="float_literal") {
@@ -911,7 +916,10 @@ private:
             const auto wanted=expected.empty()?native_type:llvm_type(expected); if(wanted==native_type) return {native_type,loaded};
             const auto converted="%flow_promote_"+std::to_string(temporary_++);
             if(native_type=="i32"&&wanted=="i64") out<<"  "<<converted<<" = sext i32 "<<loaded<<" to i64\n";
-            else if(native_type=="i64"&&wanted=="i32") out<<"  "<<converted<<" = trunc i64 "<<loaded<<" to i32\n"; else return {};
+            else if(native_type=="i64"&&wanted=="i32") out<<"  "<<converted<<" = trunc i64 "<<loaded<<" to i32\n";
+            else if(native_type=="i32"&&wanted=="double") out<<"  "<<converted<<" = sitofp i32 "<<loaded<<" to double\n";
+            else if(native_type=="i64"&&wanted=="double") out<<"  "<<converted<<" = sitofp i64 "<<loaded<<" to double\n";
+            else return {};
             return {wanted,converted};
         }
         if(kind=="field_access") {
@@ -958,7 +966,10 @@ private:
             if(from_type==to) return {to,from};
             const auto result="%flow_convert_"+std::to_string(temporary_++);
             if(from_type=="i64"&&to=="i32") out<<"  "<<result<<" = trunc i64 "<<from<<" to i32\n";
-            else if(from_type=="i32"&&to=="i64") out<<"  "<<result<<" = sext i32 "<<from<<" to i64\n"; else return {};
+            else if(from_type=="i32"&&to=="i64") out<<"  "<<result<<" = sext i32 "<<from<<" to i64\n";
+            else if(from_type=="i32"&&to=="double") out<<"  "<<result<<" = sitofp i32 "<<from<<" to double\n";
+            else if(from_type=="i64"&&to=="double") out<<"  "<<result<<" = sitofp i64 "<<from<<" to double\n";
+            else return {};
             return {to,result};
         }
         if(kind=="unary") {
@@ -971,7 +982,10 @@ private:
                 return {"i1", result};
             }
             if(op!="-") return {};
-            const auto result="%flow_unary_"+std::to_string(temporary_++); out<<"  "<<result<<" = sub "<<operand_type<<" 0, "<<operand<<"\n"; return {operand_type,result};
+            const auto result="%flow_unary_"+std::to_string(temporary_++);
+            if (operand_type == "double") out<<"  "<<result<<" = fsub double 0.0, "<<operand<<"\n";
+            else out<<"  "<<result<<" = sub "<<operand_type<<" 0, "<<operand<<"\n";
+            return {operand_type,result};
         }
         if(kind=="binary") {
             auto [left_type,left]=expression(*field(value,"left"),out); auto [right_type,right]=expression(*field(value,"right"),out,text(field(*field(value,"left"),"type")));
@@ -985,7 +999,11 @@ private:
                 } else out<<"  "<<result<<" = icmp "<<instruction<<" "<<left_type<<" "<<left<<", "<<right<<"\n";
                 return {"i1",result};
             }
-            if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="div")instruction="sdiv"; else return {};
+            if (left_type == "double") {
+                if(op=="+")instruction="fadd"; else if(op=="-")instruction="fsub"; else if(op=="*")instruction="fmul"; else if(op=="/")instruction="fdiv"; else return {};
+            } else {
+                if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="div")instruction="sdiv"; else return {};
+            }
             if(left.empty()||right.empty()||left_type!=right_type) return {};
             if (graph_native_ && instruction == "sdiv") {
                 if (left_type != "i32" && left_type != "i64") throw std::runtime_error("unsupported graph division carrier");

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Vertical tests for the first arithmetic division canon slice.
+"""Vertical tests for the integer quotient arithmetic canon slice.
 
 This slice admits integer quotient through `div`, with truncation toward zero,
-and deliberately refuses `/` until the floating-point true-division slice has
-its own carrier, lowering, and backend contract.
+while true division is covered by the separate numeric-promotion slice.
 """
 
 import argparse
@@ -121,10 +120,6 @@ with tempfile.TemporaryDirectory(prefix="lyraform-division-canon-") as directory
         assert signed_tiny_result(observed["result"]) == expected, (name, observed)
 
     negative = {
-        "true_division_not_yet_admitted": (
-            "1 / 2",
-            "FLOWANALYST_TRUE_DIVISION_NOT_ADMITTED",
-        ),
         "zero_divisor": ("1 div 0", "FLOWANALYST_INTEGER_DIVISION_ZERO"),
         "int32_overflow": (
             "-2147483648 div -1",

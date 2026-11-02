@@ -10,7 +10,7 @@ records the earlier decisions; [ADR 0071](../architecture/decisions/0071-explici
 | Explicit widths | Binding type policy: int32/int64 distinct canonical identities | Shared scalar algebra selects only int; other names remain outside its slice | Resolve aliases without collapsing distinct widths; reject unsupported operations |
 | Integer literals | Invoked type range; no implicit narrowing | Several operand paths default to c_int; shared G1 proof bounds division literals only | Full spelling/range checks at source and imported consumers |
 | Arithmetic overflow | ADR 0070: authorized widening or failure route | Native add/sub/mul/unary minus use unchecked instructions | Prove range or refuse missing routes; boundary and composed-expression tests |
-| Division/remainder | ADRs 0054–0056 and owner overflow law | Shared G1 constant-safety proof; dynamic unsafe cases refused | Update fixed-width carrier proof; audit operator support and signedness |
+| Division/remainder | ADR 0074 and owner overflow law | `div` is integer-only; `/` is true division with bounded `float64` promotion; `%` remains refused | Add dynamic failure routing, `%`, exceptional-value and precision rules |
 | Explicit conversion | Owner intent/policy requirement | Typed initializer uses conversion operand; placements and returns incorrectly receive same tag | Preserve actual source intention; validate range and origin independently |
 | Parameters/results | Same identity absent explicit conversion | Argument mismatch and backend carrier reconciliation need repair | Exact signatures, hostile operands, valid explicit conversions |
 | Host entry result | ADR 0073: explicit language result and separately selected host mapping | MainBlock lacks result metadata; analyzer inserts c_int; no mapping selector implemented | Model approved; concrete declaration proposal requested before syntax implementation |
@@ -19,7 +19,7 @@ records the earlier decisions; [ADR 0071](../architecture/decisions/0071-explici
 | Initialization/control flow | Existing scalar/guard facts | Current scalar facts and branch/loop consumers | Test uninitialized reads, stale identity, writes, branch/loop range proofs |
 | Predicates/guards | Binding refinement policy and static guard lifecycle | G1 refuses unenforced refined values; static guards remain supported | Audit totality and dependencies; effect-free is not proof of safe evaluation |
 | ABI integer contracts | Separate ABI type contracts, not source primitive aliases | c_int/c_long/c_ulong/c_size_t carry host assumptions | Verify selected ABI widths and signedness; no implicit source conversion |
-| Floating/wider integers | Type identities exist; operations need accepted rules | Outside bounded shared scalar slice; some backend behavior exists | Inventory and refuse unresolved executable paths; do not adopt host semantics |
+| Floating/wider integers | Type identities exist; operations need accepted rules | `float64` literals and bounded mixed `+ - * /` now have shared LLVM/TinyVM evidence; other families remain outside the slice | Inventory unresolved executable paths; do not adopt host semantics |
 
 The source probes for placement, initializer, argument and return conversions
 are preserved in mission evidence. The ready-plan conversion tags are reproduced
@@ -29,9 +29,10 @@ evidence or an explicit, mechanically enforced unsupported boundary.
 
 ## Failure reconnaissance after entry-model approval
 
-The latest full-suite measurement remains 166/196 passed, 30 failed. No code
-change or new green baseline is claimed by this documentation update. The
-owner requested the [concrete host-mapping proposal](entry-result-host-mapping-proposal.md)
+The preceding publication measured 166/196 passed, 30 failed. The later
+numeric-promotion checkpoint records the new focused evidence and the current
+full-suite measurement; neither represents a green whole-repository baseline.
+The owner requested the [concrete host-mapping proposal](entry-result-host-mapping-proposal.md)
 for review before syntax implementation.
 
 Fresh probes of 51 existing source files reached from the failure traces used
