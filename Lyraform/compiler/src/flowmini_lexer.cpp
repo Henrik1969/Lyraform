@@ -31,6 +31,7 @@ const char* tokenKindName(TokenKind kind) {
         case TokenKind::KeywordElse:     return "else";
         case TokenKind::KeywordBreak:    return "break";
         case TokenKind::KeywordContinue: return "continue";
+        case TokenKind::KeywordDiv:      return "div";
         case TokenKind::KeywordPrint:    return "print";
         case TokenKind::KeywordTrue:     return "true";
         case TokenKind::KeywordFalse:    return "false";
@@ -94,6 +95,7 @@ namespace {
     if (text == "else") { return TokenKind::KeywordElse; }
     if (text == "break") { return TokenKind::KeywordBreak; }
     if (text == "continue") { return TokenKind::KeywordContinue; }
+    if (text == "div") { return TokenKind::KeywordDiv; }
     if (text == "true") { return TokenKind::KeywordTrue; }
     if (text == "false") { return TokenKind::KeywordFalse; }
     return TokenKind::Identifier;

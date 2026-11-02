@@ -12,8 +12,8 @@ semantics.
 
 | Area | Positive evidence | Refusal or negative evidence |
 |---|---|---|
-| Integer quotient | `7 div 3 = 2`; signed operands truncate toward zero | no silent floor-versus-truncate ambiguity |
-| Integer remainder | `a = (a div b)*b + a % b`; remainder sign follows `a` | `%` with zero divisor is refused |
+| Integer quotient | `7 div 3 = 2`; signed operands truncate toward zero; LLVM/TinyVM parity | no silent floor-versus-truncate ambiguity |
+| Integer remainder | reserved for the integer family | `%` is explicitly refused until a backend opcode contract exists |
 | True division | `8 / 2` has `float64` type and value `4.0`; `1 / 3` is non-integral float | `/` never narrows to integer because the value is integral |
 | Float division | `8.0 / 2.0` remains `floatN`, value `4.0` | float result is not reclassified as integer |
 | Zero divisor | statically known zero is rejected before lowering | dynamic zero requires an admitted failure route |
@@ -50,9 +50,13 @@ x div y
 
 ## Current status
 
-The owner decision is accepted. The current published experiment has partial
-integer-width and conversion machinery, but the canonical suite is not green
-and the current shared scalar classifier does not yet constitute the complete
-`/` versus `div` value-level contract. No implementation-complete claim is
-made until the matrix is executable on both backends.
+The owner decision is accepted. The first vertical slice is complete for
+statically established compatibility-width integer quotient: frontend keyword,
+semantic admission, zero/overflow refusal, artifact validation, LLVM lowering,
+TinyVM lowering, execution, and backend parity are covered by
+`lyraform_arithmetic_division_canon`.
+
+The remaining matrix is intentionally open: immutable-local proof reuse,
+dynamic failure routing, `%`, floating-point true division, conversions, and
+the repository's broader explicit-width migration still require later slices.
 

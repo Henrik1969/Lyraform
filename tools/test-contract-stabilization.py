@@ -42,21 +42,21 @@ def record_program(expression):
 
 
 positive = [
-    ("record_division", record_program("6 / 2"), 3),
-    ("argument_division", program("f(6 / 2) -> return", "fn f(n : int): int {\nn -> return\n}"), 3),
-    ("literal", program("6 / 2 -> return"), 3),
-    ("local", program("a : int(6)\nb : int(2)\na / b -> return"), 3),
-    ("signed", program("a : int(6)\nb : int(-2)\na / b -> return"), -3),
-    ("minus_one", program("a : int(6)\na / -1 -> return"), -6),
-    ("function", program("half(8) -> return", "fn half(n : int): int {\n n / 2 -> return\n}"), 4),
+    ("record_division", record_program("6 div 2"), 3),
+    ("argument_division", program("f(6 div 2) -> return", "fn f(n : int): int {\nn -> return\n}"), 3),
+    ("literal", program("6 div 2 -> return"), 3),
+    ("local", program("a : int(6)\nb : int(2)\na div b -> return"), 3),
+    ("signed", program("a : int(6)\nb : int(-2)\na div b -> return"), -3),
+    ("minus_one", program("a : int(6)\na div -1 -> return"), -6),
+    ("function", program("half(8) -> return", "fn half(n : int): int {\n n div 2 -> return\n}"), 4),
     ("unchanged_scalar", program("a : int(40)\na + 2 -> a\na -> return"), 42),
     ("static_guard", program("a : int(4)\nguard positive : a > 0\n5 -> a\na -> return"), 5),
 ]
 refinement = "type Positive refines int {\n invariant value > 0\n}\n"
 negative = [
-    ("record_zero", record_program("1 / 0"), "INTEGER_ADMISSION"),
-    ("record_overflow", record_program("-2147483648 / -1"), "INTEGER_ADMISSION"),
-    ("argument_zero", program("f(1 / 0) -> return", "fn f(n : int): int {\nn -> return\n}"), "INTEGER_ADMISSION"),
+    ("record_zero", record_program("1 div 0"), "INTEGER_ADMISSION"),
+    ("record_overflow", record_program("-2147483648 div -1"), "INTEGER_ADMISSION"),
+    ("argument_zero", program("f(1 div 0) -> return", "fn f(n : int): int {\nn -> return\n}"), "INTEGER_ADMISSION"),
     ("refined_placement", program("x : Positive(1)\n-1 -> x\n0 -> return", refinement), "REFINED_VALUE"),
     ("refined_construct", program("x : Positive(-1)\nx -> return", refinement), "REFINED_VALUE"),
     ("refined_generic", program("x : list<Positive>(-1)\n0 -> return", refinement), "REFINED_VALUE"),
@@ -66,13 +66,13 @@ negative = [
     ("refined_return", program("f() -> return", refinement + "fn f(): Positive {\n-1 -> return\n}"), "REFINED_VALUE"),
     ("refined_inherited", program("x : Derived(-1)\nx -> return", refinement + "type Derived refines Positive {\n}\n"), "REFINED_VALUE"),
     ("refined_field", program("0 -> return", refinement + "type Container {\nfield value : Positive\n}\n"), "REFINED_VALUE"),
-    ("zero_literal", program("1 / 0 -> return"), "INTEGER_ADMISSION"),
-    ("zero_local", program("a : int(1)\nb : int(0)\na / b -> return"), "INTEGER_ADMISSION"),
-    ("zero_placed", program("b : int(2)\n0 -> b\n1 / b -> return"), "INTEGER_ADMISSION"),
-    ("dynamic", program("f(0) -> return", "fn f(n : int): int {\n1 / n -> return\n}"), "INTEGER_ADMISSION"),
-    ("carrier_minimum_overflow", program("a : c_int(-2147483648)\na / -1 -> return"), "INTEGER_ADMISSION"),
-    ("unknown_minimum", program("f(1) -> return", "fn f(n : int): int {\nn / -1 -> return\n}"), "INTEGER_ADMISSION"),
-    ("nested", program("x : int(2 + 1 / 0)\nx -> return"), "INTEGER_ADMISSION"),
+    ("zero_literal", program("1 div 0 -> return"), "INTEGER_ADMISSION"),
+    ("zero_local", program("a : int(1)\nb : int(0)\na div b -> return"), "INTEGER_ADMISSION"),
+    ("zero_placed", program("b : int(2)\n0 -> b\n1 div b -> return"), "INTEGER_ADMISSION"),
+    ("dynamic", program("f(0) -> return", "fn f(n : int): int {\n1 div n -> return\n}"), "INTEGER_ADMISSION"),
+    ("carrier_minimum_overflow", program("a : c_int(-2147483648)\na div -1 -> return"), "INTEGER_ADMISSION"),
+    ("unknown_minimum", program("f(1) -> return", "fn f(n : int): int {\nn div -1 -> return\n}"), "INTEGER_ADMISSION"),
+    ("nested", program("x : int(2 + 1 div 0)\nx -> return"), "INTEGER_ADMISSION"),
     ("guard_violation", program("x : int(1)\nguard positive : x > 0\n-1 -> x\nx -> return"), "GUARD_TRANSITION"),
 ]
 
@@ -196,7 +196,7 @@ with tempfile.TemporaryDirectory(prefix="lyraform-stabilization-") as directory:
     def corrupt_divisor(value, attack):
         if isinstance(value, dict):
             value.pop("scalar_fact", None)
-            if value.get("kind") == "binary" and value.get("operator") == "/":
+            if value.get("kind") == "binary" and value.get("operator") == "div":
                 if attack == "identity":
                     value["right"]["symbol_id"] += 10000
                 else:

@@ -985,7 +985,7 @@ private:
                 } else out<<"  "<<result<<" = icmp "<<instruction<<" "<<left_type<<" "<<left<<", "<<right<<"\n";
                 return {"i1",result};
             }
-            if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="/")instruction="sdiv"; else return {};
+            if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="div")instruction="sdiv"; else return {};
             if(left.empty()||right.empty()||left_type!=right_type) return {};
             if (graph_native_ && instruction == "sdiv") {
                 if (left_type != "i32" && left_type != "i64") throw std::runtime_error("unsupported graph division carrier");

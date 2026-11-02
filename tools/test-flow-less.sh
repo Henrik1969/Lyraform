@@ -15,8 +15,8 @@ if test "$build_status" -ne 0; then
     test "$build_status" -eq 2
     jq -e '.status == "error" and .lowering_plan.status == "blocked" and
         (.diagnostics | length) > 0 and all(.diagnostics[];
-            .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED" and
-            (.message | contains("integer division safety is unproved")))' \
+            .code == "FLOWANALYST_INTEGER_DIVISION_UNPROVEN" and
+            (.message | contains("statically established integer operands")))' \
         "$tmpdir/app/semantic.json" >/dev/null
     test ! -e "$tmpdir/app/flow_less"
     echo 'pager admission: refused unproved division; runtime paging NOT exercised'

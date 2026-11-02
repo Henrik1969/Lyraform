@@ -1059,6 +1059,7 @@ namespace flowmini::ast {
                 case flowmini::TokenKind::Star:
                 case flowmini::TokenKind::Slash:
                 case flowmini::TokenKind::Percent:
+                case flowmini::TokenKind::KeywordDiv:
                 case flowmini::TokenKind::Less:
                 case flowmini::TokenKind::Greater:
                 case flowmini::TokenKind::LessEqual:
@@ -1091,6 +1092,7 @@ namespace flowmini::ast {
                 case flowmini::TokenKind::Star:
                 case flowmini::TokenKind::Slash:
                 case flowmini::TokenKind::Percent:
+                case flowmini::TokenKind::KeywordDiv:
                     return {30, BinaryOperatorAssociativity::Left};
 
                 default:

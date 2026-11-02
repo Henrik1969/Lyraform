@@ -45,7 +45,7 @@ constexpr Type binary(std::string_view op, Type left, Type right) noexcept {
     if (op == "==" || op == "!=") return Type::boolean;
     if (left != Type::integer) return Type::invalid;
     if (op == "<" || op == ">" || op == "<=" || op == ">=") return Type::boolean;
-    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") return Type::integer;
+    if (op == "+" || op == "-" || op == "*" || op == "div" || op == "%") return Type::integer;
     return Type::invalid;
 }
 

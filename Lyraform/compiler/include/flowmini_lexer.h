@@ -29,6 +29,7 @@ namespace flowmini {
         KeywordElse,
         KeywordBreak,
         KeywordContinue,
+        KeywordDiv,
         KeywordPrint,
         KeywordTrue,
         KeywordFalse,

@@ -1897,6 +1897,21 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 const auto right = evaluate_constant(integer(field(payload, "right")), state);
                 if (left.kind != ConstantValue::Kind::integer || right.kind != ConstantValue::Kind::integer) return {};
                 const auto operation = text(field(payload, "operator"));
+                if (operation == "+" || operation == "-" || operation == "*") {
+                    std::int64_t result = 0;
+                    const bool overflow = operation == "+"
+                        ? __builtin_add_overflow(left.integer, right.integer, &result)
+                        : operation == "-"
+                            ? __builtin_sub_overflow(left.integer, right.integer, &result)
+                            : __builtin_mul_overflow(left.integer, right.integer, &result);
+                    if (!overflow) return {ConstantValue::Kind::integer, result, false};
+                    return {};
+                }
+                if (operation == "div") {
+                    if (right.integer == 0 ||
+                        (left.integer == std::numeric_limits<std::int64_t>::min() && right.integer == -1)) return {};
+                    return {ConstantValue::Kind::integer, left.integer / right.integer, false};
+                }
                 if (operation == "==") return {ConstantValue::Kind::boolean, 0, left.integer == right.integer};
                 if (operation == "!=") return {ConstantValue::Kind::boolean, 0, left.integer != right.integer};
                 if (operation == "<") return {ConstantValue::Kind::boolean, 0, left.integer < right.integer};
@@ -1906,6 +1921,77 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             }
             return {};
         };
+
+    // Every expression that can reach lowering must pass the same numeric
+    // operator boundary.  Scalar facts cover declarations and placements,
+    // but a direct return or branch predicate can otherwise bypass them.
+    // Keep the first division slice deliberately narrow: `div` is admitted
+    // only when both operands are statically established integers, while `/`
+    // is reserved for the later floating-point true-division slice.
+    std::set<int> checked_numeric_expressions;
+    std::function<void(int, int)> check_numeric_expression =
+        [&](int expression_id, int statement_id) {
+            if (!expressions.count(expression_id) ||
+                !checked_numeric_expressions.insert(expression_id).second) return;
+            const auto* expression = expressions.at(expression_id);
+            const auto kind = text(field(*expression, "kind"));
+            const auto* payload = field(*expression, "payload");
+            if (kind == "binary") {
+                const auto operation = text(field(payload, "operator"));
+                const int left_id = integer(field(payload, "left"));
+                const int right_id = integer(field(payload, "right"));
+                if (operation == "/") {
+                    add_diagnostic("FLOWANALYST_TRUE_DIVISION_NOT_ADMITTED",
+                        "`/` is reserved for true division; this slice admits integer quotient only via `div`",
+                        -1, "expression:" + std::to_string(expression_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                } else if (operation == "%") {
+                    add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_NOT_ADMITTED",
+                        "`%` remains paired with integer quotient semantics but its backend opcode is not admitted in this slice",
+                        -1, "expression:" + std::to_string(expression_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                } else if (operation == "div") {
+                    const auto left = evaluate_constant(left_id, {});
+                    const auto right = evaluate_constant(right_id, {});
+                    if (left.kind != ConstantValue::Kind::integer || right.kind != ConstantValue::Kind::integer) {
+                        add_diagnostic("FLOWANALYST_INTEGER_DIVISION_UNPROVEN",
+                            "integer quotient requires statically established integer operands in the current slice",
+                            -1, "expression:" + std::to_string(expression_id));
+                        set_statement_provenance(diagnostics.back(), statement_id);
+                    } else if (right.integer == 0) {
+                        add_diagnostic("FLOWANALYST_INTEGER_DIVISION_ZERO",
+                            "integer quotient divisor is zero",
+                            -1, "expression:" + std::to_string(expression_id));
+                        set_statement_provenance(diagnostics.back(), statement_id);
+                    } else {
+                        const auto left_type = text(field(*expressions.at(left_id), "type"));
+                        // Bare literal expressions are currently carried by
+                        // the compatibility c_int path and have no `type`
+                        // field in the source expression pool.
+                        const bool int32_carrier = left_type.empty() || left_type == "int" || left_type == "int32" || left_type == "c_int";
+                        const bool overflow = (int32_carrier && left.integer == std::numeric_limits<std::int32_t>::min() && right.integer == -1) ||
+                            (left.integer == std::numeric_limits<std::int64_t>::min() && right.integer == -1);
+                        if (!overflow) {
+                            check_numeric_expression(left_id, statement_id);
+                            check_numeric_expression(right_id, statement_id);
+                            return;
+                        }
+                        add_diagnostic("FLOWANALYST_INTEGER_DIVISION_OVERFLOW",
+                            "integer quotient overflows for INT_MIN div -1",
+                            -1, "expression:" + std::to_string(expression_id));
+                        set_statement_provenance(diagnostics.back(), statement_id);
+                    }
+                }
+                check_numeric_expression(left_id, statement_id);
+                check_numeric_expression(right_id, statement_id);
+            } else if (kind == "unary") {
+                check_numeric_expression(integer(field(payload, "operand")), statement_id);
+            }
+        };
+    for (const auto& operation : lowering_operations) {
+        if (operation.expression >= 0) check_numeric_expression(operation.expression, operation.statement);
+        for (const int argument : operation.arguments) check_numeric_expression(argument, operation.statement);
+    }
     auto guard_dependencies = [&](int predicate) {
         std::set<int> dependencies;
         collect_reads(predicate, dependencies);

@@ -716,7 +716,7 @@ private:
             if (left_type == TINYVM_CARRIER_OPAQUE_HANDLE)
                 throw Unsupported("opaque handle binary operations are not admitted");
             const auto operation = string(required(node, "operator", "$.expression"), "$.expression.operator");
-            const std::map<std::string, std::int64_t> opcodes{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"/",TV1_SDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
+            const std::map<std::string, std::int64_t> opcodes{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"div",TV1_SDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
             const auto found = opcodes.find(operation); if (found == opcodes.end()) throw Unsupported("binary operator '" + operation + "' is not admitted");
             const auto result = slot(); slot_types_[result] = found->second >= TV1_CMP_EQ ? static_cast<std::uint32_t>(TINYVM_CARRIER_I1) : slot_types_.at(left); emit(found->second, result, left, right); return result;
         }

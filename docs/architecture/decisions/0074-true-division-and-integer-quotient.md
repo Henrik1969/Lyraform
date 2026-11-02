@@ -1,6 +1,6 @@
 # 0074 — True division and integer quotient are distinct operations
 
-**Status:** accepted initial arithmetic canon; implementation and backend parity pending
+**Status:** accepted initial arithmetic canon; integer quotient slice implemented
 **Date:** 2026-11-02
 **Mission:** Lyraform numeric-semantics foundation
 
@@ -68,11 +68,17 @@ a separate future decision.
 
 ## Boundary
 
+The current vertical slice implements `div` for statically established
+compatibility-width integer operands, with LLVM/TinyVM parity and explicit
+analysis-time refusal for zero divisors and `INT_MIN div -1`. `%` is reserved
+for the integer family but remains refused until its backend opcode contract is
+available. `/` remains explicitly refused until the floating-point true-
+division slice is implemented end to end.
+
 This decision does not complete floating-point semantics. NaN, infinity,
 signed zero, precision guarantees, rounding modes, literal suffixes, rational
 values, dynamic numeric failure routes, and general refinement composition
-remain separate decisions. It also does not claim that the current canonical
-compiler already accepts the `div` spelling or executes the complete matrix.
+remain separate decisions. The complete matrix is still pending.
 
 The focused acceptance matrix is recorded in
 [the arithmetic division canon task](../../tasks/arithmetic-division-canon.md).

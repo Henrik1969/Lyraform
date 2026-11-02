@@ -11,6 +11,8 @@ int main() {
     require(type("c_int") == Type::outside_slice && type("bool") == Type::outside_slice);
     require(binary("<", Type::integer, Type::integer) == Type::boolean);
     require(binary("+", Type::integer, Type::integer) == Type::integer);
+    require(binary("div", Type::integer, Type::integer) == Type::integer);
+    require(binary("/", Type::integer, Type::integer) == Type::invalid);
     require(binary("+", Type::boolean, Type::integer) == Type::invalid);
     require(binary("+", Type::boolean, Type::boolean) == Type::invalid);
     require(unary("not", Type::boolean) == Type::boolean);

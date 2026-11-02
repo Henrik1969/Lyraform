@@ -685,7 +685,7 @@ private:
 
     [[nodiscard]] Expr parseValueMulExpr() {
         Expr left = parseValuePrimaryExpr();
-        while (check(TokenKind::Star) || check(TokenKind::Slash) || check(TokenKind::Percent)) {
+        while (check(TokenKind::Star) || check(TokenKind::Slash) || check(TokenKind::Percent) || check(TokenKind::KeywordDiv)) {
             const TokenKind op = peek().kind; ++pos_;
             Expr right = parseValuePrimaryExpr();
             Expr expr; expr.kind = ExprKind::Binary; expr.op = op; expr.left = std::make_unique<Expr>(std::move(left)); expr.right = std::make_unique<Expr>(std::move(right));
@@ -753,7 +753,7 @@ private:
             case TokenKind::Plus: return "int.add";
             case TokenKind::Minus: return "int.sub";
             case TokenKind::Star: return "int.mul";
-            case TokenKind::Slash: return "int.div";
+            case TokenKind::KeywordDiv: return "int.div";
             case TokenKind::Percent: return "int.mod";
             case TokenKind::Greater: return "int.gt";
             case TokenKind::Less: return "int.lt";

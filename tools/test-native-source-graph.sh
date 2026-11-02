@@ -631,7 +631,7 @@ printf '9\n8\n9\n8\n' > "$tmpdir/expected"
 cmp "$tmpdir/output" "$tmpdir/expected"
 # A safe scalar receiver division stays executable with a complete value check.
 cp "$tmpdir/program.flow" "$tmpdir/division-base.flow"
-sed 's/local + value -> local/value \/ 2 -> local/' "$tmpdir/division-base.flow" > "$tmpdir/program.flow"
+sed 's/local + value -> local/value div 2 -> local/' "$tmpdir/division-base.flow" > "$tmpdir/program.flow"
 compile
 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
 printf '5\n4\n5\n4\n' > "$tmpdir/expected"
@@ -640,7 +640,7 @@ cp "$tmpdir/division-base.flow" "$tmpdir/program.flow"
 # Unsafe or unproved graph division is refused without a private process-exit
 # disposition. A possible minimum/-1 is as unsafe as a possible zero divisor.
 for divisor in value -1 0; do
-    sed "s/local + value -> local/value \/ $divisor -> local/" "$tmpdir/program.flow" > "$tmpdir/failure.flow"
+    sed "s/local + value -> local/value div $divisor -> local/" "$tmpdir/program.flow" > "$tmpdir/failure.flow"
     "$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/failure.flow" > "$tmpdir/failure.frontend.json"
     if "$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 \
         --graph-providers "$tmpdir/selection.json" < "$tmpdir/failure.frontend.json" \
@@ -649,14 +649,16 @@ for divisor in value -1 0; do
         exit 1
     fi
     jq -e '.status == "error" and .lowering_plan.status == "blocked" and
-        any(.diagnostics[]; .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED")' \
+        any(.diagnostics[]; .code == "FLOWANALYST_INTEGER_DIVISION_UNPROVEN" or
+            .code == "FLOWANALYST_INTEGER_DIVISION_ZERO" or
+            .code == "FLOWANALYST_INTEGER_DIVISION_OVERFLOW")' \
         "$tmpdir/failure.semantic.json" >/dev/null
 done
 # Source can reject an activation through an explicitly authorized runtime ABI.
 jq -n --arg path "$FLOWGRAPH_RUNTIME" '{format:"flowcore.native_binding_spec",version:1,unit:"graph_failures",namespace:"runtime",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"raise",symbol:"flow_graph_raise",effect:"failure",parameters:[{name:"code",type:"c_int"}],return_type:"c_int"}]}' > "$tmpdir/runtime.spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/runtime.spec.json" --flow-output "$tmpdir/runtime.flow" --policy-output "$tmpdir/runtime.policy" --manifest-output "$tmpdir/runtime.manifest.json" >/dev/null
 cat "$tmpdir/runtime.policy" >> "$tmpdir/policy"
-sed '1i import "runtime.flow" as runtime' "$tmpdir/failure.flow" | sed 's/value \/ 0 -> local/runtime.raise(17) -> local/' > "$tmpdir/raised.flow"
+sed '1i import "runtime.flow" as runtime' "$tmpdir/failure.flow" | sed 's/value div 0 -> local/runtime.raise(17) -> local/' > "$tmpdir/raised.flow"
 mv "$tmpdir/raised.flow" "$tmpdir/program.flow"
 compile
 set +e

@@ -111,6 +111,11 @@ inline void validate_integer_admission(const json::Value& value,
             if (op == "+") overflow = __builtin_add_overflow(*left, *right, &result);
             else if (op == "-") overflow = __builtin_sub_overflow(*left, *right, &result);
             else if (op == "*") overflow = __builtin_mul_overflow(*left, *right, &result);
+            else if (op == "div") {
+                if (*right == 0 || (*left == INT64_MIN && *right == -1)) return {};
+                result = *left / *right;
+                overflow = false;
+            }
             if (!overflow && in_range(result)) return result;
         }
         // Avoid inferring wrap, narrowing or overflow meaning. Only directly
@@ -276,7 +281,11 @@ inline void validate_integer_admission(const json::Value& value,
             const auto& right = object(required(*item, "right", where), where);
             require_identity(str(left, "type"), str(right, "type"), where);
             const auto op = str(*item, "operator");
-            if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%")
+            if (op == "/")
+                throw Error(where, "true division is not admitted in the integer quotient slice; use div or an admitted floating-point contract");
+            if (op == "%")
+                throw Error(where, "integer remainder is not admitted until its backend opcode contract is available");
+            if (op == "+" || op == "-" || op == "*" || op == "div" || op == "%")
                 require_identity(str(*item, "type"), str(left, "type"), where);
         }
         if (kind == "call_result") {
@@ -292,7 +301,7 @@ inline void validate_integer_admission(const json::Value& value,
                         str(object(parameters[i], where), "type"), where);
             }
         }
-        if (kind == "binary" && (str(*item, "operator") == "/" || str(*item, "operator") == "%")) {
+        if (kind == "binary" && (str(*item, "operator") == "div" || str(*item, "operator") == "%")) {
             const auto& left = required(*item, "left", where);
             const auto& right = required(*item, "right", where);
             const auto& lhs = object(left, where);
