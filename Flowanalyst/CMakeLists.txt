@@ -111,3 +111,6 @@ add_test(NAME lyraform_numeric_promotion_canon
 add_test(NAME lyraform_unreachable_invalid_branch
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-unreachable-invalid-branch.py
         --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_construction
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-construction.py
+        --build ${CMAKE_BINARY_DIR})

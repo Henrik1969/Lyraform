@@ -3,9 +3,11 @@
 ## Stabilization work in progress — 2026-11-01
 
 [G1 passed on its preserved snapshot](checkpoints/2026-11-01-contract-stabilization-g1.md); G2 is active. The safety checks
-refuse value-bearing refinements with unenforced predicates and integer
-quotients (`div`) whose safety cannot be established and has no admitted
-failure route. The bounded numeric slice now also admits `+`, `-`, `*`, and
+now admit only the bounded R1 case of a directly constructed scalar refinement
+whose predicates are statically proved; other value-bearing refinements with
+unenforced predicates remain refused. Integer quotients (`div`) whose safety
+cannot be established and has no admitted failure route remain refused. The
+bounded numeric slice now also admits `+`, `-`, `*`, and
 true division (`/`) with explicit integer-to-`float64` promotion; static zero
 divisors remain refused. The accepted cases execute on LLVM and TinyVM.
 
@@ -56,8 +58,12 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest current-truth verification is the
-[2026-11-02 unreachable-invalid-branch vertical slice](checkpoints/2026-11-02-unreachable-invalid-branch.md),
-which locks the whole-program semantic admission boundary. The preceding
+[2026-11-02 refinement construction vertical slice](checkpoints/2026-11-02-refinement-construction-slice.md),
+which admits one statically proved scalar refinement construction through LLVM
+and TinyVM while retaining refusal for invalid and unknown values. The
+[unreachable-invalid-branch vertical slice](checkpoints/2026-11-02-unreachable-invalid-branch.md),
+which locks the whole-program semantic admission boundary, remains the
+preceding control-flow checkpoint. The
 [numeric promotion vertical slice](checkpoints/2026-11-02-numeric-promotion-slice.md)
 records the focused cross-backend arithmetic evidence and the current
 whole-suite result of 160/198 tests; the repository remains non-green during

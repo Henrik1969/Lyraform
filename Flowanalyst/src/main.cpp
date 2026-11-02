@@ -901,6 +901,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     }
     // Type references must not lose an invariant because a value declaration
     // has the same spelling. Follow the type declarations in lexical scopes.
+    const auto declared_symbol_types = symbol_types;
     auto visible_refinement_type = [&](int scope, const std::string& name) {
         std::set<int> visited;
         while (scopes.count(scope) && visited.insert(scope).second) {
@@ -918,6 +919,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     };
     int refined_types = 0;
     std::set<int> refined_symbols;
+    std::map<int, std::string> refinement_base_types;
+    std::map<int, std::vector<int>> refinement_invariants;
     std::function<void(int, int)> check_invariant = [&](int expression_id, int refined_symbol) {
         if (!expressions.count(expression_id)) return;
         const auto* expression = expressions[expression_id];
@@ -928,7 +931,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         ++refined_types; int refined_symbol = -1; for (const auto& [symbol_id, origin] : origins) { const auto path = text(field(*origin, "ast_path")); if (path == "/declaration_pool/" + std::to_string(declaration_id)) { refined_symbol = symbol_id; break; } }
         if (!list(field(*declaration, "invariants")).empty()) refined_symbols.insert(refined_symbol);
         const auto base = text(field(*declaration, "base_type")); if (!is_resolved_type(base)) add_diagnostic("FLOWANALYST_REFINED_BASE_TYPE", "refined type base '" + base + "' cannot be resolved", refined_symbol, "symbol:" + std::to_string(refined_symbol));
-        for (const auto& invariant : list(field(*declaration, "invariants"))) check_invariant(integer(field(invariant, "condition_expression")), refined_symbol);
+        refinement_base_types[refined_symbol] = base;
+        for (const auto& invariant : list(field(*declaration, "invariants"))) {
+            const int condition = integer(field(invariant, "condition_expression"));
+            refinement_invariants[refined_symbol].push_back(condition);
+            check_invariant(condition, refined_symbol);
+        }
     }
     // Generic/array spelling is structural type context, not permission to
     // erase the obligations of an enclosed named refinement.
@@ -960,15 +968,108 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             }
         }
     }
-    // A resolved refinement declaration is inspection evidence, not executable
-    // invariant enforcement. Refuse value-bearing uses by resolved type identity.
-    // Empty marker refinements (including the admitted Text failure carrier)
-    // have no predicate to erase. Their existing carrier checks still apply.
+    // R1 admits only a direct scalar initializer whose complete invariant set
+    // is statically provable. Calls, returns, assignments, aggregates and
+    // dynamic values remain refused until their own lifecycle contracts exist.
+    std::set<int> admitted_refinement_values;
+    std::set<int> rejected_refinement_constructions;
+    std::function<ConstantValue(int, std::int64_t)> evaluate_refinement_constant =
+        [&](int expression_id, std::int64_t value) -> ConstantValue {
+            if (!expressions.count(expression_id)) return {};
+            const auto* expression = expressions.at(expression_id);
+            const auto kind = text(field(*expression, "kind"));
+            const auto* payload = field(*expression, "payload");
+            if (kind == "integer_literal") {
+                try {
+                    std::size_t consumed = 0;
+                    const auto spelling = text(field(payload, "value_text"));
+                    const auto parsed = std::stoll(spelling, &consumed, 10);
+                    if (consumed == spelling.size()) return {ConstantValue::Kind::integer, parsed, false};
+                } catch (const std::exception&) {}
+                return {};
+            }
+            if (kind == "bool_literal")
+                return {ConstantValue::Kind::boolean, 0, text(field(payload, "value_text")) == "true"};
+            if (kind == "identifier" && text(field(payload, "name")) == "value")
+                return {ConstantValue::Kind::integer, value, false};
+            if (kind == "unary") {
+                const auto operand = evaluate_refinement_constant(integer(field(payload, "operand")), value);
+                if (operand.kind != ConstantValue::Kind::integer) return {};
+                const auto operation = text(field(payload, "operator"));
+                if (operation == "+") return operand;
+                if (operation == "-" && operand.integer != std::numeric_limits<std::int64_t>::min())
+                    return {ConstantValue::Kind::integer, -operand.integer, false};
+                return {};
+            }
+            if (kind != "binary") return {};
+            const auto left = evaluate_refinement_constant(integer(field(payload, "left")), value);
+            const auto right = evaluate_refinement_constant(integer(field(payload, "right")), value);
+            const auto operation = text(field(payload, "operator"));
+            if (left.kind != ConstantValue::Kind::integer || right.kind != ConstantValue::Kind::integer)
+                return {};
+            if (operation == "+" || operation == "-" || operation == "*") {
+                std::int64_t result = 0;
+                const bool overflow = operation == "+"
+                    ? __builtin_add_overflow(left.integer, right.integer, &result)
+                    : operation == "-"
+                        ? __builtin_sub_overflow(left.integer, right.integer, &result)
+                        : __builtin_mul_overflow(left.integer, right.integer, &result);
+                return overflow ? ConstantValue{} : ConstantValue{ConstantValue::Kind::integer, result, false};
+            }
+            if (operation == "div") {
+                if (right.integer == 0 || (left.integer == std::numeric_limits<std::int64_t>::min() && right.integer == -1)) return {};
+                return {ConstantValue::Kind::integer, left.integer / right.integer, false};
+            }
+            if (operation == "==") return {ConstantValue::Kind::boolean, 0, left.integer == right.integer};
+            if (operation == "!=") return {ConstantValue::Kind::boolean, 0, left.integer != right.integer};
+            if (operation == "<") return {ConstantValue::Kind::boolean, 0, left.integer < right.integer};
+            if (operation == "<=") return {ConstantValue::Kind::boolean, 0, left.integer <= right.integer};
+            if (operation == ">") return {ConstantValue::Kind::boolean, 0, left.integer > right.integer};
+            if (operation == ">=") return {ConstantValue::Kind::boolean, 0, left.integer >= right.integer};
+            return {};
+        };
+    for (const auto& [statement_id, statement] : statements) {
+        if (text(field(*statement, "kind")) != "let") continue;
+        const auto* payload = field(*statement, "payload");
+        const int initializer = integer(field(payload, "initializer_expression"));
+        if (initializer < 0) continue;
+        const int scope = statement_scopes.count(statement_id) ? statement_scopes.at(statement_id) : -1;
+        const int symbol = flowanalyst::scalar::visible_symbol(scopes, symbols, scope, text(field(*statement, "name")));
+        const auto original_type = declared_symbol_types.count(symbol) ? declared_symbol_types.at(symbol) : std::string{};
+        const int refinement = visible_refinement_type(scope, original_type);
+        if (!refinement_invariants.count(refinement) || refinement_invariants.at(refinement).empty()) continue;
+        const auto base = refinement_base_types[refinement];
+        if (base != "int32" && base != "int64") continue;
+        const auto candidate = evaluate_refinement_constant(initializer, 0);
+        if (candidate.kind != ConstantValue::Kind::integer) continue;
+        bool proven = true;
+        bool violated = false;
+        for (const int invariant : refinement_invariants.at(refinement)) {
+            const auto result = evaluate_refinement_constant(invariant, candidate.integer);
+            if (result.kind != ConstantValue::Kind::boolean) { proven = false; break; }
+            if (!result.boolean) violated = true;
+        }
+        if (violated) {
+            add_diagnostic("FLOWANALYST_REFINED_INVARIANT_VIOLATION",
+                "refined value '" + original_type + "' violates its invariant at construction",
+                symbol, "symbol:" + std::to_string(symbol));
+            set_resolution_provenance(diagnostics.back(), statement_id);
+            rejected_refinement_constructions.insert(symbol);
+        } else if (proven) {
+            admitted_refinement_values.insert(symbol);
+            symbol_types[symbol] = base;
+        }
+    }
+    // A resolved refinement that is not admitted by the bounded construction
+    // proof remains explicitly unsupported. Empty marker refinements have no
+    // predicate to erase and retain their existing carrier checks.
     for (const auto& [id, symbol] : symbols) {
         for (const auto* key : {"declared_type_spelling", "return_type_spelling"}) {
-            const auto spelling = fact_value(*symbol, key);
+            const auto spelling = declared_symbol_types.count(id) ? declared_symbol_types.at(id) : fact_value(*symbol, key);
             if (!spelling.empty() && requires_refinement_check(
-                    integer(field(*symbol, "owning_scope_id")), spelling, 0))
+                    integer(field(*symbol, "owning_scope_id")), spelling, 0) &&
+                !admitted_refinement_values.count(id) &&
+                !rejected_refinement_constructions.count(id))
                 add_diagnostic("FLOWANALYST_REFINED_VALUE_UNSUPPORTED",
                     "refined value '" + spelling + "' requires invariant enforcement before execution",
                     id, "symbol:" + std::to_string(id));
