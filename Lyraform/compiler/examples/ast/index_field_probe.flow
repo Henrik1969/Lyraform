@@ -1,17 +1,17 @@
 program index_field_probe
 
 record Point {
-    x : int
-    y : int
+    x : int32
+    y : int32
 }
 
 main {
-    arr : list<int>([1, 2, 3])
-    i : int(0)
-    value : int(arr[i])
+    arr : list<int32>([1, 2, 3])
+    i : int32(0)
+    value : int32(arr[i])
 
     p : Point({x: 10, y: 20})
-    xvalue : int(p.x)
+    xvalue : int32(p.x)
 
     value = arr[i]
     xvalue = p.y

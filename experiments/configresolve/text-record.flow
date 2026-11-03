@@ -6,14 +6,14 @@ record Message {
 }
 
 target Demo {
-fn read(message : Message): int {
+fn read(message : Message): int32 {
  if message.flag { 7 -> return }
  3 -> return
 }
 
 main {
  message : Message({text: "hello", flag: true})
- result : int(read(message))
+ result : int32(read(message))
  result -> return
 }
 }

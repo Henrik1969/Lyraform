@@ -4,10 +4,10 @@ import "../../std/collatz.flow"
 program import_demo
 
 main {
-    three  : int(3)
-    four   : int(4)
-    five   : int(5)
-    result : int(0)
+    three  : int32(3)
+    four   : int32(4)
+    five   : int32(5)
+    result : int32(0)
 
     factorial(five) -> result
     print result

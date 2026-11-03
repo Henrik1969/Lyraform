@@ -10,6 +10,12 @@ ratifies the fixed signed-int64 default and explicit conversion/overflow law.
 The implementation coverage described below predates G2 alignment; it must not
 be read as authority for 32-bit `int` or implicit carrier conversion.
 
+The source-type wording in this historical Phase 2 record is superseded by ADR
+0071: current active fixtures use explicit-width language types such as
+`int32`/`int64`, while `c_int` remains a separate ABI contract. The 2026-11-03
+[fixture migration checkpoint](../checkpoints/2026-11-03-explicit-width-fixture-migration.md)
+records the current test and documentation surface.
+
 This is the bounded compiler-unification slice implemented for Mission 02.
 It is subject to Gate 2 review. It does not define the rest of Lyraform v1.
 

@@ -4,15 +4,15 @@ program configresolve_scalar_probe
 // Policy codes: 0 highest precedence, 1 reject conflict, 2 first, 3 last.
 // Result codes: 1/2 successful candidate identity, 11 ambiguity, 12 conflict.
 // Failed resolution never exposes a candidate as authoritative.
-fn resolve_pair(a : int, ap : int, b : int, bp : int, mode : int): int {
-    first : int(1)
-    second : int(2)
-    highest : int(0)
-    reject : int(1)
-    first_policy : int(2)
-    last_policy : int(3)
-    ambiguity : int(11)
-    conflict : int(12)
+fn resolve_pair(a : int32, ap : int32, b : int32, bp : int32, mode : int32): int32 {
+    first : int32(1)
+    second : int32(2)
+    highest : int32(0)
+    reject : int32(1)
+    first_policy : int32(2)
+    last_policy : int32(3)
+    ambiguity : int32(11)
+    conflict : int32(12)
 
     if mode == first_policy {
         first -> return
@@ -39,12 +39,12 @@ fn resolve_pair(a : int, ap : int, b : int, bp : int, mode : int): int {
 }
 
 main {
-    a : int(7)
-    ap : int(10)
-    b : int(19)
-    bp : int(30)
-    mode : int(0)
-    result : int(0)
+    a : int32(7)
+    ap : int32(10)
+    b : int32(19)
+    bp : int32(30)
+    mode : int32(0)
+    result : int32(0)
     resolve_pair(a, ap, b, bp, mode) -> result
     result -> return
 }

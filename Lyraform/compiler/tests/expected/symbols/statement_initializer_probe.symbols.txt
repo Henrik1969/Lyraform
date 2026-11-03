@@ -11,18 +11,18 @@ Symbols: 7
     Fact kind=Custom key=source_unit_kind value="program"
   Symbol #2 scope=#2 name=seed kind=Function facts=1
     declaration_location=<source>:4:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #3 scope=#2 name=main kind=Procedure facts=0
     declaration_location=<source>:8:1
   Symbol #4 scope=#4 name=scalar kind=Variable facts=1
     declaration_location=<source>:9:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #5 scope=#4 name=values kind=Variable facts=1
     declaration_location=<source>:10:5
-    Fact kind=TypeReference key=declared_type_spelling value="list<int>"
+    Fact kind=TypeReference key=declared_type_spelling value="list<int32>"
   Symbol #6 scope=#4 name=source kind=Variable facts=1
     declaration_location=<source>:11:5
     Fact kind=TypeReference key=declared_type_spelling value="stdin.text"
   Symbol #7 scope=#5 name=nested kind=Variable facts=1
     declaration_location=<source>:14:9
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"

@@ -11,20 +11,22 @@ build = pathlib.Path(sys.argv[1])
 with tempfile.TemporaryDirectory(prefix='lyraform-record-flow-') as directory:
     source = pathlib.Path(directory) / 'input.flow'
     source.write_text('''program record_control
-record Cell { count : int
+record Cell { count : int32
 }
 main {
- item : Cell({count: 7})
+ count_value : int32(7)
+ item : Cell({count: count_value})
  root_copy : Cell(item)
  if true {
   branch_copy : Cell(item)
-  first : int(branch_copy.count)
+  first : int32(branch_copy.count)
  } else {
   sibling_copy : Cell(item)
-  second : int(sibling_copy.count)
+  second : int32(sibling_copy.count)
  }
- after : int(item.count)
- after -> return
+ after : int32(item.count)
+ result : c_int(after)
+ result -> return
 }
 ''')
     front = subprocess.run([build / 'flowmini/flowmini', '--dump-frontend-bundle', source],
@@ -72,16 +74,18 @@ print('PASS: structured record availability; 7 hostile control/definition change
 with tempfile.TemporaryDirectory(prefix='lyraform-record-loop-flow-') as directory:
     source = pathlib.Path(directory) / 'input.flow'
     source.write_text('''program record_loop_control
-record Cell { count : int
+record Cell { count : int32
 }
 main {
- item : Cell({count: 7})
+ count_value : int32(7)
+ item : Cell({count: count_value})
  while false {
   body_copy : Cell(item)
-  inside : int(body_copy.count)
+  inside : int32(body_copy.count)
  }
- after : int(item.count)
- after -> return
+ after : int32(item.count)
+ result : c_int(after)
+ result -> return
 }
 ''')
     front = subprocess.run([build / 'flowmini/flowmini', '--dump-frontend-bundle', source],

@@ -1,12 +1,12 @@
 program ordinary_record_readiness
 
 record Candidate {
-    value : int
-    rank : int
+    value : int32
+    rank : int32
 }
 
 main {
     candidate : Candidate({value: 7, rank: 30})
-    observed : int(candidate.value)
+    observed : int32(candidate.value)
     observed -> return
 }

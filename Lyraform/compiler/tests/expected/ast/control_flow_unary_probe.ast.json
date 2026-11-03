@@ -348,10 +348,10 @@
                 "name": "negative",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -362,13 +362,13 @@
                 "initializer_expression": 2
             },
             "name": "negative",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -392,10 +392,10 @@
                 "name": "index",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -406,13 +406,13 @@
                 "initializer_expression": 4
             },
             "name": "index",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {

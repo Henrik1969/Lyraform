@@ -24,7 +24,7 @@ type CanonicalTypeSpellings {
     field character_16 : char16
     field character_32 : char32
 
-    field integer_alias : int
+    field integer_alias : int32
     field float_alias : float
     field boolean_alias : Bool
     field text_domain : string

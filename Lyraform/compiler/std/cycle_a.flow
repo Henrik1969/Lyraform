@@ -2,6 +2,6 @@ import "cycle_b.flow"
 
 module std_cycle_a
 
-fn a(x : int): int {
+fn a(x : int32): int32 {
     x -> return
 }

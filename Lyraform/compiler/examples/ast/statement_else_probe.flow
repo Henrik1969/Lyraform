@@ -1,6 +1,6 @@
 program statement_else_probe
 
-fn normalize(value : int) -> int {
+fn normalize(value : int32) -> int32 {
     if value > 0 {
         return value
     } else {
@@ -8,7 +8,7 @@ fn normalize(value : int) -> int {
     }
 }
 
-fn keep_or_one(value : int) -> int {
+fn keep_or_one(value : int32) -> int32 {
     if value == 0 {
         return 1
     }
@@ -17,7 +17,7 @@ fn keep_or_one(value : int) -> int {
 }
 
 main {
-    value : int(1)
+    value : int32(1)
 
     if value > 0 {
         value = 2

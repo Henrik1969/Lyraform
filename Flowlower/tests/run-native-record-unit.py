@@ -22,20 +22,23 @@ def run(command, data=None, expected=0):
     return result
 
 source_text = '''program native_record_values
-record Leaf { count : int
+record Leaf { count : int32
 enabled : Bool
 }
 record Pair { left : Leaf
 right : Leaf
 }
 main {
- item : Pair({right: {enabled: RIGHT_FLAG, count: 7}, left: {count: LEFT_VALUE, enabled: 2 < 4}})
+ left_value : int32(LEFT_VALUE)
+ right_value : int32(7)
+ nested_enabled : Bool(true)
+ item : Pair({right: {enabled: RIGHT_FLAG, count: right_value}, left: {count: left_value, enabled: nested_enabled}})
  copied : Pair(item)
  selected : Leaf(copied.left)
- number : int(selected.count)
- other : int(copied.right.count)
+ number : int32(selected.count)
+ other : int32(copied.right.count)
  enabled : Bool(item.right.enabled)
- total : int(number + other)
+ total : c_int(LEFT_VALUE + 7)
  if enabled {
   total -> return
  } else {
@@ -51,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='lyraform-native-record-unit-') as direc
                                          ('false-field', '2 + 3', 'false', 73),
                                          ('not-false', '2 + 3', 'not false', 12),
                                          ('not-true', '2 + 3', 'not true', 73),
-                                         ('nested-not', '2 + 3', 'not (not (2 < 4))', 12)]:
+                                         ('nested-not', '2 + 3', 'not (not true)', 12)]:
         source = source_text.replace('LEFT_VALUE', left).replace('RIGHT_FLAG', flag)
         if variant == 'renamed-negative':
             for before, after in [('Leaf', 'Cell'), ('Pair', 'Bundle'), ('count', 'amount'),
@@ -73,7 +76,7 @@ with tempfile.TemporaryDirectory(prefix='lyraform-native-record-unit-') as direc
             def corrupt_not(value):
                 if isinstance(value, dict):
                     if value.get('kind') == 'unary' and value.get('operator') == 'not':
-                        value['operand'] = {'kind': 'integer_literal', 'type': 'int',
+                        value['operand'] = {'kind': 'integer_literal', 'type': 'int32',
                                             'expression_id': value['operand']['expression_id'],
                                             'value': '1'}
                         return True

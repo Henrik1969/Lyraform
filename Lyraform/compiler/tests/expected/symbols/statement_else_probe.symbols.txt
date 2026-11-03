@@ -18,18 +18,18 @@ Symbols: 7
     Fact kind=Custom key=source_unit_kind value="program"
   Symbol #2 scope=#2 name=normalize kind=Function facts=1
     declaration_location=<source>:4:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #3 scope=#3 name=value kind=Parameter facts=1
     declaration_location=<source>:4:14
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #4 scope=#2 name=keep_or_one kind=Function facts=1
     declaration_location=<source>:12:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #5 scope=#6 name=value kind=Parameter facts=1
     declaration_location=<source>:12:16
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #6 scope=#2 name=main kind=Procedure facts=0
     declaration_location=<source>:20:1
   Symbol #7 scope=#8 name=value kind=Variable facts=1
     declaration_location=<source>:21:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"

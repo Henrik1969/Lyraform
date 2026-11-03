@@ -80,15 +80,21 @@ ctest --test-dir cmake-build-debug --output-on-failure
 # includes flowmini_utf8_source_boundary
 ```
 
-Opening baseline:
+Latest structural fixture snapshot:
 
 ```text
-AST golden tests:          26/26
-Symbol projection tests:   11/11
-Frontend bundle tests:      5 golden, 1 isolated, 11 negative
-Flowmini suite:             78/78
-CTest:                       2/2
+AST golden tests:          29/29
+Symbol projection tests:   14/14
+Frontend bundle tests:      8 golden, 1 isolated, 19 negative
 ```
+
+These counts describe the explicit-width structural fixture surface after the
+2026-11-03 migration. Older totals were opening evidence for earlier language
+snapshots and are not current status claims. The categorized `flowmini_suite`
+remains a deprecated compatibility/oracle workflow; its acceptance is not
+semantic authority for the canonical staged chain. Current migration evidence
+and remaining implementation gaps are recorded in
+[`docs/checkpoints/2026-11-03-explicit-width-fixture-migration.md`](../../docs/checkpoints/2026-11-03-explicit-width-fixture-migration.md).
 
 Build trees, runtime build output, test reports, and cache files are local
 artifacts and must not be committed.

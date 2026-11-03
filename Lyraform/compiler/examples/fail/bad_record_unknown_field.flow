@@ -1,8 +1,8 @@
 program bad_record_unknown_field
 
 type Point {
-    field x : int
-    field y : int
+    field x : int32
+    field y : int32
 }
 
 main {

@@ -1,10 +1,10 @@
 program parallel_independence_probe
 
-fn square(n : int) -> int {
+fn square(n : c_int) -> c_int {
     return n * n
 }
 
 main {
-    left : int(square(3))
-    right : int(square(7))
+    left : c_int(square(3))
+    right : c_int(square(7))
 }

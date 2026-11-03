@@ -3,16 +3,17 @@ set -eu
 build=$1
 scratch=$(mktemp -d /tmp/lyraform-record-admission.XXXXXX)
 trap 'rm -rf "$scratch"' EXIT
-for literal in '{left: 7, right: 30}' '{right: 30, left: 7}' '{left: 7}' '{left: 7, right: 30, spare: 9}' '{left: "bad", right: 30}'; do
+for literal in '{left: left_value, right: right_value}' '{right: right_value, left: left_value}' '{left: left_value}' '{left: left_value, right: right_value, spare: 9}' '{left: "bad", right: right_value}'; do
     cat > "$scratch/input.flow" <<SOURCE
 program ordinary_value_admission
-record Sample { left : int
-right : int
+record Sample { left : int32
+right : int32
 }
 main {
+    left_value : int32(7)
+    right_value : int32(30)
     item : Sample($literal)
-    value : int(item.left)
-    value -> return
+    0 -> return
 }
 SOURCE
     "$build/flowmini/flowmini" --dump-frontend-bundle "$scratch/input.flow" > "$scratch/frontend.json"
@@ -37,15 +38,16 @@ SOURCE
     declarative=$?
     set -e
     case "$literal" in
-        '{left: 7}'|'{left: 7, right: 30, spare: 9}'|'{left: "bad", right: 30}') test "$declarative" -eq 2 ;;
+        '{left: left_value}'|'{left: left_value, right: right_value, spare: 9}'|'{left: "bad", right: right_value}') test "$declarative" -eq 2 ;;
         *) test "$declarative" -eq 0 ;;
     esac
 done
 cat > "$scratch/scalar.flow" <<'SOURCE'
 program unrelated_scalar
 main {
-    value : int(7)
-    value -> return
+    value : int32(7)
+    result : c_int(value)
+    result -> return
 }
 SOURCE
 "$build/flowmini/flowmini" --dump-frontend-bundle "$scratch/scalar.flow" > "$scratch/scalar.json"
@@ -57,7 +59,7 @@ jq -e '.status == "ok" and .lowering_plan.status == "ready" and .lowering_plan.s
 # record-specific compiler or runtime entry point is used.
 cat > "$scratch/public.flow" <<'SOURCE'
 program ordinary_record_public
-record Leaf { count : int
+record Leaf { count : int32
 enabled : Bool
 }
 record Pair { left : Leaf
@@ -65,13 +67,16 @@ right : Leaf
 }
 target Demo {
 main {
- item : Pair({right: {enabled: true, count: 7}, left: {count: 2 + 3, enabled: 2 < 4}})
+ left_value : int32(2 + 3)
+ right_value : int32(7)
+ nested_enabled : Bool(true)
+ item : Pair({right: {enabled: true, count: right_value}, left: {count: left_value, enabled: nested_enabled}})
  copied : Pair(item)
  selected : Leaf(copied.left)
- number : int(selected.count)
- other : int(copied.right.count)
+ number : c_int(selected.count)
+ other : c_int(copied.right.count)
  enabled : Bool(item.right.enabled)
- total : int(number + other)
+ total : c_int(number + other)
  if enabled {
   total -> return
  } else {
@@ -120,7 +125,7 @@ jq -e '.status == "completed" and .result == 12 and .trap == 0' \
 
 cat > "$scratch/function-boundary.flow" <<'SOURCE'
 program ordinary_record_function_boundary
-record Leaf { count : int
+record Leaf { count : int32
 enabled : Bool
 }
 record Pair { left : Leaf
@@ -128,15 +133,17 @@ right : Leaf
 }
 target Demo {
 fn make(): Pair {
- item : Pair({left: {count: 5, enabled: true}, right: {count: 7, enabled: false}})
+ left_value : int32(5)
+ right_value : int32(7)
+ item : Pair({left: {count: left_value, enabled: true}, right: {count: right_value, enabled: false}})
  item -> return
 }
-fn read(item : Pair): int {
- value : int(item.left.count)
+fn read(item : Pair): int32 {
+ value : c_int(item.left.count)
  value -> return
 }
 main {
- result : int(read(make()))
+ result : c_int(read(make()))
  result -> return
 }
 }

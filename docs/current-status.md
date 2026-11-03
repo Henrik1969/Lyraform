@@ -32,8 +32,10 @@ conversion route to a wider integer type or fail. Silent wrap, truncation, or
 implicit widening is not permitted. Missing failure routing cannot be repaired
 by a backend-selected trap or default handler. [ADR 0071](architecture/decisions/0071-explicit-integer-width.md) now requires
 explicit-width concrete integer types and rejects bare `int`. Active examples
-and tests using bare int require migration; the earlier G1 test counts do not
-claim that the current migration passes the full suite. The [entry-result model](architecture/decisions/0073-explicit-entry-result-host-mapping.md)
+and tests have now been migrated in the active fixture and golden-artifact
+surface; the dated [explicit-width fixture migration checkpoint](checkpoints/2026-11-03-explicit-width-fixture-migration.md)
+records the exact scope and remaining failures. The earlier G1 test counts do
+not claim that the current migration passes the full suite. The [entry-result model](architecture/decisions/0073-explicit-entry-result-host-mapping.md)
 is now approved: an explicitly typed language result and a separately selected
 host mapping. Its concrete declaration and implementation remain under review.
 
@@ -66,7 +68,15 @@ certification: none claimed
 
 ## Latest verification checkpoint
 
-The latest current-truth verification is the
+The latest verification checkpoint is the
+[2026-11-03 explicit-width fixture migration](checkpoints/2026-11-03-explicit-width-fixture-migration.md).
+It updates active source fixtures, test generators, and AST/frontend/symbol
+goldens to use the accepted explicit-width vocabulary. It deliberately leaves
+compiler failures visible where the current implementation still cannot admit
+an explicit-width path; this is not a green-suite or production-readiness
+claim.
+
+The preceding current-truth verification is the
 [2026-11-02 aggregate ownership/lifetime composition vertical slice](checkpoints/2026-11-02-aggregate-ownership-lifetime-composition-slice.md),
 which makes the independent-value and enclosing-value lifetime law explicit
 in the ordinary-record catalog and executable record contract. The
@@ -459,9 +469,10 @@ record mission continues with typed values and backend support.
 ### Record scalar field typing
 
 [Bounded field typing checkpoint](checkpoints/2026-10-17-record-scalar-field-types.md):
-int/Bool record fields now use established scalar compatibility and operator
-rules. The 193-test suite passes; general record values and execution remain
-unfinished under the active construction mission.
+explicit-width integer (`int32`/`int64`) and `Bool` record fields now use
+established scalar compatibility and operator rules. The 193-test suite passes;
+general record values and execution remain unfinished under the active
+construction mission.
 
 ### Record construction bounds
 

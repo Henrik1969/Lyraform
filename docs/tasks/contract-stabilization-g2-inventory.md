@@ -1,5 +1,15 @@
 # G2 numeric and predicate inventory — 2026-11-01
 
+## 2026-11-03 migration addendum
+
+The active fixture and generated-golden migration is recorded in the
+[explicit-width fixture migration checkpoint](../checkpoints/2026-11-03-explicit-width-fixture-migration.md).
+The table below remains an audit snapshot from 2026-11-01; statements that
+active fixtures still contain bare `int` are historical observations from that
+snapshot. The migration did not close the implementation rows: explicit-width
+guard admission, parser-validity propagation, scalar runtime paths, ordinary
+record execution, and older provider/corpus boundaries remain open.
+
 Parent: [bounded G2](contract-stabilization-g2.md). This is an open audit, not a
 conformance report. [ADR 0070](../architecture/decisions/0070-fixed-integer-default-and-explicit-conversion.md)
 records the earlier decisions; [ADR 0071](../architecture/decisions/0071-explicit-integer-width.md) now supersedes the default alias with mandatory explicit widths.

@@ -11,14 +11,17 @@ build = pathlib.Path(sys.argv[1])
 with tempfile.TemporaryDirectory(prefix='lyraform-record-operands-') as directory:
     source = pathlib.Path(directory) / 'input.flow'
     source.write_text('''program construction_operands
-record Leaf { count : int
+record Leaf { count : int32
 enabled : Bool
 }
 record Pair { left : Leaf
 right : Leaf
 }
 main {
- item : Pair({right: {enabled: true, count: 7}, left: {count: 2 + 3, enabled: 2 < 4}})
+ left_count : int32(2 + 3)
+ right_count : int32(7)
+ nested_enabled : Bool(true)
+ item : Pair({right: {enabled: true, count: right_count}, left: {count: left_count, enabled: nested_enabled}})
  0 -> return
 }
 ''')
@@ -28,13 +31,17 @@ main {
                               input=front, capture_output=True, text=True)
     assert analyzed.returncode == 2
     plan = json.loads(analyzed.stdout)['lowering_plan']
-    operand = plan['operations'][0]['operands'][0]
+    record_operation = next(operation for operation in plan['operations']
+                            if any(item.get('kind') == 'record_construct'
+                                   for item in operation.get('operands', [])))
+    operand = next(item for item in record_operation['operands']
+                   if item.get('kind') == 'record_construct')
     assert operand['kind'] == 'record_construct'
     assert [f['name'] for f in operand['fields']] == ['left', 'right']
     left = operand['fields'][0]['operand']
     right = operand['fields'][1]['operand']
     assert [f['name'] for f in left['fields']] == ['count', 'enabled']
-    assert [f['operand']['type'] for f in left['fields']] == ['int', 'Bool']
+    assert [f['operand']['type'] for f in left['fields']] == ['int32', 'Bool']
     assert right['fields'][0]['operand']['value'] == '7'
     assert right['fields'][1]['operand']['value'] == 'true'
     assert plan['status'] == 'blocked'

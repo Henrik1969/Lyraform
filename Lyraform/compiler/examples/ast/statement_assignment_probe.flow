@@ -1,7 +1,7 @@
 program statement_assignment_probe
 
-fn adjust(x : int) -> int {
-    value : int(x)
+fn adjust(x : int32) -> int32 {
+    value : int32(x)
     value = value + 1
 
     if value > 0 {
@@ -12,7 +12,7 @@ fn adjust(x : int) -> int {
 }
 
 main {
-    a : int(1)
-    b : int(2)
+    a : int32(1)
+    b : int32(2)
     a = b + 3
 }

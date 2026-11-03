@@ -86,16 +86,16 @@ echo "== generating AST gallery inputs =="
 cat > "$INPUTS_DIR/function_signature_gallery.flow" <<'EOF'
 program function_signature_gallery
 
-fn no_args(): int {
-    zero : int(0)
+fn no_args(): int32 {
+    zero : int32(0)
     zero -> return
 }
 
-fn one_arg(x : int): int {
+fn one_arg(x : int32): int32 {
     x -> return
 }
 
-fn two_args(a : int, b : int): int {
+fn two_args(a : int32, b : int32): int32 {
     a + b -> return
 }
 
@@ -103,16 +103,16 @@ fn bool_arg(flag : Bool): Bool {
     flag -> return
 }
 
-fn many_args(a : int, b : int, c : int, d : int): int {
+fn many_args(a : int32, b : int32, c : int32, d : int32): int32 {
     a + b + c + d -> return
 }
 
 main {
-    one : int(1)
-    two : int(2)
-    three : int(3)
-    four : int(4)
-    out : int(0)
+    one : int32(1)
+    two : int32(2)
+    three : int32(3)
+    four : int32(4)
+    out : int32(0)
 
     many_args(one, two, three, four) -> out
     print out
@@ -122,21 +122,21 @@ EOF
 cat > "$INPUTS_DIR/function_signature_spacing.flow" <<'EOF'
 program function_signature_spacing
 
-fn compact(a:int,b:int):int {
+fn compact(a:int32,b:int32):int32 {
     a + b -> return
 }
 
 fn spaced (
-    a : int,
-    b : int
-) : int {
+    a : int32,
+    b : int32
+) : int32 {
     a + b -> return
 }
 
 main {
-    one : int(1)
-    two : int(2)
-    out : int(0)
+    one : int32(1)
+    two : int32(2)
+    out : int32(0)
 
     compact(one, two) -> out
     print out

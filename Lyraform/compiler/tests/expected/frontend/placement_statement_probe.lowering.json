@@ -255,7 +255,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -288,7 +288,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -411,7 +411,7 @@
           "key": "return_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -444,7 +444,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -501,7 +501,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -534,7 +534,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -567,7 +567,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -600,7 +600,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "list<int>"
+            "value": "list<int32>"
           }
         }
       ]
@@ -633,7 +633,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "array<int>[2,2]"
+            "value": "array<int32>[2,2]"
           }
         }
       ]

@@ -21,7 +21,7 @@ printf '%s\n' "$report" | jq -e --arg source "$fixture" '.source.path == $source
 
 call_fixture="$root/Lyraform/compiler/examples/ast/call_expression_probe.flow"
 call_report=$("$flowmini" --dump-frontend-bundle "$call_fixture" | "$bin")
-printf '%s\n' "$call_report" | grep -q '"resolved_names":12'
+printf '%s\n' "$call_report" | grep -q '"resolved_names":8'
 printf '%s\n' "$call_report" | grep -q '"name":"square"'
 printf '%s\n' "$call_report" | jq -e '[.effect_facts[] | select(.effect == "pure" and .certainty == "proven")] | length == 2' >/dev/null
 

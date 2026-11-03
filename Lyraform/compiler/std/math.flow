@@ -1,24 +1,24 @@
 unit std_math
 
-fn identity(x : int): int {
+fn identity(x : int32): int32 {
     x -> return
 }
 
-fn add(a : int, b : int): int {
+fn add(a : int32, b : int32): int32 {
     a + b -> return
 }
 
-fn square(n : int): int {
+fn square(n : int32): int32 {
     n * n -> return
 }
 
-fn cube(n : int): int {
+fn cube(n : int32): int32 {
     n * n * n -> return
 }
 
-fn factorial(n : int): int {
-    one : int(1)
-    acc : int(1)
+fn factorial(n : int32): int32 {
+    one : int32(1)
+    acc : int32(1)
 
     while n > one {
         acc * n -> acc
@@ -28,7 +28,7 @@ fn factorial(n : int): int {
     acc -> return
 }
 
-fn choose_larger(a : int, b : int): int {
+fn choose_larger(a : int32, b : int32): int32 {
     if a > b {
         a -> return
     } else {

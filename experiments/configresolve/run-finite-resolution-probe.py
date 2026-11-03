@@ -12,12 +12,12 @@ marker = "main {\n"
 prefix, _ = base.split(marker, 1)
 
 cases = [
-    ("highest-tie-last", "first : Fact({present: 1, value: 11, precedence: 10, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 20, order: 3})\n result : int(resolve_highest(first, second, third, 0))", 33),
-    ("highest-first", "first : Fact({present: 1, value: 11, precedence: 30, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 20, order: 3})\n result : int(resolve_highest(first, second, third, 0))", 11),
-    ("missing", "first : Fact({present: 0, value: 11, precedence: 30, order: 1})\n second : Fact({present: 0, value: 22, precedence: 20, order: 2})\n third : Fact({present: 0, value: 33, precedence: 20, order: 3})\n result : int(resolve_highest(first, second, third, 0))", 1),
-    ("reject-tie", "first : Fact({present: 1, value: 11, precedence: 20, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 20, order: 3})\n result : int(resolve_highest(first, second, third, 1))", 3),
-    ("first-wins", "first : Fact({present: 1, value: 11, precedence: 10, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 30, order: 3})\n result : int(resolve_highest(first, second, third, 2))", 11),
-    ("last-wins", "first : Fact({present: 1, value: 11, precedence: 10, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 30, order: 3})\n result : int(resolve_highest(first, second, third, 3))", 33),
+    ("highest-tie-last", "first : Fact({present: 1, value: 11, precedence: 10, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 20, order: 3})\n result : int32(resolve_highest(first, second, third, 0))", 33),
+    ("highest-first", "first : Fact({present: 1, value: 11, precedence: 30, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 20, order: 3})\n result : int32(resolve_highest(first, second, third, 0))", 11),
+    ("missing", "first : Fact({present: 0, value: 11, precedence: 30, order: 1})\n second : Fact({present: 0, value: 22, precedence: 20, order: 2})\n third : Fact({present: 0, value: 33, precedence: 20, order: 3})\n result : int32(resolve_highest(first, second, third, 0))", 1),
+    ("reject-tie", "first : Fact({present: 1, value: 11, precedence: 20, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 20, order: 3})\n result : int32(resolve_highest(first, second, third, 1))", 3),
+    ("first-wins", "first : Fact({present: 1, value: 11, precedence: 10, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 30, order: 3})\n result : int32(resolve_highest(first, second, third, 2))", 11),
+    ("last-wins", "first : Fact({present: 1, value: 11, precedence: 10, order: 1})\n second : Fact({present: 1, value: 22, precedence: 20, order: 2})\n third : Fact({present: 1, value: 33, precedence: 30, order: 3})\n result : int32(resolve_highest(first, second, third, 3))", 33),
 ]
 
 def run(command, *, input=None, accepted=(0,)):

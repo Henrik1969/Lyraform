@@ -31,10 +31,10 @@ def testcase_source(name,answers,rename=False):
     body=base
     if rename:body=body.replace('configresolve_scalar_probe','unrelated_two_candidate_probe').replace('resolve_pair','choose_integer_candidate')
     fun='choose_integer_candidate' if rename else 'resolve_pair'
-    lines=[body,'main {','    mismatch : int(1)','    passed : int(0)']
+    lines=[body,'main {','    mismatch : int32(1)','    passed : int32(0)']
     for i,(case,answer) in enumerate(zip(cases,answers)):
-        for k,v in zip(['a','ap','b','bp','mode'],case):lines.append(f'    {k}{i} : int({v})')
-        lines += [f'    got{i} : int(0)',f'    want{i} : int({answer})',f'    {fun}(a{i}, ap{i}, b{i}, bp{i}, mode{i}) -> got{i}',f'    if got{i} != want{i} {{','        mismatch -> return','    }']
+        for k,v in zip(['a','ap','b','bp','mode'],case):lines.append(f'    {k}{i} : int32({v})')
+        lines += [f'    got{i} : int32(0)',f'    want{i} : int32({answer})',f'    {fun}(a{i}, ap{i}, b{i}, bp{i}, mode{i}) -> got{i}',f'    if got{i} != want{i} {{','        mismatch -> return','    }']
     lines+=['    passed -> return','}']; target=out/(name+'.flow');target.write_text('\n'.join(lines)+'\n');return target
 
 def compile_source(source,name):

@@ -45,7 +45,7 @@ parity() {
     case "$expected" in
         true|false)
             if test "$expected" = true; then result=1; else result=0; fi
-            observe="scalar_observation : int(0)
+            observe="scalar_observation : int32(0)
 if $observed { 1 -> scalar_observation }
 scalar_observation -> return"
             ;;
@@ -80,30 +80,30 @@ $observe"
     done
     parity_count=$((parity_count + 1))
 }
-parity 'x : int(20)' x 20 AGREES
-parity 'a : int(20)
-b : int(a)' b 20 KNOWN_LEGACY_DEFECT
+parity 'x : int32(20)' x 20 AGREES
+parity 'a : int32(20)
+b : int32(a)' b 20 KNOWN_LEGACY_DEFECT
 parity 'flag : Bool(false)' flag false AGREES
 parity 'source_flag : Bool(true)
 flag : Bool(source_flag)' flag true KNOWN_LEGACY_DEFECT
-parity 'x : int(0)
+parity 'x : int32(0)
 20 -> x
 30 -> x' x 30 AGREES
-parity 'a : int(20)
-b : int(0)
+parity 'a : int32(20)
+b : int32(0)
 a -> b' b 20 AGREES
 parity 'a : Bool(true)
 b : Bool(false)
 a -> b' b true AGREES
-parity 'a : int(20)
-b : int(a)
+parity 'a : int32(20)
+b : int32(a)
 30 -> a' b 20 KNOWN_LEGACY_DEFECT
-parity 'x : int(20)
-y : int(3)
+parity 'x : int32(20)
+y : int32(3)
 x + y * 2 - 5 -> x' x 21 AGREES
-parity 'x : int(8)
+parity 'x : int32(8)
 (x + 2) * 3 -> x' x 30 AGREES
-parity 'x : int(8)
+parity 'x : int32(8)
 flag : Bool(x < 9)
 flag == false -> flag' flag false AGREES
 valid 'flag : Bool(true)
@@ -127,45 +127,45 @@ refuse() {
     refusal_count=$((refusal_count + 1))
     echo "refusal $refusal_count: AGREES (legacy also refuses)"
 }
-refuse 'x : int(true)'
-refuse 'x : int(0)
+refuse 'x : int32(true)'
+refuse 'x : int32(0)
 true -> x'
 refuse 'flag : Bool(false)
 20 -> flag'
 refuse 'flag : Bool(true)
-x : int(flag)'
-refuse 'x : int(20)
+x : int32(flag)'
+refuse 'x : int32(20)
 flag : Bool(x)'
-refuse 'x : int(20)
+refuse 'x : int32(20)
 flag : Bool(false)
 flag -> x'
-refuse 'x : int(x)'
+refuse 'x : int32(x)'
 refuse '20 -> later
-later : int(0)'
+later : int32(0)'
 refuse '20 -> absent'
-refuse 'x : int(1)
-x : int(2)'
-refuse 'x : int'
-refuse 'x : int(0)
-20 -> x : int'
-refuse 'x : int(20) stray'
-refuse 'x : int(20)()'
-refuse 'x : int(20'
-refuse 'x : int(0)
+refuse 'x : int32(1)
+x : int32(2)'
+refuse 'x : int32'
+refuse 'x : int32(0)
+20 -> x : int32'
+refuse 'x : int32(20) stray'
+refuse 'x : int32(20)()'
+refuse 'x : int32(20'
+refuse 'x : int32(0)
 print absent'
-refuse 'x : int(20 + true)'
-refuse 'x : int(20 junk)'
-refuse 'x : int(20) garbage()'
+refuse 'x : int32(20 + true)'
+refuse 'x : int32(20 junk)'
+refuse 'x : int32(20) garbage()'
 refuse ''
-refuse 'x : int(20)' '()()'
-refuse 'x : int("text")'
-refuse 'x : int(20)
+refuse 'x : int32(20)' '()()'
+refuse 'x : int32("text")'
+refuse 'x : int32(20)
 flag : Bool(false)
 x -> flag'
 
 # Semantic admission is not a promise of backend support. This operator is
 # proved by the shared algebra but has no existing runtime atom mapping.
-source_file 'x : int(1)
+source_file 'x : int32(1)
 flag : Bool(x <= 2)'
 if "$FLOWMINI_TEST_BIN" --test-forbid-legacy --trace true "$tmpdir/program.flow" > "$tmpdir/backend.out" 2> "$tmpdir/backend.err"; then exit 1; fi
 grep -q '^source-path: scalar-facts-admitted$' "$tmpdir/backend.err"
@@ -174,7 +174,7 @@ if grep -q 'legacy-compatibility' "$tmpdir/backend.err"; then exit 1; fi
 test ! -s "$tmpdir/backend.out"
 
 # Compatibility is explicitly construct-owned, not chosen after a refusal.
-source_file 'x : int(1)
+source_file 'x : int32(1)
 if true { 2 -> x }
 print x'
 "$FLOWMINI_BIN" --trace true "$tmpdir/program.flow" > "$tmpdir/compatibility.out" 2> "$tmpdir/compatibility.err"
@@ -184,8 +184,8 @@ if "$FLOWMINI_TEST_BIN" --test-forbid-legacy "$tmpdir/program.flow" >/dev/null 2
 grep -q 'legacy parser invocation forbidden by test' "$tmpdir/forbidden.err"
 
 # The canonical adapter still exports ordinary compatibility runtime IR.
-source_file 'a : int(20)
-b : int(a)
+source_file 'a : int32(20)
+b : int32(a)
 print b'
 "$FLOWMINI_TEST_BIN" --test-forbid-legacy --emit-flowir "$tmpdir/export.flowir" "$tmpdir/program.flow"
 "$FLOWMINI_BIN" "$tmpdir/export.flowir" > "$tmpdir/reimported"

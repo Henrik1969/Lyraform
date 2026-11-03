@@ -82,12 +82,12 @@ fn wide(value : c_long): c_long {
     if value > 0 { return value }
     return 4294967297
 }
-fn truth(value : int): Bool {
+fn truth(value : int32): Bool {
     if value == 3 { return true } else { return false }
 }
 fn label(value : c_string): c_string { return value }
-fn fresh(value : int): int {
-    local : int(0)
+fn fresh(value : int32): int32 {
+    local : int32(0)
     local + value -> local
     return local
 }
@@ -105,8 +105,8 @@ main {
     size : c_size_t(0)
     expected : c_size_t(11)
     libc.length(output) -> size
-    first : int(0)
-    second : int(0)
+    first : int32(0)
+    second : int32(0)
     fresh(3) -> first
     fresh(4) -> second
     if decision {

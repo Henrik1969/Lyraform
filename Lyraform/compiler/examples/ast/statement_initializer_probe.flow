@@ -1,15 +1,15 @@
 program statement_initializer_probe
 
-fn seed() -> int {
+fn seed() -> int32 {
     return 3
 }
 
 main {
-    scalar : int(1 + seed())
-    values : list<int>([1, 2, 3])
+    scalar : int32(1 + seed())
+    values : list<int32>([1, 2, 3])
     source : stdin.text()
 
     if true {
-        nested : int(scalar + 1)
+        nested : int32(scalar + 1)
     }
 }

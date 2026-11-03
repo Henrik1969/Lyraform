@@ -3,11 +3,11 @@ program configresolve_tagged_value_declaration
 type Value variant {
     case Null
     case Bool : Bool
-    case Int : int
+    case Int : int32
     case Text : Text
     case Double : float64
 }
 
 main {
-    noop : int(0)
+    noop : int32(0)
 }

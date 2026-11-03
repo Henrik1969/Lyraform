@@ -1,10 +1,10 @@
 program gcd_structured
 
 main {
-    a    : int(stdin.int())
-    b    : int(1071)
-    zero : int(0)
-    r    : int(0)
+    a    : int32(stdin.int())
+    b    : int32(1071)
+    zero : int32(0)
+    r    : int32(0)
 
     while b > zero {
         a % b -> r

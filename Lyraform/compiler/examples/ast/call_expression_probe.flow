@@ -1,6 +1,6 @@
 program call_expression_probe
 
-fn square(n : int) -> int {
+fn square(n : c_int) -> c_int {
     return n * n
 }
 
@@ -9,16 +9,14 @@ fn is_ready() -> Bool {
 }
 
 main {
-    x : int(1)
-    y : int(square(x))
-
-    x = square(y)
+    x : c_int(square(1))
+    y : c_int(square(10))
 
     while is_ready() {
-        x = square(x)
+        z : c_int(square(15))
     }
 
     if is_ready() {
-        y = square(x)
+        w : c_int(square(20))
     }
 }

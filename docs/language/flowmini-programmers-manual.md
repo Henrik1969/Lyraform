@@ -10,7 +10,7 @@ records, collections, control flow, refined types, and ABI declarations.
 program hello
 
 main {
-    answer : int(40)
+    answer : int32(40)
     answer + 2 -> answer
     print answer
 }
@@ -76,8 +76,8 @@ import "../../std/collatz.flow"
 program import_demo
 
 main {
-    value : int(5)
-    result : int(0)
+    value : int32(5)
+    result : int32(0)
     factorial(value) -> result
     print result
 }
@@ -93,7 +93,7 @@ Line comments use `//` or `#`:
 ```flow
 // comment
 # another comment
-value : int(1) // trailing comment
+value : int32(1) // trailing comment
 ```
 
 Block comments use `/* ... */` and may be nested:
@@ -118,15 +118,17 @@ name : Type(initializer)
 Examples:
 
 ```flow
-count : int(0)
+count : int32(0)
 ready : Bool(false)
 text  : string("hello")
 ```
 
-The current examples commonly use `int` and `Bool`. Other names may be
+The current examples use explicit-width `int32` and `Bool`. Other names may be
 declared by the program, imported from a unit, or supplied by an ABI surface.
-Written type spellings matter: `int`, `Bool`, `Point`, `Percent`, and `c_int`
-are distinct source names.
+Written type spellings matter: `int32`, `Bool`, `Point`, `Percent`, and `c_int`
+are distinct source names. Bare `int` is rejected; choose a concrete language
+width such as `int32` or `int64`. `c_int` remains a separate foreign/host ABI
+contract and is not an alias for a language integer.
 
 Boolean literals are `true` and `false`; constructor-style initializers such as
 `Bool(false)` also occur in current examples. String literals use double quotes
@@ -139,11 +141,15 @@ strings, Boolean literals, unary `not` and prefix `-`, arithmetic operators
 `+ - * / %`, comparisons `< <= > >= == !=`, parentheses, calls, indexing,
 field access, list literals, and record literals.
 
+For integer operands, `div` is integer quotient with truncation toward zero.
+`/` is true division and produces `float64`, even when the quotient is exact.
+The `%` operator remains reserved until its backend contract is admitted.
+
 ```flow
-result : int(0)
+result : int32(0)
 square(add(3, 4)) -> result
 
-value : int(0)
+value : int32(0)
 (a + b) * c -> value
 ```
 
@@ -170,9 +176,9 @@ value -> matrix[row, col]
 For example:
 
 ```flow
-arr : list<int>([1, 9, 3])
-i   : int(1)
-x   : int(0)
+arr : list<int32>([1, 9, 3])
+i   : int32(1)
+x   : int32(0)
 
 arr[i] -> x
 42 -> arr[i]
@@ -187,11 +193,11 @@ x = expression
 A function can return with either current spelling:
 
 ```flow
-fn square(n : int): int {
+fn square(n : int32): int32 {
     n * n -> return
 }
 
-fn cube(n : int): int {
+fn cube(n : int32): int32 {
     return n * n * n
 }
 ```
@@ -206,14 +212,14 @@ an assignable variable.
 Functions use `fn`, a name, typed parameters, a return type, and a braced body:
 
 ```flow
-fn add_then_square(a : int, b : int): int {
-    sum : int(0)
+fn add_then_square(a : int32, b : int32): int32 {
+    sum : int32(0)
     a + b -> sum
     square(sum) -> return
 }
 
 main {
-    result : int(0)
+    result : int32(0)
     add_then_square(3, 4) -> result
     print result
 }
@@ -228,8 +234,8 @@ Define a record with `type` and `field`:
 
 ```flow
 type Point {
-    field x : int
-    field y : int
+    field x : int32
+    field y : int32
 }
 ```
 
@@ -237,15 +243,20 @@ Construct and use it with named fields:
 
 ```flow
 p : Point({x:10, y:32})
-value : int(0)
+value : int32(0)
 p.x -> value
 42 -> p.x
 ```
 
+Record fields are contextually checked against their declared types. The field
+schema carries the width; a numeric literal in a record value is not written as
+`int32(10)` because that spelling is a declaration initializer, not an
+expression cast.
+
 Records can be passed to functions:
 
 ```flow
-fn sum_point(p : Point): int {
+fn sum_point(p : Point): int32 {
     p.x + p.y -> return
 }
 ```
@@ -255,9 +266,9 @@ fn sum_point(p : Point): int {
 Declare a list with an element type and list literal:
 
 ```flow
-numbers : list<int>([1, 9, 3, 5])
-i : int(1)
-x : int(0)
+numbers : list<int32>([1, 9, 3, 5])
+i : int32(1)
+x : int32(0)
 numbers[i] -> x
 42 -> numbers[i]
 ```
@@ -265,10 +276,10 @@ numbers[i] -> x
 Shaped arrays include extents:
 
 ```flow
-matrix : array<int>[2, 3]([1,2,3,4,5,6])
-row : int(1)
-col : int(2)
-value : int(0)
+matrix : array<int32>[2, 3]([1,2,3,4,5,6])
+row : int32(1)
+col : int32(2)
+value : int32(0)
 matrix[row, col] -> value
 ```
 
@@ -290,9 +301,9 @@ if x == 0 {
 The `else` branch is optional. `while` repeats a braced block:
 
 ```flow
-i : int(0)
-five : int(5)
-one : int(1)
+i : int32(0)
+five : int32(5)
+one : int32(1)
 keep_going : Bool(true)
 
 while keep_going {
@@ -321,7 +332,7 @@ while condition {
 A refined type names a base type and adds invariant clauses:
 
 ```flow
-type PositiveInteger refines int {
+type PositiveInteger refines int32 {
     invariant value > 0
 }
 
@@ -390,7 +401,7 @@ provided by the environment.
 ```flow
 program larger_demo
 
-fn larger(a : int, b : int): int {
+fn larger(a : int32, b : int32): int32 {
     if a > b {
         a -> return
     } else {
@@ -399,10 +410,10 @@ fn larger(a : int, b : int): int {
 }
 
 main {
-    values : list<int>([4, 9, 2])
-    first : int(0)
-    second : int(0)
-    result : int(0)
+    values : list<int32>([4, 9, 2])
+    first : int32(0)
+    second : int32(0)
+    result : int32(0)
 
     values[0] -> first
     values[1] -> second

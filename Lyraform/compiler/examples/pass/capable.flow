@@ -1,26 +1,26 @@
 program capable
 
-fn identity(x : int): int {
+fn identity(x : int32): int32 {
     x -> return
 }
 
-fn add(a : int, b : int): int {
+fn add(a : int32, b : int32): int32 {
     a + b -> return
 }
 
-fn square(n : int): int {
+fn square(n : int32): int32 {
     n * n -> return
 }
 
-fn add_then_square(a : int, b : int): int {
-    sum : int(0)
+fn add_then_square(a : int32, b : int32): int32 {
+    sum : int32(0)
     add(a, b) -> sum
     square(sum) -> return
 }
 
-fn factorial(n : int): int {
-    one : int(1)
-    acc : int(1)
+fn factorial(n : int32): int32 {
+    one : int32(1)
+    acc : int32(1)
 
     while n > one {
         acc * n -> acc
@@ -30,12 +30,12 @@ fn factorial(n : int): int {
     acc -> return
 }
 
-fn collatz_next(n : int): int {
-    zero  : int(0)
-    two   : int(2)
-    three : int(3)
-    one   : int(1)
-    rem   : int(0)
+fn collatz_next(n : int32): int32 {
+    zero  : int32(0)
+    two   : int32(2)
+    three : int32(3)
+    one   : int32(1)
+    rem   : int32(0)
 
     n % two -> rem
 
@@ -46,7 +46,7 @@ fn collatz_next(n : int): int {
     }
 }
 
-fn choose_larger(a : int, b : int): int {
+fn choose_larger(a : int32, b : int32): int32 {
     if a > b {
         a -> return
     } else {
@@ -55,18 +55,18 @@ fn choose_larger(a : int, b : int): int {
 }
 
 main {
-    zero  : int(0)
-    one   : int(1)
-    two   : int(2)
-    three : int(3)
-    four  : int(4)
-    five  : int(5)
-    eight : int(8)
-    nine  : int(9)
-    ten   : int(10)
-    forty_two : int(42)
+    zero  : int32(0)
+    one   : int32(1)
+    two   : int32(2)
+    three : int32(3)
+    four  : int32(4)
+    five  : int32(5)
+    eight : int32(8)
+    nine  : int32(9)
+    ten   : int32(10)
+    forty_two : int32(42)
 
-    result : int(0)
+    result : int32(0)
 
     identity(forty_two) -> result
     print result
@@ -86,14 +86,14 @@ main {
     choose_larger(nine, four) -> result
     print result
 
-    arr      : list<int>([1,9,3,5,8,2])
-    len      : int(length(arr))
-    i        : int(0)
-    value    : int(0)
-    rem      : int(0)
-    list_sum : int(0)
-    odd_sum  : int(0)
-    first_even : int(0)
+    arr      : list<int32>([1,9,3,5,8,2])
+    len      : int32(length(arr))
+    i        : int32(0)
+    value    : int32(0)
+    rem      : int32(0)
+    list_sum : int32(0)
+    odd_sum  : int32(0)
+    first_even : int32(0)
 
     while i < len {
         arr[i] -> value
@@ -144,9 +144,9 @@ main {
     print value
     print arr
 
-    matrix : array<int>[2, 3]([1,2,3,4,5,6])
-    row    : int(1)
-    col    : int(2)
+    matrix : array<int32>[2, 3]([1,2,3,4,5,6])
+    row    : int32(1)
+    col    : int32(2)
 
     matrix[row, col] -> value
     print value
@@ -154,21 +154,21 @@ main {
     value + ten -> matrix[row, col]
     print matrix
 
-    cube : array<int>[2, 2, 2]([1,2,3,4,5,6,7,8])
-    xidx : int(1)
-    yidx : int(0)
-    zidx : int(1)
+    cube : array<int32>[2, 2, 2]([1,2,3,4,5,6,7,8])
+    xidx : int32(1)
+    yidx : int32(0)
+    zidx : int32(1)
 
     cube[xidx, yidx, zidx] -> value
     print value
 
-    ma : array<int>[2, 2]([1,2,3,4])
-    mb : array<int>[2, 2]([5,6,7,8])
-    mc : array<int>[2, 2]([0,0,0,0])
-    mi : int(0)
-    mj : int(0)
-    mk : int(0)
-    cell_sum : int(0)
+    ma : array<int32>[2, 2]([1,2,3,4])
+    mb : array<int32>[2, 2]([5,6,7,8])
+    mc : array<int32>[2, 2]([0,0,0,0])
+    mi : int32(0)
+    mj : int32(0)
+    mk : int32(0)
+    cell_sum : int32(0)
 
     while mi < two {
         zero -> mj

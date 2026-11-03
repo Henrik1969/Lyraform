@@ -12,6 +12,6 @@ abi bad {
 }
 
 main {
-    x : int(0)
+    x : int32(0)
     print x
 }

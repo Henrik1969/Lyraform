@@ -1,8 +1,8 @@
 program bad_unreachable_after_break
 
 main {
-    zero : int(0)
-    one  : int(1)
+    zero : int32(0)
+    one  : int32(1)
 
     while zero < one {
         break

@@ -18,7 +18,7 @@ Symbols: 17
     declaration_location=<source>:8:6
   Symbol #4 scope=#3 name=age kind=Field facts=1
     declaration_location=<source>:9:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #5 scope=#3 name=active kind=Field facts=1
     declaration_location=<source>:10:5
     Fact kind=TypeReference key=declared_type_spelling value="Bool"
@@ -40,10 +40,10 @@ Symbols: 17
     Fact kind=TypeReference key=declared_type_spelling value="Positive"
   Symbol #12 scope=#6 name=values kind=Variable facts=1
     declaration_location=<source>:24:5
-    Fact kind=TypeReference key=declared_type_spelling value="list<int>"
+    Fact kind=TypeReference key=declared_type_spelling value="list<int32>"
   Symbol #13 scope=#6 name=matrix kind=Variable facts=1
     declaration_location=<source>:25:5
-    Fact kind=TypeReference key=declared_type_spelling value="array<int>[2,2]"
+    Fact kind=TypeReference key=declared_type_spelling value="array<int32>[2,2]"
   Symbol #14 scope=#6 name=person kind=Variable facts=1
     declaration_location=<source>:26:5
     Fact kind=TypeReference key=declared_type_spelling value="Person"
@@ -52,7 +52,7 @@ Symbols: 17
     Fact kind=TypeReference key=declared_type_spelling value="Point"
   Symbol #16 scope=#6 name=selected kind=Variable facts=1
     declaration_location=<source>:28:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #17 scope=#6 name=age kind=Variable facts=1
     declaration_location=<source>:29:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"

@@ -1,22 +1,22 @@
 program type_reference_probe
 
-type IntList refines collection.list<int> {
+type IntList refines collection.list<int32> {
 }
 
 type MatrixBox {
     field values : array<math.scalar>[Rows, 2]
-    field fallback : optional<collection.list<int>>
+    field fallback : optional<collection.list<int32>>
 }
 
 fn transform(
-    input : optional<collection.list<int>>,
-    grid : array<int>[2, 3]
-) -> result.Result<array<int>, Error> {
-    local : optional<collection.list<int>>([1, 2, 3])
-    scratch : array<int>[Rows, 2]([1, 2, 3, 4])
+    input : optional<collection.list<int32>>,
+    grid : array<int32>[2, 3]
+) -> result.Result<array<int32>, Error> {
+    local : optional<collection.list<int32>>([1, 2, 3])
+    scratch : array<int32>[Rows, 2]([1, 2, 3, 4])
     return grid
 }
 
 main {
-    values : collection.list<int>([1, 2, 3])
+    values : collection.list<int32>([1, 2, 3])
 }

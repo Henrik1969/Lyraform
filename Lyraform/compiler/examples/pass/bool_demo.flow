@@ -1,10 +1,10 @@
 program bool_demo
 
 main {
-    zero : int(0)
-    one  : int(1)
-    two  : int(2)
-    out  : int(0)
+    zero : int32(0)
+    one  : int32(1)
+    two  : int32(2)
+    out  : int32(0)
 
     less  : Bool(false)
     equal : Bool(false)

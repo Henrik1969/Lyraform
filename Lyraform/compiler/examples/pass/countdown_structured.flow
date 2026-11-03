@@ -1,9 +1,9 @@
 program countdown_structured
 
 main {
-    n    : int(stdin.int())
-    zero : int(0)
-    one  : int(1)
+    n    : int32(stdin.int())
+    zero : int32(0)
+    one  : int32(1)
 
     while n > zero {
         print n

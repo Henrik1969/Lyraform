@@ -1,1 +1,1 @@
-FLOWMINI_PARSE_NOT_EXECUTABLE: incomplete: uninitialized scalar declarations are outside the migrated subset
+fatal in parser: declaration of 'one' requires initializer

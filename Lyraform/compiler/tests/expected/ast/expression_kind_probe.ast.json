@@ -21,13 +21,13 @@
                 "parameters": [
                     {
                         "name": "n",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -41,18 +41,18 @@
                         }
                     }
                 ],
-                "return_type": "int",
+                "return_type": "int32",
                 "return_type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
                         "line": 4,
-                        "column": 23
+                        "column": 25
                     }
                 },
                 "has_body": true,
@@ -85,13 +85,13 @@
             "parameters": [
                 {
                     "name": "n",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -105,18 +105,18 @@
                     }
                 }
             ],
-            "return_type": "int",
+            "return_type": "int32",
             "return_type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
                     "line": 4,
-                    "column": 23
+                    "column": 25
                 }
             },
             "has_body": true,
@@ -334,10 +334,10 @@
                 "name": "a",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -348,13 +348,13 @@
                 "initializer_expression": 3
             },
             "name": "a",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -378,10 +378,10 @@
                 "name": "b",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -392,13 +392,13 @@
                 "initializer_expression": 4
             },
             "name": "b",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {

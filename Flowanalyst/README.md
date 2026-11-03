@@ -48,10 +48,12 @@ entrypoint shape. It emits analysis regions and a Boolean dependency matrix.
 More checks will be added as explicit semantic contracts, without moving
 semantic meaning backward into Flowmini.
 
-The bounded `int`/`Bool` declaration and identifier-placement path now uses
-shared canonical scalar rules. Incompatible flows are refused before a ready
-lowering plan, and covered operations carry versioned type/identity/provenance
-facts through the stage artifacts. See
+The bounded explicit-width integer (`int32`/`int64`)/`Bool` declaration and
+identifier-placement path now uses explicit-width admission plus the shared
+scalar rules where that bounded algebra applies. Bare `int` is rejected as a
+source type; `c_int` remains a separate host/ABI carrier. Incompatible flows
+are refused before a ready lowering plan, and covered operations carry
+versioned type/identity/provenance facts through the stage artifacts. See
 [`canonical scalar semantics`](../docs/architecture/canonical-scalar-semantics-v1.md)
 for the exact scope, compatibility boundary and Gate 2 status.
 

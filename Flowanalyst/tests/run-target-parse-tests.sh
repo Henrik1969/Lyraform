@@ -7,7 +7,7 @@ analyst="$build/flowanalyst/flowanalyst"
 tmpdir=$(mktemp -d /tmp/lyraform-target-tests.XXXXXX)
 trap 'rm -rf "$tmpdir"' EXIT
 export_target() {
-    printf 'program target_probe\nmain {\nx : int(0)\n20 -> %s\n}\n' "$1" > "$tmpdir/input.flow"
+    printf 'program target_probe\nmain {\nx : int32(0)\n20 -> %s\n}\n' "$1" > "$tmpdir/input.flow"
     "$compiler" --dump-frontend-bundle "$tmpdir/input.flow" > "$tmpdir/frontend.json"
     "$compiler" --dump-frontend-bundle "$tmpdir/input.flow" > "$tmpdir/repeated.json"
     cmp "$tmpdir/frontend.json" "$tmpdir/repeated.json"

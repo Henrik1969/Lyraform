@@ -1,14 +1,14 @@
 program odd_values_continue
 
 main {
-    arr   : list<int>([1,2,3,4,5])
-    len   : int(length(arr))
-    zero  : int(0)
-    one   : int(1)
-    two   : int(2)
-    i     : int(0)
-    value : int(0)
-    rem   : int(0)
+    arr   : list<int32>([1,2,3,4,5])
+    len   : int32(length(arr))
+    zero  : int32(0)
+    one   : int32(1)
+    two   : int32(2)
+    i     : int32(0)
+    value : int32(0)
+    rem   : int32(0)
 
     while i < len {
         arr[i] -> value

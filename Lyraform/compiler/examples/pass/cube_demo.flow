@@ -1,11 +1,11 @@
 program cube_demo
 
 main {
-    cube  : array<int>[2, 2, 2]([1,2,3,4,5,6,7,8])
-    x     : int(1)
-    y     : int(0)
-    z     : int(1)
-    value : int(0)
+    cube  : array<int32>[2, 2, 2]([1,2,3,4,5,6,7,8])
+    x     : int32(1)
+    y     : int32(0)
+    z     : int32(1)
+    value : int32(0)
 
     cube[x, y, z] -> value
     print value

@@ -1,10 +1,10 @@
 program statement_return_probe
 
-fn direct(x : int) -> int {
+fn direct(x : int32) -> int32 {
     return x + 1
 }
 
-fn nested(x : int, ready : bool) -> int {
+fn nested(x : int32, ready : bool) -> int32 {
     if ready {
         return x + 1
     }

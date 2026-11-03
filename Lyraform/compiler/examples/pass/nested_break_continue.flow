@@ -1,11 +1,11 @@
 program nested_break_continue
 
 main {
-    outer : int(0)
-    inner : int(0)
-    zero  : int(0)
-    one   : int(1)
-    three : int(3)
+    outer : int32(0)
+    inner : int32(0)
+    zero  : int32(0)
+    one   : int32(1)
+    three : int32(3)
 
     while outer < three {
         zero -> inner

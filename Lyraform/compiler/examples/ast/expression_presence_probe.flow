@@ -1,12 +1,12 @@
 program expression_presence_probe
 
-fn square(n : int) -> int {
+fn square(n : int32) -> int32 {
     return n * n
 }
 
 main {
-    x : int(1)
-    y : int(2)
+    x : int32(1)
+    y : int32(2)
     x = y
 
     while x < 10 {

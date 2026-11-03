@@ -11,19 +11,23 @@ build = pathlib.Path(sys.argv[1])
 with tempfile.TemporaryDirectory(prefix='lyraform-record-projection-') as directory:
     source = pathlib.Path(directory) / 'input.flow'
     source.write_text('''program record_projection
-record Leaf { count : int
+record Leaf { count : int32
 enabled : Bool
 }
 record Pair { left : Leaf
 right : Leaf
 }
 main {
- item : Pair({right: {enabled: true, count: 7}, left: {count: 2 + 3, enabled: 2 < 4}})
+ left_count : int32(2 + 3)
+ right_count : int32(7)
+ nested_enabled : Bool(true)
+ item : Pair({right: {enabled: true, count: right_count}, left: {count: left_count, enabled: nested_enabled}})
  copied : Pair(item)
  selected : Leaf(copied.left)
- number : int(selected.count)
+ number : int32(selected.count)
  enabled : Bool(item.right.enabled)
- number -> return
+ result : c_int(number)
+ result -> return
 }
 ''')
     front = subprocess.run([build / 'flowmini/flowmini', '--dump-frontend-bundle', source],
@@ -33,13 +37,16 @@ main {
     assert analyzed.returncode == 2
     plan = json.loads(analyzed.stdout)['lowering_plan']
     defs = [o for o in plan['operations'] if o['kind'] == 'value_definition']
-    assert [d['operands'][0]['kind'] for d in defs] == [
+    record_start = next(index for index, definition in enumerate(defs)
+                        if definition['operands'][0]['kind'] == 'record_construct')
+    record_defs = defs[record_start:record_start + 5]
+    assert [d['operands'][0]['kind'] for d in record_defs] == [
         'record_construct', 'record_value', 'record_project', 'record_project', 'record_project']
-    assert defs[1]['operands'][0]['symbol_id'] == defs[0]['result_symbol_id']
-    assert defs[2]['operands'][0]['base']['symbol_id'] == defs[1]['result_symbol_id']
-    assert defs[3]['operands'][0]['type'] == 'int'
-    assert defs[4]['operands'][0]['type'] == 'Bool'
-    assert defs[4]['operands'][0]['base']['field'] == 'right'
+    assert record_defs[1]['operands'][0]['symbol_id'] == record_defs[0]['result_symbol_id']
+    assert record_defs[2]['operands'][0]['base']['symbol_id'] == record_defs[1]['result_symbol_id']
+    assert record_defs[3]['operands'][0]['type'] == 'int32'
+    assert record_defs[4]['operands'][0]['type'] == 'Bool'
+    assert record_defs[4]['operands'][0]['base']['field'] == 'right'
     def validate(value):
         result = subprocess.run([build / 'flowcontracts/flowvalidate'], input=json.dumps(value),
                                 capture_output=True, text=True)

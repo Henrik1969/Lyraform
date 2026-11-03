@@ -1,6 +1,6 @@
 unit std_numbers
 
-type Integer refines int {
+type Integer refines int32 {
 }
 
 type NonNegativeInteger refines Integer {

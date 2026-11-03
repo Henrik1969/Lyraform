@@ -1,14 +1,14 @@
 program operator_expression_probe
 
-fn square(n : int) -> int {
+fn square(n : int32) -> int32 {
     return n * n
 }
 
 main {
-    x : int(1)
-    y : int(2)
-    z : int(square(x))
-    negative : int(-1)
+    x : int32(1)
+    y : int32(2)
+    z : int32(square(x))
+    negative : int32(-1)
 
     x = y
     y = x + 1

@@ -1,7 +1,7 @@
 program bad_if_int
 
 main {
-    x : int(1)
+    x : int32(1)
 
     if x {
         print x

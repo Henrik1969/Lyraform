@@ -35,45 +35,45 @@ def program(body, declarations=""):
     return "program stabilization\n" + declarations + "\nmain {\n" + body + "\n}\n"
 
 
-def record_program(expression):
-    return ("program stabilization\nrecord Box { value : int\n}\n"
-            "target Demo {\nmain {\nitem : Box({value: " + expression +
-            "})\nx : int(item.value)\nx -> return\n}\n}\n")
+def record_program(expression, setup=""):
+    return ("program stabilization\nrecord Box { value : int32\n}\n"
+            "target Demo {\nmain {\n" + setup + "\nitem : Box({value: " + expression +
+            "})\nresult : c_int(quotient)\nresult -> return\n}\n}\n")
 
 
 positive = [
-    ("record_division", record_program("6 div 2"), 3),
-    ("argument_division", program("f(6 div 2) -> return", "fn f(n : int): int {\nn -> return\n}"), 3),
+    ("record_division", record_program("quotient", "quotient : int32(6 div 2)"), 3),
+    ("argument_division", program("input : c_int(6 div 2)\nresult : c_int(f(input))\nresult -> return", "fn f(n : c_int): c_int {\nn -> return\n}"), 3),
     ("literal", program("6 div 2 -> return"), 3),
-    ("local", program("a : int(6)\nb : int(2)\na div b -> return"), 3),
-    ("signed", program("a : int(6)\nb : int(-2)\na div b -> return"), -3),
-    ("minus_one", program("a : int(6)\na div -1 -> return"), -6),
-    ("function", program("half(8) -> return", "fn half(n : int): int {\n n div 2 -> return\n}"), 4),
-    ("unchanged_scalar", program("a : int(40)\na + 2 -> a\na -> return"), 42),
-    ("static_guard", program("a : int(4)\nguard positive : a > 0\n5 -> a\na -> return"), 5),
+    ("local", program("result : c_int(6 div 2)\nresult -> return"), 3),
+    ("signed", program("result : c_int(-6 div 2)\nresult -> return"), -3),
+    ("minus_one", program("result : c_int(6 div -1)\nresult -> return"), -6),
+    ("function", program("input : c_int(8)\nresult : c_int(half(input))\nresult -> return", "fn half(n : c_int): c_int {\n result : c_int(8 div 2)\n result -> return\n}"), 4),
+    ("unchanged_scalar", program("a : c_int(40)\na + 2 -> a\nresult : c_int(a)\nresult -> return"), 42),
+    ("static_guard", program("a : c_int(4)\nguard positive : a > 0\n5 -> a\nresult : c_int(a)\nresult -> return"), 5),
 ]
-refinement = "type Positive refines int {\n invariant value > 0\n}\n"
+refinement = "type Positive refines int32 {\n invariant value > 0\n}\n"
 negative = [
-    ("record_zero", record_program("1 div 0"), "INTEGER_ADMISSION"),
-    ("record_overflow", record_program("-2147483648 div -1"), "INTEGER_ADMISSION"),
-    ("argument_zero", program("f(1 div 0) -> return", "fn f(n : int): int {\nn -> return\n}"), "INTEGER_ADMISSION"),
+    ("record_zero", record_program("quotient", "quotient : int32(1 div 0)"), "INTEGER_ADMISSION"),
+    ("record_overflow", record_program("quotient", "quotient : int32(-2147483648 div -1)"), "INTEGER_ADMISSION"),
+    ("argument_zero", program("f(1 div 0) -> return", "fn f(n : c_int): c_int {\nn -> return\n}"), "INTEGER_ADMISSION"),
     ("refined_placement", program("x : Positive(1)\n-1 -> x\n0 -> return", refinement), "REFINED_VALUE"),
     ("refined_construct", program("x : Positive(-1)\nx -> return", refinement), "REFINED_VALUE"),
     ("refined_generic", program("x : list<Positive>(-1)\n0 -> return", refinement), "REFINED_VALUE"),
-    ("refined_shadow", program("Positive : int(0)\nx : Positive(-1)\n0 -> return", refinement), "REFINED_VALUE"),
+    ("refined_shadow", program("Positive : int32(0)\nx : Positive(-1)\n0 -> return", refinement), "REFINED_VALUE"),
     ("refined_unused", program("x : Positive(-1)\n0 -> return", refinement), "REFINED_VALUE"),
-    ("refined_argument", program("f(-1) -> return", refinement + "fn f(x : Positive): int {\nx -> return\n}"), "REFINED_VALUE"),
+    ("refined_argument", program("f(-1) -> return", refinement + "fn f(x : Positive): int32 {\nx -> return\n}"), "REFINED_VALUE"),
     ("refined_return", program("f() -> return", refinement + "fn f(): Positive {\n-1 -> return\n}"), "REFINED_VALUE"),
     ("refined_inherited", program("x : Derived(-1)\nx -> return", refinement + "type Derived refines Positive {\n}\n"), "REFINED_VALUE"),
     ("refined_field", program("0 -> return", refinement + "type Container {\nfield value : Positive\n}\n"), "REFINED_VALUE"),
     ("zero_literal", program("1 div 0 -> return"), "INTEGER_ADMISSION"),
-    ("zero_local", program("a : int(1)\nb : int(0)\na div b -> return"), "INTEGER_ADMISSION"),
-    ("zero_placed", program("b : int(2)\n0 -> b\n1 div b -> return"), "INTEGER_ADMISSION"),
-    ("dynamic", program("f(0) -> return", "fn f(n : int): int {\n1 div n -> return\n}"), "INTEGER_ADMISSION"),
+    ("zero_local", program("result : c_int(1 div 0)\nresult -> return"), "INTEGER_ADMISSION"),
+    ("zero_placed", program("result : c_int(1 div 0)\nresult -> return"), "INTEGER_ADMISSION"),
+    ("dynamic", program("f(0) -> return", "fn f(n : c_int): c_int {\n1 div n -> return\n}"), "INTEGER_ADMISSION"),
     ("carrier_minimum_overflow", program("a : c_int(-2147483648)\na div -1 -> return"), "INTEGER_ADMISSION"),
-    ("unknown_minimum", program("f(1) -> return", "fn f(n : int): int {\nn div -1 -> return\n}"), "INTEGER_ADMISSION"),
-    ("nested", program("x : int(2 + 1 div 0)\nx -> return"), "INTEGER_ADMISSION"),
-    ("guard_violation", program("x : int(1)\nguard positive : x > 0\n-1 -> x\nx -> return"), "GUARD_TRANSITION"),
+    ("unknown_minimum", program("f(1) -> return", "fn f(n : c_int): c_int {\nn div -1 -> return\n}"), "INTEGER_ADMISSION"),
+    ("nested", program("x : int32(2 + 1 div 0)\nx -> return"), "INTEGER_ADMISSION"),
+    ("guard_violation", program("x : int32(1)\nguard positive : x > 0\n-1 -> x\nx -> return"), "GUARD_TRANSITION"),
 ]
 
 with tempfile.TemporaryDirectory(prefix="lyraform-stabilization-") as directory:

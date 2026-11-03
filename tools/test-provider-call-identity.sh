@@ -20,7 +20,7 @@ abi second {
         effect readonly
     }
 }
-fn abs(value : int): int {
+fn abs(value : int32): int32 {
     return value + 1
 }
 main {

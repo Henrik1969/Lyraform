@@ -1,27 +1,27 @@
 program configresolve_finite_resolution
 
 record Fact {
- present : int
- value : int
- precedence : int
- order : int
+ present : int32
+ value : int32
+ precedence : int32
+ order : int32
 }
 record Policy {
- required : int
- minimum : int
- maximum : int
+ required : int32
+ minimum : int32
+ maximum : int32
 }
 record Resolution {
- status : int
- value : int
- chosen : int
+ status : int32
+ value : int32
+ chosen : int32
 }
 
 target Demo {
 // Bounded resolution slice: three structured candidates. Modes: 0 highest
 // precedence with last-order ties, 1 reject ties, 2 first wins, 3 last wins.
 // Result codes: 1 missing, 3 rejected tie, otherwise the selected value.
-fn resolve_highest(first : Fact, second : Fact, third : Fact, mode : int): int {
+fn resolve_highest(first : Fact, second : Fact, third : Fact, mode : int32): int32 {
  if mode == 2 {
   if first.present != 0 { first.value -> return }
   if second.present != 0 { second.value -> return }
@@ -76,26 +76,26 @@ fn resolve_highest(first : Fact, second : Fact, third : Fact, mode : int): int {
 
 // Validation code 0 means valid, 4 means an admitted fact is outside the
 // policy range. Missing facts remain an explicit resolver result (1).
-fn validate_fact(fact : Fact, rule : Policy): int {
+fn validate_fact(fact : Fact, rule : Policy): int32 {
  if fact.present == 0 { 0 -> return }
  if fact.value < rule.minimum { 4 -> return }
  if fact.value > rule.maximum { 4 -> return }
  0 -> return
 }
 
-fn resolve_checked(first : Fact, second : Fact, third : Fact, rule : Policy, mode : int): int {
- first_check : int(validate_fact(first, rule))
+fn resolve_checked(first : Fact, second : Fact, third : Fact, rule : Policy, mode : int32): int32 {
+ first_check : int32(validate_fact(first, rule))
  if first_check != 0 { 4 -> return }
- second_check : int(validate_fact(second, rule))
+ second_check : int32(validate_fact(second, rule))
  if second_check != 0 { 4 -> return }
- third_check : int(validate_fact(third, rule))
+ third_check : int32(validate_fact(third, rule))
  if third_check != 0 { 4 -> return }
- selected : int(resolve_highest(first, second, third, mode))
+ selected : int32(resolve_highest(first, second, third, mode))
  selected -> return
 }
 
-fn resolve_result(first : Fact, second : Fact, third : Fact, rule : Policy, mode : int): Resolution {
- code : int(resolve_checked(first, second, third, rule, mode))
+fn resolve_result(first : Fact, second : Fact, third : Fact, rule : Policy, mode : int32): Resolution {
+ code : int32(resolve_checked(first, second, third, rule, mode))
  if code == 1 {
   missing_result : Resolution({status: 1, value: 0, chosen: 0})
   missing_result -> return
@@ -112,7 +112,7 @@ fn resolve_result(first : Fact, second : Fact, third : Fact, rule : Policy, mode
  success_result -> return
 }
 
-fn read_result(result : Resolution): int {
+fn read_result(result : Resolution): int32 {
  result.value -> return
 }
 
@@ -121,7 +121,7 @@ main {
  second : Fact({present: 1, value: 22, precedence: 20, order: 2})
  third : Fact({present: 1, value: 33, precedence: 20, order: 3})
  rule : Policy({required: 1, minimum: 0, maximum: 100})
- result : int(read_result(resolve_result(first, second, third, rule, 0)))
+ result : int32(read_result(resolve_result(first, second, third, rule, 0)))
  result -> return
 }
 }

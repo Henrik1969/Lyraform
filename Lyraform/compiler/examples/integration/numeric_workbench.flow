@@ -3,27 +3,27 @@ import "../../std/math.flow"
 program numeric_workbench
 
 type Measurement {
-    field value : int
-    field weight : int
+    field value : int32
+    field weight : int32
     field accepted : Bool
 }
 
-fn weighted_value(item : Measurement): int {
-    result : int(0)
+fn weighted_value(item : Measurement): int32 {
+    result : int32(0)
     item.value * item.weight -> result
     result -> return
 }
 
-fn classify(value : int): Bool {
-    threshold : int(10)
+fn classify(value : int32): Bool {
+    threshold : int32(10)
     value > threshold -> return
 }
 
-fn accumulate(values : list<int>): int {
-    index : int(0)
-    total : int(0)
-    limit : int(length(values))
-    one : int(1)
+fn accumulate(values : list<int32>): int32 {
+    index : int32(0)
+    total : int32(0)
+    limit : int32(length(values))
+    one : int32(1)
 
     while index < limit {
         total + values[index] -> total
@@ -34,11 +34,11 @@ fn accumulate(values : list<int>): int {
 }
 
 main {
-    samples : list<int>([3, 8, 13, 21, 34, 55])
-    total : int(0)
-    doubled : int(0)
+    samples : list<int32>([3, 8, 13, 21, 34, 55])
+    total : int32(0)
+    doubled : int32(0)
     first : Measurement({value:3, weight:2, accepted:false})
-    score : int(0)
+    score : int32(0)
     accepted : Bool(false)
 
     accumulate(samples) -> total

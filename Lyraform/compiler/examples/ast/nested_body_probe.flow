@@ -1,14 +1,14 @@
 program nested_body_probe
 
 main {
-    x : int(0)
+    x : int32(0)
 
     while x < 10 {
         x = x + 1
     }
 
     if x == 10 {
-        y : int(1)
+        y : int32(1)
         y = 2
     }
 }

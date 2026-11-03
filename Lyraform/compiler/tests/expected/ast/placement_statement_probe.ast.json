@@ -23,13 +23,13 @@
                 "fields": [
                     {
                         "name": "teeth",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -44,13 +44,13 @@
                     },
                     {
                         "name": "rpm",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -64,6 +64,7 @@
                         }
                     }
                 ],
+                "invariants": [],
                 "location": {
                     "line": 4,
                     "column": 6
@@ -118,6 +119,7 @@
                         }
                     }
                 ],
+                "invariants": [],
                 "location": {
                     "line": 9,
                     "column": 6
@@ -131,13 +133,13 @@
                 "parameters": [
                     {
                         "name": "value",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -151,18 +153,18 @@
                         }
                     }
                 ],
-                "return_type": "int",
+                "return_type": "int32",
                 "return_type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
                         "line": 14,
-                        "column": 23
+                        "column": 25
                     }
                 },
                 "has_body": true,
@@ -195,13 +197,13 @@
             "fields": [
                 {
                     "name": "teeth",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -216,13 +218,13 @@
                 },
                 {
                     "name": "rpm",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -236,6 +238,7 @@
                     }
                 }
             ],
+            "invariants": [],
             "location": {
                 "line": 4,
                 "column": 6
@@ -290,6 +293,7 @@
                     }
                 }
             ],
+            "invariants": [],
             "location": {
                 "line": 9,
                 "column": 6
@@ -303,13 +307,13 @@
             "parameters": [
                 {
                     "name": "value",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -323,18 +327,18 @@
                     }
                 }
             ],
-            "return_type": "int",
+            "return_type": "int32",
             "return_type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
                     "line": 14,
-                    "column": 23
+                    "column": 25
                 }
             },
             "has_body": true,
@@ -736,10 +740,10 @@
                 "name": "scalar",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -750,13 +754,13 @@
                 "initializer_expression": 1
             },
             "name": "scalar",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -780,10 +784,10 @@
                 "name": "i",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -794,13 +798,13 @@
                 "initializer_expression": 2
             },
             "name": "i",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -824,10 +828,10 @@
                 "name": "j",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -838,13 +842,13 @@
                 "initializer_expression": 3
             },
             "name": "j",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -868,7 +872,7 @@
                 "name": "values",
                 "type_ref": {
                     "kind": "generic",
-                    "text": "list<int>",
+                    "text": "list<int32>",
                     "payload": {
                         "constructor_segments": [
                             "list"
@@ -876,10 +880,10 @@
                         "arguments": [
                             {
                                 "kind": "named",
-                                "text": "int",
+                                "text": "int32",
                                 "payload": {
                                     "name_segments": [
-                                        "int"
+                                        "int32"
                                     ]
                                 },
                                 "location": {
@@ -897,10 +901,10 @@
                 "initializer_expression": 4
             },
             "name": "values",
-            "type": "list<int>",
+            "type": "list<int32>",
             "type_ref": {
                 "kind": "generic",
-                "text": "list<int>",
+                "text": "list<int32>",
                 "payload": {
                     "constructor_segments": [
                         "list"
@@ -908,10 +912,10 @@
                     "arguments": [
                         {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -942,14 +946,14 @@
                 "name": "matrix",
                 "type_ref": {
                     "kind": "array",
-                    "text": "array<int>[2,2]",
+                    "text": "array<int32>[2,2]",
                     "payload": {
                         "element_type": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -962,14 +966,14 @@
                                 "text": "2",
                                 "location": {
                                     "line": 23,
-                                    "column": 25
+                                    "column": 27
                                 }
                             },
                             {
                                 "text": "2",
                                 "location": {
                                     "line": 23,
-                                    "column": 28
+                                    "column": 30
                                 }
                             }
                         ]
@@ -982,17 +986,17 @@
                 "initializer_expression": 7
             },
             "name": "matrix",
-            "type": "array<int>[2,2]",
+            "type": "array<int32>[2,2]",
             "type_ref": {
                 "kind": "array",
-                "text": "array<int>[2,2]",
+                "text": "array<int32>[2,2]",
                 "payload": {
                     "element_type": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -1005,14 +1009,14 @@
                             "text": "2",
                             "location": {
                                 "line": 23,
-                                "column": 25
+                                "column": 27
                             }
                         },
                         {
                             "text": "2",
                             "location": {
                                 "line": 23,
-                                "column": 28
+                                "column": 30
                             }
                         }
                     ]

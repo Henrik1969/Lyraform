@@ -1,6 +1,6 @@
 program bad_array_initializer
 
 main {
-    matrix : array<int>[2, 3]([1,2,3])
+    matrix : array<int32>[2, 3]([1,2,3])
     print matrix
 }

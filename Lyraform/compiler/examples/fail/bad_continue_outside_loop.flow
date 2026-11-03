@@ -1,7 +1,7 @@
 program bad_continue_outside_loop
 
 main {
-    zero : int(0)
+    zero : int32(0)
     continue
     print zero
 }

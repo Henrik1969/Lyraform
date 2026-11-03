@@ -1,8 +1,8 @@
 program bad_if_empty
 
 main {
-    n    : int(stdin.int())
-    zero : int(0)
+    n    : int32(stdin.int())
+    zero : int32(0)
 
     if n > zero {
     }

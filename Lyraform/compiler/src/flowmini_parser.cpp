@@ -143,6 +143,11 @@ class Parser {
 public:
     explicit Parser(const std::vector<Token>& tokens) : tokens_(tokens) {
         types_.emplace("int", TypeDef{"int", "", {}, {}});
+        // Explicit-width source integers are canonical vocabulary. The
+        // compatibility parser keeps the historical runtime carrier, but it
+        // must still accept the current spellings when used as an oracle.
+        types_.emplace("int32", TypeDef{"int32", "int", {}, {}});
+        types_.emplace("int64", TypeDef{"int64", "int", {}, {}});
         types_.emplace("Bool", TypeDef{"Bool", "", {}, {}});
         types_.emplace("Text", TypeDef{"Text", "", {}, {}});
         types_.emplace("float64", TypeDef{"float64", "", {}, {}});
@@ -1676,7 +1681,9 @@ private:
         expectIdentifier("expected 'list'");
         expect(TokenKind::Less, "expected '<' in list<int> declaration");
         const std::string elementType = expectIdentifier("expected list element type").text;
-        if (elementType != "int") { fail(peek(), "only list<int> is supported in flowmini v11 sugar"); }
+        if (elementType != "int" && elementType != "int32" && elementType != "int64") {
+            fail(peek(), "only list<int>, list<int32>, and list<int64> are supported in flowmini compatibility sugar");
+        }
         expect(TokenKind::Greater, "expected '>' in list<int> declaration");
         expect(TokenKind::LeftParen, "list declaration requires initializer");
         expect(TokenKind::LeftBracket, "list<int> initializer must start with '['");
@@ -1708,7 +1715,9 @@ private:
         expectIdentifier("expected 'array'");
         expect(TokenKind::Less, "expected '<' in array<int> declaration");
         const std::string elementType = expectIdentifier("expected array element type").text;
-        if (elementType != "int") { fail(peek(), "only array<int> is supported in flowmini v11 sugar"); }
+        if (elementType != "int" && elementType != "int32" && elementType != "int64") {
+            fail(peek(), "only array<int>, array<int32>, and array<int64> are supported in flowmini compatibility sugar");
+        }
         expect(TokenKind::Greater, "expected '>' in array<int> declaration");
         expect(TokenKind::LeftBracket, "expected '[' before array shape");
         std::vector<int> shape;

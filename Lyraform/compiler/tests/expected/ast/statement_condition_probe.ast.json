@@ -21,13 +21,13 @@
                 "parameters": [
                     {
                         "name": "value",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -42,38 +42,38 @@
                     },
                     {
                         "name": "limit",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
                                 "line": 4,
-                                "column": 32
+                                "column": 34
                             }
                         },
                         "location": {
                             "line": 4,
-                            "column": 24
+                            "column": 26
                         }
                     }
                 ],
-                "return_type": "int",
+                "return_type": "int32",
                 "return_type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
                         "line": 4,
-                        "column": 40
+                        "column": 44
                     }
                 },
                 "has_body": true,
@@ -106,13 +106,13 @@
             "parameters": [
                 {
                     "name": "value",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -127,38 +127,38 @@
                 },
                 {
                     "name": "limit",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
                             "line": 4,
-                            "column": 32
+                            "column": 34
                         }
                     },
                     "location": {
                         "line": 4,
-                        "column": 24
+                        "column": 26
                     }
                 }
             ],
-            "return_type": "int",
+            "return_type": "int32",
             "return_type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
                     "line": 4,
-                    "column": 40
+                    "column": 44
                 }
             },
             "has_body": true,
@@ -669,10 +669,10 @@
                 "name": "value",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -683,13 +683,13 @@
                 "initializer_expression": 21
             },
             "name": "value",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {

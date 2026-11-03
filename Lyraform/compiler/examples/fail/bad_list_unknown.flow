@@ -1,8 +1,8 @@
 program bad_list_unknown
 
 main {
-    i : int(0)
-    x : int(0)
+    i : int32(0)
+    x : int32(0)
 
     missing[i] -> x
 }

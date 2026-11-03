@@ -1,12 +1,12 @@
 program fn_bool_demo
 
-fn is_less(a : int, b : int): Bool {
+fn is_less(a : int32, b : int32): Bool {
     a < b -> return
 }
 
 main {
-    a : int(3)
-    b : int(4)
+    a : int32(3)
+    b : int32(4)
     ok : Bool(false)
 
     is_less(a, b) -> ok

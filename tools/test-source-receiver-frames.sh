@@ -15,16 +15,16 @@ wire parse.out => receiver.in
 wire parse.out => receiver.in
 wire receiver.out => left.in
 wire receiver.out => right.in
-fn transform(value : int): int {
-    local : int(0)
+fn transform(value : int32): int32 {
+    local : int32(0)
     local + value -> local
     local -> return
 }
-fn observe(value : int): int {
+fn observe(value : int32): int32 {
     print value
     value -> return
 }
-main { marker : int(1) }
+main { marker : int32(1) }
 FLOW
 printf '3\n' | "$flowmini" --trace true "$tmpdir/receiver.flow" > "$tmpdir/out" 2> "$tmpdir/log"
 printf '3\n3\n3\n3\n' > "$tmpdir/expected"
@@ -47,7 +47,7 @@ python3 - "$tmpdir/receiver.flow" "$tmpdir/missing.flow" <<'PY'
 import sys
 s = open(sys.argv[1]).read().replace('wire parse.out => receiver.in\nwire parse.out => receiver.in', 'node change : fn increment\nwire parse.out => receiver.in\nwire parse.out => change.in\nwire change.out => receiver.in')
 s = s.replace('    local -> return', '    if value == 3 {\n        local -> return\n    }')
-s += '\nfn increment(value : int): int {\n    value + 1 -> return\n}\n'
+s += '\nfn increment(value : int32): int32 {\n    value + 1 -> return\n}\n'
 open(sys.argv[2], 'w').write(s)
 PY
 if printf '3\n' | "$flowmini" --trace true "$tmpdir/missing.flow" > "$tmpdir/missing.out" 2> "$tmpdir/missing.log"; then
@@ -66,7 +66,7 @@ grep -Eq 'failure at receiver.in via wire:[0-9]+ signal:[0-9]+:.*delivery:' "$tm
 # Type, port, cycle, definition and role validation happen before execution.
 for mutation in type port cycle unresolved role; do
     case "$mutation" in
-        type) sed 's/fn transform(value : int)/fn transform(value : Bool)/; s/local + value -> local/1 -> local/' "$tmpdir/receiver.flow" > "$tmpdir/bad.flow" ;;
+        type) sed 's/fn transform(value : int32)/fn transform(value : Bool)/; s/local + value -> local/1 -> local/' "$tmpdir/receiver.flow" > "$tmpdir/bad.flow" ;;
         port) sed 's/receiver.in/receiver.wrong/g' "$tmpdir/receiver.flow" > "$tmpdir/bad.flow" ;;
         cycle) cat "$tmpdir/receiver.flow" > "$tmpdir/bad.flow"; printf '\nwire left.out => receiver.in\n' >> "$tmpdir/bad.flow" ;;
         unresolved) sed 's/node receiver : fn transform/node receiver : fn missing/' "$tmpdir/receiver.flow" > "$tmpdir/bad.flow" ;;
@@ -87,9 +87,9 @@ done
 python3 - "$tmpdir/receiver.flow" "$tmpdir/bool.flow" <<'PYTHON'
 import sys
 s = open(sys.argv[1]).read().replace('arbitrary_frames', 'renamed_boolean_graph')
-s = s.replace('fn transform(value : int): int', 'fn transform(value : int): Bool')
+s = s.replace('fn transform(value : int32): int32', 'fn transform(value : int32): Bool')
 s = s.replace('    local -> return', '    local == 3 -> return')
-s = s.replace('fn observe(value : int): int', 'fn observe(value : Bool): Bool')
+s = s.replace('fn observe(value : int32): int32', 'fn observe(value : Bool): Bool')
 open(sys.argv[2], 'w').write(s)
 PYTHON
 printf '3\n' | "$flowmini" "$tmpdir/bool.flow" > "$tmpdir/bool.out" 2> "$tmpdir/bool.log"
@@ -107,11 +107,11 @@ wire parse.out => observer.in
 fn copy_text(value : c_string): c_string {
     value -> return
 }
-fn observe(value : int): int {
+fn observe(value : int32): int32 {
     print value
     value -> return
 }
-main { marker : int(1) }
+main { marker : int32(1) }
 FLOW
 printf '42\n' | "$flowmini" "$tmpdir/text.flow" > "$tmpdir/text.out" 2> "$tmpdir/text.log"
 test "$(cat "$tmpdir/text.out")" = 42

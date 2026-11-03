@@ -29,7 +29,7 @@ if "const.int" not in artifact:
 base = source.read_text()
 with tempfile.TemporaryDirectory(prefix="lyraform-tagged-value-hostile-") as directory:
     duplicate = pathlib.Path(directory) / "duplicate.flow"
-    duplicate.write_text(base.replace("    case Double : float64\n", "    case Double : float64\n    case Int : int\n"))
+    duplicate.write_text(base.replace("    case Double : float64\n", "    case Double : float64\n    case Int : int32\n"))
     rejected = subprocess.run([binary, "--emit-flowir", "-", duplicate], text=True, capture_output=True)
     if rejected.returncode == 0 or "duplicate variant case" not in (rejected.stdout + rejected.stderr):
         raise SystemExit("duplicate variant case was not refused")

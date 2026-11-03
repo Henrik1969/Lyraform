@@ -1,15 +1,15 @@
 program function_signature_gallery
 
-fn no_args(): int {
-    zero : int(0)
+fn no_args(): int32 {
+    zero : int32(0)
     zero -> return
 }
 
-fn one_arg(x : int): int {
+fn one_arg(x : int32): int32 {
     x -> return
 }
 
-fn two_args(a : int, b : int): int {
+fn two_args(a : int32, b : int32): int32 {
     a + b -> return
 }
 
@@ -17,27 +17,27 @@ fn bool_arg(flag : Bool): Bool {
     flag -> return
 }
 
-fn list_arg(values : list<int>): int {
-    zero : int(0)
+fn list_arg(values : list<int32>): int32 {
+    zero : int32(0)
     zero -> return
 }
 
-fn array_arg(matrix : array<int>): int {
-    zero : int(0)
+fn array_arg(matrix : array<int32>): int32 {
+    zero : int32(0)
     zero -> return
 }
 
-fn nested_calls(a : int, b : int, c : int): int {
-    result : int(0)
+fn nested_calls(a : int32, b : int32, c : int32): int32 {
+    result : int32(0)
     two_args(a, b) -> result
     two_args(result, c) -> return
 }
 
 main {
-    one : int(1)
-    two : int(2)
-    three : int(3)
-    out : int(0)
+    one : int32(1)
+    two : int32(2)
+    three : int32(3)
+    out : int32(0)
 
     nested_calls(one, two, three) -> out
     print out

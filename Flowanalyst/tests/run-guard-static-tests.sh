@@ -47,7 +47,7 @@ jq -e '.status=="ok" and .lowering_plan.status=="ready" and
         .completion=="exactly_one" and
         (.possible_dispositions|length)==1 and
         .possible_dispositions[0].kind=="success" and
-        .possible_dispositions[0].payload_type=="int" and
+        .possible_dispositions[0].payload_type=="int32" and
         .possible_dispositions[0].commit=="atomic_destination" and
         .possible_dispositions[0].route.kind=="destination" and
         (.eliminated_dispositions|length)==1 and
@@ -134,7 +134,7 @@ jq -e --argjson line "$transition_line" '
 refuse() {
     body=$1
     code=$2
-    printf 'program guard_refusal\nfn sensor(): int {\n4 -> return\n}\nmain {\nx : int(1)\n%s\n}\n' "$body" > "$tmpdir/refused.flow"
+    printf 'program guard_refusal\nfn sensor(): int32 {\n4 -> return\n}\nmain {\nx : int32(1)\n%s\n}\n' "$body" > "$tmpdir/refused.flow"
     "$compiler" --dump-frontend-bundle "$tmpdir/refused.flow" > "$tmpdir/frontend.json"
     set +e
     "$analyst" "$tmpdir/frontend.json" > "$tmpdir/refused.json"
@@ -164,14 +164,14 @@ sensor() -> x' FLOWANALYST_GUARD_NOT_PROVABLE
 refuse 'unguard absent' FLOWANALYST_GUARD_NOT_ACTIVE
 
 # Contextual spelling does not steal the established typed-binding form.
-printf 'program guard_identifier\nmain {\nguard : int(1)\n}\n' > "$tmpdir/collision.flow"
+printf 'program guard_identifier\nmain {\nguard : int32(1)\n}\n' > "$tmpdir/collision.flow"
 "$compiler" --dump-frontend-bundle "$tmpdir/collision.flow" > "$tmpdir/collision.json"
 jq -e '.parse_validity.state=="canonical_valid" and .parse_validity.coverage=="complete" and
     any(.ast.statement_pool[]; .kind=="let" and .name=="guard") and
     (all(.ast.statement_pool[]; .kind!="guard_activate"))' "$tmpdir/collision.json" >/dev/null
 
 for malformed in 'guard positive x > 0' 'guard positive :' 'unguard positive extra'; do
-    printf 'program malformed_guard\nmain {\nx : int(1)\n%s\n}\n' "$malformed" > "$tmpdir/malformed.flow"
+    printf 'program malformed_guard\nmain {\nx : int32(1)\n%s\n}\n' "$malformed" > "$tmpdir/malformed.flow"
     "$compiler" --dump-frontend-bundle "$tmpdir/malformed.flow" > "$tmpdir/malformed.json"
     jq -e '.parse_validity.state=="recovered" and any(.ast.statement_pool[]; .kind=="unknown")' "$tmpdir/malformed.json" >/dev/null
 done

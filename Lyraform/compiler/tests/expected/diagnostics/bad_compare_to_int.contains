@@ -1,1 +1,1 @@
-fatal in canonical-scalar: FLOWANALYST_SCALAR_FLOW_REFUSED
+fatal in lowerer: type mismatch assigning Bool to int32 target 'n'

@@ -13,7 +13,7 @@ node probe : record.port_probe
 sink halt : halt.record
 
 main {
-    one : int(1)
+    one : int32(1)
 }
 
 wire start.out => probe.left
@@ -37,7 +37,7 @@ wire start.out => left.left
 wire start.out => right.right
 wire left.out => left_halt.in
 wire right.out => right_halt.in
-main { marker : int(1) }
+main { marker : int32(1) }
 EOF
 
 "$flowmini" --trace true "$tmpdir/fanout.flow" > "$tmpdir/fanout.stdout" 2> "$tmpdir/fanout.stderr"
@@ -58,7 +58,7 @@ test "$(grep -c 'enter right with' "$tmpdir/fanout.stderr")" -eq 1
 cat > "$tmpdir/unconnected.flow" <<'EOF'
 program unconnected
 producer start : start.record
-main { marker : int(1) }
+main { marker : int32(1) }
 EOF
 "$flowmini" --trace true "$tmpdir/unconnected.flow" > "$tmpdir/unconnected.stdout" 2> "$tmpdir/unconnected.stderr"
 grep -Fq 'no wire connected from start.out; dropping envelope' "$tmpdir/unconnected.stderr"
@@ -68,7 +68,7 @@ program bad_port
 producer start : start.record
 sink halt : halt.record
 wire start.missing => halt.in
-main { marker : int(1) }
+main { marker : int32(1) }
 EOF
 if "$flowmini" "$tmpdir/bad-port.flow" >/dev/null 2> "$tmpdir/bad-port.stderr"; then
     echo 'invalid source port unexpectedly accepted' >&2
@@ -80,7 +80,7 @@ cat > "$tmpdir/missing-required.flow" <<'EOF'
 program missing_required
 producer start : start.record
 sink halt : halt.record
-main { marker : int(1) }
+main { marker : int32(1) }
 EOF
 if "$flowmini" "$tmpdir/missing-required.flow" >/dev/null 2> "$tmpdir/missing-required.stderr"; then
     echo 'unconnected required input unexpectedly accepted' >&2
@@ -97,7 +97,7 @@ node probe : record.port_probe
 sink halt : halt.record
 wire start.out => probe.right
 wire probe.out => halt.in
-main { marker : int(1) }
+main { marker : int32(1) }
 EOF
 "$flowmini" --trace true "$tmpdir/optional-input.flow" >/dev/null 2> "$tmpdir/optional-input.stderr"
 grep -Fq 'route start.out => probe.right' "$tmpdir/optional-input.stderr"
@@ -110,7 +110,7 @@ node parse : parse.int.to_record
 sink halt : halt.record
 wire input.out => parse.in
 wire parse.out => halt.in
-main { marker : int(1) }
+main { marker : int32(1) }
 EOF
 if printf 'not-an-integer\n' | "$flowmini" --trace true "$tmpdir/failure.flow" >/dev/null 2> "$tmpdir/failure.stderr"; then
     echo 'failing graph node unexpectedly succeeded' >&2

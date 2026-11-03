@@ -2,8 +2,8 @@ unit countdown_sugar
 
 stdin : stdin.text()
 parse : parse.int.to_record(out="n")
-zero : int(0)
-one : int(1)
+zero : int32(0)
+one : int32(1)
 gt : int.gt(lhs="n", rhs="zero", out="cond")
 route : route.bool(path="cond")
 print : stdout.int_line(path="n")

@@ -496,7 +496,7 @@ cat > "$tmpdir/aggregate.flow" <<'FLOW'
 import "provider.flow" as host
 program aggregate_graph
 type Packet {
-    field value : int
+    field value : int32
 }
 producer source : injected.batch
 node receiver : fn aggregate_identity

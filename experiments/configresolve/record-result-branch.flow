@@ -1,12 +1,12 @@
 program configresolve_record_result_branch
 
 record Outcome {
- status : int
- value : int
+ status : int32
+ value : int32
 }
 
 target Demo {
-fn choose(flag : int): Outcome {
+fn choose(flag : int32): Outcome {
  if flag == 0 {
   zero : Outcome({status: 0, value: 11})
   zero -> return
@@ -15,12 +15,12 @@ fn choose(flag : int): Outcome {
  one -> return
 }
 
-fn read(result : Outcome): int {
+fn read(result : Outcome): int32 {
  result.value -> return
 }
 
 main {
- selected : int(read(choose(0)))
+ selected : int32(read(choose(0)))
  selected -> return
 }
 }

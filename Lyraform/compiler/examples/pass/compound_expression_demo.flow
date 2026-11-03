@@ -1,10 +1,10 @@
 program compound_expression_demo
 
 main {
-    n     : int(stdin.int())
-    one   : int(1)
-    three : int(3)
-    result: int(0)
+    n     : int32(stdin.int())
+    one   : int32(1)
+    three : int32(3)
+    result: int32(0)
 
     n * three + one -> result
     print result

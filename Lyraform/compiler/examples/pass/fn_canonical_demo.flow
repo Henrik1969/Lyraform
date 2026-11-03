@@ -1,19 +1,19 @@
 program fn_canonical_demo
 
-fn square(n : int): int {
+fn square(n : int32): int32 {
     n * n -> return
 }
 
-fn add_then_square(a : int, b : int): int {
-    sum : int(0)
+fn add_then_square(a : int32, b : int32): int32 {
+    sum : int32(0)
     a + b -> sum
     square(sum) -> return
 }
 
 main {
-    x : int(3)
-    y : int(4)
-    result : int(0)
+    x : int32(3)
+    y : int32(4)
+    result : int32(0)
 
     add_then_square(x, y) -> result
     return result

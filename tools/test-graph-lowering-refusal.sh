@@ -24,7 +24,7 @@ wire navigate.out => display.in
 wire display.out => halt.in
 
 main {
-    marker : int(1)
+    marker : int32(1)
 }
 EOF
 sed 's/program flow_less/program unrelated_graph_name/' "$source" > "$tmpdir/renamed.flow"
@@ -58,7 +58,7 @@ program arbitrary_receiver
 node receiver : fn transform
 producer source : start.record
 wire source.out => receiver.in
-fn transform(value : int): int {
+fn transform(value : int32): int32 {
     return value + 1
 }
 main { return 0 }
@@ -110,7 +110,7 @@ node left : fn first
 node right : fn second
 wire source.out => left.in
 wire left.out => right.in
-fn first(value : int): int { return value }
+fn first(value : int32): int32 { return value }
 fn second(value : Bool): Bool { return value }
 main { return 0 }
 EOF

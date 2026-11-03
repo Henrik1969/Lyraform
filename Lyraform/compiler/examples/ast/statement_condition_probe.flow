@@ -1,6 +1,6 @@
 program statement_condition_probe
 
-fn adjust(value : int, limit : int) -> int {
+fn adjust(value : int32, limit : int32) -> int32 {
     if value + 1 < limit {
         value = value + 1
     }
@@ -16,7 +16,7 @@ fn adjust(value : int, limit : int) -> int {
 }
 
 main {
-    value : int(0)
+    value : int32(0)
 
     if value == 0 {
         while value < 2 {

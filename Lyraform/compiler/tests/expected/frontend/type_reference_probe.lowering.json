@@ -207,7 +207,7 @@
           "key": "base_type_spelling",
           "value": {
             "type": "string",
-            "value": "collection.list<int>"
+            "value": "collection.list<int32>"
           }
         }
       ]
@@ -297,7 +297,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "optional<collection.list<int>>"
+            "value": "optional<collection.list<int32>>"
           }
         }
       ]
@@ -330,7 +330,7 @@
           "key": "return_type_spelling",
           "value": {
             "type": "string",
-            "value": "result.Result<array<int>,Error>"
+            "value": "result.Result<array<int32>,Error>"
           }
         }
       ]
@@ -363,7 +363,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "optional<collection.list<int>>"
+            "value": "optional<collection.list<int32>>"
           }
         }
       ]
@@ -396,7 +396,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "array<int>[2,3]"
+            "value": "array<int32>[2,3]"
           }
         }
       ]
@@ -429,7 +429,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "optional<collection.list<int>>"
+            "value": "optional<collection.list<int32>>"
           }
         }
       ]
@@ -462,7 +462,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "array<int>[Rows,2]"
+            "value": "array<int32>[Rows,2]"
           }
         }
       ]
@@ -519,7 +519,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "collection.list<int>"
+            "value": "collection.list<int32>"
           }
         }
       ]

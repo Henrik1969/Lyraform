@@ -1,10 +1,10 @@
 program sum_1_to_n_structured
 
 main {
-    n    : int(stdin.int())
-    zero : int(0)
-    one  : int(1)
-    acc  : int(0)
+    n    : int32(stdin.int())
+    zero : int32(0)
+    one  : int32(1)
+    acc  : int32(0)
 
     while n > zero {
         acc + n -> acc

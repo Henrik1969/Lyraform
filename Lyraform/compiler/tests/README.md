@@ -1,12 +1,21 @@
 # Flowmini test expectations
 
-This directory pins observable behavior for the categorized Flowmini suite.
+This directory contains both historical compatibility expectations and current
+structural fixture goldens. They are not one semantic authority.
 
 ```text
 examples/pass/*.flow     must exit 0
 examples/fail/*.flow     must exit nonzero
 examples/support/*.flow  ignored unless explicitly requested
 ```
+
+The `examples/pass`, `examples/fail`, and `examples/support` tree is retained
+for the deprecated Flowmini compatibility/oracle workflow. The current
+canonical language fixtures use explicit-width source integers (`int32` or
+`int64`) and are exercised by the AST, frontend-bundle, SymbolTable,
+Flowanalyst, and vertical semantic gates. A compatibility parser may accept
+the explicit spellings as an oracle convenience, but it does not define their
+canonical meaning.
 
 Expected-output files are optional, but when present the suite runner checks them.
 

@@ -1,14 +1,14 @@
 program matrix_workload
 
-fn checksum(values : array<int>[4, 4]): int {
-    row : int(0)
-    column : int(0)
-    total : int(0)
-    one : int(1)
-    four : int(4)
+fn checksum(values : array<int32>[4, 4]): int32 {
+    row : int32(0)
+    column : int32(0)
+    total : int32(0)
+    one : int32(1)
+    four : int32(4)
 
     while row < four {
-        zero : int(0)
+        zero : int32(0)
         zero -> column
         while column < four {
             total + values[row, column] -> total
@@ -21,19 +21,19 @@ fn checksum(values : array<int>[4, 4]): int {
 }
 
 main {
-    a : array<int>[4, 4]([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16])
-    b : array<int>[4, 4]([16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1])
-    result : array<int>[4, 4]([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    row : int(0)
-    column : int(0)
-    inner : int(0)
-    total : int(0)
-    product : int(0)
-    one : int(1)
-    four : int(4)
+    a : array<int32>[4, 4]([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16])
+    b : array<int32>[4, 4]([16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1])
+    result : array<int32>[4, 4]([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    row : int32(0)
+    column : int32(0)
+    inner : int32(0)
+    total : int32(0)
+    product : int32(0)
+    one : int32(1)
+    four : int32(4)
 
     while row < four {
-        zero : int(0)
+        zero : int32(0)
         zero -> column
         while column < four {
             zero -> inner
