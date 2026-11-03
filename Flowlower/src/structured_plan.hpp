@@ -1003,7 +1003,7 @@ private:
             if (left_type == "double") {
                 if(op=="+")instruction="fadd"; else if(op=="-")instruction="fsub"; else if(op=="*")instruction="fmul"; else if(op=="/")instruction="fdiv"; else return {};
             } else {
-                if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="div")instruction="sdiv"; else return {};
+                if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="div")instruction="sdiv"; else if(op=="%")instruction="srem"; else return {};
             }
             if(left.empty()||right.empty()||left_type!=right_type) return {};
             if (graph_native_ && instruction == "sdiv") {

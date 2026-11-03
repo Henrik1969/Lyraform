@@ -742,7 +742,7 @@ private:
             const bool floating = left_type == TINYVM_CARRIER_F64;
             const std::map<std::string, std::int64_t> opcodes = floating
                 ? std::map<std::string, std::int64_t>{{"+",TV1_FADD},{"-",TV1_FSUB},{"*",TV1_FMUL},{"/",TV1_FDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}}
-                : std::map<std::string, std::int64_t>{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"div",TV1_SDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
+                : std::map<std::string, std::int64_t>{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"div",TV1_SDIV},{"%",TV1_SREM},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
             const auto found = opcodes.find(operation); if (found == opcodes.end()) throw Unsupported("binary operator '" + operation + "' is not admitted");
             const bool comparison = operation == "==" || operation == "!=" || operation == "<" || operation == "<=" || operation == ">" || operation == ">=";
             const auto result = slot(); slot_types_[result] = comparison ? static_cast<std::uint32_t>(TINYVM_CARRIER_I1) : slot_types_.at(left); emit(found->second, result, left, right); return result;

@@ -32,6 +32,7 @@ typedef enum {
     TV1_FSUB = 26,
     TV1_FMUL = 27,
     TV1_FDIV = 28,
+    TV1_SREM = 29,
     TV1_OPCODE_COUNT
 } TinyvmIsaV1Opcode;
 

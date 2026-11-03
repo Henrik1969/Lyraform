@@ -15,7 +15,7 @@ use. Opaque handles are stable artifact/runtime identities, not addresses.
 | `CONST` | destination slot | constant ID | 0 |
 | `MOVE` | destination slot | source slot | 0 |
 | `CONVERT` | destination slot | source slot | target carrier |
-| `ADD/SUB/MUL/SDIV` | destination slot | left slot | right slot |
+| `ADD/SUB/MUL/SDIV/SREM` | destination slot | left slot | right slot |
 | `FADD/FSUB/FMUL/FDIV` | destination slot | left `f64` slot | right `f64` slot |
 | comparisons | destination `i1` slot | left slot | right slot |
 | `JMP` | absolute instruction target | 0 | 0 |
@@ -38,7 +38,7 @@ Integer arithmetic operates on equal `i32` or `i64` carriers. `ADD`, `SUB`, and
 integer instructions without `nsw`/`nuw`. Floating arithmetic operates on
 equal `f64` carriers and uses IEEE-754 host operations for the currently
 admitted finite slice; `FDIV` explicitly traps on a zero divisor. Integer
-division by zero and signed minimum divided by minus one are explicit traps
+division or remainder by zero and signed minimum divided by minus one are explicit traps
 rather than host-language undefined behavior. Future checked arithmetic
 requires distinct semantic operations. Conversions support `i1`, `i32`, `i64`
 and integer-to-`f64`; narrowing to

@@ -8,17 +8,18 @@ construction, assignment, function argument/return boundaries, and finite
 aggregate field boundaries, including nested finite aggregates, whose
 predicates are statically proved; other
 value-bearing refinements with unenforced predicates remain refused. Integer
-quotients (`div`) whose safety
-cannot be established and has no admitted failure route remain refused. The
+quotients (`div`) and remainders (`%`) whose safety cannot be established and
+have no admitted failure route remain refused. The
 R6 aggregate slice now admits explicit record cross-field invariants for
 finite integer literals and arithmetic/comparison expressions during aggregate
 construction. Violations, unknown field names, and values that cannot be
 statically proved remain refused; this is a semantic admission fact, not a
 backend execution claim.
 
-The bounded numeric slice now also admits `+`, `-`, `*`, and
-true division (`/`) with explicit integer-to-`float64` promotion; static zero
-divisors remain refused. The accepted cases execute on LLVM and TinyVM.
+The bounded numeric slice now also admits `+`, `-`, `*`, true division (`/`)
+with explicit integer-to-`float64` promotion, and integer remainder (`%`) with
+the sign of the dividend. Static zero divisors and `INT_MIN % -1` remain
+refused; accepted cases execute with LLVM/TinyVM parity.
 
 The historical pass corpus now reports these contract refusals separately.
 The two `flow_less` integration tests currently verify admission refusal, not
@@ -69,12 +70,13 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
-[2026-11-03 explicit-width fixture migration](checkpoints/2026-11-03-explicit-width-fixture-migration.md).
-It updates active source fixtures, test generators, and AST/frontend/symbol
-goldens to use the accepted explicit-width vocabulary. It deliberately leaves
-compiler failures visible where the current implementation still cannot admit
-an explicit-width path; this is not a green-suite or production-readiness
-claim.
+[2026-11-03 integer remainder vertical slice](checkpoints/2026-11-03-integer-remainder-slice.md).
+It records the end-to-end `%` contract, backend parity, refusal boundaries, and
+the current clean `205/205` verification. This is not a production-readiness
+claim. The preceding
+[2026-11-03 explicit-width fixture migration](checkpoints/2026-11-03-explicit-width-fixture-migration.md)
+records the earlier migration snapshot and its then-visible implementation
+gaps as historical evidence.
 
 The preceding current-truth verification is the
 [2026-11-02 aggregate ownership/lifetime composition vertical slice](checkpoints/2026-11-02-aggregate-ownership-lifetime-composition-slice.md),

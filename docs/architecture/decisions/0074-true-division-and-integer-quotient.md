@@ -69,19 +69,20 @@ a separate future decision.
 - Integer/float mixing for `+`, `-`, `*`, and `/` uses an admitted numeric
   promotion to the `float64` carrier. The lowering artifact records the
   promotion explicitly; source syntax does not require a conversion wrapper.
-- `%` belongs to the integer-quotient family and is not initially defined for
-  floating-point operands.
+- `%` belongs to the integer-quotient family and is not defined for floating-
+  point operands. Its current executable slice requires a statically
+  established non-zero divisor and refuses `INT_MIN % -1` as overflow.
 - LLVM and TinyVM must preserve the same result type, value, and refusal
   behavior for every admitted case.
 
 ## Boundary
 
-The current vertical slices implement `div` for statically established
-compatibility-width integer operands and bounded `float64` promotion for
-`+`, `-`, `*`, and `/`. LLVM/TinyVM parity covers mixed operands, integer
-operands used with true division, static zero-divisor refusal, and the explicit
-numeric-promotion artifact boundary. `%` is reserved for the integer family
-but remains refused until its backend opcode contract is available.
+The current vertical slices implement `div` and `%` for statically established
+compatibility-width integer operands and bounded `float64` promotion for `+`,
+`-`, `*`, and `/`. LLVM/TinyVM parity covers mixed operands, integer operands
+used with true division, integer remainder, static zero-divisor refusal, the
+`INT_MIN`/`-1` overflow boundary, and the explicit numeric-promotion artifact
+boundary. Dynamic divisor failure routing remains outside this slice.
 
 This decision does not complete floating-point semantics. NaN, infinity,
 signed zero, precision guarantees, rounding modes, literal suffixes, rational

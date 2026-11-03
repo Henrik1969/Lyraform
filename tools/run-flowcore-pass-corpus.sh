@@ -105,7 +105,10 @@ for source in "$pass_root"/*.flow; do
                 .code == "FLOWANALYST_REFINED_VALUE_UNSUPPORTED" or
                 .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED" or
                 .code == "FLOWANALYST_DIVISION_UNPROVEN" or
-                .code == "FLOWANALYST_INTEGER_REMAINDER_NOT_ADMITTED")' "$semantic" >/dev/null
+                .code == "FLOWANALYST_INTEGER_REMAINDER_TYPE" or
+                .code == "FLOWANALYST_INTEGER_REMAINDER_UNPROVEN" or
+                .code == "FLOWANALYST_INTEGER_REMAINDER_ZERO" or
+                .code == "FLOWANALYST_INTEGER_REMAINDER_OVERFLOW")' "$semantic" >/dev/null
         if jq -e 'any(.diagnostics[]; .code == "FLOWANALYST_SOURCE_OPERATION_GAP")' "$semantic" >/dev/null; then
             jq -e '.lowering_plan.source_operation_coverage.status == "refused"' "$semantic" >/dev/null
             unsupported_source_operations=$((unsupported_source_operations + 1))

@@ -2398,10 +2398,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     if (!overflow) return {ConstantValue::Kind::integer, result, false};
                     return {};
                 }
-                if (operation == "div") {
+                if (operation == "div" || operation == "%") {
                     if (right.integer == 0 ||
                         (left.integer == std::numeric_limits<std::int64_t>::min() && right.integer == -1)) return {};
-                    return {ConstantValue::Kind::integer, left.integer / right.integer, false};
+                    const auto result = operation == "div" ? left.integer / right.integer : left.integer % right.integer;
+                    return {ConstantValue::Kind::integer, result, false};
                 }
                 if (operation == "==") return {ConstantValue::Kind::boolean, 0, left.integer == right.integer};
                 if (operation == "!=") return {ConstantValue::Kind::boolean, 0, left.integer != right.integer};
@@ -2487,10 +2488,45 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                         set_statement_provenance(diagnostics.back(), statement_id);
                     }
                 } else if (operation == "%") {
-                    add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_NOT_ADMITTED",
-                        "`%` remains paired with integer quotient semantics but its backend opcode is not admitted in this slice",
-                        -1, "expression:" + std::to_string(expression_id));
-                    set_statement_provenance(diagnostics.back(), statement_id);
+                    if (result_type != lyraform::scalar::Type::integer) {
+                        add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_TYPE",
+                            "integer remainder requires integer operands",
+                            -1, "expression:" + std::to_string(expression_id));
+                        set_statement_provenance(diagnostics.back(), statement_id);
+                    } else {
+                        const auto left = evaluate_constant(left_id, {});
+                        const auto right = evaluate_constant(right_id, {});
+                        if (right.kind != ConstantValue::Kind::integer) {
+                            add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_UNPROVEN",
+                                "integer remainder requires a statically established non-zero divisor in the current slice",
+                                -1, "expression:" + std::to_string(expression_id));
+                            set_statement_provenance(diagnostics.back(), statement_id);
+                        } else if (right.integer == 0) {
+                            add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_ZERO",
+                                "integer remainder divisor is zero",
+                                -1, "expression:" + std::to_string(expression_id));
+                            set_statement_provenance(diagnostics.back(), statement_id);
+                        } else {
+                            const auto carrier_type = text(field(*expressions.at(left_id), "type"));
+                            const bool int32_carrier = carrier_type.empty() || carrier_type == "int" || carrier_type == "int32" || carrier_type == "c_int";
+                            const bool overflow = right.integer == -1 &&
+                                ((int32_carrier && left.kind == ConstantValue::Kind::integer &&
+                                  left.integer == std::numeric_limits<std::int32_t>::min()) ||
+                                 (!int32_carrier && left.kind == ConstantValue::Kind::integer &&
+                                  left.integer == std::numeric_limits<std::int64_t>::min()) ||
+                                 left.kind != ConstantValue::Kind::integer);
+                            if (overflow) {
+                                add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_OVERFLOW",
+                                    "integer remainder overflows for INT_MIN % -1",
+                                    -1, "expression:" + std::to_string(expression_id));
+                                set_statement_provenance(diagnostics.back(), statement_id);
+                            } else {
+                                check_numeric_expression(left_id, statement_id);
+                                check_numeric_expression(right_id, statement_id);
+                                return;
+                            }
+                        }
+                    }
                 } else if (operation == "div") {
                     if (result_type != lyraform::scalar::Type::integer) {
                         add_diagnostic("FLOWANALYST_INTEGER_DIVISION_TYPE",

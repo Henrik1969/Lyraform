@@ -13,7 +13,7 @@ semantics.
 | Area | Positive evidence | Refusal or negative evidence |
 |---|---|---|
 | Integer quotient | `7 div 3 = 2`; signed operands truncate toward zero; LLVM/TinyVM parity | no silent floor-versus-truncate ambiguity |
-| Integer remainder | reserved for the integer family | `%` is explicitly refused until a backend opcode contract exists |
+| Integer remainder | `7 % 3 = 1`; sign follows the dividend; LLVM/TinyVM parity | zero divisor and `INT_MIN % -1` are refused before lowering |
 | True division | `8 / 2` has `float64` type and value `4.0`; `1 / 3` is non-integral float | `/` never narrows to integer because the value is integral |
 | Float division | `8.0 / 2.0` remains `float64`, value `4.0` | float result is not reclassified as integer |
 | Zero divisor | statically known zero is rejected before lowering | dynamic zero requires an admitted failure route |
@@ -40,6 +40,8 @@ At minimum:
 -7 div 3
 7 div -3
 -7 div -3
+7 % 3
+-7 % 3
 8 / 2
 1 / 3
 8.0 / 2.0
@@ -50,7 +52,7 @@ x div y
 
 ## Current status
 
-The owner decision is accepted. The integer-quotient vertical slice is complete
+The owner decision is accepted. The integer-quotient/remainder vertical slice is complete
 for statically established compatibility-width operands: frontend keyword,
 semantic admission, zero/overflow refusal, artifact validation, LLVM lowering,
 TinyVM lowering, execution, and backend parity are covered by
@@ -62,7 +64,7 @@ The first mixed-numeric vertical slice is also complete for `+`, `-`, `*`, and
 Its focused acceptance gate is `lyraform_numeric_promotion_canon`.
 
 The remaining matrix is intentionally open: immutable-local proof reuse,
-dynamic failure routing, `%`, floating exceptional values and precision rules,
+dynamic failure routing, floating exceptional values and precision rules,
 broader conversion policy, and the repository's explicit-width migration still
 require later slices.
 

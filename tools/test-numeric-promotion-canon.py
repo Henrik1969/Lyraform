@@ -136,7 +136,7 @@ with tempfile.TemporaryDirectory(prefix="lyraform-numeric-promotion-") as direct
 
     negative = {
         "integer_quotient_rejects_float": ("2.5 div 5", "FLOWANALYST_INTEGER_DIVISION_TYPE"),
-        "remainder_remains_pending": ("7 % 3", "FLOWANALYST_INTEGER_REMAINDER_NOT_ADMITTED"),
+        "remainder_rejects_float": ("2.5 % 5", "FLOWANALYST_INTEGER_REMAINDER_TYPE"),
         "true_division_zero": ("1 / 0", "FLOWANALYST_DIVISION_ZERO"),
     }
     for name, (expression, diagnostic_code) in negative.items():

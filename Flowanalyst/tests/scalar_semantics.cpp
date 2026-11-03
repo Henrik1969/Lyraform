@@ -13,6 +13,7 @@ int main() {
     require(binary("<", Type::integer, Type::integer) == Type::boolean);
     require(binary("+", Type::integer, Type::integer) == Type::integer);
     require(binary("div", Type::integer, Type::integer) == Type::integer);
+    require(binary("%", Type::integer, Type::integer) == Type::integer);
     require(binary("*", Type::floating, Type::integer) == Type::floating);
     require(binary("/", Type::integer, Type::integer) == Type::floating);
     require(binary("div", Type::floating, Type::integer) == Type::invalid);

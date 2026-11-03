@@ -419,8 +419,6 @@ inline void validate_integer_admission(const json::Value& value,
             const auto& right = object(required(*item, "right", where), where);
             require_identity(str(left, "type"), str(right, "type"), where);
             const auto op = str(*item, "operator");
-            if (op == "%")
-                throw Error(where, "integer remainder is not admitted until its backend opcode contract is available");
             if (op == "+" || op == "-" || op == "*" || op == "div" || op == "%")
                 require_identity(str(*item, "type"), str(left, "type"), where);
             if (op == "/" && str(*item, "type") != "float64")
@@ -450,7 +448,7 @@ inline void validate_integer_admission(const json::Value& value,
             const auto dividend = constant(left, operation, active, 0);
             if (!low || minimum(str(rhs, "type")) != low || !divisor || *divisor == 0 ||
                 (*divisor == -1 && (!dividend || *dividend == *low)))
-                throw Error(where, "integer division safety is unproved; explicit runtime failure routing is not admitted");
+                throw Error(where, "integer quotient/remainder safety is unproved; explicit runtime failure routing is not admitted");
         }
         for (const auto& [key, child] : *item)
             inspect(child, operation, where + "." + key, depth + 1);

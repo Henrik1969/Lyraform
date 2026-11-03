@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Vertical tests for the integer quotient arithmetic canon slice.
+"""Vertical tests for the integer quotient/remainder arithmetic canon slice.
 
-This slice admits integer quotient through `div`, with truncation toward zero,
-while true division is covered by the separate numeric-promotion slice.
+This slice admits integer quotient through `div`, integer remainder through `%`,
+both with truncation-toward-zero division semantics, while true division is
+covered by the separate numeric-promotion slice.
 """
 
 import argparse
@@ -64,6 +65,10 @@ positive = {
     "negative_left": ("-7 div 3", -2),
     "negative_right": ("7 div -3", -2),
     "both_negative": ("-7 div -3", 2),
+    "remainder_positive": ("7 % 3", 1),
+    "remainder_negative_left": ("-7 % 3", -1),
+    "remainder_negative_right": ("7 % -3", 1),
+    "remainder_both_negative": ("-7 % -3", -1),
 }
 
 
@@ -125,9 +130,13 @@ with tempfile.TemporaryDirectory(prefix="lyraform-division-canon-") as directory
             "-2147483648 div -1",
             "FLOWANALYST_INTEGER_DIVISION_OVERFLOW",
         ),
-        "remainder_pending": (
-            "7 % 3",
-            "FLOWANALYST_INTEGER_REMAINDER_NOT_ADMITTED",
+        "remainder_zero": (
+            "1 % 0",
+            "FLOWANALYST_INTEGER_REMAINDER_ZERO",
+        ),
+        "remainder_overflow": (
+            "-2147483648 % -1",
+            "FLOWANALYST_INTEGER_REMAINDER_OVERFLOW",
         ),
     }
     for name, (expression, diagnostic_code) in negative.items():

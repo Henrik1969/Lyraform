@@ -30,7 +30,7 @@ bool tinyvm_isa_v1_validate(const TinyvmArtifactV2 *a,char *d,size_t capacity){
         case TV1_CONST:if(!slot(a,w->a)||w->b<=0||!constant(a,(uint64_t)w->b)||w->pad){diagnose(d,capacity,"ISA v1 constant reference is invalid");return false;}break;
         case TV1_MOVE:if(!slot(a,w->a)||!slot(a,w->b)||w->pad){diagnose(d,capacity,"ISA v1 move operand is invalid");return false;}break;
         case TV1_CONVERT:if(!slot(a,w->a)||!slot(a,w->b)||w->pad<TINYVM_CARRIER_I1||w->pad>TINYVM_CARRIER_F64){diagnose(d,capacity,"ISA v1 conversion is invalid");return false;}break;
-        case TV1_ADD:case TV1_SUB:case TV1_MUL:case TV1_SDIV:
+        case TV1_ADD:case TV1_SUB:case TV1_MUL:case TV1_SDIV:case TV1_SREM:
         case TV1_FADD:case TV1_FSUB:case TV1_FMUL:case TV1_FDIV:
         case TV1_CMP_EQ:case TV1_CMP_NE:case TV1_CMP_LT:case TV1_CMP_LE:case TV1_CMP_GT:case TV1_CMP_GE:
             if(!slot(a,w->a)||!slot(a,w->b)||!slot(a,w->pad)){diagnose(d,capacity,"ISA v1 slot operand is invalid");return false;}break;
@@ -98,10 +98,10 @@ static bool binary_arithmetic(TinyvmIsaV1Context *ctx,int64_t opcode,uint64_t ds
         const double result=opcode==TV1_FADD?a+b:opcode==TV1_FSUB?a-b:opcode==TV1_FMUL?a*b:a/b;
         ctx->slots[dst]=(TinyvmValue){TINYVM_CARRIER_F64,double_value(result),true};return true;
     }
-    if(opcode>=TV1_FADD)return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"floating opcode used with integer carrier",instruction);
+    if(opcode>=TV1_FADD&&opcode<=TV1_FDIV)return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"floating opcode used with integer carrier",instruction);
     TinyvmValue result={x->carrier,0,true};
-    if(x->carrier==TINYVM_CARRIER_I32){int32_t a=(int32_t)x->bits,b=(int32_t)y->bits,r=0;if(opcode==TV1_SDIV){if(!b)return trap(ctx,TV1_TRAP_DIVISION_BY_ZERO,"division by zero",instruction);if(a==INT32_MIN&&b==-1)return trap(ctx,TV1_TRAP_DIVISION_OVERFLOW,"signed division overflow",instruction);r=a/b;}else{uint32_t ua=(uint32_t)a,ub=(uint32_t)b,ur=opcode==TV1_ADD?ua+ub:opcode==TV1_SUB?ua-ub:ua*ub;memcpy(&r,&ur,4);}result.bits=canonical_i32(r);
-    }else{int64_t a=signed_bits(x->bits),b=signed_bits(y->bits),r=0;if(opcode==TV1_SDIV){if(!b)return trap(ctx,TV1_TRAP_DIVISION_BY_ZERO,"division by zero",instruction);if(a==INT64_MIN&&b==-1)return trap(ctx,TV1_TRAP_DIVISION_OVERFLOW,"signed division overflow",instruction);r=a/b;result.bits=(uint64_t)r;}else{uint64_t ua=x->bits,ub=y->bits;result.bits=opcode==TV1_ADD?ua+ub:opcode==TV1_SUB?ua-ub:ua*ub;}}
+    if(x->carrier==TINYVM_CARRIER_I32){int32_t a=(int32_t)x->bits,b=(int32_t)y->bits,r=0;if(opcode==TV1_SDIV||opcode==TV1_SREM){if(!b)return trap(ctx,TV1_TRAP_DIVISION_BY_ZERO,opcode==TV1_SREM?"remainder by zero":"division by zero",instruction);if(a==INT32_MIN&&b==-1)return trap(ctx,TV1_TRAP_DIVISION_OVERFLOW,opcode==TV1_SREM?"remainder overflow":"signed division overflow",instruction);r=opcode==TV1_SDIV?a/b:a%b;}else{uint32_t ua=(uint32_t)a,ub=(uint32_t)b,ur=opcode==TV1_ADD?ua+ub:opcode==TV1_SUB?ua-ub:ua*ub;memcpy(&r,&ur,4);}result.bits=canonical_i32(r);
+    }else{int64_t a=signed_bits(x->bits),b=signed_bits(y->bits),r=0;if(opcode==TV1_SDIV||opcode==TV1_SREM){if(!b)return trap(ctx,TV1_TRAP_DIVISION_BY_ZERO,opcode==TV1_SREM?"remainder by zero":"division by zero",instruction);if(a==INT64_MIN&&b==-1)return trap(ctx,TV1_TRAP_DIVISION_OVERFLOW,opcode==TV1_SREM?"remainder overflow":"signed division overflow",instruction);r=opcode==TV1_SDIV?a/b:a%b;result.bits=(uint64_t)r;}else{uint64_t ua=x->bits,ub=y->bits;result.bits=opcode==TV1_ADD?ua+ub:opcode==TV1_SUB?ua-ub:ua*ub;}}
     ctx->slots[dst]=result;return true;
 }
 static bool comparison(TinyvmIsaV1Context *ctx,int64_t opcode,uint64_t dst,uint64_t left,uint64_t right,uint64_t instruction){
@@ -147,7 +147,7 @@ bool tinyvm_isa_v1_run_switch(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx)
         case TV1_CONST:{const TinyvmConstant *v=constant(a,(uint64_t)w->b);ctx->slots[w->a]=(TinyvmValue){v->carrier,v->bits,true};break;}
         case TV1_MOVE:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->b,at);if(v)ctx->slots[w->a]=*v;break;}
         case TV1_CONVERT:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->b,at);if(!v)break;if(v->carrier==TINYVM_CARRIER_OPAQUE_HANDLE){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"opaque handle conversion is forbidden",at);break;}uint64_t bits=v->bits;if(w->pad==TINYVM_CARRIER_I1&&bits>1){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"noncanonical boolean conversion",at);break;}if(w->pad==TINYVM_CARRIER_I32)bits=canonical_i32((int32_t)bits);else if(w->pad==TINYVM_CARRIER_I64&&v->carrier==TINYVM_CARRIER_I32)bits=(uint64_t)(int64_t)(int32_t)bits;else if(w->pad==TINYVM_CARRIER_F64&&integer_carrier(v->carrier)){const double value=v->carrier==TINYVM_CARRIER_I32?(double)(int32_t)v->bits:(double)signed_bits(v->bits);bits=double_value(value);}else if(w->pad==TINYVM_CARRIER_F64&&v->carrier!=TINYVM_CARRIER_F64){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"unsupported numeric conversion",at);break;}ctx->slots[w->a]=(TinyvmValue){(uint32_t)w->pad,bits,true};break;}
-        case TV1_ADD:case TV1_SUB:case TV1_MUL:case TV1_SDIV:case TV1_FADD:case TV1_FSUB:case TV1_FMUL:case TV1_FDIV:binary_arithmetic(ctx,w->opcode,(uint64_t)w->a,(uint64_t)w->b,(uint64_t)w->pad,at);break;
+        case TV1_ADD:case TV1_SUB:case TV1_MUL:case TV1_SDIV:case TV1_SREM:case TV1_FADD:case TV1_FSUB:case TV1_FMUL:case TV1_FDIV:binary_arithmetic(ctx,w->opcode,(uint64_t)w->a,(uint64_t)w->b,(uint64_t)w->pad,at);break;
         case TV1_CMP_EQ:case TV1_CMP_NE:case TV1_CMP_LT:case TV1_CMP_LE:case TV1_CMP_GT:case TV1_CMP_GE:comparison(ctx,w->opcode,(uint64_t)w->a,(uint64_t)w->b,(uint64_t)w->pad,at);break;
         case TV1_JMP:ctx->pc=(uint64_t)w->a;break;
         case TV1_BRANCH:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->a,at);if(!v)break;if(v->carrier!=TINYVM_CARRIER_I1){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"branch condition is not i1",at);break;}ctx->pc=v->bits?(uint64_t)w->b:(uint64_t)w->pad;break;}
@@ -170,7 +170,7 @@ bool tinyvm_isa_v1_run_computed(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ct
     static void *dispatch[TV1_OPCODE_COUNT]={
         [TV1_NOP]=&&do_nop,[TV1_CONST]=&&do_const,[TV1_MOVE]=&&do_move,
         [TV1_CONVERT]=&&do_convert,[TV1_ADD]=&&do_arithmetic,[TV1_SUB]=&&do_arithmetic,
-        [TV1_MUL]=&&do_arithmetic,[TV1_SDIV]=&&do_arithmetic,[TV1_FADD]=&&do_arithmetic,
+        [TV1_MUL]=&&do_arithmetic,[TV1_SDIV]=&&do_arithmetic,[TV1_SREM]=&&do_arithmetic,[TV1_FADD]=&&do_arithmetic,
         [TV1_FSUB]=&&do_arithmetic,[TV1_FMUL]=&&do_arithmetic,[TV1_FDIV]=&&do_arithmetic,[TV1_CMP_EQ]=&&do_compare,
         [TV1_CMP_NE]=&&do_compare,[TV1_CMP_LT]=&&do_compare,[TV1_CMP_LE]=&&do_compare,
         [TV1_CMP_GT]=&&do_compare,[TV1_CMP_GE]=&&do_compare,[TV1_JMP]=&&do_jump,
