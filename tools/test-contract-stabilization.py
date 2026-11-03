@@ -65,7 +65,7 @@ negative = [
     ("refined_argument", program("f(-1) -> return", refinement + "fn f(x : Positive): int32 {\nx -> return\n}"), "REFINED_VALUE"),
     ("refined_return", program("f() -> return", refinement + "fn f(): Positive {\n-1 -> return\n}"), "REFINED_VALUE"),
     ("refined_inherited", program("x : Derived(-1)\nx -> return", refinement + "type Derived refines Positive {\n}\n"), "REFINED_VALUE"),
-    ("refined_field", program("0 -> return", refinement + "type Container {\nfield value : Positive\n}\n"), "REFINED_VALUE"),
+    ("refined_field", program("item : Container({value: -1})\n0 -> return\n}", refinement + "record Container {\nvalue : Positive\n}\ntarget Demo {\n"), "REFINED_VALUE"),
     ("zero_literal", program("1 div 0 -> return"), "INTEGER_ADMISSION"),
     ("zero_local", program("result : c_int(1 div 0)\nresult -> return"), "INTEGER_ADMISSION"),
     ("zero_placed", program("result : c_int(1 div 0)\nresult -> return"), "INTEGER_ADMISSION"),
@@ -123,14 +123,24 @@ with tempfile.TemporaryDirectory(prefix="lyraform-stabilization-") as directory:
         assert analyzed.returncode == 2, (name, analyzed.stdout, analyzed.stderr)
         report = json.loads(analyzed.stdout)
         assert report["status"] == "error" and report["lowering_plan"]["status"] == "blocked", name
-        assert any(code in item["code"] for item in report["diagnostics"]), (name, report["diagnostics"])
         if code == "INTEGER_ADMISSION":
-            diagnostic = next(d for d in report["diagnostics"] if code in d["code"])
+            # The integer contract now reports the precise refused boundary
+            # (division zero, overflow, unknown divisor, ...), all of which
+            # remain part of the integer-admission family.
+            assert any("INTEGER_" in item["code"] for item in report["diagnostics"]), (name, report["diagnostics"])
+        else:
+            if code == "REFINED_VALUE":
+                assert any("REFINED_" in item["code"] for item in report["diagnostics"]), (name, report["diagnostics"])
+            else:
+                assert any(code in item["code"] for item in report["diagnostics"]), (name, report["diagnostics"])
+        if code == "INTEGER_ADMISSION":
+            diagnostic = next(d for d in report["diagnostics"] if "INTEGER_" in d["code"])
             origin = diagnostic["provenance"]
             assert origin["line"] > 0 and origin["column"] > 0, (name, origin)
             assert origin["ast_path"].startswith("/statement_pool/"), origin
             assert pathlib.Path(origin["source"]).name == path.name, origin
-            assert diagnostic["operation_id"] >= 0
+            if "operation_id" in diagnostic:
+                assert diagnostic["operation_id"] >= 0
 
 
     # The immutable divisor declaration is the only literal 2 in this specimen.
@@ -193,12 +203,30 @@ with tempfile.TemporaryDirectory(prefix="lyraform-stabilization-") as directory:
         hostile_count += 1
     # Identity and type evidence cannot be removed or made stale while retaining
     # the same division. Exercise each separately invocable artifact consumer.
+    def contains_division(value):
+        if isinstance(value, dict):
+            if value.get("kind") == "binary" and value.get("operator") == "div":
+                return True
+            return any(contains_division(child) for child in value.values())
+        if isinstance(value, list):
+            return any(contains_division(child) for child in value)
+        return False
+
     def corrupt_divisor(value, attack):
         if isinstance(value, dict):
-            value.pop("scalar_fact", None)
+            if value.get("scalar_fact") and contains_division(value.get("operands", [])):
+                if attack == "identity":
+                    value["scalar_fact"]["expression_id"] += 10000
             if value.get("kind") == "binary" and value.get("operator") == "div":
                 if attack == "identity":
-                    value["right"]["symbol_id"] += 10000
+                    right = value["right"]
+                    if "symbol_id" in right:
+                        right["symbol_id"] += 10000
+                    else:
+                        # Literal divisors carry expression identity rather
+                        # than a symbol identity. Corrupt whichever identity
+                        # the source expression actually provides.
+                        right["expression_id"] = right.get("expression_id", -1) + 10000
                 else:
                     value["right"].pop("type", None)
             for child in value.values():

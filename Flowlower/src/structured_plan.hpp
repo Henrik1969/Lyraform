@@ -61,6 +61,7 @@ struct Operation {
 struct Callable { int symbol=-1, body_block=-1; bool entry=false; std::string name, result; std::vector<std::pair<int,std::string>> parameters; };
 
 inline std::string llvm_type(std::string_view carrier) {
+    if (carrier == "int") return "i32";
     if (carrier == "int32") return "i32";
     if (carrier == "int64") return "i64";
     if (carrier == "bool" || carrier == "Bool") return "i1";

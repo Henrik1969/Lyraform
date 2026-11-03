@@ -16,7 +16,7 @@ if test "$build_status" -ne 0; then
     jq -e '.status == "error" and .lowering_plan.status == "blocked" and
         (.diagnostics | length) > 0 and all(.diagnostics[];
             .code == "FLOWANALYST_INTEGER_DIVISION_UNPROVEN" and
-            (.message | contains("statically established integer operands")))' \
+            (.message | contains("statically established non-zero divisor")))' \
         "$tmpdir/app/semantic.json" >/dev/null
     test ! -e "$tmpdir/app/flow_less"
     echo 'pager admission: refused unproved division; runtime paging NOT exercised'

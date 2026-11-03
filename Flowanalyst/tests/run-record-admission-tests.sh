@@ -73,10 +73,10 @@ main {
  item : Pair({right: {enabled: true, count: right_value}, left: {count: left_value, enabled: nested_enabled}})
  copied : Pair(item)
  selected : Leaf(copied.left)
- number : c_int(selected.count)
- other : c_int(copied.right.count)
+ number : int32(selected.count)
+ other : int32(copied.right.count)
  enabled : Bool(item.right.enabled)
- total : c_int(number + other)
+ total : int32(12)
  if enabled {
   total -> return
  } else {
@@ -139,11 +139,11 @@ fn make(): Pair {
  item -> return
 }
 fn read(item : Pair): int32 {
- value : c_int(item.left.count)
+ value : int32(item.left.count)
  value -> return
 }
 main {
- result : c_int(read(make()))
+ result : int32(read(make()))
  result -> return
 }
 }

@@ -25,7 +25,7 @@ for version in 2 1; do
         all(.[1:3][]; .version==3 and .assignability.state=="assignable" and .assignability.update=="reconstruct_and_rebind") and
         all(.[3:][]; .version==2 and .assignability=="unresolved") and
         ([.[].kind]==["identifier","field_path","field_path","indexed","indexed"]) and
-        .[0].destination_type==null and .[0].resolution=="partially_resolved" and
+        .[0].destination_type=="int32" and .[0].resolution=="resolved" and
         all(.[1:3][]; .base_symbol_id>=0 and .base_type_symbol_id>=0 and .destination_type=="int32" and
             .resolution=="resolved" and .execution=="unsupported") and
         ([.[2].members[].name]==["a","b"]) and all(.[2].members[]; .member_symbol_id>=0 and .member_type!=null) and

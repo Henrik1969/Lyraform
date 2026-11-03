@@ -24,7 +24,10 @@ inline void validate_target_fact(const json::Value& raw) {
         if (!target_null(base) && target_string(base).empty()) target_fail();
         const bool typed=!target_null(destination);
         if (typed && (kind!="identifier" || n("base_symbol_id")<0 ||
-            (target_string(destination)!="int" && target_string(destination)!="Bool") || base!=destination)) target_fail();
+            (target_string(destination)!="int" && target_string(destination)!="int32" &&
+             target_string(destination)!="int64" && target_string(destination)!="c_int" &&
+             target_string(destination)!="c_long" && target_string(destination)!="c_ulong" &&
+             target_string(destination)!="c_size_t" && target_string(destination)!="Bool") || base!=destination)) target_fail();
         if (s("resolution")!=(n("base_symbol_id")<0?"unsupported_semantics":typed?"resolved":"partially_resolved")) target_fail();
         if (s("execution")!=(kind=="identifier"?"existing_policy":"unsupported")) target_fail();
     } else if (version==2 || version==3) {
@@ -78,7 +81,10 @@ inline void validate_target_fact(const json::Value& raw) {
         }
         if (kind=="identifier" && resolution=="resolved") {
             if (n("base_symbol_id")<0 || target_null(base) || target_null(destination) || base!=destination ||
-                (target_string(destination)!="int" && target_string(destination)!="Bool") ||
+                (target_string(destination)!="int" && target_string(destination)!="int32" &&
+                 target_string(destination)!="int64" && target_string(destination)!="c_int" &&
+                 target_string(destination)!="c_long" && target_string(destination)!="c_ulong" &&
+                 target_string(destination)!="c_size_t" && target_string(destination)!="Bool") ||
                 !target_null(base_symbol) || !target_null(destination_symbol)) target_fail();
         }
     } else target_fail();

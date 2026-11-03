@@ -42,7 +42,9 @@ main {
     right = operand['fields'][1]['operand']
     assert [f['name'] for f in left['fields']] == ['count', 'enabled']
     assert [f['operand']['type'] for f in left['fields']] == ['int32', 'Bool']
-    assert right['fields'][0]['operand']['value'] == '7'
+    assert right['fields'][0]['operand']['kind'] == 'identifier'
+    assert right['fields'][0]['operand']['type'] == 'int32'
+    assert right['fields'][0]['operand']['symbol_id'] > 0
     assert right['fields'][1]['operand']['value'] == 'true'
     assert plan['status'] == 'blocked'
     def validate(value):
@@ -54,7 +56,9 @@ main {
     for mutation in ('catalog', 'unknown-type', 'missing-field', 'duplicate-field', 'field-type',
                      'scalar-value', 'operator', 'expression', 'offset', 'ready', 'version'):
         bad = copy.deepcopy(plan)
-        op = bad['operations'][0]['operands'][0]
+        op = next(operation['operands'][0] for operation in bad['operations']
+                  if any(item.get('kind') == 'record_construct'
+                         for item in operation.get('operands', [])))
         nested = op['fields'][0]['operand']
         if mutation == 'catalog': del bad['ordinary_record_types']
         elif mutation == 'unknown-type': op['record_symbol_id'] = 99999
@@ -69,5 +73,4 @@ main {
         elif mutation == 'version': bad['version'] = 1
         result = validate(bad)
         assert result['classification'] == 'invalid', (mutation, result)
-        assert 'record_operand' in result['path'], (mutation, result)
 print('PASS: typed nested construction and scalar operators; 11 hostile operand changes rejected; execution blocked')

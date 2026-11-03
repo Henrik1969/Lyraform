@@ -20,7 +20,7 @@ abi second {
         effect readonly
     }
 }
-fn abs(value : int32): int32 {
+fn abs(value : c_int): c_int {
     return value + 1
 }
 main {

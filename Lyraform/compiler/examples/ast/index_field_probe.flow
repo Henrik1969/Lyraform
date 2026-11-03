@@ -7,7 +7,7 @@ record Point {
 
 main {
     arr : list<int32>([1, 2, 3])
-    i : int32(0)
+    i : c_int(0)
     value : int32(arr[i])
 
     p : Point({x: 10, y: 20})

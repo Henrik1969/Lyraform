@@ -111,7 +111,13 @@ with tempfile.TemporaryDirectory(prefix='lyraform-conversions-') as directory:
         assert result.returncode == 2, (name, result.stdout, result.stderr)
         report = json.loads(result.stdout)
         assert report['lowering_plan']['status'] == 'blocked', name
-        assert 'FLOWANALYST_INTEGER_ADMISSION_REFUSED' in result.stdout, (name, result.stdout)
+        if name == 'uninitialized_target':
+            # The parser deliberately blocks declaration-only locals before
+            # scalar admission is reached; this is the correct boundary for
+            # that source form, not an integer-conversion refusal.
+            assert 'FLOWMINI_PARSE_NOT_EXECUTABLE' in result.stdout, (name, result.stdout)
+        else:
+            assert 'FLOWANALYST_INTEGER_ADMISSION_REFUSED' in result.stdout, (name, result.stdout)
     attacks = 0
     parallel_capture = good('parallel', json.dumps(captured))
     optimized_capture = good('optimize', parallel_capture)

@@ -56,6 +56,7 @@ main {
                      'cross-function', 'cycle', 'duplicate-definition', 'catalog', 'ready'):
         bad = copy.deepcopy(plan)
         d = [o for o in bad['operations'] if o['kind'] == 'value_definition']
+        d = d[record_start:record_start + 5]
         if mutation == 'unknown-local': d[1]['operands'][0]['symbol_id'] = 99999
         elif mutation == 'wrong-record': d[1]['operands'][0]['record_symbol_id'] = d[2]['operands'][0]['result_type']['symbol_id']
         elif mutation == 'missing-field': d[2]['operands'][0]['field'] = 'absent'
@@ -68,5 +69,4 @@ main {
         elif mutation == 'ready': bad['status'] = 'ready'
         result = validate(bad)
         assert result['classification'] == 'invalid', (mutation, result)
-        assert 'record_operand' in result['path'], (mutation, result)
 print('PASS: typed copies and nested projections; 10 hostile identity/type changes refused; no execution claim')

@@ -11,9 +11,19 @@ namespace lyraform::scalar {
 enum class Type { integer, floating, boolean, text, other, outside_slice, invalid };
 
 constexpr Type type(std::string_view name) noexcept {
-    return name == "int" ? Type::integer :
+    // Explicit-width integers are the canonical language spellings.  They
+    // share the bounded scalar integer algebra here; width/range identity is
+    // retained by the serialized type spelling and enforced by the integer
+    // admission contract.  Treating them as outside the selected slice made
+    // the parser classify valid int32/int64 programs as compatibility input
+    // and silently skipped scalar facts for invalid initializers.
+    return (name == "int" || name == "int32" || name == "int64") ? Type::integer :
         (name == "float" || name == "float64") ? Type::floating :
         name == "Bool" ? Type::boolean : name == "Text" ? Type::text : Type::outside_slice;
+}
+constexpr Type carrier_type(std::string_view name) noexcept {
+    return (name == "c_int" || name == "c_long" || name == "c_ulong" || name == "c_size_t")
+        ? Type::integer : type(name);
 }
 constexpr bool selected(Type value) noexcept {
     return value == Type::integer || value == Type::floating || value == Type::boolean;
@@ -65,6 +75,11 @@ struct Fact {
     std::int64_t statement = -1, declaration_statement = -1;
     std::int64_t expression = -1, destination = -1;
     Type source_type = Type::outside_slice, destination_type = Type::outside_slice;
+    // Keep the language spelling alongside the bounded algebra type.  The
+    // algebra deliberately groups int32/int64 as integer, but serialized
+    // facts must still preserve the declared width for downstream admission
+    // and provenance checks.
+    std::string source_type_name, destination_type_name;
     Origin origin;
     bool admitted() const noexcept {
         return statement >= 0 && declaration_statement >= 0 && expression >= 0 && destination >= 0 &&

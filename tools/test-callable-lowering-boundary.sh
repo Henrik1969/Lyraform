@@ -86,8 +86,8 @@ fn truth(value : int32): Bool {
     if value == 3 { return true } else { return false }
 }
 fn label(value : c_string): c_string { return value }
-fn fresh(value : int32): int32 {
-    local : int32(0)
+fn fresh(value : c_int): c_int {
+    local : c_int(0)
     local + value -> local
     return local
 }
@@ -105,8 +105,8 @@ main {
     size : c_size_t(0)
     expected : c_size_t(11)
     libc.length(output) -> size
-    first : int32(0)
-    second : int32(0)
+    first : c_int(0)
+    second : c_int(0)
     fresh(3) -> first
     fresh(4) -> second
     if decision {

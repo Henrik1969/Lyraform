@@ -134,7 +134,7 @@ jq -e --argjson line "$transition_line" '
 refuse() {
     body=$1
     code=$2
-    printf 'program guard_refusal\nfn sensor(): int32 {\n4 -> return\n}\nmain {\nx : int32(1)\n%s\n}\n' "$body" > "$tmpdir/refused.flow"
+    printf 'program guard_refusal\nfn sensor(): c_int {\n4 -> return\n}\nmain {\nx : c_int(1)\n%s\n}\n' "$body" > "$tmpdir/refused.flow"
     "$compiler" --dump-frontend-bundle "$tmpdir/refused.flow" > "$tmpdir/frontend.json"
     set +e
     "$analyst" "$tmpdir/frontend.json" > "$tmpdir/refused.json"

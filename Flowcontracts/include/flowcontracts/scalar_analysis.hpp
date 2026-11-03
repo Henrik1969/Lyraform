@@ -71,7 +71,7 @@ inline Type infer_expression_type(
     std::function<Type(int)> infer;
     const auto symbol_type = [&](int symbol) {
         const auto found = symbol_types.find(symbol);
-        return found == symbol_types.end() ? Type::outside_slice : type(found->second);
+        return found == symbol_types.end() ? Type::outside_slice : carrier_type(found->second);
     };
     const auto compute = [&](int expression_id) -> Type {
         const auto found = expressions.find(expression_id);
@@ -84,6 +84,26 @@ inline Type infer_expression_type(
         if (kind == "bool_literal") return Type::boolean;
         if (kind == "float_literal") return Type::floating;
         if (kind == "string_literal" || kind == "list_literal" || kind == "record_literal") return Type::other;
+        if (kind == "index") {
+            const int base = id(get(payload, "base"));
+            const auto resolved = resolved_symbols.find(base);
+            if (resolved != resolved_symbols.end()) {
+                const auto declared = symbol_types.find(resolved->second);
+                if (declared != symbol_types.end()) {
+                    const auto& spelling = declared->second;
+                    const auto open = spelling.find('<');
+                    const auto close = spelling.find('>', open == std::string::npos ? 0 : open + 1);
+            if (open != std::string::npos && close != std::string::npos &&
+                (spelling.compare(0, open, "array") == 0 || spelling.compare(0, open, "list") == 0))
+                        return carrier_type(spelling.substr(open + 1, close - open - 1));
+                }
+            }
+            return Type::outside_slice;
+        }
+        if (kind == "field_access") {
+            const auto resolved = resolved_symbols.find(expression_id);
+            return resolved != resolved_symbols.end() ? symbol_type(resolved->second) : Type::outside_slice;
+        }
         if (kind == "identifier") {
             const auto symbol = resolved_symbols.find(expression_id);
             if (symbol == resolved_symbols.end()) return Type::invalid;
@@ -120,7 +140,7 @@ inline std::map<int, Fact> analyze(
     std::map<int, Type>* expression_types = nullptr) {
     auto symbol_type = [&](int symbol) {
         const auto found = symbol_types.find(symbol);
-        return found == symbol_types.end() ? Type::outside_slice : type(found->second);
+        return found == symbol_types.end() ? Type::outside_slice : carrier_type(found->second);
     };
     auto destination = [&](int statement, const std::string& name) {
         const auto scope = statement_scopes.find(statement);
@@ -141,14 +161,67 @@ inline std::map<int, Fact> analyze(
         if (text(get(reference, "kind")) == "named") {
             if (const auto* names = get(get(reference, "payload"), "name_segments")) {
                 const auto& segments = flowcontracts::json::array(*names, "$.scalar.type_ref.name_segments");
-                if (segments.size() == 1) declared = type(text(&segments.front()));
+                if (segments.size() == 1) declared = carrier_type(text(&segments.front()));
             }
         }
+        // A bounded refinement construction has already projected its
+        // admitted base carrier into the scalar symbol table. The source
+        // spelling remains a refinement identity elsewhere, but it must not
+        // look like an unresolved scalar declaration to this carrier pass.
+        if (!selected(declared) && selected(symbol_type(symbol))) declared = symbol_type(symbol);
         if (selected(declared) || selected(symbol_type(symbol))) {
             initialized_declarations.emplace(symbol, statement_id);
             if (declared != symbol_type(symbol)) conflicting_declarations.insert(statement_id);
         }
     }
+
+    std::function<std::string(int, unsigned)> infer_expression_type_name;
+    infer_expression_type_name = [&](int expression, unsigned depth) -> std::string {
+        if (depth >= 256 || !expressions.count(expression)) return {};
+        const auto* value = expressions.at(expression);
+        const auto kind = text(get(value, "kind"));
+        const auto* payload = get(value, "payload");
+        if (kind == "integer_literal") return "c_int";
+        if (kind == "float_literal") return "float64";
+        if (kind == "bool_literal") return "Bool";
+        if (kind == "string_literal") return "c_string";
+        if (kind == "identifier") {
+            const auto found = resolved_symbols.find(expression);
+            return found != resolved_symbols.end() && symbol_types.count(found->second)
+                ? symbol_types.at(found->second) : std::string{};
+        }
+        if (kind == "index") {
+            const int base = id(get(payload, "base"));
+            const auto found = resolved_symbols.find(base);
+            const auto declared = found != resolved_symbols.end() && symbol_types.count(found->second)
+                ? symbol_types.at(found->second) : std::string{};
+            const auto open = declared.find('<');
+            const auto close = declared.find('>', open == std::string::npos ? 0 : open + 1);
+            if (open != std::string::npos && close != std::string::npos &&
+                (declared.compare(0, open, "array") == 0 || declared.compare(0, open, "list") == 0))
+                return declared.substr(open + 1, close - open - 1);
+            return {};
+        }
+        if (kind == "field_access") {
+            const auto resolved = resolved_symbols.find(expression);
+            return resolved != resolved_symbols.end() && symbol_types.count(resolved->second)
+                ? symbol_types.at(resolved->second) : std::string{};
+        }
+        if (kind == "unary") return infer_expression_type_name(id(get(payload, "operand")), depth + 1);
+        if (kind == "binary") {
+            const auto operation = text(get(payload, "operator"));
+            if (operation == "==" || operation == "!=" || operation == "<" || operation == "<=" ||
+                operation == ">" || operation == ">=") return "Bool";
+            if (operation == "/") return "float64";
+            const auto left = infer_expression_type_name(id(get(payload, "left")), depth + 1);
+            const auto right = infer_expression_type_name(id(get(payload, "right")), depth + 1);
+            if (!left.empty() && left == right) return left;
+            if (!left.empty() && right.empty()) return left;
+            if (!right.empty() && left.empty()) return right;
+            return "c_int";
+        }
+        return {};
+    };
 
     std::map<int, Fact> facts;
     for (const auto& [statement_id, statement] : statements) {
@@ -164,6 +237,9 @@ inline std::map<int, Fact> analyze(
         const auto name = fact.declaration ? text(get(statement, "name")) : text(get(get(payload, "target"), "name"));
         fact.destination = destination(statement_id, name);
         fact.destination_type = symbol_type(static_cast<int>(fact.destination));
+        if (const auto destination_found = symbol_types.find(static_cast<int>(fact.destination));
+            destination_found != symbol_types.end())
+            fact.destination_type_name = destination_found->second;
         const auto declaration = initialized_declarations.find(static_cast<int>(fact.destination));
         if (declaration != initialized_declarations.end()) fact.declaration_statement = declaration->second;
         // Parameters, uninitialized locals, ABI carriers and aggregate targets
@@ -176,6 +252,19 @@ inline std::map<int, Fact> analyze(
             uninitialized_declarations, expression_types);
         if (conflicting_declarations.count(statement_id)) fact.source_type = Type::invalid;
         if (fact.source_type == Type::outside_slice) continue;
+        const auto expression_kind = text(get(expressions.at(static_cast<int>(fact.expression)), "kind"));
+        if (expression_kind == "identifier") {
+            const auto resolved = resolved_symbols.find(static_cast<int>(fact.expression));
+            if (resolved != resolved_symbols.end()) {
+                const auto source_found = symbol_types.find(resolved->second);
+                if (source_found != symbol_types.end()) fact.source_type_name = source_found->second;
+            }
+        }
+        if (fact.source_type_name.empty()) fact.source_type_name = infer_expression_type_name(
+            static_cast<int>(fact.expression), 0);
+        if (fact.source_type_name.empty()) fact.source_type_name = fact.source_type == Type::integer
+            ? "c_int" : std::string(lyraform::scalar::name(fact.source_type));
+        if (fact.destination_type_name.empty()) fact.destination_type_name = std::string(lyraform::scalar::name(fact.destination_type));
         if (!fact.declaration && declaration != initialized_declarations.end() &&
             position(statements.at(declaration->second)) >= position(statement)) fact.source_type = Type::invalid;
         fact.origin.source = text(get(get(&bundle, "source"), "path"));

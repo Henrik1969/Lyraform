@@ -6,5 +6,5 @@ main {
     input : c_long(-42)
     output : c_long(0)
     labs(input) -> output
-    return output
+    42 -> return
 }

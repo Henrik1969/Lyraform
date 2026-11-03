@@ -1404,6 +1404,35 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     auto visible_symbol = [&](int scope_id, const std::string& name) {
         return flowanalyst::scalar::visible_symbol(scopes, symbols, scope_id, name);
     };
+    // Ordinary record fields are resolved identities too.  Keeping the field
+    // symbol on the expression lets scalar admission preserve the declared
+    // field carrier even when callable-plan-v2 record projection is not in
+    // use. Qualified provider members were resolved above; only fill the
+    // remaining ordinary-record field accesses here.
+    for (const auto& [expression_id, expression] : expressions) {
+        if (text(field(*expression, "kind")) != "field_access" ||
+            resolved_expression_symbols.count(expression_id) ||
+            !expression_context.count(expression_id)) continue;
+        const auto* payload = field(*expression, "payload");
+        const int base = integer(field(payload, "base"));
+        if (!resolved_expression_symbols.count(base)) continue;
+        const int base_symbol = resolved_expression_symbols.at(base);
+        if (!symbol_types.count(base_symbol)) continue;
+        const int record_symbol = visible_refinement_type(
+            expression_context.at(expression_id).second, symbol_types.at(base_symbol));
+        if (!record_fields.count(record_symbol) || !symbols.count(record_symbol)) continue;
+        const int record_scope = integer(field(*symbols.at(record_symbol), "introduced_scope_id"));
+        if (!scopes.count(record_scope)) continue;
+        const auto field_name = text(field(payload, "field"));
+        for (const auto& child : list(field(*scopes.at(record_scope), "symbol_ids"))) {
+            const int field_symbol = integer(&child);
+            if (symbols.count(field_symbol) && text(field(*symbols.at(field_symbol), "kind")) == "Field" &&
+                text(field(*symbols.at(field_symbol), "name")) == field_name) {
+                resolved_expression_symbols[expression_id] = field_symbol;
+                break;
+            }
+        }
+    }
     // Produce bounded scalar identity/type/admission facts once. Lowering
     // operations and target projections consume this authority below instead
     // of independently resolving the same scalar destinations.
@@ -2004,7 +2033,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     auto operation_operand_type = [&](const LoweringOperation& operation, std::size_t argument) {
         const auto scalar = scalar_facts.find(operation.statement);
         auto declared_type = (operation.kind == "value_definition" || operation.kind == "assignment") && scalar != scalar_facts.end()
-            ? std::string(lyraform::scalar::name(scalar->second.destination_type))
+            ? (!scalar->second.destination_type_name.empty() ? scalar->second.destination_type_name
+                : std::string(lyraform::scalar::name(scalar->second.destination_type)))
             : (operation.kind == "value_definition" || operation.kind == "assignment") && operation.result_symbol >= 0 && symbol_types.count(operation.result_symbol)
                 ? symbol_types.at(operation.result_symbol) : std::string{};
         if (operation.kind == "return_value" && lowering_plan_version == 2)
@@ -2190,8 +2220,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         if (aggregate_target) continue;
         add_diagnostic("FLOWANALYST_SCALAR_FLOW_REFUSED",
             "scalar flow requires an established destination of the same type (source " +
-                std::string(lyraform::scalar::name(fact.source_type)) + ", destination " +
-                std::string(lyraform::scalar::name(fact.destination_type)) + ")",
+                (fact.source_type_name.empty() ? std::string(lyraform::scalar::name(fact.source_type)) : fact.source_type_name) + ", destination " +
+                (fact.destination_type_name.empty() ? std::string(lyraform::scalar::name(fact.destination_type)) : fact.destination_type_name) + ")",
             static_cast<int>(fact.destination), "scope:" + std::to_string(statement_scopes.at(statement_id)));
         auto& diagnostic = diagnostics.back();
         diagnostic.ast_path = fact.origin.ast_path;
@@ -2211,11 +2241,13 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             ? static_cast<int>(scalar->second.destination)
             : visible_symbol(operation.scope, text(field(target, kind == "identifier" ? "name" : "base_identifier")));
         const std::string base_type = kind == "identifier" && scalar != scalar_facts.end()
-            ? std::string(lyraform::scalar::name(scalar->second.destination_type))
+            ? (!scalar->second.destination_type_name.empty() ? scalar->second.destination_type_name
+                : std::string(lyraform::scalar::name(scalar->second.destination_type)))
             : symbol_types.count(base) ? symbol_types.at(base) : std::string{};
         std::string destination_type;
         if (kind == "identifier" && scalar != scalar_facts.end())
-            destination_type = std::string(lyraform::scalar::name(scalar->second.destination_type));
+            destination_type = !scalar->second.destination_type_name.empty() ? scalar->second.destination_type_name
+                : std::string(lyraform::scalar::name(scalar->second.destination_type));
         auto source_type = lyraform::scalar::Type::outside_slice;
         if (kind == "field_path") source_type = lyraform::scalar::frontend::infer_expression_type(
             operation.statement, operation.expression, statements, expressions,
@@ -2419,6 +2451,15 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 const auto operation = text(field(payload, "operator"));
                 const int left_id = integer(field(payload, "left"));
                 const int right_id = integer(field(payload, "right"));
+                // Text concatenation has its own provider contract. Do not
+                // send a proven Text+Text expression through numeric scalar
+                // operator admission; mixed Text/c_string cases still fall
+                // through and receive the dedicated boundary diagnostic.
+                if (operation == "+" && expression_is_text(left_id) && expression_is_text(right_id)) {
+                    check_numeric_expression(left_id, statement_id);
+                    check_numeric_expression(right_id, statement_id);
+                    return;
+                }
                 const auto left_type = lyraform::scalar::frontend::infer_expression_type(
                     statement_id, left_id, statements, expressions, resolved_expression_symbols,
                     symbol_types, initialized_local_declarations, uninitialized_local_declarations);
@@ -2459,9 +2500,9 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     }
                     const auto left = evaluate_constant(left_id, {});
                     const auto right = evaluate_constant(right_id, {});
-                    if (left.kind != ConstantValue::Kind::integer || right.kind != ConstantValue::Kind::integer) {
+                    if (right.kind != ConstantValue::Kind::integer) {
                         add_diagnostic("FLOWANALYST_INTEGER_DIVISION_UNPROVEN",
-                            "integer quotient requires statically established integer operands in the current slice",
+                            "integer quotient requires a statically established non-zero divisor in the current slice",
                             -1, "expression:" + std::to_string(expression_id));
                         set_statement_provenance(diagnostics.back(), statement_id);
                     } else if (right.integer == 0) {
@@ -2475,8 +2516,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                         // the compatibility c_int path and have no `type`
                         // field in the source expression pool.
                         const bool int32_carrier = carrier_type.empty() || carrier_type == "int" || carrier_type == "int32" || carrier_type == "c_int";
-                        const bool overflow = (int32_carrier && left.integer == std::numeric_limits<std::int32_t>::min() && right.integer == -1) ||
-                            (left.integer == std::numeric_limits<std::int64_t>::min() && right.integer == -1);
+                        const bool overflow = right.integer == -1 &&
+                            ((int32_carrier && left.kind == ConstantValue::Kind::integer &&
+                              left.integer == std::numeric_limits<std::int32_t>::min()) ||
+                             (!int32_carrier && left.kind == ConstantValue::Kind::integer &&
+                              left.integer == std::numeric_limits<std::int64_t>::min()) ||
+                             left.kind != ConstantValue::Kind::integer);
                         if (!overflow) {
                             check_numeric_expression(left_id, statement_id);
                             check_numeric_expression(right_id, statement_id);
@@ -2533,6 +2578,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         (void)block_id;
         std::map<int, std::int64_t> state;
         std::map<std::string, GuardState> active_guards;
+        const auto bounded_integer_type = [](const std::string& type) {
+            return type == "int32" || type == "int64" || type == "c_int" ||
+                type == "c_long" || type == "c_ulong" || type == "c_size_t";
+        };
         bool has_control_flow = false;
         for (const auto& member : list(field(*block, "statements"))) {
             const int statement_id = integer(&member);
@@ -2553,7 +2602,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     ? static_cast<int>(scalar->second.destination)
                     : visible_symbol(scope_id, text(field(*statement, "name")));
                 const auto value = evaluate_constant(integer(field(payload, "initializer_expression")), state);
-                if (symbol >= 0 && symbol_types[symbol] == "int" && value.kind == ConstantValue::Kind::integer)
+                if (symbol >= 0 && symbol_types.count(symbol) && bounded_integer_type(symbol_types.at(symbol)) &&
+                    value.kind == ConstantValue::Kind::integer)
                     state[symbol] = value.integer;
                 else if (symbol >= 0) state.erase(symbol);
                 continue;
@@ -2565,7 +2615,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 const auto value = evaluate_constant(guard.predicate, state);
                 bool bounded = !has_control_flow && guard.symbol >= 0 && !guard.dependencies.empty();
                 for (const auto dependency : guard.dependencies)
-                    bounded = bounded && symbol_types.count(dependency) && symbol_types.at(dependency) == "int";
+                    bounded = bounded && symbol_types.count(dependency) && bounded_integer_type(symbol_types.at(dependency));
                 if (!bounded || value.kind != ConstantValue::Kind::boolean) {
                     append_guard_fact(guard, "activate", "not_provable", statement_id, -1);
                     add_diagnostic("FLOWANALYST_GUARD_NOT_PROVABLE",
@@ -3443,7 +3493,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             {"completion", "exactly_one"},
             {"possible_dispositions", Array{Object{
                 {"kind", "success"},
-                {"payload_type", std::string(lyraform::scalar::name(scalar->second.destination_type))},
+                {"payload_type", !scalar->second.destination_type_name.empty() ? scalar->second.destination_type_name
+                    : std::string(lyraform::scalar::name(scalar->second.destination_type))},
                 {"commit", "atomic_destination"},
                 {"route", Object{{"kind", "destination"}, {"symbol_id", operation.result_symbol}}}
             }}},
@@ -3657,6 +3708,11 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             return found != resolved_expression_symbols.end() && symbol_types.count(found->second)
                 ? symbol_types.at(found->second) : std::string{};
         }
+        if (kind == "field_access") {
+            const auto found = resolved_expression_symbols.find(id);
+            return found != resolved_expression_symbols.end() && symbol_types.count(found->second)
+                ? symbol_types.at(found->second) : std::string{};
+        }
         if (kind == "float_literal") return context.empty() ? "float64" : context;
         if (kind == "call") {
             const int base = integer(field(payload, "base"));
@@ -3670,8 +3726,21 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             }
         }
         if (kind == "unary") return operand_spelling(integer(field(payload, "operand")), context, depth + 1);
+        if (kind == "index") {
+            const int base = integer(field(payload, "base"));
+            const int symbol = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
+            const auto declared = symbol_types.count(symbol) ? symbol_types.at(symbol) : std::string{};
+            const auto open = declared.find('<');
+            const auto close = declared.find('>', open == std::string::npos ? 0 : open + 1);
+            if (open != std::string::npos && close != std::string::npos &&
+                (declared.compare(0, open, "array") == 0 || declared.compare(0, open, "list") == 0))
+                return declared.substr(open + 1, close - open - 1) == "string"
+                    ? "c_string" : declared.substr(open + 1, close - open - 1);
+        }
         if (kind == "binary") {
             const auto op = text(field(payload, "operator"));
+            if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=")
+                return "Bool";
             const auto left = operand_spelling(integer(field(payload, "left")), {}, depth + 1);
             const auto right = operand_spelling(integer(field(payload, "right")), {}, depth + 1);
             const bool floating = left == "float" || left == "float64" || right == "float" || right == "float64" || op == "/";
@@ -3746,7 +3815,13 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             const int base = integer(field(payload, "base"));
             const int base_symbol = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
             const auto base_type = symbol_types.count(base_symbol) ? symbol_types.at(base_symbol) : std::string{};
-            if (base_type != "TextOutcome" || (field_name != "code" && field_name != "value")) {
+            const int field_symbol = resolved_expression_symbols.count(expression_id)
+                ? resolved_expression_symbols.at(expression_id) : -1;
+            const auto field_type = symbol_types.count(field_symbol) ? symbol_types.at(field_symbol) : std::string{};
+            if (!field_type.empty() && field_type != "TextOutcome" && field_type != "Text" && field_type != "TextFailure") {
+                out << ",\"type\":" << quote(field_type) << ",\"field\":" << quote(field_name) << ",\"base\":";
+                emit_operand(base, base_type);
+            } else if (base_type != "TextOutcome" || (field_name != "code" && field_name != "value")) {
                 out << ",\"type\":\"unsupported\"";
             } else {
                 out << ",\"type\":" << quote(field_name == "code" ? "c_int" : "Text")
@@ -3763,10 +3838,26 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             const int symbol = resolved_expression_symbols.count(base) ? resolved_expression_symbols.at(base) : -1;
             const auto type = symbol_types.count(symbol) ? symbol_types.at(symbol) : std::string{};
             const auto indexes = list(field(payload, "indexes"));
-            if (type == "list<string>" && indexes.size() == 1) {
-                out << ",\"intrinsic\":\"list_index\",\"type\":\"c_string\",\"symbol_id\":" << symbol << ",\"index\":";
+            if (type.starts_with("list<") && indexes.size() == 1) {
+                const auto raw_element = type.substr(5, type.size() > 6 && type.back() == '>' ? type.size() - 6 : 0);
+                const auto element = raw_element == "string" ? "c_string" : raw_element;
+                out << ",\"intrinsic\":\"list_index\",\"type\":" << quote(element)
+                    << ",\"symbol_id\":" << symbol << ",\"index\":";
                 emit_operand(integer(&indexes.front()), "c_int");
-            } else out << ",\"type\":\"unsupported\"";
+            } else {
+                const auto open = type.find('<');
+                const auto close = type.find('>', open == std::string::npos ? 0 : open + 1);
+                if (open != std::string::npos && close != std::string::npos && type.compare(0, open, "array") == 0) {
+                    out << ",\"intrinsic\":\"array_index\",\"type\":"
+                        << quote(type.substr(open + 1, close - open - 1))
+                        << ",\"symbol_id\":" << symbol << ",\"indexes\":[";
+                    for (std::size_t index = 0; index < indexes.size(); ++index) {
+                        if (index) out << ',';
+                        emit_operand(integer(&indexes[index]), "c_int");
+                    }
+                    out << ']';
+                } else out << ",\"type\":\"unsupported\"";
+            }
         } else if (kind == "call") {
             const auto* payload = field(expression, "payload");
             const int base = integer(field(payload, "base"));
@@ -3777,7 +3868,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                 const int argument = integer(&arguments.front());
                 const int symbol = resolved_expression_symbols.count(argument) ? resolved_expression_symbols.at(argument) : -1;
                 const auto type = symbol_types.count(symbol) ? symbol_types.at(symbol) : std::string{};
-                if (type == "list<string>")
+                if (type.starts_with("list<"))
                     out << ",\"intrinsic\":\"list_length\",\"type\":\"c_int\",\"symbol_id\":" << symbol;
                 else out << ",\"type\":\"unsupported\"";
             } else {
@@ -3804,6 +3895,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                         emit_operand(integer(&arguments[index]), argument_type);
                     }
                     out << "]";
+                } else if (symbols.count(callee_symbol) && text(field(*symbols.at(callee_symbol), "kind")) == "Function") {
+                    auto result_spelling = fact_value(*symbols.at(callee_symbol), "return_type_spelling");
+                    for (const auto& callable : callables)
+                        if (callable.symbol == callee_symbol) { result_spelling = callable.return_type; break; }
+                    out << ",\"type\":" << quote(result_spelling)
+                        << ",\"callee_symbol_id\":" << callee_symbol;
                 } else out << ",\"type\":\"unsupported\"";
             }
         } else if (kind == "unary") {
@@ -3832,10 +3929,12 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             }
             const bool comparison = operator_name == "==" || operator_name == "!=" || operator_name == "<" || operator_name == "<=" || operator_name == ">" || operator_name == ">=";
             const auto carrier = operand_spelling(expression_id, declared_type, 0);
+            const auto operand_carrier = comparison
+                ? operand_spelling(integer(field(payload, "left")), {}, 0) : carrier;
             out << ",\"type\":" << (comparison ? "\"bool\"" : quote(carrier)) << ",\"operator\":" << quote(operator_name) << ",\"left\":";
-            emit_operand(integer(field(payload, "left")), carrier);
+            emit_operand(integer(field(payload, "left")), operand_carrier);
             out << ",\"right\":";
-            emit_operand(integer(field(payload, "right")), carrier);
+            emit_operand(integer(field(payload, "right")), operand_carrier);
         } else {
             out << ",\"type\":\"unsupported\"";
         }

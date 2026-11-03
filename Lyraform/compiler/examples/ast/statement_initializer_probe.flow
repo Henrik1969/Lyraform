@@ -1,11 +1,11 @@
 program statement_initializer_probe
 
-fn seed() -> int32 {
+fn seed() -> c_int {
     return 3
 }
 
 main {
-    scalar : int32(1 + seed())
+    scalar : c_int(1 + seed())
     values : list<int32>([1, 2, 3])
     source : stdin.text()
 

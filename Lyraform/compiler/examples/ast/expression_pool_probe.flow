@@ -1,6 +1,6 @@
 program expression_pool_probe
 
-fn square(n : int32) -> int32 {
+fn square(n : c_int) -> c_int {
     return n * n
 }
 

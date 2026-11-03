@@ -119,7 +119,7 @@ if "$FLOWANALYST_BIN" --lowering-plan-version 2 < "$tmpdir/typed.json" > "$tmpdi
     echo 'incompatible receiver types admitted' >&2; exit 1
 fi
 jq -e 'any(.diagnostics[]; .code == "FLOWANALYST_GRAPH_RECEIVER_TYPE")' "$tmpdir/typed.semantic.json" >/dev/null
-sed 's/Bool/int/g' "$tmpdir/typed.flow" > "$tmpdir/compatible.flow"
+sed 's/Bool/int32/g' "$tmpdir/typed.flow" > "$tmpdir/compatible.flow"
 "$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/compatible.flow" > "$tmpdir/compatible.json"
 if "$FLOWANALYST_BIN" --lowering-plan-version 2 < "$tmpdir/compatible.json" > "$tmpdir/compatible.semantic.json"; then
     echo 'syntax-only graph unexpectedly executed' >&2; exit 1

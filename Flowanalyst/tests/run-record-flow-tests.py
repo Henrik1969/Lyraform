@@ -59,7 +59,7 @@ main {
         elif mutation == 'escape': after['operands'][0]['base']['symbol_id'] = then_copy['result_symbol_id']
         elif mutation == 'orphan': root_copy['block_id'] = 99999
         elif mutation == 'overwrite':
-            after['kind'] = 'assignment'; after['result_symbol_id'] = original['result_symbol_id']
+            root_copy['kind'] = 'assignment'; root_copy['result_symbol_id'] = original['result_symbol_id']
         elif mutation == 'cycle': branch['then_block_id'] = branch['block_id']
         elif mutation == 'shared-block': branch['else_block_id'] = branch['then_block_id']
         result = validate(bad)

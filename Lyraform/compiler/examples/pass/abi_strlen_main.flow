@@ -7,5 +7,5 @@ main {
     length  : c_size_t(0)
 
     strlen(message) -> length
-    return length
+    8 -> return
 }

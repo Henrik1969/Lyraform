@@ -1,6 +1,7 @@
 #pragma once
 
 #include <flowcontracts/json.hpp>
+#include <algorithm>
 #include <charconv>
 #include <cstdint>
 #include <functional>
@@ -56,6 +57,7 @@ inline void validate_integer_admission(const json::Value& value,
         }
     }
     using Constant = std::optional<std::int64_t>;
+    const bool single_entry_compatibility = number(plan, "version") == 1 && !optional(plan, "functions");
     std::function<Constant(const Value&, const Object&, std::set<Integer>&, unsigned)> constant;
     constant = [&](const Value& raw, const Object& operation,
                    std::set<Integer>& active, unsigned depth) -> Constant {
@@ -81,8 +83,16 @@ inline void validate_integer_admission(const json::Value& value,
             if (found == definitions.end() || !active.insert(symbol).second) return {};
             const auto& d = found->second;
             Constant result;
-            if (d.writes == 1 && d.operand && d.function >= 0 && d.block >= 0 &&
+            unsigned prior_writes = 0;
+            for (const auto& raw_candidate : operations) {
+                const auto& candidate = object(raw_candidate, path);
+                if (number(candidate, "result_symbol_id") == symbol &&
+                    number(candidate, "statement_id") < number(operation, "statement_id"))
+                    ++prior_writes;
+            }
+            if (prior_writes == 1 && d.operand && d.block >= 0 &&
                 d.function == number(operation, "function_symbol_id") &&
+                (d.function >= 0 || single_entry_compatibility) &&
                 d.block == number(operation, "block_id") &&
                 d.statement < number(operation, "statement_id")) {
                 // Evaluate at the definition's own position, never use a later
@@ -122,6 +132,120 @@ inline void validate_integer_admission(const json::Value& value,
         // established values and unary signs participate in this bounded proof.
         return {};
     };
+    struct Range {
+        std::int64_t low = 0;
+        std::int64_t high = 0;
+    };
+    using BoundedRange = std::optional<Range>;
+    const auto range_bounds = [&](const std::string& type) -> BoundedRange {
+        if (type == "int" || type == "int32" || type == "c_int")
+            return Range{INT32_MIN, INT32_MAX};
+        if (type == "int64" || type == "c_long")
+            return Range{INT64_MIN, INT64_MAX};
+        if (type == "c_ulong" || type == "c_size_t")
+            return Range{0, INT64_MAX};
+        return {};
+    };
+    const auto range_fits = [&](const Range& range, const std::string& type) {
+        const auto bounds = range_bounds(type);
+        return bounds && range.low >= bounds->low && range.high <= bounds->high;
+    };
+    std::function<BoundedRange(const Value&, const Object&, std::set<Integer>&, unsigned)> bounded_range;
+    bounded_range = [&](const Value& raw, const Object& operation,
+                        std::set<Integer>& active, unsigned depth) -> BoundedRange {
+        if (depth >= 256) return {};
+        const auto& operand = object(raw, path);
+        const auto kind = str(operand, "kind");
+        const auto type = str(operand, "type");
+        if (!range_bounds(type)) return {};
+        if (kind == "integer_literal") {
+            const auto spelling = str(operand, "value");
+            std::int64_t value = 0;
+            const auto parsed = std::from_chars(spelling.data(), spelling.data() + spelling.size(), value);
+            if (parsed.ec != std::errc{} || parsed.ptr != spelling.data() + spelling.size()) return {};
+            const Range result{value, value};
+            return range_fits(result, type) ? BoundedRange{result} : BoundedRange{};
+        }
+        if (kind == "identifier") {
+            const auto symbol = number(operand, "symbol_id");
+            if (symbol < 0 || !active.insert(symbol).second) return {};
+            BoundedRange result;
+            for (const auto& raw_candidate : operations) {
+                const auto& candidate = object(raw_candidate, path);
+                if (number(candidate, "result_symbol_id") != symbol ||
+                    number(candidate, "statement_id") >= number(operation, "statement_id")) continue;
+                const auto& candidate_operands = array(required(candidate, "operands", path), path);
+                if (candidate_operands.size() != 1) {
+                    result.reset();
+                    break;
+                }
+                const auto candidate_range = bounded_range(candidate_operands.front(), candidate, active, depth + 1);
+                if (!candidate_range) {
+                    result.reset();
+                    break;
+                }
+                if (!result) result = candidate_range;
+                else {
+                    result->low = std::min(result->low, candidate_range->low);
+                    result->high = std::max(result->high, candidate_range->high);
+                }
+            }
+            active.erase(symbol);
+            if (result && !range_fits(*result, type)) return {};
+            return result;
+        }
+        if (kind == "conversion")
+            return bounded_range(required(operand, "operand", path), operation, active, depth + 1);
+        if (kind == "unary") {
+            const auto input = bounded_range(required(operand, "operand", path), operation, active, depth + 1);
+            if (!input) return {};
+            const auto op = str(operand, "operator");
+            if (op == "+") return range_fits(*input, type) ? input : BoundedRange{};
+            if (op != "-") return {};
+            if (input->low == INT64_MIN) return {};
+            const Range result{-input->high, -input->low};
+            return range_fits(result, type) ? BoundedRange{result} : BoundedRange{};
+        }
+        if (kind == "binary") {
+            const auto left = bounded_range(required(operand, "left", path), operation, active, depth + 1);
+            const auto right = bounded_range(required(operand, "right", path), operation, active, depth + 1);
+            if (!left || !right) return {};
+            const auto op = str(operand, "operator");
+            if (op == "div") {
+                if (right->low <= 0 && right->high >= 0) return {};
+                if ((left->low == INT64_MIN && right->low <= -1 && right->high >= -1) ||
+                    (left->high == INT64_MIN && right->low <= -1 && right->high >= -1)) return {};
+                const std::int64_t candidates[] = {
+                    left->low / right->low, left->low / right->high,
+                    left->high / right->low, left->high / right->high};
+                const Range result{
+                    std::min(std::min(candidates[0], candidates[1]), std::min(candidates[2], candidates[3])),
+                    std::max(std::max(candidates[0], candidates[1]), std::max(candidates[2], candidates[3]))};
+                return range_fits(result, type) ? BoundedRange{result} : BoundedRange{};
+            }
+            if (op != "+" && op != "-" && op != "*") return {};
+            const __int128 values[] = {
+                static_cast<__int128>(left->low) + (op == "+" ? right->low : op == "-" ? -static_cast<__int128>(right->low) : 0),
+                static_cast<__int128>(left->low) + (op == "+" ? right->high : op == "-" ? -static_cast<__int128>(right->high) : 0),
+                static_cast<__int128>(left->high) + (op == "+" ? right->low : op == "-" ? -static_cast<__int128>(right->low) : 0),
+                static_cast<__int128>(left->high) + (op == "+" ? right->high : op == "-" ? -static_cast<__int128>(right->high) : 0)};
+            __int128 products[] = {values[0], values[1], values[2], values[3]};
+            if (op == "*") {
+                products[0] = static_cast<__int128>(left->low) * right->low;
+                products[1] = static_cast<__int128>(left->low) * right->high;
+                products[2] = static_cast<__int128>(left->high) * right->low;
+                products[3] = static_cast<__int128>(left->high) * right->high;
+            }
+            const auto min_value = static_cast<__int128>(INT64_MIN);
+            const auto max_value = static_cast<__int128>(INT64_MAX);
+            for (const auto value : products) if (value < min_value || value > max_value) return {};
+            const auto low = static_cast<std::int64_t>(std::min(std::min(products[0], products[1]), std::min(products[2], products[3])));
+            const auto high = static_cast<std::int64_t>(std::max(std::max(products[0], products[1]), std::max(products[2], products[3])));
+            const Range result{low, high};
+            return range_fits(result, type) ? BoundedRange{result} : BoundedRange{};
+        }
+        return {};
+    };
     // Type identity, not equal machine width, determines compatibility.
     // Reconstruct expected boundaries from the carried declaration/catalog.
     std::map<Integer, std::string> symbol_types;
@@ -155,7 +279,6 @@ inline void validate_integer_admission(const json::Value& value,
         const auto& operand = object(input, path);
         if (str(operand, "kind") != "identifier") return false;
         const auto symbol = number(operand, "symbol_id"), block = number(operation, "block_id");
-        const bool single_entry_compatibility = number(plan, "version") == 1 && !optional(plan, "functions");
         if (symbol < 0 || block < 0 ||
             (number(operation, "function_symbol_id") < 0 && !single_entry_compatibility)) return false;
         const Object* branch = nullptr;
@@ -229,8 +352,12 @@ inline void validate_integer_admission(const json::Value& value,
              (kind == "binary" && (str(*item, "operator") == "+" ||
               str(*item, "operator") == "-" || str(*item, "operator") == "*")))) {
             std::set<Integer> active;
-            if (!constant(raw, operation, active, 0))
-                throw Error(where, "explicit-width integer value/range is unproved; an admitted overflow route is required");
+            if (!constant(raw, operation, active, 0)) {
+                std::set<Integer> range_active;
+                const auto range = bounded_range(raw, operation, range_active, 0);
+                if (!range || !range_fits(*range, str(*item, "type")))
+                    throw Error(where, "explicit-width integer value/range is unproved; an admitted overflow route is required");
+            }
         }
         if (kind == "index" && str(*item, "intrinsic") == "list_index")
             require_identity(str(object(required(*item, "index", where), where), "type"), "c_int", where);
@@ -345,15 +472,23 @@ inline void validate_integer_admission(const json::Value& value,
                     if (const auto* spelling = std::get_if<std::string>(destination)) target_type = *spelling;
             }
             if (!target_type.empty()) require_identity(source, target_type, where);
-            else if (found == symbol_types.end() && numeric(source))
+            else if (found == symbol_types.end() && numeric(source) &&
+                     (!optional(operation, "target_fact") ||
+                      str(object(*optional(operation, "target_fact"), where), "kind") == "identifier"))
                 throw Error(where, "integer assignment requires a declared destination type; conversion cannot be inferred");
         }
         if (kind == "return_value" && operands.size() == 1) {
             const auto found = functions.find(number(operation, "function_symbol_id"));
-            if (found != functions.end())
-                require_identity(str(object(operands.front(), where), "type"), str(*found->second, "return_type"), where);
+            if (found != functions.end()) {
+                const auto source_type = str(object(operands.front(), where), "type");
+                const auto return_type = str(*found->second, "return_type");
+                const bool implicit_main_int32 = str(*found->second, "name") == "main" &&
+                    source_type == "int32" && return_type == "c_int";
+                if (!implicit_main_int32) require_identity(source_type, return_type, where);
+            }
             else if (numeric(str(object(operands.front(), where), "type")) &&
-                     str(object(operands.front(), where), "type") != "c_int")
+                     str(object(operands.front(), where), "type") != "c_int" &&
+                     str(object(operands.front(), where), "type") != "int32")
                 throw Error(where, "integer return requires a declared result contract; compatibility lowering cannot infer a conversion");
         }
         // Calls placed directly into an existing destination are assignments
@@ -369,7 +504,7 @@ inline void validate_integer_admission(const json::Value& value,
                 result_type = str(object(*provider, where), "return_type");
             const bool builtin_length = kind == "call" && str(operation, "callee") == "length" &&
                 number(operation, "callee_symbol_id") < 0 && operands.size() == 1 &&
-                str(object(operands.front(), where), "type") == "list<string>";
+                str(object(operands.front(), where), "type").starts_with("list<");
             if (builtin_length) result_type = "c_int";
             const auto destination = symbol_types.find(number(operation, "result_symbol_id"));
             std::string destination_type = destination == symbol_types.end() ? std::string{} : destination->second;
@@ -391,7 +526,8 @@ inline void validate_integer_admission(const json::Value& value,
                     number(source, "callee_symbol_id") == number(operation, "callee_symbol_id")) ||
                     (builtin_length && str(source, "kind") == "call" && str(source, "intrinsic") == "list_length");
             }
-            if (!explicit_initializer) require_identity(result_type, destination_type, where);
+            if (!explicit_initializer && !(single_entry_compatibility && result_type.empty()))
+                require_identity(result_type, destination_type, where);
         }
         if (kind == "call") {
             const auto found = functions.find(number(operation, "callee_symbol_id"));

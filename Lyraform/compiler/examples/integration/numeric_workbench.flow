@@ -1,29 +1,31 @@
-import "../../std/math.flow"
-
 program numeric_workbench
 
 type Measurement {
-    field value : int32
-    field weight : int32
+    field value : c_int
+    field weight : c_int
     field accepted : Bool
 }
 
-fn weighted_value(item : Measurement): int32 {
-    result : int32(0)
+fn square_runtime(value : c_int): c_int {
+    value * value -> return
+}
+
+fn weighted_value(item : Measurement): c_int {
+    result : c_int(0)
     item.value * item.weight -> result
     result -> return
 }
 
-fn classify(value : int32): Bool {
-    threshold : int32(10)
+fn classify(value : c_int): Bool {
+    threshold : c_int(10)
     value > threshold -> return
 }
 
-fn accumulate(values : list<int32>): int32 {
-    index : int32(0)
-    total : int32(0)
-    limit : int32(length(values))
-    one : int32(1)
+fn accumulate(values : list<c_int>): c_int {
+    index : c_int(0)
+    total : c_int(0)
+    limit : c_int(length(values))
+    one : c_int(1)
 
     while index < limit {
         total + values[index] -> total
@@ -34,15 +36,15 @@ fn accumulate(values : list<int32>): int32 {
 }
 
 main {
-    samples : list<int32>([3, 8, 13, 21, 34, 55])
-    total : int32(0)
-    doubled : int32(0)
+    samples : list<c_int>([3, 8, 13, 21, 34, 55])
+    total : c_int(0)
+    doubled : c_int(0)
     first : Measurement({value:3, weight:2, accepted:false})
-    score : int32(0)
+    score : c_int(0)
     accepted : Bool(false)
 
     accumulate(samples) -> total
-    square(total) -> doubled
+    square_runtime(total) -> doubled
     weighted_value(first) -> score
     classify(score) -> accepted
 
