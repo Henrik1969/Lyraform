@@ -145,6 +145,7 @@ Foundational notes:
 - [ADR-0067: Fault containment returns an explicit quarantined activation result](decisions/0067-explicit-quarantined-activation-results.md)
 - [ADR-0074: True division and integer quotient are distinct operations](decisions/0074-true-division-and-integer-quotient.md)
 - [ADR-0075: Floating exceptional values and precision are a bounded binary64 contract](decisions/0075-floating-exceptional-and-precision-canon.md)
+- [ADR-0076: Native graph integer failure routing uses the existing terminal graph route](decisions/0076-native-graph-integer-failure-routing.md)
 - [Failure-flow semantic--syntax--graph projection map](failure-flow-semantic-syntax-graph-map.tex)
 - [Canonical executable failure flow — Mission 01](../tasks/canonical-executable-failure-flow-mission-01.md)
 - [Canonical executable failure flow — Mission 02](../tasks/canonical-executable-failure-flow-mission-02.md)

@@ -8,8 +8,8 @@ construction, assignment, function argument/return boundaries, and finite
 aggregate field boundaries, including nested finite aggregates, whose
 predicates are statically proved; other
 value-bearing refinements with unenforced predicates remain refused. Integer
-quotients (`div`) and remainders (`%`) whose safety cannot be established and
-have no admitted failure route remain refused. The
+quotients (`div`) and remainders (`%`) whose safety cannot be established
+remain refused outside the bounded native-graph terminal failure route. The
 R6 aggregate slice now admits explicit record cross-field invariants for
 finite integer literals and arithmetic/comparison expressions during aggregate
 construction. Violations, unknown field names, and values that cannot be
@@ -18,8 +18,11 @@ backend execution claim.
 
 The bounded numeric slice now also admits `+`, `-`, `*`, true division (`/`)
 with explicit integer-to-`float64` promotion, and integer remainder (`%`) with
-the sign of the dividend. Integer `div`/`%` zero divisors and `INT_MIN % -1`
-remain refused; accepted cases execute with LLVM/TinyVM parity. The bounded
+the sign of the dividend. Statically known integer `div`/`%` zero divisors and
+`INT_MIN % -1` remain refused. A ready native source graph may now admit a
+runtime-unknown divisor or left operand when its LLVM guard routes zero and
+signed-minimum cases through terminal `flowcore.graph_failure`; ordinary
+functions and TinyVM retain their existing boundaries. The bounded
 float64 contract now defines IEEE-754 binary64, round-to-nearest/ties-to-even,
 signed-zero preservation, and production/propagation of NaN and signed
 infinity. Source float literals must be finite binary64 values; arithmetic
@@ -29,16 +32,20 @@ Dynamic failure routing has its first executable native callable-ABI slice:
 the existing source-declared `TextOutcome` route now has a test that drives a
 real provider failure through the source-derived envelope, invokes the
 resolved recovery callable, and closes the original obligation exactly once.
-The source graph remains blocked and TinyVM disposition execution remains
-unimplemented. No numeric failure type or implicit handler semantics have been
-introduced.
+The source graph recovery remains blocked and TinyVM disposition execution
+remains unimplemented. No numeric failure type or implicit handler semantics
+have been introduced. The separate
+[native graph integer failure-routing slice](checkpoints/2026-11-04-native-graph-integer-failure-routing-slice.md)
+now proves a bounded terminal route for runtime-unknown integer `div` and `%`
+through the existing graph failure ABI; it does not claim source recovery.
 
 The historical pass corpus now reports these contract refusals separately.
 The two `flow_less` integration tests currently verify admission refusal, not
-successful paging or terminal interaction: provider-dependent division in the
-pager lacks an admitted numeric failure route. Their original execution checks
-remain in place for when that source is legitimately admitted. A green test
-entry is not a claim that these applications currently execute.
+successful paging or terminal interaction: the pager remains outside the ready
+v2 native receiver boundary, so its provider-dependent division still lacks an
+admitted numeric failure route. Their original execution checks remain in
+place for when that source is legitimately admitted. A green test entry is not
+a claim that these applications currently execute.
 
 Owner clarification: integer overflow must follow an explicitly authorized
 conversion route to a wider integer type or fail. Silent wrap, truncation, or
@@ -82,8 +89,11 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
-[2026-11-04 floating exceptional and precision vertical slice](checkpoints/2026-11-04-floating-exceptional-precision-slice.md).
-It records the bounded binary64 contract and cross-backend evidence. The
+[2026-11-04 native graph integer failure-routing vertical slice](checkpoints/2026-11-04-native-graph-integer-failure-routing-slice.md).
+It records the bounded terminal graph route for dynamic integer `div` and `%`.
+The preceding
+[2026-11-04 floating exceptional and precision vertical slice](checkpoints/2026-11-04-floating-exceptional-precision-slice.md)
+records the bounded binary64 contract and cross-backend evidence. The
 preceding
 [2026-11-04 dynamic failure routing callable slice](checkpoints/2026-11-04-dynamic-failure-routing-callable-slice.md)
 records the first executable native callable-ABI recovery route and its

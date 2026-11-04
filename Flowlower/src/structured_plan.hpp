@@ -432,7 +432,8 @@ private:
     void emit_graph_globals(std::ostringstream& out) const {
         out<<"declare void @flow_graph_enter(ptr)\ndeclare void @flow_graph_operation(i64)\ndeclare void @flow_graph_event(ptr)\ndeclare void @flow_graph_drop(ptr)\ndeclare void @flow_graph_fail(i64, ptr) noreturn\ndeclare void @flow_graph_state_before(ptr, i64, i64)\ndeclare void @flow_graph_state_after(ptr, i64, i64)\n"
            <<"declare void @flow_graph_stream_item_enter(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_enter(ptr, ptr, i64, i64, i64, i64)\ndeclare void @flow_graph_stream_event(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_drop(ptr, ptr, i64, i64, i64)\ndeclare void @flow_graph_parallel_run(ptr, ptr, ptr, i64)\ndeclare void @flow_graph_parallel_result(i64, i64)\ndeclare void @flow_graph_effect_enter(i64, ptr)\ndeclare void @flow_graph_effect_result(ptr, i64, i64)\n";
-        out<<"@flow.graph.division = private constant [17 x i8] c\"invalid_division\\00\"\n";
+        out<<"@flow.graph.division = private constant [17 x i8] c\"invalid_division\\00\"\n"
+           <<"@flow.graph.remainder = private constant [18 x i8] c\"invalid_remainder\\00\"\n";
         for (const auto& step : graph_steps()) {
             const auto id = integer(field(step, "activation_id"), "activation_id");
             for (const auto* event : {"enter", "output", "drop"}) {
@@ -1006,17 +1007,18 @@ private:
                 if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="div")instruction="sdiv"; else if(op=="%")instruction="srem"; else return {};
             }
             if(left.empty()||right.empty()||left_type!=right_type) return {};
-            if (graph_native_ && instruction == "sdiv") {
-                if (left_type != "i32" && left_type != "i64") throw std::runtime_error("unsupported graph division carrier");
+            if (graph_native_ && (instruction == "sdiv" || instruction == "srem")) {
+                if (left_type != "i32" && left_type != "i64") throw std::runtime_error("unsupported graph integer arithmetic carrier");
                 const auto id = std::to_string(temporary_++);
                 const auto minimum = left_type == "i32" ? "-2147483648" : "-9223372036854775808";
+                const auto reason = instruction == "sdiv" ? "@flow.graph.division" : "@flow.graph.remainder";
                 out<<"  %graph.zero."<<id<<" = icmp eq "<<left_type<<" "<<right<<", 0\n"
                    <<"  %graph.min."<<id<<" = icmp eq "<<left_type<<" "<<left<<", "<<minimum<<"\n"
                    <<"  %graph.neg."<<id<<" = icmp eq "<<left_type<<" "<<right<<", -1\n"
                    <<"  %graph.overflow."<<id<<" = and i1 %graph.min."<<id<<", %graph.neg."<<id<<"\n"
                    <<"  %graph.bad."<<id<<" = or i1 %graph.zero."<<id<<", %graph.overflow."<<id<<"\n"
                    <<"  br i1 %graph.bad."<<id<<", label %graph.fail."<<id<<", label %graph.valid."<<id<<"\n"
-                   <<"graph.fail."<<id<<":\n  call void @flow_graph_fail(i64 "<<active_operation_<<", ptr @flow.graph.division)\n  unreachable\n"
+                   <<"graph.fail."<<id<<":\n  call void @flow_graph_fail(i64 "<<active_operation_<<", ptr "<<reason<<")\n  unreachable\n"
                    <<"graph.valid."<<id<<":\n";
             }
             const auto result="%flow_arithmetic_"+std::to_string(temporary_++); out<<"  "<<result<<" = "<<instruction<<" "<<left_type<<" "<<left<<", "<<right<<"\n"; return {left_type,result};

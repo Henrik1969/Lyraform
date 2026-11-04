@@ -2476,10 +2476,16 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                         const auto left = evaluate_constant(left_id, {});
                         const auto right = evaluate_constant(right_id, {});
                         if (right.kind != ConstantValue::Kind::integer) {
-                            add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_UNPROVEN",
-                                "integer remainder requires a statically established non-zero divisor in the current slice",
-                                -1, "expression:" + std::to_string(expression_id));
-                            set_statement_provenance(diagnostics.back(), statement_id);
+                            if (!graph_native) {
+                                add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_UNPROVEN",
+                                    "integer remainder requires a statically established non-zero divisor in the current slice",
+                                    -1, "expression:" + std::to_string(expression_id));
+                                set_statement_provenance(diagnostics.back(), statement_id);
+                            } else {
+                                check_numeric_expression(left_id, statement_id);
+                                check_numeric_expression(right_id, statement_id);
+                                return;
+                            }
                         } else if (right.integer == 0) {
                             add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_ZERO",
                                 "integer remainder divisor is zero",
@@ -2493,7 +2499,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                                   left.integer == std::numeric_limits<std::int32_t>::min()) ||
                                  (!int32_carrier && left.kind == ConstantValue::Kind::integer &&
                                   left.integer == std::numeric_limits<std::int64_t>::min()) ||
-                                 left.kind != ConstantValue::Kind::integer);
+                                 (left.kind != ConstantValue::Kind::integer && !graph_native));
                             if (overflow) {
                                 add_diagnostic("FLOWANALYST_INTEGER_REMAINDER_OVERFLOW",
                                     "integer remainder overflows for INT_MIN % -1",
@@ -2516,10 +2522,16 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     const auto left = evaluate_constant(left_id, {});
                     const auto right = evaluate_constant(right_id, {});
                     if (right.kind != ConstantValue::Kind::integer) {
-                        add_diagnostic("FLOWANALYST_INTEGER_DIVISION_UNPROVEN",
-                            "integer quotient requires a statically established non-zero divisor in the current slice",
-                            -1, "expression:" + std::to_string(expression_id));
-                        set_statement_provenance(diagnostics.back(), statement_id);
+                        if (!graph_native) {
+                            add_diagnostic("FLOWANALYST_INTEGER_DIVISION_UNPROVEN",
+                                "integer quotient requires a statically established non-zero divisor in the current slice",
+                                -1, "expression:" + std::to_string(expression_id));
+                            set_statement_provenance(diagnostics.back(), statement_id);
+                        } else {
+                            check_numeric_expression(left_id, statement_id);
+                            check_numeric_expression(right_id, statement_id);
+                            return;
+                        }
                     } else if (right.integer == 0) {
                         add_diagnostic("FLOWANALYST_INTEGER_DIVISION_ZERO",
                             "integer quotient divisor is zero",
@@ -2536,7 +2548,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                               left.integer == std::numeric_limits<std::int32_t>::min()) ||
                              (!int32_carrier && left.kind == ConstantValue::Kind::integer &&
                               left.integer == std::numeric_limits<std::int64_t>::min()) ||
-                             left.kind != ConstantValue::Kind::integer);
+                             (left.kind != ConstantValue::Kind::integer && !graph_native));
                         if (!overflow) {
                             check_numeric_expression(left_id, statement_id);
                             check_numeric_expression(right_id, statement_id);

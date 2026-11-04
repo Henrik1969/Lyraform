@@ -58,6 +58,17 @@ inline void validate_integer_admission(const json::Value& value,
     }
     using Constant = std::optional<std::int64_t>;
     const bool single_entry_compatibility = number(plan, "version") == 1 && !optional(plan, "functions");
+    std::set<Integer> graph_receiver_functions;
+    if (const auto* raw_graph = optional(plan, "source_graph")) {
+        const auto graph_path = std::string(path) + ".source_graph";
+        const auto& graph = object(*raw_graph, graph_path);
+        if (number(graph, "version") == 2 && str(graph, "status") == "ready") {
+            for (const auto& raw_receiver : array(required(graph, "receivers", graph_path), graph_path + ".receivers")) {
+                const auto receiver_path = graph_path + ".receivers[]";
+                graph_receiver_functions.insert(number(object(raw_receiver, receiver_path), "function_symbol_id"));
+            }
+        }
+    }
     std::function<Constant(const Value&, const Object&, std::set<Integer>&, unsigned)> constant;
     constant = [&](const Value& raw, const Object& operation,
                    std::set<Integer>& active, unsigned depth) -> Constant {
@@ -446,8 +457,12 @@ inline void validate_integer_admission(const json::Value& value,
             std::set<Integer> active;
             const auto divisor = constant(right, operation, active, 0);
             const auto dividend = constant(left, operation, active, 0);
-            if (!low || minimum(str(rhs, "type")) != low || !divisor || *divisor == 0 ||
-                (*divisor == -1 && (!dividend || *dividend == *low)))
+            const bool graph_runtime_route = graph_receiver_functions.count(
+                number(operation, "function_symbol_id")) != 0;
+            const bool known_unsafe = divisor &&
+                (*divisor == 0 || (*divisor == -1 && dividend && *dividend == *low));
+            if (!low || minimum(str(rhs, "type")) != low || known_unsafe ||
+                (!divisor && !graph_runtime_route))
                 throw Error(where, "integer quotient/remainder safety is unproved; explicit runtime failure routing is not admitted");
         }
         for (const auto& [key, child] : *item)

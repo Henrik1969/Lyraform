@@ -74,9 +74,15 @@ emitted object with `libflowgraph_runtime.so` (installed under `lib/flowcore`) a
 the explicitly selected provider libraries. Lowering reports declare that runtime
 requirement. `FLOWCORE_GRAPH_TRACE=1` produces JSON activation/output records;
 unconnected outputs always produce a drop diagnostic. Records retain source and
-wire provenance. Division by zero or signed division overflow produces a
-`flowcore.graph_failure` with the current activation and operation identity, exits
-70, and never publishes a normal receiver result or invokes its fan-out.
+wire provenance. A ready v2 native graph may admit a runtime-unknown integer
+divisor/left operand because LLVM guards signed `sdiv` and `srem` before
+execution. Division by zero or signed minimum overflow produces a
+`flowcore.graph_failure` with the current activation, operation identity, and
+reason `invalid_division` or `invalid_remainder`, exits 70, and never publishes
+a normal receiver result or invokes its fan-out. Statically known zero and
+overflow cases remain semantic refusals; ordinary functions and TinyVM retain
+their existing boundaries. This is a terminal graph route, not source-level
+recovery or disposition execution.
 
 The `native_source_graph` gate generates a new provider after the tools are built,
 checks unchanged compiler hashes, executes repeated receivers and fan-out, changes
