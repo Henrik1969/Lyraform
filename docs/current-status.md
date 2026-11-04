@@ -21,6 +21,14 @@ with explicit integer-to-`float64` promotion, and integer remainder (`%`) with
 the sign of the dividend. Static zero divisors and `INT_MIN % -1` remain
 refused; accepted cases execute with LLVM/TinyVM parity.
 
+Dynamic failure routing has its first executable native callable-ABI slice:
+the existing source-declared `TextOutcome` route now has a test that drives a
+real provider failure through the source-derived envelope, invokes the
+resolved recovery callable, and closes the original obligation exactly once.
+The source graph remains blocked and TinyVM disposition execution remains
+unimplemented. No numeric failure type or implicit handler semantics have been
+introduced.
+
 The historical pass corpus now reports these contract refusals separately.
 The two `flow_less` integration tests currently verify admission refusal, not
 successful paging or terminal interaction: provider-dependent division in the
@@ -70,10 +78,13 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
-[2026-11-03 integer remainder vertical slice](checkpoints/2026-11-03-integer-remainder-slice.md).
-It records the end-to-end `%` contract, backend parity, refusal boundaries, and
-the current clean `205/205` verification. This is not a production-readiness
-claim. The preceding
+[2026-11-04 dynamic failure routing callable slice](checkpoints/2026-11-04-dynamic-failure-routing-callable-slice.md).
+It records the first executable native callable-ABI recovery route and its
+explicit boundary. The preceding
+[2026-11-03 integer remainder vertical slice](checkpoints/2026-11-03-integer-remainder-slice.md)
+records the end-to-end `%` contract, backend parity, refusal boundaries, and
+the clean `205/205` verification. This is not a production-readiness claim.
+The earlier
 [2026-11-03 explicit-width fixture migration](checkpoints/2026-11-03-explicit-width-fixture-migration.md)
 records the earlier migration snapshot and its then-visible implementation
 gaps as historical evidence.

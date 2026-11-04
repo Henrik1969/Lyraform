@@ -128,3 +128,6 @@ add_test(NAME flowlower_source_callable_abi
     COMMAND ${CMAKE_COMMAND} -E env "FLOWCALLABLE_C_FLAGS=${CMAKE_C_FLAGS}"
         python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-callable-abi-unit.py
         ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR} $<TARGET_FILE:flowlower_callable_abi_unit>)
+add_test(NAME flowlower_dynamic_failure_routing
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-dynamic-failure-routing.py
+        ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR} $<TARGET_FILE:flowlower_callable_abi_unit>)
