@@ -59,6 +59,30 @@ typedef struct FlowActivationFrame {
     FlowActivationResult result;
 } FlowActivationFrame;
 
+/* Narrow native bridge for the admitted TextOutcome source specimen. The
+ * bridge receives generated callables, keeps the source authority in the
+ * activation frame, and does not select policy or infer ownership. A
+ * response result is borrowed/static in this first slice; the provider result
+ * is disposed through the supplied callback after the success rejoin. */
+typedef struct FlowActivationTextOutcome {
+    int32_t code;
+    char *value;
+} FlowActivationTextOutcome;
+typedef FlowActivationTextOutcome (*FlowActivationTextProducer)(void);
+typedef const char *(*FlowActivationTextResponse)(const FlowActivationEnvelope *);
+typedef int (*FlowActivationTextRejoin)(const char *);
+typedef int (*FlowActivationTextDispose)(char *);
+
+int flow_activation_route_text(FlowActivationFrame *frame,
+    const FlowActivationAuthority *authority,
+    FlowActivationTextProducer producer,
+    FlowActivationTextResponse response,
+    FlowActivationTextRejoin rejoin,
+    FlowActivationTextDispose dispose,
+    int64_t response_function, int64_t response_parameter, int64_t route,
+    const char *attempt, const char *correlation,
+    const char *response_attempt, const char *response_provenance);
+
 /* Return 1 for a valid transition, 0 for refusal with the frame unchanged.
  * Refusal is an ABI contract error, not a language failure/fault disposition. */
 int flow_activation_begin(FlowActivationFrame *frame,

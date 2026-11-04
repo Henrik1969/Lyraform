@@ -132,6 +132,7 @@ with tempfile.TemporaryDirectory(prefix="lyraform-dynamic-failure-") as director
     )
     llvm = temp / "callables.ll"
     llvm.write_text(run(unit, [prepared]))
+    assert "define i32 @flow.source.disposition()" in llvm.read_text()
 
     topology = plan["source_disposition"]
     producer = topology["producer"]
@@ -222,4 +223,31 @@ with tempfile.TemporaryDirectory(prefix="lyraform-dynamic-failure-") as director
     )
     run(binary)
 
-print("dynamic failure routing: PASS (real provider failure, exact envelope, resolved recovery, closed obligation)")
+    bridge_driver = temp / "native-disposition-bridge.c"
+    bridge_driver.write_text(
+        'extern int route(void) __asm__("flow.source.disposition");\n'
+        "int __wrap_main(void) { int status = route(); return status == 70 ? 1 : 0; }\n"
+    )
+    bridge_binary = temp / "native-disposition-bridge"
+    run(
+        "clang-18",
+        [
+            llvm,
+            bridge_driver,
+            "-I" + str(root / "Flowtools/reference/disposition"),
+            "-I" + str(root / "Flowtools/reference/text"),
+            "-L" + str(build / "flowtools/reference/disposition"),
+            "-Wl,-rpath," + str(build / "flowtools/reference/disposition"),
+            "-lflowactivation",
+            "-L" + str(build / "flowtools/reference/text"),
+            "-Wl,-rpath," + str(build / "flowtools/reference/text"),
+            "-lflowtext",
+            "-Wl,--wrap=main",
+            "-o",
+            bridge_binary,
+        ],
+    )
+    bridge_output = run(bridge_binary)
+    assert bridge_output == "text unavailable\n"
+
+print("dynamic failure routing: PASS (real provider failure, exact envelope, generated native recovery bridge, closed obligation)")

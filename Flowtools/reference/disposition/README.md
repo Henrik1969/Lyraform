@@ -28,19 +28,28 @@ Every function returns explicit admission of the requested ABI transition.
 Zero means a caller contract violation with byte-for-byte unchanged frame,
 not a synthesized language failure or fault. Generated code must handle that
 transport refusal explicitly; ignoring it is not authorized continuation.
-There is no exception transport, allocation, evidence truncation, callback,
-TLS, name lookup or process exit. Evidence accessors return const pointers.
-The frame's C storage is trusted implementation detail, not writable source data.
+There is no exception transport, allocation, evidence truncation, implicit
+callback, TLS, name lookup or process exit in the frame API. The bounded native
+TextOutcome bridge uses only explicit generated callable and cleanup callbacks;
+it does not turn callbacks into a general runtime dispatch mechanism. Evidence
+accessors return const pointers. The frame's C storage is trusted
+implementation detail, not writable source data.
 
 Current verification feeds facts from real compiler-produced, validated graph
 versions 2/3 fixtures into the linked C library. It checks evidence retention,
 exclusive terminal publication, identity/provenance refusals, independent
 frames, quarantine transition refusal and long evidence. The C++ test driver
 uses exceptions only to report test/admission failures. Production C code does
-not use them. The driver supplies test payloads; it does not execute Lyraform
-response bodies.
+not use them. The frame driver supplies test payloads; the separate generated
+bridge test executes the admitted response body through compiler-emitted
+callables.
 
-Source execution remains blocked. The next integration must generate these calls
-from the preserved graph, supply real producer/response values and backing
-storage, and return structured results to the host. Native and TinyVM execution,
-receipts and control-flow parity must be proven before readiness is changed.
+Source execution remains blocked. A bounded native callable unit now generates
+one `flow.source.disposition` bridge for the validated one-route `TextOutcome`
+specimen. It supplies real producer/response/rejoin values and the preserved
+authority to this runtime; the public source graph is still refused. The bridge
+does not establish general response-result ownership: its admitted response is
+a static/borrowed `Text` literal, while provider-owned successful Text is
+disposed through the generated cleanup callback. Native graph execution,
+TinyVM parity, receipts and general control-flow readiness must still be proven
+before the source disposition status changes.

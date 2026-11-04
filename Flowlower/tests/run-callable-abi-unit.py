@@ -95,14 +95,29 @@ int __wrap_main(void) {{
 ''')
         binary=out/'unit-program'
         run('clang-18',link_flags+[*modules,driver,'-I'+str(root/'Flowtools/reference/disposition'),'-I'+str(root/'Flowtools/reference/text'),
+            '-L'+str(build/'flowtools/reference/disposition'),'-Wl,-rpath,'+str(build/'flowtools/reference/disposition'),'-lflowactivation',
             '-L'+str(build/'flowtools/reference/text'),'-Wl,-rpath,'+str(build/'flowtools/reference/text'),'-lflowtext',
             '-Wl,--wrap=main',*link_args,'-o',binary])
         if memcheck:
             checked=subprocess.run(['valgrind','--error-exitcode=99','--leak-check=full','--errors-for-leak-kinds=all',str(binary)],text=True,capture_output=True,env=env)
             if checked.returncode:raise AssertionError(checked.stderr)
             print(checked.stderr)
-        else:run(binary)
-    print('PASS: 3 native source-callable ABI units (direct, forwarded envelope identity, renamed/changed body); graph execution remains blocked')
+        else:
+            run(binary)
+        if variant == 'direct':
+            bridge_driver=out/'bridge-driver.c'
+            bridge_driver.write_text(
+                'extern int route(void) __asm__("flow.source.disposition");\n'
+                'int __wrap_main(void) { int status = route(); return status == 70 ? 1 : 0; }\n')
+            bridge_binary=out/'bridge-program'
+            run('clang-18',link_flags+[ll,bridge_driver,
+                '-I'+str(root/'Flowtools/reference/disposition'),'-I'+str(root/'Flowtools/reference/text'),
+                '-L'+str(build/'flowtools/reference/disposition'),'-Wl,-rpath,'+str(build/'flowtools/reference/disposition'),'-lflowactivation',
+                '-L'+str(build/'flowtools/reference/text'),'-Wl,-rpath,'+str(build/'flowtools/reference/text'),'-lflowtext',
+                '-Wl,--wrap=main','-o',bridge_binary])
+            if run(bridge_binary) != 'Lyraform\n':
+                raise AssertionError('generated native disposition bridge did not publish success')
+    print('PASS: 3 native source-callable ABI units (direct, forwarded envelope identity, renamed/changed body); generated native disposition bridge verified; graph execution remains blocked')
 
 subprocess.run([sys.executable, str(root/'Flowlower/tests/run-native-record-unit.py'),
                 str(build), str(root), str(unit), *sys.argv[4:]], check=True)

@@ -21,6 +21,57 @@ static int valid_authority(const FlowActivationAuthority *a) {
         a->route >= 0 && !same(a->failure_wire, a->fault_wire);
 }
 
+int flow_activation_route_text(FlowActivationFrame *frame,
+                               const FlowActivationAuthority *authority,
+                               FlowActivationTextProducer producer,
+                               FlowActivationTextResponse response,
+                               FlowActivationTextRejoin rejoin,
+                               FlowActivationTextDispose dispose,
+                               int64_t response_function,
+                               int64_t response_parameter,
+                               int64_t route,
+                               const char *attempt,
+                               const char *correlation,
+                               const char *response_attempt,
+                               const char *response_provenance) {
+    if (!frame || !authority || !producer || !response || !rejoin || !dispose ||
+        !flow_activation_begin(frame, authority, attempt, correlation)) return 70;
+
+    const FlowActivationTextOutcome outcome = producer();
+    if ((outcome.code == 0) != (outcome.value != NULL)) {
+        if (outcome.value) dispose(outcome.value);
+        return 70;
+    }
+    if (outcome.code == 0) {
+        FlowActivationValue published = {
+            authority->success_type, outcome.value, strlen(outcome.value) + 1};
+        if (!flow_activation_publish(frame, published)) {
+            dispose(outcome.value);
+            return 70;
+        }
+        const int result = rejoin(outcome.value);
+        if (dispose(outcome.value) != 0) return 70;
+        return result;
+    }
+
+    FlowActivationValue failed = {
+        authority->failure_type, &outcome.code, sizeof(outcome.code)};
+    if (!flow_activation_fail(frame, failed, "no_commit")) return 70;
+    const FlowActivationEnvelope *envelope = flow_activation_failure(frame);
+    if (!envelope) return 70;
+    const char *recovered_text = response(envelope);
+    if (!recovered_text) return 70;
+    FlowActivationValue recovered = {
+        authority->success_type, recovered_text, strlen(recovered_text) + 1};
+    if (!flow_activation_recover(frame, response_function, response_parameter,
+                                 route, response_attempt, response_provenance,
+                                 recovered)) return 70;
+    /* The admitted source specimen returns a static/borrowed fallback. Its
+     * ownership is not yet a general language contract, so no dispose call is
+     * made on this path. */
+    return rejoin(recovered_text);
+}
+
 int flow_activation_begin(FlowActivationFrame *f, const FlowActivationAuthority *a,
                           const char *attempt, const char *correlation) {
     if (!f || f->phase != EMPTY || !valid_authority(a) ||

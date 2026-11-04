@@ -60,6 +60,17 @@ struct Operation {
 };
 struct Callable { int symbol=-1, body_block=-1; bool entry=false; std::string name, result; std::vector<std::pair<int,std::string>> parameters; };
 
+struct NativeDispositionBridge {
+    int producer = -1, response = -1, response_parameter = -1, rejoin = -1;
+    int operation = -1, disposition = -1;
+    int64_t route = -1;
+    std::string module, revision, activation, producer_node, obligation;
+    std::string success_type, failure_type, fault_type;
+    std::string failure_wire, fault_wire, containment, policy, host_policy;
+    std::string provenance, commit_law, response_provenance;
+    std::string attempt, correlation, response_attempt;
+};
+
 inline std::string llvm_type(std::string_view carrier) {
     if (carrier == "int") return "i32";
     if (carrier == "int32") return "i32";
@@ -99,10 +110,12 @@ public:
         out << "; Flowcore generic structured lowering plan: ordered blocks, calls, branches and returns\n"
                "target triple = \"x86_64-pc-linux-gnu\"\n";
         emit_record_types(out);
+        if (native_disposition_bridge_) emit_activation_types(out);
         emit_globals(out); emit_declarations(out);
         if(graph_native_) emit_graph_globals(out);
         if(plan_version_==2) {
             for(const auto& [identity,function]:callables_)if(!function.entry&&function.body_block>=0)emit_function(function,out);
+            if (native_disposition_bridge_) emit_native_disposition_bridge(out);
             for(const auto& [identity,function]:callables_)if(function.entry){emit_function(function,out); if(graph_native_) emit_graph_main(function,out); return out.str();}
             throw std::runtime_error("callable lowering plan has no selected entry definition");
         }
@@ -141,6 +154,7 @@ private:
     std::map<int,std::pair<std::string,std::string>> call_results_;
     bool has_list_length_ = false;
     std::map<int, std::size_t> string_sizes_;
+    std::optional<NativeDispositionBridge> native_disposition_bridge_;
 
     static Provider provider(const Json& value) {
         return {text(field(value,"contract")), text(field(value,"library")), text(field(value,"convention")),
@@ -170,6 +184,15 @@ private:
             }
             out << " }\n";
         }
+    }
+    void emit_activation_types(std::ostringstream& out) const {
+        out << "%flow.activation.authority = type { "
+               "ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, "
+               "i64, i64, i64, i64, i64, i64 }\n"
+               "%flow.activation.value = type { ptr, ptr, i64 }\n"
+               "%flow.activation.envelope = type { %flow.activation.authority, ptr, ptr, ptr, %flow.activation.value }\n"
+               "%flow.activation.result = type { i32, %flow.activation.value, ptr, i32, i64, ptr, ptr, ptr }\n"
+               "%flow.activation.frame = type { i32, %flow.activation.authority, ptr, ptr, %flow.activation.envelope, %flow.activation.result }\n";
     }
     std::string llvm_type(std::string_view carrier) const {
         if (const auto record = record_carriers_.find(std::string(carrier)); record != record_carriers_.end()) return record->second;
@@ -345,6 +368,122 @@ private:
             }
         }
         if (has_list_length_) required_argc_=0;
+        discover_native_disposition_bridge(*plan);
+    }
+    void discover_native_disposition_bridge(const Json& plan) {
+        native_disposition_bridge_.reset();
+        if (plan_version_ != 2) return;
+        const auto* topology = field(plan, "source_disposition");
+        const auto* graph = field(plan, "disposition_graph");
+        const auto* selection_policy = field(plan, "source_disposition_policy");
+        const auto* host_policy = field(plan, "host_disposition_policy");
+        if (!topology || !graph || !selection_policy || !host_policy ||
+            text(field(*graph, "format")) != "lyraform.disposition_graph" ||
+            integer(field(*graph, "version"), "disposition_graph.version") != 3 ||
+            text(field(*graph, "status")) != "validated_projection" ||
+            text(field(*graph, "execution")) != "unsupported" ||
+            text(field(*topology, "execution")) != "unsupported" ||
+            text(field(*selection_policy, "status")) != "selected" ||
+            text(field(*selection_policy, "execution")) != "unsupported" ||
+            text(field(*host_policy, "status")) != "selected" ||
+            text(field(*host_policy, "execution")) != "unsupported") return;
+
+        const auto* producer_json = field(*topology, "producer");
+        const auto* junction = field(*topology, "junction");
+        const auto* containment_json = field(*topology, "containment");
+        const auto* module_json = field(*topology, "module");
+        const auto* responses_json = field(*topology, "response_functions");
+        const auto* selections_json = field(*selection_policy, "selections");
+        if (!producer_json || !junction || !containment_json || !module_json ||
+            !responses_json || !selections_json ||
+            !std::holds_alternative<Array>(*responses_json) ||
+            !std::holds_alternative<Array>(*selections_json)) return;
+        const auto& responses = std::get<Array>(*responses_json);
+        const auto& selections = std::get<Array>(*selections_json);
+        if (responses.size() != 1 || selections.size() != 1) return;
+        const auto& response_json = responses.front();
+        const auto& selection_json = selections.front();
+        const auto* producer_failures = field(*producer_json, "failure_types");
+        const auto* producer_faults = field(*producer_json, "fault_types");
+        const auto* response_failure = field(response_json, "incoming_failure_type");
+        const auto* response_output = field(response_json, "outgoing_type");
+        const auto* producer_success = field(*producer_json, "success_type");
+        if (!producer_failures || !producer_faults || !response_failure ||
+            !response_output || !producer_success ||
+            !std::holds_alternative<Array>(*producer_failures) ||
+            !std::holds_alternative<Array>(*producer_faults)) return;
+        const auto& failures = std::get<Array>(*producer_failures);
+        const auto& faults = std::get<Array>(*producer_faults);
+        if (failures.size() != 1 || faults.size() != 1) return;
+
+        NativeDispositionBridge bridge;
+        bridge.module = text(field(*module_json, "identity"));
+        bridge.revision = text(field(*module_json, "revision"));
+        bridge.activation = "activation:native-source-disposition:1";
+        bridge.attempt = "attempt:native-source-disposition:1";
+        bridge.correlation = "correlation:native-source-disposition:1";
+        bridge.response_attempt = "response:native-source-disposition:1";
+        bridge.producer_node = text(field(*producer_json, "graph_node_id"));
+        bridge.obligation = text(field(*producer_json, "obligation_id"));
+        bridge.success_type = text(field(*producer_success, "identity"));
+        bridge.failure_type = text(field(failures.front(), "identity"));
+        bridge.fault_type = text(field(faults.front(), "identity"));
+        bridge.failure_wire = text(field(*junction, "failure_wire_id"));
+        bridge.fault_wire = text(field(*containment_json, "wire_id"));
+        bridge.containment = text(field(*containment_json, "node_id"));
+        bridge.policy = flowcontracts::json::serialize(*selection_policy);
+        bridge.host_policy = flowcontracts::json::serialize(*host_policy);
+        bridge.provenance = flowcontracts::json::serialize(*field(*producer_json, "provenance"));
+        bridge.commit_law = text(field(*producer_json, "commit_law"));
+        bridge.response_provenance = flowcontracts::json::serialize(*field(response_json, "provenance"));
+        bridge.operation = integer(field(*producer_json, "operation_id"), "producer.operation_id");
+        bridge.disposition = integer(field(*producer_json, "disposition_id"), "producer.disposition_id");
+        bridge.producer = integer(field(*producer_json, "function_symbol_id"), "producer.function_symbol_id");
+        bridge.response = integer(field(response_json, "function_symbol_id"), "response.function_symbol_id");
+        bridge.response_parameter = integer(field(response_json, "parameter_symbol_id"), "response.parameter_symbol_id");
+        bridge.rejoin = integer(field(*field(*topology, "rejoin"), "function_symbol_id"), "rejoin.function_symbol_id");
+        bridge.route = integer(field(selection_json, "route_id"), "selection.route_id");
+        if (bridge.module.empty() || bridge.revision.empty() || bridge.producer_node.empty() ||
+            bridge.obligation.empty() || bridge.success_type.empty() || bridge.failure_type.empty() ||
+            bridge.fault_type.empty() || bridge.failure_wire.empty() || bridge.fault_wire.empty() ||
+            bridge.containment.empty() || bridge.commit_law.empty() || bridge.response_provenance.empty() ||
+            bridge.operation < 0 || bridge.disposition < 0 || bridge.producer < 0 ||
+            bridge.response < 0 || bridge.response_parameter < 0 || bridge.rejoin < 0 || bridge.route < 0 ||
+            text(field(response_json, "response_class")) != "recover" ||
+            text(field(response_json, "input_projection")) != "immutable_failure_envelope" ||
+            text(field(response_json, "obligation_transition")) != "close_original" ||
+            text(field(*response_output, "identity")) != bridge.success_type ||
+            integer(field(selection_json, "response_function_symbol_id"), "selection.response_function_symbol_id") != bridge.response) return;
+
+        const auto producer = callables_.find(bridge.producer);
+        const auto response = callables_.find(bridge.response);
+        const auto rejoin = callables_.find(bridge.rejoin);
+        if (producer == callables_.end() || response == callables_.end() || rejoin == callables_.end() ||
+            !producer->second.parameters.empty() || producer->second.result != "TextOutcome" ||
+            response->second.parameters.size() != 1 ||
+            !envelope_parameters_.count(response->second.parameters.front().first) ||
+            llvm_type(response->second.result) != "ptr" || response->second.result != "Text" ||
+            rejoin->second.parameters.size() != 1 || rejoin->second.parameters.front().second != "Text" ||
+            rejoin->second.result != "c_int") return;
+        if (response->second.parameters.front().first != bridge.response_parameter) return;
+
+        int response_returns = 0;
+        for (const auto& operation : operations_) {
+            if (operation.function_symbol != bridge.response || operation.kind != "return_value") continue;
+            ++response_returns;
+            if (!operation.operand || text(field(*operation.operand, "kind")) != "identifier") return;
+            const int symbol = integer(field(*operation.operand, "symbol_id"), "response.return.symbol_id");
+            const auto definition = definitions_.find(symbol);
+            if (definition == definitions_.end() || text(field(*definition->second, "kind")) != "string_literal" ||
+                text(field(*definition->second, "type")) != "Text") return;
+        }
+        if (response_returns != 1) return;
+        const auto& rejoin_json = *field(*topology, "rejoin");
+        if (integer(field(rejoin_json, "parameter_symbol_id"), "rejoin.parameter_symbol_id") !=
+                rejoin->second.parameters.front().first ||
+            text(field(rejoin_json, "input_type")) != text(field(*producer_success, "spelling")) ||
+            text(field(*field(*graph, "policy"), "profile")) != "compiler.fixed_single_route") return;
+        native_disposition_bridge_ = std::move(bridge);
     }
     void authorize() const {
         if (!providers_.empty() && authorized_.empty()) throw std::runtime_error("generic structured plan requires a ready typed binding report");
@@ -381,9 +520,50 @@ private:
             out << "@flow_string_expr_" << expression_id << " = private unnamed_addr constant ["
                 << literal.size() + 1 << " x i8] c\"" << escaped_string(literal) << "\"\n";
         }
+        if (native_disposition_bridge_) {
+            const auto& bridge = *native_disposition_bridge_;
+            const auto string_global = [&out](std::string_view name, const std::string& value) {
+                out << "@flow.disposition." << name << " = private unnamed_addr constant ["
+                    << value.size() + 1 << " x i8] c\"" << escaped_string(value) << "\"\n";
+            };
+            string_global("module", bridge.module);
+            string_global("revision", bridge.revision);
+            string_global("activation", bridge.activation);
+            string_global("producer", bridge.producer_node);
+            string_global("obligation", bridge.obligation);
+            string_global("success_type", bridge.success_type);
+            string_global("failure_type", bridge.failure_type);
+            string_global("fault_type", bridge.fault_type);
+            string_global("failure_wire", bridge.failure_wire);
+            string_global("fault_wire", bridge.fault_wire);
+            string_global("containment", bridge.containment);
+            string_global("policy", bridge.policy);
+            string_global("host_policy", bridge.host_policy);
+            string_global("provenance", bridge.provenance);
+            string_global("commit_law", bridge.commit_law);
+            string_global("response_provenance", bridge.response_provenance);
+            string_global("attempt", bridge.attempt);
+            string_global("correlation", bridge.correlation);
+            string_global("response_attempt", bridge.response_attempt);
+            out << "@flow.disposition.authority = private constant %flow.activation.authority { "
+                   "ptr @flow.disposition.module, ptr @flow.disposition.revision, "
+                   "ptr @flow.disposition.activation, ptr @flow.disposition.producer, "
+                   "ptr @flow.disposition.obligation, ptr @flow.disposition.success_type, "
+                   "ptr @flow.disposition.failure_type, ptr @flow.disposition.fault_type, "
+                   "ptr @flow.disposition.failure_wire, ptr @flow.disposition.fault_wire, "
+                   "ptr @flow.disposition.containment, ptr @flow.disposition.policy, "
+                   "ptr @flow.disposition.host_policy, ptr @flow.disposition.provenance, "
+                   "ptr @flow.disposition.commit_law, ptr @flow.disposition.response_provenance, "
+                   "i64 " << bridge.operation << ", i64 " << bridge.producer << ", i64 " << bridge.disposition
+                << ", i64 " << bridge.response << ", i64 " << bridge.response_parameter << ", i64 " << bridge.route << " }\n";
+        }
     }
     void emit_declarations(std::ostringstream& out) const {
         if (has_text_outcome_) out << "declare i32 @flow_text_concat_outcome(ptr, ptr, ptr)\n";
+        if (native_disposition_bridge_) {
+            out << "declare i32 @flow_activation_route_text(ptr, ptr, ptr, ptr, ptr, ptr, i64, i64, i64, ptr, ptr, ptr, ptr)\n"
+                   "declare i32 @flow_text_dispose(ptr)\n";
+        }
         std::map<std::string, std::pair<std::string, std::string>> native_symbols;
         for (const auto& p:providers_) {
             if (!c_symbol(p.symbol) || llvm_type(p.result).empty()) throw std::runtime_error("unsupported structured provider ABI");
@@ -814,6 +994,20 @@ private:
             }
         }
         out << "  call void @flow_graph_enter(ptr null)\n  %graph.exit = call i32 @" << callable_name(entry) << "()\n  ret i32 %graph.exit\n}\n";
+    }
+    void emit_native_disposition_bridge(std::ostringstream& out) const {
+        if (!native_disposition_bridge_) return;
+        const auto& bridge = *native_disposition_bridge_;
+        out << "define i32 @flow.source.disposition() {\n"
+               "entry:\n"
+               "  %flow.disposition.frame = alloca %flow.activation.frame, align 8\n"
+               "  store %flow.activation.frame zeroinitializer, ptr %flow.disposition.frame\n"
+               "  %flow.disposition.status = call i32 @flow_activation_route_text(ptr %flow.disposition.frame, ptr @flow.disposition.authority, ptr @flow.function." << bridge.producer
+            << ", ptr @flow.function." << bridge.response << ", ptr @flow.function." << bridge.rejoin
+            << ", ptr @flow_text_dispose, i64 " << bridge.response << ", i64 " << bridge.response_parameter
+            << ", i64 " << bridge.route << ", ptr @flow.disposition.attempt, ptr @flow.disposition.correlation, ptr @flow.disposition.response_attempt, ptr @flow.disposition.response_provenance)\n"
+               "  ret i32 %flow.disposition.status\n"
+               "}\n";
     }
     void emit_function(const Callable& function,std::ostringstream& out) {
         temporary_=0; label_=0; call_results_.clear();

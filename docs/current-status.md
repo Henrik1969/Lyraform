@@ -32,9 +32,14 @@ Dynamic failure routing has its first executable native callable-ABI slice:
 the existing source-declared `TextOutcome` route now has a test that drives a
 real provider failure through the source-derived envelope, invokes the
 resolved recovery callable, and closes the original obligation exactly once.
-The source graph recovery remains blocked and TinyVM disposition execution
-remains unimplemented. No numeric failure type or implicit handler semantics
-have been introduced. The separate
+The next bounded step now emits a compiler-generated native
+`flow.source.disposition` callable for that exact one-route specimen; its
+success and provider-failure paths both reach the declared typed rejoin, and
+the provider-owned success value is disposed once. This remains a private
+callable-unit bridge: the source graph recovery remains blocked and TinyVM
+disposition execution remains unimplemented. Static/borrowed response-result
+ownership is a fixture-boundary, not a general lifecycle canon. No numeric
+failure type or implicit handler semantics have been introduced. The separate
 [native graph integer failure-routing slice](checkpoints/2026-11-04-native-graph-integer-failure-routing-slice.md)
 now proves a bounded terminal route for runtime-unknown integer `div` and `%`
 through the existing graph failure ABI; it does not claim source recovery.
@@ -89,6 +94,10 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
+[2026-11-04 native source-disposition callable bridge](checkpoints/2026-11-04-native-source-disposition-callable-bridge.md).
+It records compiler-generated native success and failure routing through the
+existing activation ABI while retaining the blocked source-graph and TinyVM
+boundary. The preceding
 [2026-11-04 native graph integer failure-routing vertical slice](checkpoints/2026-11-04-native-graph-integer-failure-routing-slice.md).
 It records the bounded terminal graph route for dynamic integer `div` and `%`.
 The preceding
