@@ -66,7 +66,7 @@ main {{
 with tempfile.TemporaryDirectory(prefix="lyraform-unreachable-branch-") as directory:
     root = pathlib.Path(directory)
     invalid = {
-        "zero_division": ("1 / 0", "FLOWANALYST_DIVISION_ZERO", "false"),
+        "zero_division": ("1 div 0", "FLOWANALYST_INTEGER_DIVISION_ZERO", "false"),
         "invalid_numeric_operator": ("true + 1", "FLOWANALYST_NUMERIC_OPERATOR_TYPE", "true"),
         "unresolved_name": ("missing_name", "FLOWANALYST_UNRESOLVED_NAME", "false"),
     }

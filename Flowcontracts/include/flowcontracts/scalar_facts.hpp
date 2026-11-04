@@ -1,5 +1,6 @@
 #pragma once
 #include <flowcontracts/parse_validity.hpp>
+#include <flowcontracts/floating_semantics.hpp>
 #include <flowcontracts/integer_admission.hpp>
 #include <flowcontracts/explicit_integer_width.hpp>
 #include <flowcontracts/target_facts.hpp>
@@ -8,9 +9,32 @@
 
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/scalar_semantics.hpp>
+#include <functional>
 #include <map>
 
 namespace flowcontracts {
+
+inline void validate_floating_admission(const json::Value& value, std::string_view base) {
+    using namespace json;
+    std::function<void(const Value&, const std::string&)> visit;
+    visit = [&](const Value& current, const std::string& path) {
+        if (const auto* object = std::get_if<Object>(&current)) {
+            const auto kind = optional(*object, "kind");
+            if (kind && string(*kind, path + ".kind") == "float_literal") {
+                const auto raw = required(*object, "value", path);
+                const auto spelling = string(raw, path + ".value");
+                if (!floating::finite_literal(spelling))
+                    throw Error(path + ".value", "floating literal is not a finite binary64 value");
+            }
+            for (const auto& [key, child] : *object) visit(child, path + "." + key);
+        } else if (const auto* array = std::get_if<Array>(&current)) {
+            for (std::size_t index = 0; index < array->size(); ++index)
+                visit((*array)[index], path + "[" + std::to_string(index) + "]");
+        }
+    };
+    visit(value, std::string(base));
+}
+
 inline lyraform::scalar::Type scalar_fact_type(std::string_view spelling) {
     // Host integer carriers participate in the same bounded integer algebra,
     // while their original spelling remains present in the serialized fact.
@@ -98,6 +122,7 @@ inline lyraform::scalar::Type scalar_operand_type(const json::Value& value, cons
 
 inline void validate_scalar_facts(const json::Value& value, std::string_view base) {
     require_plan_parse_validity(value);
+    validate_floating_admission(value, base);
     validate_explicit_integer_width(value, std::string(base));
     validate_integer_admission(value, base);
     validate_target_facts(value);

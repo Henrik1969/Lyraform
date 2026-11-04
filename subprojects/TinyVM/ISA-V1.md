@@ -17,6 +17,7 @@ use. Opaque handles are stable artifact/runtime identities, not addresses.
 | `CONVERT` | destination slot | source slot | target carrier |
 | `ADD/SUB/MUL/SDIV/SREM` | destination slot | left slot | right slot |
 | `FADD/FSUB/FMUL/FDIV` | destination slot | left `f64` slot | right `f64` slot |
+| `FNEG` | destination slot | source `f64` slot | 0 |
 | comparisons | destination `i1` slot | left slot | right slot |
 | `JMP` | absolute instruction target | 0 | 0 |
 | `BRANCH` | condition `i1` slot | true target | false target |
@@ -36,8 +37,10 @@ host symbol opportunistically.
 Integer arithmetic operates on equal `i32` or `i64` carriers. `ADD`, `SUB`, and
 `MUL` use modulo-2^width results, matching the current LLVM lowerer's plain
 integer instructions without `nsw`/`nuw`. Floating arithmetic operates on
-equal `f64` carriers and uses IEEE-754 host operations for the currently
-admitted finite slice; `FDIV` explicitly traps on a zero divisor. Integer
+equal `f64` carriers under the LyraForm `float64` contract: IEEE-754 binary64,
+round-to-nearest/ties-to-even, preserved signed zero, and ordinary IEEE
+production and propagation of NaN and positive/negative infinity. `FDIV`
+therefore does not trap on a zero floating divisor. Integer
 division or remainder by zero and signed minimum divided by minus one are explicit traps
 rather than host-language undefined behavior. Future checked arithmetic
 requires distinct semantic operations. Conversions support `i1`, `i32`, `i64`

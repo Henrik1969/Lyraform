@@ -10,6 +10,7 @@
 #include <flowcontracts/source_disposition.hpp>
 #include <flowcontracts/source_disposition_policy.hpp>
 #include <flowcontracts/disposition_graph.hpp>
+#include <flowcontracts/floating_semantics.hpp>
 #include "scalar_analysis.hpp"
 #include "record_analysis.hpp"
 #include "record_types.hpp"
@@ -2421,26 +2422,6 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
     // operands are statically established integers. True division is handled
     // by the separate float64 promotion contract below.
     std::set<int> checked_numeric_expressions;
-    std::function<std::optional<long double>(int)> numeric_constant =
-        [&](int expression_id) -> std::optional<long double> {
-            if (!expressions.count(expression_id)) return std::nullopt;
-            const auto* expression = expressions.at(expression_id);
-            const auto kind = text(field(*expression, "kind"));
-            const auto* payload = field(*expression, "payload");
-            if (kind == "integer_literal" || kind == "float_literal") {
-                try {
-                    std::size_t consumed = 0;
-                    const auto value = std::stold(text(field(payload, "value_text")), &consumed);
-                    if (consumed == text(field(payload, "value_text")).size()) return value;
-                } catch (const std::exception&) {}
-                return std::nullopt;
-            }
-            if (kind == "unary" && text(field(payload, "operator")) == "-") {
-                const auto value = numeric_constant(integer(field(payload, "operand")));
-                return value ? std::optional<long double>{-*value} : std::nullopt;
-            }
-            return std::nullopt;
-        };
     std::function<void(int, int)> check_numeric_expression =
         [&](int expression_id, int statement_id) {
             if (!expressions.count(expression_id) ||
@@ -2448,6 +2429,16 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             const auto* expression = expressions.at(expression_id);
             const auto kind = text(field(*expression, "kind"));
             const auto* payload = field(*expression, "payload");
+            if (kind == "float_literal") {
+                const auto spelling = text(field(payload, "value_text"));
+                if (!flowcontracts::floating::finite_literal(spelling)) {
+                    add_diagnostic("FLOWANALYST_FLOAT_LITERAL_RANGE",
+                        "floating literal is not a finite binary64 value",
+                        -1, "expression:" + std::to_string(expression_id));
+                    set_statement_provenance(diagnostics.back(), statement_id);
+                }
+                return;
+            }
             if (kind == "binary") {
                 const auto operation = text(field(payload, "operator"));
                 const int left_id = integer(field(payload, "left"));
@@ -2472,18 +2463,6 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     if (result_type != lyraform::scalar::Type::floating) {
                         add_diagnostic("FLOWANALYST_NUMERIC_OPERATOR_TYPE",
                             "true division requires numeric operands",
-                            -1, "expression:" + std::to_string(expression_id));
-                        set_statement_provenance(diagnostics.back(), statement_id);
-                    } else if (const auto divisor = numeric_constant(right_id)) {
-                        if (*divisor == 0.0L) {
-                            add_diagnostic("FLOWANALYST_DIVISION_ZERO",
-                                "division divisor is zero",
-                                -1, "expression:" + std::to_string(expression_id));
-                            set_statement_provenance(diagnostics.back(), statement_id);
-                        }
-                    } else {
-                        add_diagnostic("FLOWANALYST_DIVISION_UNPROVEN",
-                            "division requires a statically established non-zero divisor in the current slice",
                             -1, "expression:" + std::to_string(expression_id));
                         set_statement_provenance(diagnostics.back(), statement_id);
                     }

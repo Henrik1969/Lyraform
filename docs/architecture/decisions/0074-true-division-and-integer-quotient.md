@@ -1,6 +1,6 @@
 # 0074 — True division and integer quotient are distinct operations
 
-**Status:** accepted initial arithmetic canon; integer quotient and bounded numeric-promotion slices implemented
+**Status:** accepted arithmetic canon; integer quotient, numeric-promotion, and bounded floating exceptional/precision slices implemented
 **Date:** 2026-11-02
 **Mission:** Lyraform numeric-semantics foundation
 
@@ -59,9 +59,14 @@ a separate future decision.
 
 ## Safety and conversion laws
 
-- Division by zero is never a successful operation. A statically provable zero
+- Integer `div` and `%` remain strict operations. A statically provable zero
   divisor is rejected during admission; a dynamic divisor needs an explicitly
-  declared failure route before execution can be admitted.
+  declared failure route before execution can be admitted. The `INT_MIN` /
+  `-1` overflow boundary remains refused or explicitly routed.
+- True division (`/`) is a floating operation after the existing numeric
+  promotion rules. Its zero-divisor and exceptional-value behavior is governed
+  by the bounded binary64 contract in [ADR 0075](0075-floating-exceptional-and-precision-canon.md),
+  not by integer failure routing.
 - `INT_MIN div -1` is overflow and must be rejected or follow an authorized
   failure route. It must not wrap or trap through an unselected backend policy.
 - Integer widths remain distinct identities. Mixed-width arithmetic requires
@@ -78,16 +83,17 @@ a separate future decision.
 ## Boundary
 
 The current vertical slices implement `div` and `%` for statically established
-compatibility-width integer operands and bounded `float64` promotion for `+`,
-`-`, `*`, and `/`. LLVM/TinyVM parity covers mixed operands, integer operands
-used with true division, integer remainder, static zero-divisor refusal, the
-`INT_MIN`/`-1` overflow boundary, and the explicit numeric-promotion artifact
-boundary. Dynamic divisor failure routing remains outside this slice.
+compatibility-width integer operands, bounded `float64` promotion for `+`,
+`-`, `*`, and `/`, and the bounded floating exceptional/precision contract.
+LLVM/TinyVM parity covers mixed operands, integer operands used with true
+division, integer remainder, strict integer zero-divisor refusal, the
+`INT_MIN`/`-1` overflow boundary, floating exceptional values, signed zero,
+binary64 rounding witnesses, and the explicit numeric-promotion artifact
+boundary. Dynamic integer-divisor failure routing remains outside this slice.
 
-This decision does not complete floating-point semantics. NaN, infinity,
-signed zero, precision guarantees, rounding modes, literal suffixes, rational
-values, dynamic numeric failure routes, and general refinement composition
-remain separate decisions. The complete matrix is still pending.
+The complete numeric matrix is still pending. User-selected rounding modes,
+literal suffixes, rational values, wider floating families, dynamic integer
+failure routes, and general refinement composition remain separate decisions.
 
 The focused acceptance matrix is recorded in
 [the arithmetic division canon task](../../tasks/arithmetic-division-canon.md).

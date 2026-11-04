@@ -715,7 +715,10 @@ private:
             const auto operand_type = slot_types_.at(operand);
             const auto zero = literal(operand_type, 0), result = slot();
             slot_types_[result] = operand_type;
-            emit(operand_type == TINYVM_CARRIER_F64 ? TV1_FSUB : TV1_SUB, result, zero, operand); return result;
+            emit(operand_type == TINYVM_CARRIER_F64 ? TV1_FNEG : TV1_SUB,
+                 result,
+                 operand_type == TINYVM_CARRIER_F64 ? operand : zero,
+                 operand_type == TINYVM_CARRIER_F64 ? 0 : operand); return result;
         }
         if (kind == "binary") {
             auto left = expression(required(node, "left", "$.expression"));

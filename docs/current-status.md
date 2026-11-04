@@ -18,8 +18,12 @@ backend execution claim.
 
 The bounded numeric slice now also admits `+`, `-`, `*`, true division (`/`)
 with explicit integer-to-`float64` promotion, and integer remainder (`%`) with
-the sign of the dividend. Static zero divisors and `INT_MIN % -1` remain
-refused; accepted cases execute with LLVM/TinyVM parity.
+the sign of the dividend. Integer `div`/`%` zero divisors and `INT_MIN % -1`
+remain refused; accepted cases execute with LLVM/TinyVM parity. The bounded
+float64 contract now defines IEEE-754 binary64, round-to-nearest/ties-to-even,
+signed-zero preservation, and production/propagation of NaN and signed
+infinity. Source float literals must be finite binary64 values; arithmetic
+exceptional values are not silently converted into failure dispositions.
 
 Dynamic failure routing has its first executable native callable-ABI slice:
 the existing source-declared `TextOutcome` route now has a test that drives a
@@ -78,8 +82,11 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
-[2026-11-04 dynamic failure routing callable slice](checkpoints/2026-11-04-dynamic-failure-routing-callable-slice.md).
-It records the first executable native callable-ABI recovery route and its
+[2026-11-04 floating exceptional and precision vertical slice](checkpoints/2026-11-04-floating-exceptional-precision-slice.md).
+It records the bounded binary64 contract and cross-backend evidence. The
+preceding
+[2026-11-04 dynamic failure routing callable slice](checkpoints/2026-11-04-dynamic-failure-routing-callable-slice.md)
+records the first executable native callable-ABI recovery route and its
 explicit boundary. The preceding
 [2026-11-03 integer remainder vertical slice](checkpoints/2026-11-03-integer-remainder-slice.md)
 records the end-to-end `%` contract, backend parity, refusal boundaries, and

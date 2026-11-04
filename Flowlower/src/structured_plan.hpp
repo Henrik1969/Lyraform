@@ -984,7 +984,7 @@ private:
             }
             if(op!="-") return {};
             const auto result="%flow_unary_"+std::to_string(temporary_++);
-            if (operand_type == "double") out<<"  "<<result<<" = fsub double 0.0, "<<operand<<"\n";
+            if (operand_type == "double") out<<"  "<<result<<" = fneg double "<<operand<<"\n";
             else out<<"  "<<result<<" = sub "<<operand_type<<" 0, "<<operand<<"\n";
             return {operand_type,result};
         }

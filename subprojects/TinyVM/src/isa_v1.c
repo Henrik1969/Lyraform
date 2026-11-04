@@ -34,6 +34,8 @@ bool tinyvm_isa_v1_validate(const TinyvmArtifactV2 *a,char *d,size_t capacity){
         case TV1_FADD:case TV1_FSUB:case TV1_FMUL:case TV1_FDIV:
         case TV1_CMP_EQ:case TV1_CMP_NE:case TV1_CMP_LT:case TV1_CMP_LE:case TV1_CMP_GT:case TV1_CMP_GE:
             if(!slot(a,w->a)||!slot(a,w->b)||!slot(a,w->pad)){diagnose(d,capacity,"ISA v1 slot operand is invalid");return false;}break;
+        case TV1_FNEG:
+            if(!slot(a,w->a)||!slot(a,w->b)||w->pad){diagnose(d,capacity,"ISA v1 floating negation operand is invalid");return false;}break;
         case TV1_JMP:if(w->a<0||(uint64_t)w->a>=a->code_count||!zero2(w)){diagnose(d,capacity,"ISA v1 jump target is invalid");return false;}break;
         case TV1_BRANCH:if(!slot(a,w->a)||w->b<0||w->pad<0||(uint64_t)w->b>=a->code_count||(uint64_t)w->pad>=a->code_count){diagnose(d,capacity,"ISA v1 branch is invalid");return false;}break;
         case TV1_RETURN:if(!slot(a,w->a)||!zero2(w)){diagnose(d,capacity,"ISA v1 return is invalid");return false;}break;
@@ -73,6 +75,7 @@ static bool integer_carrier(uint32_t carrier){return carrier==TINYVM_CARRIER_I32
 static bool floating_carrier(uint32_t carrier){return carrier==TINYVM_CARRIER_F64;}
 static double double_bits(uint64_t bits){double value;memcpy(&value,&bits,8);return value;}
 static uint64_t double_value(double value){uint64_t bits;memcpy(&bits,&value,8);return bits;}
+static bool floating_negation(TinyvmIsaV1Context *ctx,uint64_t dst,uint64_t source,uint64_t instruction){TinyvmValue *value=read_slot(ctx,source,instruction);if(!value)return false;if(!floating_carrier(value->carrier))return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"floating negation requires f64 carrier",instruction);ctx->slots[dst]=(TinyvmValue){TINYVM_CARRIER_F64,value->bits^(UINT64_C(1)<<63),true};return true;}
 static bool queue_graph_record(TinyvmIsaV1Context *ctx,const TinyvmGraphActivationRecord *record,uint64_t instruction){
     if(ctx->graph_queue_head&&ctx->graph_queue_count==ctx->graph_queue_capacity){
         const size_t pending=ctx->graph_queue_count-ctx->graph_queue_head;
@@ -94,7 +97,6 @@ static bool binary_arithmetic(TinyvmIsaV1Context *ctx,int64_t opcode,uint64_t ds
     if(floating_carrier(x->carrier)){
         if(opcode<TV1_FADD||opcode>TV1_FDIV)return trap(ctx,TV1_TRAP_TYPE_MISMATCH,"integer opcode used with floating carrier",instruction);
         const double a=double_bits(x->bits),b=double_bits(y->bits);
-        if(opcode==TV1_FDIV&&b==0.0)return trap(ctx,TV1_TRAP_DIVISION_BY_ZERO,"division by zero",instruction);
         const double result=opcode==TV1_FADD?a+b:opcode==TV1_FSUB?a-b:opcode==TV1_FMUL?a*b:a/b;
         ctx->slots[dst]=(TinyvmValue){TINYVM_CARRIER_F64,double_value(result),true};return true;
     }
@@ -148,6 +150,7 @@ bool tinyvm_isa_v1_run_switch(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ctx)
         case TV1_MOVE:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->b,at);if(v)ctx->slots[w->a]=*v;break;}
         case TV1_CONVERT:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->b,at);if(!v)break;if(v->carrier==TINYVM_CARRIER_OPAQUE_HANDLE){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"opaque handle conversion is forbidden",at);break;}uint64_t bits=v->bits;if(w->pad==TINYVM_CARRIER_I1&&bits>1){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"noncanonical boolean conversion",at);break;}if(w->pad==TINYVM_CARRIER_I32)bits=canonical_i32((int32_t)bits);else if(w->pad==TINYVM_CARRIER_I64&&v->carrier==TINYVM_CARRIER_I32)bits=(uint64_t)(int64_t)(int32_t)bits;else if(w->pad==TINYVM_CARRIER_F64&&integer_carrier(v->carrier)){const double value=v->carrier==TINYVM_CARRIER_I32?(double)(int32_t)v->bits:(double)signed_bits(v->bits);bits=double_value(value);}else if(w->pad==TINYVM_CARRIER_F64&&v->carrier!=TINYVM_CARRIER_F64){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"unsupported numeric conversion",at);break;}ctx->slots[w->a]=(TinyvmValue){(uint32_t)w->pad,bits,true};break;}
         case TV1_ADD:case TV1_SUB:case TV1_MUL:case TV1_SDIV:case TV1_SREM:case TV1_FADD:case TV1_FSUB:case TV1_FMUL:case TV1_FDIV:binary_arithmetic(ctx,w->opcode,(uint64_t)w->a,(uint64_t)w->b,(uint64_t)w->pad,at);break;
+        case TV1_FNEG:floating_negation(ctx,(uint64_t)w->a,(uint64_t)w->b,at);break;
         case TV1_CMP_EQ:case TV1_CMP_NE:case TV1_CMP_LT:case TV1_CMP_LE:case TV1_CMP_GT:case TV1_CMP_GE:comparison(ctx,w->opcode,(uint64_t)w->a,(uint64_t)w->b,(uint64_t)w->pad,at);break;
         case TV1_JMP:ctx->pc=(uint64_t)w->a;break;
         case TV1_BRANCH:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->a,at);if(!v)break;if(v->carrier!=TINYVM_CARRIER_I1){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"branch condition is not i1",at);break;}ctx->pc=v->bits?(uint64_t)w->b:(uint64_t)w->pad;break;}
@@ -178,7 +181,7 @@ bool tinyvm_isa_v1_run_computed(const TinyvmArtifactV2 *a,TinyvmIsaV1Context *ct
         [TV1_HALT]=&&do_halt,[TV1_STRING_HANDLE]=&&do_string,
         [TV1_STORAGE_HANDLE]=&&do_storage,[TV1_CALL_IMPORT]=&&do_import,
         [TV1_TEXT_OUTCOME_CODE]=&&do_outcome_code,[TV1_TEXT_OUTCOME_VALUE]=&&do_outcome_value,
-        [TV1_GRAPH_ACTIVATE]=&&do_graph_activate};
+        [TV1_GRAPH_ACTIVATE]=&&do_graph_activate,[TV1_FNEG]=&&do_fneg};
     if(!a||!ctx||(a->isa_version!=1&&a->isa_version!=2)||ctx->slot_count<a->data_words)return false;
     execution_inputs(a,ctx);
     ctx->pc=a->entrypoint;uint64_t at=0;const InstrWord *w=NULL;
@@ -191,6 +194,7 @@ do_const:{const TinyvmConstant *v=constant(a,(uint64_t)w->b);ctx->slots[w->a]=(T
 do_move:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->b,at);if(v)ctx->slots[w->a]=*v;goto next;}
 do_convert:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->b,at);if(!v)goto next;if(v->carrier==TINYVM_CARRIER_OPAQUE_HANDLE){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"opaque handle conversion is forbidden",at);goto next;}uint64_t bits=v->bits;if(w->pad==TINYVM_CARRIER_I1&&bits>1){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"noncanonical boolean conversion",at);goto next;}if(w->pad==TINYVM_CARRIER_I32)bits=canonical_i32((int32_t)bits);else if(w->pad==TINYVM_CARRIER_I64&&v->carrier==TINYVM_CARRIER_I32)bits=(uint64_t)(int64_t)(int32_t)bits;else if(w->pad==TINYVM_CARRIER_F64&&integer_carrier(v->carrier)){const double value=v->carrier==TINYVM_CARRIER_I32?(double)(int32_t)v->bits:(double)signed_bits(v->bits);bits=double_value(value);}else if(w->pad==TINYVM_CARRIER_F64&&v->carrier!=TINYVM_CARRIER_F64){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"unsupported numeric conversion",at);goto next;}ctx->slots[w->a]=(TinyvmValue){(uint32_t)w->pad,bits,true};goto next;}
 do_arithmetic:binary_arithmetic(ctx,w->opcode,(uint64_t)w->a,(uint64_t)w->b,(uint64_t)w->pad,at);goto next;
+do_fneg:floating_negation(ctx,(uint64_t)w->a,(uint64_t)w->b,at);goto next;
 do_compare:comparison(ctx,w->opcode,(uint64_t)w->a,(uint64_t)w->b,(uint64_t)w->pad,at);goto next;
 do_jump:ctx->pc=(uint64_t)w->a;goto next;
 do_branch:{TinyvmValue *v=read_slot(ctx,(uint64_t)w->a,at);if(!v)goto next;if(v->carrier!=TINYVM_CARRIER_I1){trap(ctx,TV1_TRAP_TYPE_MISMATCH,"branch condition is not i1",at);goto next;}ctx->pc=v->bits?(uint64_t)w->b:(uint64_t)w->pad;goto next;}

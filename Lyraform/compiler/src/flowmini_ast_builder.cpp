@@ -1021,13 +1021,19 @@ namespace flowmini::ast {
             return token.text.find(needle) != std::string::npos;
         }
 
+        bool token_text_is_float_spelling(const flowmini::Token& token) {
+            return token_text_contains(token, '.') ||
+                   token_text_contains(token, 'e') ||
+                   token_text_contains(token, 'E');
+        }
+
         ExpressionKind classify_expression_token(const flowmini::Token& token) {
             switch (token.kind) {
                 case flowmini::TokenKind::Identifier:
                     return ExpressionKind::Identifier;
 
                 case flowmini::TokenKind::Number:
-                    return token_text_contains(token, '.')
+                    return token_text_is_float_spelling(token)
                         ? ExpressionKind::FloatLiteral
                         : ExpressionKind::IntegerLiteral;
 

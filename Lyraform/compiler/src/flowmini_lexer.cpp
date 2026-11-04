@@ -251,6 +251,25 @@ std::vector<Token> lexSource(const std::string& source) {
                 ++i;
                 ++column;
             }
+            if (i < source.size() && (source[i] == 'e' || source[i] == 'E')) {
+                const std::size_t exponentStart = i;
+                const int exponentColumn = column;
+                ++i;
+                ++column;
+                if (i < source.size() && (source[i] == '+' || source[i] == '-')) {
+                    ++i;
+                    ++column;
+                }
+                const std::size_t exponentDigitsStart = i;
+                while (i < source.size() && std::isdigit(static_cast<unsigned char>(source[i]))) {
+                    ++i;
+                    ++column;
+                }
+                if (i == exponentDigitsStart) {
+                    i = exponentStart;
+                    column = exponentColumn;
+                }
+            }
             push(TokenKind::Number, source.substr(start, i - start), tokenLine, tokenColumn);
             continue;
         }

@@ -16,7 +16,8 @@ semantics.
 | Integer remainder | `7 % 3 = 1`; sign follows the dividend; LLVM/TinyVM parity | zero divisor and `INT_MIN % -1` are refused before lowering |
 | True division | `8 / 2` has `float64` type and value `4.0`; `1 / 3` is non-integral float | `/` never narrows to integer because the value is integral |
 | Float division | `8.0 / 2.0` remains `float64`, value `4.0` | float result is not reclassified as integer |
-| Zero divisor | statically known zero is rejected before lowering | dynamic zero requires an admitted failure route |
+| Integer zero divisor | statically known zero for `div`/`%` is rejected before lowering | dynamic integer zero requires an admitted failure route |
+| Floating exceptional division | `1 / 0` produces `+infinity`, `-1 / 0` produces `-infinity`, and `0 / 0` produces `NaN` under the binary64 contract | non-finite source literals are rejected; integer `div`/`%` do not use this rule |
 | Integer overflow | `INT_MIN div -1` is rejected or explicitly routed | no wrapping, backend trap, or silent process exit |
 | Width identity | same-width integer quotient preserves width | mixed widths require explicit conversion |
 | Numeric mixing | `+`, `-`, `*`, and `/` promote mixed operands to `float64`; the artifact carries an explicit promotion node | unsupported numeric families and unproved conversions remain refused |
@@ -46,6 +47,7 @@ At minimum:
 1 / 3
 8.0 / 2.0
 1 / 0
+1 div 0
 INT_MIN div -1
 x div y
 ```
@@ -64,7 +66,8 @@ The first mixed-numeric vertical slice is also complete for `+`, `-`, `*`, and
 Its focused acceptance gate is `lyraform_numeric_promotion_canon`.
 
 The remaining matrix is intentionally open: immutable-local proof reuse,
-dynamic failure routing, floating exceptional values and precision rules,
-broader conversion policy, and the repository's explicit-width migration still
-require later slices.
+dynamic integer failure routing, broader conversion policy, user-selected
+rounding modes, and the repository's explicit-width migration still require
+later slices. Floating exceptional values and the bounded binary64 precision
+rules are now covered by `lyraform_floating_exceptional_precision`.
 
