@@ -434,6 +434,22 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
         return kind != operand->end() && identity != operand->end() && json_text(&kind->second) == "identifier" &&
             json_integer(&identity->second, "return identifier symbol") == symbol;
     };
+    auto transfer_returns_for = [&](long long function, long long owner) {
+        std::vector<const Json*> result;
+        for (const auto& operation : operations)
+            if (optional_integer(operation, "function_symbol_id", -1) == function &&
+                json_text(json_field(operation, "kind")) == "return_value" && directly_returns_symbol(operation, owner))
+                result.push_back(&operation);
+        return result;
+    };
+    auto callers_for = [&](long long function) {
+        std::vector<const Json*> result;
+        for (const auto& operation : operations)
+            if (json_text(json_field(operation, "kind")) == "call" &&
+                optional_integer(operation, "callee_symbol_id", -1) == function)
+                result.push_back(&operation);
+        return result;
+    };
     for (auto resource : resources) {
         auto is_cleanup = [&](const Json& operation, long long owner) {
             const auto* provider = json_field(operation, "provider");
@@ -457,13 +473,9 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
         const bool source_is_entry = source_function == functions.end() || source_function->second.entry;
         const Json* transfer_return = nullptr;
         if (!source_is_entry && resource.owner_sensitive && resource.owner >= 0) {
-            for (const auto& operation : operations) {
-                if (optional_integer(operation, "function_symbol_id", -1) != resource.function ||
-                    json_text(json_field(operation, "kind")) != "return_value" || !directly_returns_symbol(operation, resource.owner)) continue;
-                if (transfer_return != nullptr)
-                    throw std::runtime_error("owned provider result has more than one return transfer path");
-                transfer_return = &operation;
-            }
+            const auto returns = transfer_returns_for(resource.function, resource.owner);
+            if (returns.size() > 1) throw std::runtime_error("owned provider result has more than one return transfer path");
+            if (!returns.empty()) transfer_return = returns.front();
         }
         bool transferred = false;
         std::function<std::set<int>(long long, std::set<int>)> walk = [&](long long block, std::set<int> states) {
@@ -503,23 +515,56 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
         if (exits.count(0)) throw std::runtime_error("resource path reaches program exit without its declared cleanup capability");
         if (transfer_return != nullptr) {
             if (!transferred) throw std::runtime_error("owned provider result does not transfer before its source function exits");
-            std::vector<const Json*> callers;
-            for (const auto& operation : operations)
-                if (json_text(json_field(operation, "kind")) == "call" &&
-                    optional_integer(operation, "callee_symbol_id", -1) == resource.function)
-                    callers.push_back(&operation);
+            const auto callers = callers_for(resource.function);
             if (callers.empty()) throw std::runtime_error("owned provider result has no receiving call boundary");
+            std::set<long long> forwarding_bodies_checked;
             for (const auto* caller : callers) {
                 const auto owner = optional_integer(*caller, "result_symbol_id", -1);
                 if (owner < 0) throw std::runtime_error("owned provider result call boundary has no destination owner");
                 const auto caller_function = functions.find(optional_integer(*caller, "function_symbol_id", -1));
                 if (caller_function == functions.end()) throw std::runtime_error("owned provider result caller is absent from the function catalog");
-                if (!caller_function->second.entry)
-                    throw std::runtime_error("owned provider result forwarding beyond one function boundary is not admitted");
-                resource.acquisition = caller;
-                resource.owner = owner;
-                const auto caller_exits = walk(caller_function->second.body, {-1});
-                if (caller_exits.count(0)) throw std::runtime_error("resource path reaches caller exit without its declared cleanup capability");
+                if (caller_function->second.entry) {
+                    resource.acquisition = caller;
+                    resource.owner = owner;
+                    transfer_return = nullptr;
+                    transferred = false;
+                    const auto caller_exits = walk(caller_function->second.body, {-1});
+                    if (caller_exits.count(0)) throw std::runtime_error("resource path reaches caller exit without its declared cleanup capability");
+                    continue;
+                }
+
+                const auto forwarded_returns = transfer_returns_for(caller_function->first, owner);
+                if (forwarded_returns.empty())
+                    throw std::runtime_error("owned provider result forwarding function does not directly return its owner");
+                if (forwarded_returns.size() > 1)
+                    throw std::runtime_error("owned provider result forwarding function has more than one return transfer path");
+                const auto forwarded_callers = callers_for(caller_function->first);
+                if (forwarded_callers.empty())
+                    throw std::runtime_error("owned provider result forwarding function has no receiving call boundary");
+                if (!forwarding_bodies_checked.count(caller_function->first)) {
+                    resource.acquisition = caller;
+                    resource.owner = owner;
+                    transfer_return = forwarded_returns.front();
+                    transferred = false;
+                    const auto forwarding_exits = walk(caller_function->second.body, {-1});
+                    if (forwarding_exits.count(0)) throw std::runtime_error("resource path reaches forwarding-function exit without its declared cleanup capability");
+                    if (!transferred) throw std::runtime_error("owned provider result does not transfer through its forwarding function");
+                    forwarding_bodies_checked.insert(caller_function->first);
+                }
+                for (const auto* forwarded_caller : forwarded_callers) {
+                    const auto final_owner = optional_integer(*forwarded_caller, "result_symbol_id", -1);
+                    if (final_owner < 0) throw std::runtime_error("owned provider result final call boundary has no destination owner");
+                    const auto final_function = functions.find(optional_integer(*forwarded_caller, "function_symbol_id", -1));
+                    if (final_function == functions.end()) throw std::runtime_error("owned provider result final caller is absent from the function catalog");
+                    if (!final_function->second.entry)
+                        throw std::runtime_error("owned provider result forwarding beyond two function boundaries is not admitted");
+                    resource.acquisition = forwarded_caller;
+                    resource.owner = final_owner;
+                    transfer_return = nullptr;
+                    transferred = false;
+                    const auto final_exits = walk(final_function->second.body, {-1});
+                    if (final_exits.count(0)) throw std::runtime_error("resource path reaches final caller exit without its declared cleanup capability");
+                }
             }
         }
     }

@@ -8,10 +8,15 @@ fn join(left : Text, right : Text): Text {
     return value
 }
 
+fn relay(left : Text, right : Text): Text {
+    value : Text(join(left, right))
+    return value
+}
+
 main {
     prefix : Text(join("Lyra", "form"))
     value : Text(join(prefix, " — Igor"))
-    alternate : Text(join(prefix, " / tester"))
+    alternate : Text(relay(prefix, " / tester"))
     print prefix
     print value
     print alternate

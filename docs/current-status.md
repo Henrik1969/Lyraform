@@ -51,7 +51,9 @@ through plan v2, binding, lowering, and the LLVM/TinyVM boundary. The bounded
 slice proves direct return transfer from a non-entry provider, every static
 caller boundary, and owner-specific `flow_text_dispose` actions. General
 resource-flow analysis and implicit unwinding remain outside the admitted
-boundary.
+boundary. The follow-up bounded forwarding slice now permits one additional
+direct-return function boundary before the entry caller and rejects a third
+hop; borrowed or consuming parameter syntax remains a separate decision.
 
 The historical pass corpus now reports these contract refusals separately.
 The two `flow_less` integration tests currently verify admission refusal, not
@@ -103,6 +105,10 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
+[2026-11-05 provider-result forwarding slice](checkpoints/2026-11-05-provider-result-forwarding-slice.md).
+It records one additional direct-return forwarding boundary for provider-owned
+`Text` results, with LLVM/TinyVM coverage and a generated third-hop refusal.
+The preceding
 [2026-11-05 provider-result cleanup slice](checkpoints/2026-11-05-provider-result-cleanup-slice.md).
 It records explicit cleanup authority and bounded one-hop ownership transfer
 for provider-owned `Text` results across semantic analysis, binding, lowering,
@@ -386,7 +392,8 @@ general effectful parallelism and introduces no source scheduling syntax.
 ## Explicitly unsupported
 
 - copied or shared owned values and parallel fan-out;
-- more than one forwarding owner and owned parameters;
+- more than one forwarding function beyond the newly admitted bounded
+  provider-`Text` slice, and owned parameters;
 - containers, recursion, and general path-sensitive outcome accounting;
 - runtime-dependent guard execution;
 - general propagation syntax and policy sinks;

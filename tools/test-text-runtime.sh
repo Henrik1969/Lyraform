@@ -33,6 +33,12 @@ jq -e '
   any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "puts" and .provider.parameter_types == "Text")
 ' "$tmpdir/semantic.json" >/dev/null
 "$validate" "$tmpdir/semantic.json" | jq -e '.classification == "valid"' >/dev/null
+jq -e '
+  .lowering_plan.functions as $functions |
+  ([$functions[] | select(.name == "relay")][0]) as $relay |
+  ($relay.entry == false) and
+  any(.lowering_plan.operations[]; .kind == "call" and .callee_symbol_id == $relay.symbol_id)
+' "$tmpdir/semantic.json" >/dev/null
 jq -S '.lowering_plan.operations | map(select(.provider.return_type == "Text") | .result_resource)' \
   "$tmpdir/semantic.json" > "$tmpdir/semantic.result-resources.json"
 jq '.lowering_plan.operations = [.lowering_plan.operations[] | if .kind == "text_outcome" then del(.result_outcome) else . end]' \
@@ -74,6 +80,25 @@ printf '%s\n' 'Lyraform' 'Lyraform — Igor' 'Lyraform / tester' 'Lyraform — I
 "$tmpdir/text" > "$tmpdir/output"
 cmp -s "$tmpdir/expected" "$tmpdir/output"
 
+sed \
+  -e "s|\"../../std/|\"$root/Lyraform/compiler/std/|" \
+  -e 's|alternate : Text(relay(|alternate : Text(relay_again(|' \
+  "$source" |
+awk '/^main \{/ {
+  print "fn relay_again(left : Text, right : Text): Text {"
+  print "    value : Text(relay(left, right))"
+  print "    return value"
+  print "}"
+  print ""
+}
+{ print }' > "$tmpdir/third-hop.flow"
+"$flowmini" --dump-frontend-bundle "$tmpdir/third-hop.flow" > "$tmpdir/third-hop.frontend.json"
+"$analyst" --lowering-plan-version 2 < "$tmpdir/third-hop.frontend.json" > "$tmpdir/third-hop.semantic.json"
+if "$bind" --policy "$policy" < "$tmpdir/third-hop.semantic.json" >/dev/null 2>&1; then
+  echo 'flowbind accepted provider cleanup forwarding beyond two function boundaries' >&2
+  exit 1
+fi
+
 printf 'import "%s/Lyraform/compiler/std/abi/libc.flow"\nimport "%s/Lyraform/compiler/std/abi/text.flow"\n\nprogram text_runtime_overflow\n\nfn join(left : Text, right : Text): Text {\n    value : Text(left + right)\n    return value\n}\n\nmain {\n    value : Text(join("' "$root" "$root" > "$tmpdir/overflow.flow"
 awk 'BEGIN { for (i = 0; i < 4097; ++i) printf "A" }' >> "$tmpdir/overflow.flow"
 printf '%s\n' '", "x"))' '    print value' '    disposed : c_int(0)' '    dispose(value) -> disposed' '}' >> "$tmpdir/overflow.flow"
@@ -90,4 +115,4 @@ overflow_status=$?
 set -e
 test "$overflow_status" -ne 0
 
-echo 'Runtime Text boundary: PASS (owned bounded concat, exact authorization, and exhaustion trap)'
+echo 'Runtime Text boundary: PASS (owned bounded concat, two-hop forwarding, exact authorization, and exhaustion trap)'

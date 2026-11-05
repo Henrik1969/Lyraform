@@ -149,6 +149,7 @@ Foundational notes:
 - [ADR-0077: Bounded native source-disposition callable bridge](decisions/0077-native-source-disposition-callable-bridge.md)
 - [ADR-0078: Response-result ownership is explicit at disposition boundaries](decisions/0078-response-result-ownership-at-disposition-boundaries.md)
 - [ADR-0079: Provider-owned results carry cleanup through ABI boundaries](decisions/0079-provider-result-cleanup-at-abi-boundaries.md)
+- [ADR-0080: Provider-owned results may cross one bounded forwarding function](decisions/0080-bounded-provider-result-forwarding.md)
 - [Failure-flow semantic--syntax--graph projection map](failure-flow-semantic-syntax-graph-map.tex)
 - [Canonical executable failure flow — Mission 01](../tasks/canonical-executable-failure-flow-mission-01.md)
 - [Canonical executable failure flow — Mission 02](../tasks/canonical-executable-failure-flow-mission-02.md)
