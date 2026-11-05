@@ -35,6 +35,8 @@ jq -e '
     .lowering_plan.source_disposition_policy.selections[0].route_id==0 and
     .lowering_plan.source_disposition_policy.selections[0].response_function_symbol_id==40 and
     .lowering_plan.source_disposition_policy.selections[0].response_transition.response_class=="recover" and
+    .lowering_plan.source_disposition_policy.selections[0].response_transition.result_resource.ownership=="borrowed" and
+    .lowering_plan.source_disposition_policy.selections[0].response_transition.result_resource.cleanup_capability=="none" and
     .lowering_plan.source_disposition_policy.selections[0].response_transition.obligation_transition=="close_original" and
     .lowering_plan.host_disposition_policy.action=="report_and_fail" and
     .lowering_plan.host_disposition_policy.execution=="unsupported" and

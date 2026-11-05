@@ -61,9 +61,9 @@ typedef struct FlowActivationFrame {
 
 /* Narrow native bridge for the admitted TextOutcome source specimen. The
  * bridge receives generated callables, keeps the source authority in the
- * activation frame, and does not select policy or infer ownership. A
- * response result is borrowed/static in this first slice; the provider result
- * is disposed through the supplied callback after the success rejoin. */
+ * activation frame, and does not select policy or infer ownership. Provider
+ * and response-result cleanup are separate capabilities: a borrowed response
+ * supplies NULL, while an owned response supplies its declared disposer. */
 typedef struct FlowActivationTextOutcome {
     int32_t code;
     char *value;
@@ -78,7 +78,8 @@ int flow_activation_route_text(FlowActivationFrame *frame,
     FlowActivationTextProducer producer,
     FlowActivationTextResponse response,
     FlowActivationTextRejoin rejoin,
-    FlowActivationTextDispose dispose,
+    FlowActivationTextDispose producer_dispose,
+    FlowActivationTextDispose response_dispose,
     int64_t response_function, int64_t response_parameter, int64_t route,
     const char *attempt, const char *correlation,
     const char *response_attempt, const char *response_provenance);

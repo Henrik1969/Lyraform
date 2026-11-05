@@ -37,8 +37,11 @@ The next bounded step now emits a compiler-generated native
 success and provider-failure paths both reach the declared typed rejoin, and
 the provider-owned success value is disposed once. This remains a private
 callable-unit bridge: the source graph recovery remains blocked and TinyVM
-disposition execution remains unimplemented. Static/borrowed response-result
-ownership is a fixture-boundary, not a general lifecycle canon. No numeric
+disposition execution remains unimplemented. Response results now carry an
+explicit ownership/lifetime/cleanup contract: the current static literal is
+proved borrowed for the synchronous call, while every other response defaults
+to owned and is refused by the native bridge until its cleanup capability is
+resolved. No numeric
 failure type or implicit handler semantics have been introduced. The separate
 [native graph integer failure-routing slice](checkpoints/2026-11-04-native-graph-integer-failure-routing-slice.md)
 now proves a bounded terminal route for runtime-unknown integer `div` and `%`
@@ -94,10 +97,13 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
+[2026-11-05 response-result ownership slice](checkpoints/2026-11-05-response-result-ownership-slice.md).
+It records explicit ownership/lifetime facts at the source-disposition
+response boundary and separate native cleanup paths while retaining the
+blocked source-graph and TinyVM boundary. The preceding
 [2026-11-04 native source-disposition callable bridge](checkpoints/2026-11-04-native-source-disposition-callable-bridge.md).
 It records compiler-generated native success and failure routing through the
-existing activation ABI while retaining the blocked source-graph and TinyVM
-boundary. The preceding
+existing activation ABI. The preceding
 [2026-11-04 native graph integer failure-routing vertical slice](checkpoints/2026-11-04-native-graph-integer-failure-routing-slice.md).
 It records the bounded terminal graph route for dynamic integer `div` and `%`.
 The preceding

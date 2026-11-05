@@ -35,6 +35,9 @@ with tempfile.TemporaryDirectory(prefix='lyraform-callable-abi-') as tmp:
         plan=json.loads(sem)['lowering_plan'];topology=plan['source_disposition']
         producer=topology['producer']['function_symbol_id']
         response=topology['response_functions'][0];selected=response['function_symbol_id'];parameter=response['parameter_symbol_id']
+        if variant == 'forwarded':
+            assert response['result_resource']['ownership'] == 'owned'
+            assert response['result_resource']['cleanup_capability'] == 'unresolved'
         binding=out/'binding.json';binding.write_text(run(build/'flowbind/flowbind',['--policy',grants],sem))
         parallel=run(build/'flowtools/flowparallel/flowparallel',data=sem)
         optimized=run(build/'flowoptimize/flowoptimize',data=parallel)
@@ -45,6 +48,8 @@ with tempfile.TemporaryDirectory(prefix='lyraform-callable-abi-') as tmp:
         llvm=run(unit,[prepared]);ll=out/'callables.ll';ll.write_text(llvm)
         assert f'define ptr @flow.function.{selected}(ptr %flow_arg_{parameter})' in llvm
         assert f'define {{ i32, ptr }} @flow.function.{producer}()' in llvm
+        if variant == 'forwarded':
+            assert 'define i32 @flow.source.disposition()' not in llvm
         # The C unit host supplies an actual envelope address. For forwarding,
         # a linker wrapper observes the exact pointer at the inner source call.
         calls=[op for op in plan['operations'] if op['kind']=='call' and op['function_symbol_id']==selected]
@@ -105,6 +110,8 @@ int __wrap_main(void) {{
         else:
             run(binary)
         if variant == 'direct':
+            generated = llvm
+            assert 'ptr @flow_text_dispose, ptr null, i64' in generated
             bridge_driver=out/'bridge-driver.c'
             bridge_driver.write_text(
                 'extern int route(void) __asm__("flow.source.disposition");\n'

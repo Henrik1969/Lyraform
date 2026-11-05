@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 #include <cstring>
+#include <cstdlib>
 #include <array>
 #include <type_traits>
 
@@ -18,6 +19,23 @@ void refuse_unchanged(FlowActivationFrame& frame, Action action) {
     std::memcpy(before.data(), &frame, sizeof(frame));
     require(action() == 0);
     require(std::memcmp(before.data(), &frame, sizeof(frame)) == 0);
+}
+
+int route_dispose_calls = 0;
+FlowActivationTextOutcome route_failure() { return {2, nullptr}; }
+const char* route_borrowed(const FlowActivationEnvelope*) { return "borrowed"; }
+const char* route_owned(const FlowActivationEnvelope*) {
+    char* value = static_cast<char*>(std::malloc(6));
+    if (value) std::memcpy(value, "owned", 6);
+    return value;
+}
+int route_rejoin(const char* value) {
+    return value && (std::strcmp(value, "borrowed") == 0 || std::strcmp(value, "owned") == 0) ? 9 : 70;
+}
+int route_dispose(char* value) {
+    ++route_dispose_calls;
+    std::free(value);
+    return 0;
 }
 }
 
@@ -139,6 +157,23 @@ int main(int argc, char** argv) {
         refuse_unchanged(quarantined, [&] { return flow_activation_recover(&quarantined, function, authority.response_parameter, authority.route, "response:3", "source", normal); });
         refuse_unchanged(quarantined, [&] { return flow_activation_quarantine(&quarantined, faulted, "no_commit"); });
         require(flow_activation_result(&frame) == result && result->value.data == success);
+        FlowActivationFrame routed{};
+        route_dispose_calls = 0;
+        require(flow_activation_route_text(&routed, &authority, route_failure, route_owned,
+                                           route_rejoin, route_dispose, route_dispose,
+                                           authority.response_function, authority.response_parameter,
+                                           authority.route, "attempt:owned", "correlation:owned",
+                                           "response:owned", authority.response_provenance) == 9);
+        require(route_dispose_calls == 1);
+        require(flow_activation_result(&routed)->value.data != nullptr);
+        routed = FlowActivationFrame{};
+        route_dispose_calls = 0;
+        require(flow_activation_route_text(&routed, &authority, route_failure, route_borrowed,
+                                           route_rejoin, route_dispose, nullptr,
+                                           authority.response_function, authority.response_parameter,
+                                           authority.route, "attempt:borrowed", "correlation:borrowed",
+                                           "response:borrowed", authority.response_provenance) == 9);
+        require(route_dispose_calls == 0);
         std::cout << "PASS source-derived activation frame: exclusive publication, recovery evidence, quarantine, unchanged refusals; source execution unsupported\n";
         return 0;
     } catch (const std::exception& error) {

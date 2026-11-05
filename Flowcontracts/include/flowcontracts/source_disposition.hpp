@@ -37,6 +37,33 @@ inline void validate_source_disposition_topology(const json::Value& raw,
         provenance(required(t, "provenance", owner), owner + ".provenance");
         return spelling;
     };
+    auto result_resource = [&](const json::Value& value, const std::string& owner,
+                               const std::string& outgoing) {
+        const auto& resource = object(value, owner);
+        if (resource.size() != 8 ||
+            !resource.contains("type") || !resource.contains("ownership") ||
+            !resource.contains("access") || !resource.contains("lifetime") ||
+            !resource.contains("nullable") || !resource.contains("cleanup_capability") ||
+            !resource.contains("origin") || !resource.contains("proof"))
+            throw Error(owner, "response result resource contract is incomplete or has undeclared fields");
+        const auto resource_type = text(resource, "type", owner);
+        const auto ownership = text(resource, "ownership", owner);
+        const auto access = text(resource, "access", owner);
+        const auto lifetime = text(resource, "lifetime", owner);
+        const auto nullable = text(resource, "nullable", owner);
+        const auto cleanup = text(resource, "cleanup_capability", owner);
+        const auto origin = text(resource, "origin", owner);
+        const auto proof = text(resource, "proof", owner);
+        if (resource_type != outgoing ||
+            (ownership != "borrowed" && ownership != "owned") ||
+            access != "read" || nullable != "false" || origin.empty() || proof.empty())
+            throw Error(owner, "response result resource disagrees with the typed boundary");
+        if (ownership == "borrowed" && (lifetime != "call" || cleanup != "none"))
+            throw Error(owner, "borrowed response results require call lifetime and no cleanup");
+        if (ownership == "owned" && (lifetime != "owned" || cleanup.empty() || cleanup == "none"))
+            throw Error(owner, "owned response results require owned lifetime and cleanup capability");
+        return ownership;
+    };
 
     if (text(root, "format", path) != "lyraform.source_disposition_topology" ||
         number(root, "version", path) != 1 || text(root, "status", path) != "semantic" ||
@@ -112,6 +139,8 @@ inline void validate_source_disposition_topology(const json::Value& raw,
         const auto id = number(response, "function_symbol_id", owner_path);
         const auto incoming = type(required(response, "incoming_failure_type", owner_path), owner_path + ".incoming_failure_type");
         const auto outgoing = type(required(response, "outgoing_type", owner_path), owner_path + ".outgoing_type");
+        result_resource(required(response, "result_resource", owner_path),
+                        owner_path + ".result_resource", outgoing);
         const auto response_class = text(response, "response_class", owner_path);
         if (id < 0 || !failures.count(incoming) ||
             text(response, "input_projection", owner_path) != "immutable_failure_envelope" ||

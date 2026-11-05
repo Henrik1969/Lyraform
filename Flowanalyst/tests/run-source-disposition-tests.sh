@@ -36,6 +36,11 @@ jq -e '
     (.lowering_plan.source_disposition.response_functions[0].input_projection=="immutable_failure_envelope") and
     (.lowering_plan.source_disposition.response_functions[0].response_class=="recover") and
     (.lowering_plan.source_disposition.response_functions[0].outgoing_type.spelling=="Text") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.type=="Text") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.ownership=="borrowed") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.lifetime=="call") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.cleanup_capability=="none") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.origin=="static_literal") and
     (.lowering_plan.source_disposition.consumer.closed_set==true) and
     (.lowering_plan.source_disposition.consumer.selection_requirement=="fixed_single_route_gate_3") and
     (.lowering_plan.source_disposition.junction.pairing=="same_producer_attempt_exclusive") and
@@ -70,6 +75,9 @@ for mutation in \
     '.producer.success_type.identity="type:Bool"' \
     '.response_functions[0].incoming_failure_type.spelling="OtherFailure"' \
     '.response_functions[0].outgoing_type.spelling="Bool" | .response_functions[0].outgoing_type.identity="type:Bool"' \
+    '.response_functions[0].result_resource.ownership="owned"' \
+    '.response_functions[0].result_resource.cleanup_capability="flow_text_dispose"' \
+    'del(.response_functions[0].result_resource)' \
     '.response_functions[0].input_projection="mutable"' \
     '.response_functions[0].obligation_transition="linked_successor"' \
     '.consumer.accepted_failure_types=[]' \

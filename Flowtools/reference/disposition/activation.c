@@ -26,7 +26,8 @@ int flow_activation_route_text(FlowActivationFrame *frame,
                                FlowActivationTextProducer producer,
                                FlowActivationTextResponse response,
                                FlowActivationTextRejoin rejoin,
-                               FlowActivationTextDispose dispose,
+                               FlowActivationTextDispose producer_dispose,
+                               FlowActivationTextDispose response_dispose,
                                int64_t response_function,
                                int64_t response_parameter,
                                int64_t route,
@@ -34,23 +35,23 @@ int flow_activation_route_text(FlowActivationFrame *frame,
                                const char *correlation,
                                const char *response_attempt,
                                const char *response_provenance) {
-    if (!frame || !authority || !producer || !response || !rejoin || !dispose ||
+    if (!frame || !authority || !producer || !response || !rejoin || !producer_dispose ||
         !flow_activation_begin(frame, authority, attempt, correlation)) return 70;
 
     const FlowActivationTextOutcome outcome = producer();
     if ((outcome.code == 0) != (outcome.value != NULL)) {
-        if (outcome.value) dispose(outcome.value);
+        if (outcome.value) producer_dispose(outcome.value);
         return 70;
     }
     if (outcome.code == 0) {
         FlowActivationValue published = {
             authority->success_type, outcome.value, strlen(outcome.value) + 1};
         if (!flow_activation_publish(frame, published)) {
-            dispose(outcome.value);
+            producer_dispose(outcome.value);
             return 70;
         }
         const int result = rejoin(outcome.value);
-        if (dispose(outcome.value) != 0) return 70;
+        if (producer_dispose(outcome.value) != 0) return 70;
         return result;
     }
 
@@ -65,11 +66,13 @@ int flow_activation_route_text(FlowActivationFrame *frame,
         authority->success_type, recovered_text, strlen(recovered_text) + 1};
     if (!flow_activation_recover(frame, response_function, response_parameter,
                                  route, response_attempt, response_provenance,
-                                 recovered)) return 70;
-    /* The admitted source specimen returns a static/borrowed fallback. Its
-     * ownership is not yet a general language contract, so no dispose call is
-     * made on this path. */
-    return rejoin(recovered_text);
+                                 recovered)) {
+        if (response_dispose && response_dispose((char *)recovered_text) != 0) return 70;
+        return 70;
+    }
+    const int result = rejoin(recovered_text);
+    if (response_dispose && response_dispose((char *)recovered_text) != 0) return 70;
+    return result;
 }
 
 int flow_activation_begin(FlowActivationFrame *f, const FlowActivationAuthority *a,

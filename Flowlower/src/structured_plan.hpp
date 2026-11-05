@@ -68,6 +68,7 @@ struct NativeDispositionBridge {
     std::string success_type, failure_type, fault_type;
     std::string failure_wire, fault_wire, containment, policy, host_policy;
     std::string provenance, commit_law, response_provenance;
+    std::string response_ownership, response_lifetime, response_cleanup;
     std::string attempt, correlation, response_attempt;
 };
 
@@ -407,9 +408,10 @@ private:
         const auto* producer_faults = field(*producer_json, "fault_types");
         const auto* response_failure = field(response_json, "incoming_failure_type");
         const auto* response_output = field(response_json, "outgoing_type");
+        const auto* response_resource = field(response_json, "result_resource");
         const auto* producer_success = field(*producer_json, "success_type");
         if (!producer_failures || !producer_faults || !response_failure ||
-            !response_output || !producer_success ||
+            !response_output || !response_resource || !producer_success ||
             !std::holds_alternative<Array>(*producer_failures) ||
             !std::holds_alternative<Array>(*producer_faults)) return;
         const auto& failures = std::get<Array>(*producer_failures);
@@ -436,6 +438,10 @@ private:
         bridge.provenance = flowcontracts::json::serialize(*field(*producer_json, "provenance"));
         bridge.commit_law = text(field(*producer_json, "commit_law"));
         bridge.response_provenance = flowcontracts::json::serialize(*field(response_json, "provenance"));
+        const auto& resource = *response_resource;
+        bridge.response_ownership = text(field(resource, "ownership"));
+        bridge.response_lifetime = text(field(resource, "lifetime"));
+        bridge.response_cleanup = text(field(resource, "cleanup_capability"));
         bridge.operation = integer(field(*producer_json, "operation_id"), "producer.operation_id");
         bridge.disposition = integer(field(*producer_json, "disposition_id"), "producer.disposition_id");
         bridge.producer = integer(field(*producer_json, "function_symbol_id"), "producer.function_symbol_id");
@@ -453,7 +459,18 @@ private:
             text(field(response_json, "input_projection")) != "immutable_failure_envelope" ||
             text(field(response_json, "obligation_transition")) != "close_original" ||
             text(field(*response_output, "identity")) != bridge.success_type ||
+            text(field(resource, "type")) != text(field(*response_output, "spelling")) ||
+            text(field(resource, "access")) != "read" ||
+            text(field(resource, "nullable")) != "false" ||
             integer(field(selection_json, "response_function_symbol_id"), "selection.response_function_symbol_id") != bridge.response) return;
+        const auto response_origin = text(field(resource, "origin"));
+        const auto response_proof = text(field(resource, "proof"));
+        const bool borrowed_response = bridge.response_ownership == "borrowed" &&
+            bridge.response_lifetime == "call" && bridge.response_cleanup == "none" &&
+            response_origin == "static_literal" && response_proof == "literal_has_no_escape";
+        const bool owned_response = bridge.response_ownership == "owned" &&
+            bridge.response_lifetime == "owned" && bridge.response_cleanup == "flow_text_dispose";
+        if (!borrowed_response && !owned_response) return;
 
         const auto producer = callables_.find(bridge.producer);
         const auto response = callables_.find(bridge.response);
@@ -561,7 +578,7 @@ private:
     void emit_declarations(std::ostringstream& out) const {
         if (has_text_outcome_) out << "declare i32 @flow_text_concat_outcome(ptr, ptr, ptr)\n";
         if (native_disposition_bridge_) {
-            out << "declare i32 @flow_activation_route_text(ptr, ptr, ptr, ptr, ptr, ptr, i64, i64, i64, ptr, ptr, ptr, ptr)\n"
+            out << "declare i32 @flow_activation_route_text(ptr, ptr, ptr, ptr, ptr, ptr, ptr, i64, i64, i64, ptr, ptr, ptr, ptr)\n"
                    "declare i32 @flow_text_dispose(ptr)\n";
         }
         std::map<std::string, std::pair<std::string, std::string>> native_symbols;
@@ -1004,7 +1021,9 @@ private:
                "  store %flow.activation.frame zeroinitializer, ptr %flow.disposition.frame\n"
                "  %flow.disposition.status = call i32 @flow_activation_route_text(ptr %flow.disposition.frame, ptr @flow.disposition.authority, ptr @flow.function." << bridge.producer
             << ", ptr @flow.function." << bridge.response << ", ptr @flow.function." << bridge.rejoin
-            << ", ptr @flow_text_dispose, i64 " << bridge.response << ", i64 " << bridge.response_parameter
+            << ", ptr @flow_text_dispose, "
+            << (bridge.response_cleanup == "flow_text_dispose" ? "ptr @flow_text_dispose" : "ptr null")
+            << ", i64 " << bridge.response << ", i64 " << bridge.response_parameter
             << ", i64 " << bridge.route << ", ptr @flow.disposition.attempt, ptr @flow.disposition.correlation, ptr @flow.disposition.response_attempt, ptr @flow.disposition.response_provenance)\n"
                "  ret i32 %flow.disposition.status\n"
                "}\n";

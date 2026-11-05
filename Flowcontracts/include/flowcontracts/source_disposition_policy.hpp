@@ -222,7 +222,8 @@ inline void validate_source_disposition_policy_selection(
                                              policy_path + ".selections[0]"),
                                     policy_path + ".selections[0].response_transition");
     exact_fields(transition,
-                 {"response_class", "outgoing_type", "obligation_transition"},
+                 {"response_class", "outgoing_type", "result_resource",
+                  "obligation_transition"},
                  policy_path + ".selections[0].response_transition");
     if (text(transition, "response_class",
              policy_path + ".selections[0].response_transition") !=
@@ -236,7 +237,11 @@ inline void validate_source_disposition_policy_selection(
                             required(*response, "outgoing_type",
                                      topology_path + ".response_functions[]"),
                             policy_path + ".selections[0].response_transition.outgoing_type",
-                            topology_path + ".response_functions[].outgoing_type"))
+                            topology_path + ".response_functions[].outgoing_type") ||
+        serialize(required(transition, "result_resource",
+                          policy_path + ".selections[0].response_transition")) !=
+            serialize(required(*response, "result_resource",
+                              topology_path + ".response_functions[]")))
         throw Error(policy_path + ".selections[0].response_transition",
                     "policy changed the source-declared response transition");
 }
@@ -314,6 +319,8 @@ inline json::Value fixed_source_disposition_policy_selection(
                     {"spelling", text(object(required(*response, "outgoing_type",
                                                      "$topology.response_functions[]")),
                                       "spelling", "$topology.response_functions[].outgoing_type")}}},
+                {"result_resource", required(*response, "result_resource",
+                                                "$topology.response_functions[]")},
                 {"obligation_transition", text(*response, "obligation_transition",
                                                 "$topology.response_functions[]")}}}}}},
         {"policy", Object{

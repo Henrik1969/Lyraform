@@ -2977,6 +2977,64 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             const Callable* callable = nullptr;
             const Json* syntax = nullptr;
             std::string incoming, response_class, outgoing;
+            Json result_resource = nullptr;
+        };
+        auto response_result_resource = [&](const Callable& callable,
+                                            const std::string& outgoing) -> Json {
+            bool one_return = true;
+            bool static_text = false;
+            int return_count = 0;
+            int returned_symbol = -1;
+            for (const auto& operation : lowering_operations) {
+                if (operation.function_symbol != callable.symbol || operation.kind != "return_value") continue;
+                ++return_count;
+                if (operation.arguments.size() != 1 || !expressions.count(operation.arguments.front())) {
+                    one_return = false;
+                    continue;
+                }
+                const int expression_id = operation.arguments.front();
+                const auto* expression = expressions.at(expression_id);
+                const auto expression_kind = text(field(*expression, "kind"));
+                if (expression_kind == "string_literal" &&
+                    outgoing == "Text") {
+                    static_text = true;
+                    continue;
+                }
+                if (!resolved_expression_symbols.count(expression_id)) {
+                    one_return = false;
+                    continue;
+                }
+                returned_symbol = resolved_expression_symbols.at(expression_id);
+            }
+            if (return_count != 1) one_return = false;
+            if (one_return && returned_symbol >= 0) {
+                bool found_literal_definition = false;
+                for (const auto& operation : lowering_operations) {
+                    if (operation.function_symbol != callable.symbol ||
+                        operation.kind != "value_definition" ||
+                        operation.result_symbol != returned_symbol ||
+                        operation.arguments.size() != 1 ||
+                        !expressions.count(operation.arguments.front())) continue;
+                    const auto* expression = expressions.at(operation.arguments.front());
+                    found_literal_definition = text(field(*expression, "kind")) == "string_literal" &&
+                        symbol_types.count(returned_symbol) && symbol_types.at(returned_symbol) == "Text";
+                    break;
+                }
+                static_text = found_literal_definition;
+            }
+            if (one_return && static_text) {
+                return Object{
+                    {"type", outgoing}, {"ownership", "borrowed"}, {"access", "read"},
+                    {"lifetime", "call"}, {"nullable", "false"},
+                    {"cleanup_capability", "none"}, {"origin", "static_literal"},
+                    {"proof", "literal_has_no_escape"}};
+            }
+            return Object{
+                {"type", outgoing}, {"ownership", "owned"}, {"access", "read"},
+                {"lifetime", "owned"}, {"nullable", "false"},
+                {"cleanup_capability", "unresolved"},
+                {"origin", "disposition_boundary_default"},
+                {"proof", "no_borrow_proof"}};
         };
         std::vector<ResponseAuthority> responses;
         if (consumer_declaration) for (const auto& member : list(field(*consumer_declaration, "members"))) {
@@ -3008,7 +3066,8 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
             if (response_class != "recover" && response_class != "transform")
                 disposition_issue("FLOWANALYST_DISPOSITION_RESPONSE_CLASS",
                     "response must declare recover or transform", *fn);
-            responses.push_back({callable, fn, incoming, response_class, outgoing});
+            responses.push_back({callable, fn, incoming, response_class, outgoing,
+                                 response_result_resource(*callable, outgoing)});
         }
         std::set<std::string> accepted;
         for (const auto& response : responses) accepted.insert(response.incoming);
@@ -3147,6 +3206,7 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
                     {"incoming_failure_type", type_fact(response.incoming, *field(parameter, "provenance"))},
                     {"response_class", response.response_class},
                     {"outgoing_type", type_fact(response.outgoing, *field(response.syntax, "provenance"))},
+                    {"result_resource", response.result_resource},
                     {"obligation_transition", response.response_class == "recover" ? "close_original" : "linked_successor"},
                     {"provenance", *field(response.syntax, "provenance")}});
                 route_facts.emplace_back(Object{{"route_id", route_id++}, {"failure_type", response.incoming},

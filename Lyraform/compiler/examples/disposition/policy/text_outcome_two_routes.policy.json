@@ -26,6 +26,16 @@
           "identity": "type:Text",
           "spelling": "Text"
         },
+        "result_resource": {
+          "type": "Text",
+          "ownership": "borrowed",
+          "access": "read",
+          "lifetime": "call",
+          "nullable": "false",
+          "cleanup_capability": "none",
+          "origin": "static_literal",
+          "proof": "literal_has_no_escape"
+        },
         "obligation_transition": "close_original"
       }
     }

@@ -30,8 +30,10 @@ not a synthesized language failure or fault. Generated code must handle that
 transport refusal explicitly; ignoring it is not authorized continuation.
 There is no exception transport, allocation, evidence truncation, implicit
 callback, TLS, name lookup or process exit in the frame API. The bounded native
-TextOutcome bridge uses only explicit generated callable and cleanup callbacks;
-it does not turn callbacks into a general runtime dispatch mechanism. Evidence
+TextOutcome bridge uses explicit generated callable and separate producer and
+response cleanup callbacks; a borrowed response supplies no response disposer,
+while an owned response is disposed after its final rejoin use. It does not
+turn callbacks into a general runtime dispatch mechanism. Evidence
 accessors return const pointers. The frame's C storage is trusted
 implementation detail, not writable source data.
 
@@ -48,8 +50,9 @@ Source execution remains blocked. A bounded native callable unit now generates
 one `flow.source.disposition` bridge for the validated one-route `TextOutcome`
 specimen. It supplies real producer/response/rejoin values and the preserved
 authority to this runtime; the public source graph is still refused. The bridge
-does not establish general response-result ownership: its admitted response is
-a static/borrowed `Text` literal, while provider-owned successful Text is
-disposed through the generated cleanup callback. Native graph execution,
+carries response-result ownership explicitly: its admitted response is a
+statically proven borrowed `Text` literal and therefore passes no response
+disposer, while provider-owned successful Text is disposed through its separate
+generated cleanup callback. Native graph execution,
 TinyVM parity, receipts and general control-flow readiness must still be proven
 before the source disposition status changes.
