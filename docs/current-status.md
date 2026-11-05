@@ -46,6 +46,12 @@ failure type or implicit handler semantics have been introduced. The separate
 [native graph integer failure-routing slice](checkpoints/2026-11-04-native-graph-integer-failure-routing-slice.md)
 now proves a bounded terminal route for runtime-unknown integer `div` and `%`
 through the existing graph failure ABI; it does not claim source recovery.
+Provider-owned `Text` results now carry the corresponding cleanup contract
+through plan v2, binding, lowering, and the LLVM/TinyVM boundary. The bounded
+slice proves direct return transfer from a non-entry provider, every static
+caller boundary, and owner-specific `flow_text_dispose` actions. General
+resource-flow analysis and implicit unwinding remain outside the admitted
+boundary.
 
 The historical pass corpus now reports these contract refusals separately.
 The two `flow_less` integration tests currently verify admission refusal, not
@@ -97,6 +103,10 @@ certification: none claimed
 ## Latest verification checkpoint
 
 The latest verification checkpoint is the
+[2026-11-05 provider-result cleanup slice](checkpoints/2026-11-05-provider-result-cleanup-slice.md).
+It records explicit cleanup authority and bounded one-hop ownership transfer
+for provider-owned `Text` results across semantic analysis, binding, lowering,
+and both runtime backends. The preceding
 [2026-11-05 response-result ownership slice](checkpoints/2026-11-05-response-result-ownership-slice.md).
 It records explicit ownership/lifetime facts at the source-disposition
 response boundary and separate native cleanup paths while retaining the

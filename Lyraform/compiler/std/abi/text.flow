@@ -11,6 +11,7 @@ abi text_runtime {
         lifetime value
         nullable false
         terminator nul
+        cleanup flow_text_dispose
     }
 
     extern fn concat(left : Text, right : Text): Text {

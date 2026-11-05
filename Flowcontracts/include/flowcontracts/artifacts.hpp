@@ -137,6 +137,31 @@ inline void validate_abi_contracts(const json::Object& root) {
     }
 }
 
+inline void validate_provider_result_resource(const json::Object& resource,
+                                              const json::Object& provider,
+                                              const std::string& path) {
+    if (resource.size() != 7)
+        throw json::Error(path, "provider result resource has undeclared fields");
+    for (const auto field : {"type", "ownership", "access", "lifetime", "nullable", "opaque", "cleanup_capability"})
+        (void)json::string(json::required(resource, field, path), path + "." + field);
+
+    const auto result_type = json::string(json::required(provider, "return_type", path + ".provider"),
+                                          path + ".provider.return_type");
+    const auto resource_type = json::string(json::required(resource, "type", path), path + ".type");
+    const auto ownership = json::string(json::required(resource, "ownership", path), path + ".ownership");
+    const auto lifetime = json::string(json::required(resource, "lifetime", path), path + ".lifetime");
+    const auto cleanup = json::string(json::required(resource, "cleanup_capability", path), path + ".cleanup_capability");
+    if (resource_type != result_type || resource_type.empty())
+        throw json::Error(path + ".type", "provider result resource type disagrees with the provider result");
+    if (ownership != "owned" && ownership != "external")
+        throw json::Error(path + ".ownership", "provider result resource must be owned or external");
+    if ((ownership == "external" && lifetime != "external") ||
+        (ownership == "owned" && lifetime == "call"))
+        throw json::Error(path + ".lifetime", "provider result resource lifetime disagrees with ownership");
+    if (cleanup.empty() || cleanup == "none" || cleanup == "unresolved")
+        throw json::Error(path + ".cleanup_capability", "provider-owned result requires a resolved cleanup capability");
+}
+
 inline void validate_aggregate_abi_layouts(const json::Array& layouts, std::string_view path = "$.aggregate_abi_layouts") {
     std::set<std::pair<std::string, std::string>> identities;
     for (std::size_t index = 0; index < layouts.size(); ++index) {
@@ -489,6 +514,7 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
     if (version != 1 && version != 2) throw json::Error(std::string(base) + ".version", "unsupported lowering plan version");
     const auto& operations = required_array(plan, "operations", base);
     std::set<json::Integer> function_ids;
+    std::map<json::Integer, bool> function_entries;
     if (version == 2) {
         const auto& functions = required_array(plan, "functions", base);
         std::size_t entries = 0;
@@ -503,7 +529,9 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
             (void)json::string(json::required(function, "return_type", path), path + ".return_type");
             const auto availability = json::string(json::required(function, "availability", path), path + ".availability");
             if (availability != "definition" && availability != "declaration") throw json::Error(path + ".availability", "unsupported callable availability");
-            if (json::boolean(json::required(function, "entry", path), path + ".entry")) ++entries;
+            const auto entry = json::boolean(json::required(function, "entry", path), path + ".entry");
+            function_entries.emplace(id, entry);
+            if (entry) ++entries;
             const auto& parameters = required_array(function, "parameters", path);
             std::set<json::Integer> parameter_ids;
             for (std::size_t parameter = 0; parameter < parameters.size(); ++parameter) {
@@ -557,6 +585,21 @@ inline void validate_lowering_authority(const json::Value& value, std::string_vi
                 if (codes.empty()) throw json::Error(path + ".result_outcome.failure_codes", "Text outcome must declare at least one failure code");
                 for (const auto& code : codes) (void)json::string(code, path + ".result_outcome.failure_codes[]");
             }
+            const auto* result_resource = json::optional(operation, "result_resource");
+            if (version == 2 && json::string(json::required(provider, "return_type", path + ".provider"),
+                                              path + ".provider.return_type") == "Text" && !result_resource)
+                throw json::Error(path + ".result_resource", "owned Text provider result requires an explicit cleanup contract");
+            if (result_resource)
+                validate_provider_result_resource(json::object(*result_resource, path + ".result_resource"),
+                                                 provider, path + ".result_resource");
+            if (version == 2 && result_resource &&
+                json::string(json::required(provider, "return_type", path + ".provider"),
+                             path + ".provider.return_type") == "Text" &&
+                json::string(json::required(json::object(*result_resource, path + ".result_resource"), "ownership", path + ".result_resource"),
+                             path + ".result_resource.ownership") == "owned" &&
+                !function_entries.at(json::integer(json::required(operation, "function_symbol_id", path), path + ".function_symbol_id")) &&
+                !json::optional(operation, "result_symbol_id"))
+                throw json::Error(path + ".result_symbol_id", "owned provider result in a non-entry function requires an explicit owner symbol");
             const auto& resources = required_array(operation, "argument_resources", path);
             for (std::size_t resource_index = 0; resource_index < resources.size(); ++resource_index) {
                 const auto resource_path = path + ".argument_resources[" + std::to_string(resource_index) + "]";

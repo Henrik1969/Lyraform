@@ -51,7 +51,7 @@ test "$(tail -n 1 "$tmpdir/tiny.computed.stdout" | jq -r '.result')" -eq 0
 
 printf 'import "%s/Lyraform/compiler/std/abi/libc.flow"\nimport "%s/Lyraform/compiler/std/abi/text.flow"\n\nprogram text_runtime_overflow\n\nfn join(left : Text, right : Text): Text {\n    value : Text(left + right)\n    return value\n}\n\nmain {\n    value : Text(join("' "$root" "$root" > "$tmpdir/overflow.flow"
 awk 'BEGIN { for (i = 0; i < 4097; ++i) printf "A" }' >> "$tmpdir/overflow.flow"
-printf '%s\n' '", "x"))' '    print value' '}' >> "$tmpdir/overflow.flow"
+printf '%s\n' '", "x"))' '    print value' '    disposed : c_int(0)' '    dispose(value) -> disposed' '}' >> "$tmpdir/overflow.flow"
 "$flowmini" --dump-frontend-bundle "$tmpdir/overflow.flow" > "$tmpdir/overflow.frontend.json"
 "$analyst" --lowering-plan-version 2 < "$tmpdir/overflow.frontend.json" > "$tmpdir/overflow.semantic.json"
 "$parallel" < "$tmpdir/overflow.semantic.json" > "$tmpdir/overflow.parallel.json"

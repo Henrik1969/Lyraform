@@ -54,7 +54,7 @@ struct Provider {
 };
 struct Operation {
     int id = -1, expression = -1, statement = -1, block = -1, function_symbol = -1, callee_symbol = -1, result_symbol = -1, then_block = -1, else_block = -1, body_block = -1;
-    std::string kind;
+    std::string kind, result_cleanup;
     const Json* operand = nullptr;
     std::optional<Provider> provider;
 };
@@ -309,6 +309,12 @@ private:
             const auto& operands=array(field(item,"operands"),"operation.operands"); if (!operands.empty()) op.operand=&operands.front();
             if (const auto* facts=field(item,"provider")) {
                 op.provider=provider(*facts); providers_.insert(*op.provider);
+                const auto* result_resource = field(item, "result_resource");
+                if (result_resource) op.result_cleanup = text(field(*result_resource, "cleanup_capability"));
+                if (plan_version_ == 2 && op.provider->result == "Text" &&
+                    (!result_resource || op.result_cleanup != "flow_text_dispose" ||
+                     text(field(*result_resource, "ownership")) != "owned"))
+                    throw std::runtime_error("owned Text provider result lacks the canonical flow_text_dispose contract");
                 if (op.kind == "text_outcome") has_text_outcome_ = true;
                 if (flowlower::structured::llvm_type(op.provider->result).empty() && !llvm_type(op.provider->result).empty()) has_declared_carrier_=true;
                 for (const auto& carrier : carriers(op.provider->parameters))

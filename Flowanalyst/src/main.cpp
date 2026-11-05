@@ -1527,6 +1527,10 @@ int run(const Json& bundle, int lowering_plan_version, const Json& provider_map,
         operation.callee_symbol = provider.first;
         operation.callee = "text_concat";
         operation.kind = "text_outcome";
+        const auto* statement = statements.count(statement_id) ? statements.at(statement_id) : nullptr;
+        const auto* statement_payload = statement ? field(*statement, "payload") : nullptr;
+        if (statement && text(field(*statement, "kind")) == "let" && statement_payload)
+            operation.result_symbol = visible_symbol(scope_id, text(field(*statement_payload, "name")));
         const auto* payload = field(*expressions.at(expression_id), "payload");
         operation.arguments = {integer(field(payload, "left")), integer(field(payload, "right"))};
         operation.contract = provider.second.contract;

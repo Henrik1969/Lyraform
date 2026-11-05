@@ -148,6 +148,7 @@ Foundational notes:
 - [ADR-0076: Native graph integer failure routing uses the existing terminal graph route](decisions/0076-native-graph-integer-failure-routing.md)
 - [ADR-0077: Bounded native source-disposition callable bridge](decisions/0077-native-source-disposition-callable-bridge.md)
 - [ADR-0078: Response-result ownership is explicit at disposition boundaries](decisions/0078-response-result-ownership-at-disposition-boundaries.md)
+- [ADR-0079: Provider-owned results carry cleanup through ABI boundaries](decisions/0079-provider-result-cleanup-at-abi-boundaries.md)
 - [Failure-flow semantic--syntax--graph projection map](failure-flow-semantic-syntax-graph-map.tex)
 - [Canonical executable failure flow — Mission 01](../tasks/canonical-executable-failure-flow-mission-01.md)
 - [Canonical executable failure flow — Mission 02](../tasks/canonical-executable-failure-flow-mission-02.md)

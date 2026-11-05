@@ -108,6 +108,8 @@ public:
     }
 #endif
 private:
+    int plan_version_ = 1;
+
     void compile_body() {
         const auto& plan = required_object(root_, "lowering_plan");
         if (const auto* catalog = optional(plan, "ordinary_record_types")) {
@@ -142,6 +144,7 @@ private:
             }
         }
         const auto plan_version = integer(required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version");
+        plan_version_ = plan_version;
         if (plan_version == 2) for (const auto& value : required_array(plan, "functions", "$.lowering_plan")) {
             const auto& function = object(value, "$.lowering_plan.functions[]");
             Callable callable; callable.body = integer(required(function, "body_block_id", "$.function"), "$.function.body_block_id");
@@ -807,6 +810,14 @@ private:
             const auto result_type = string(required(provider, "return_type", "$.operation.provider"), "$.operation.provider.return_type");
             const auto contract = string(required(provider, "contract", "$.operation.provider"), "$.operation.provider.contract");
             const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
+            if (plan_version_ == 2 && result_type == "Text") {
+                const auto* resource = optional(operation, "result_resource");
+                if (!resource ||
+                    string(required(object(*resource), "type", "$.operation.result_resource"), "$.operation.result_resource.type") != "Text" ||
+                    string(required(object(*resource), "ownership", "$.operation.result_resource"), "$.operation.result_resource.ownership") != "owned" ||
+                    string(required(object(*resource), "cleanup_capability", "$.operation.result_resource"), "$.operation.result_resource.cleanup_capability") != "flow_text_dispose")
+                    throw Unsupported("owned Text provider result lacks the canonical flow_text_dispose contract");
+            }
             const bool aggregate_result = aggregate_types_.count(result_type) != 0;
             const bool aggregate_parameter = parameters.find(',') == std::string::npos && aggregate_types_.count(parameters) != 0;
             const bool bounded_observation = bounded_observation_provider(provider);

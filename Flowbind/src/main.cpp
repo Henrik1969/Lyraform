@@ -368,18 +368,25 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
         }
     }
 
-    struct ResourceContract { const Json* acquisition; std::string contract, cleanup; };
+    auto optional_integer = [](const Json& value, std::string_view field_name, long long fallback) {
+        const auto* item = json_field(value, field_name);
+        return item == nullptr ? fallback : json_integer(item, "lowering operation identity");
+    };
+    struct ResourceContract {
+        const Json* acquisition;
+        std::string contract, cleanup;
+        long long owner = -1, function = -1;
+        bool owner_sensitive = false;
+    };
     std::vector<ResourceContract> resources;
     for (const auto& operation : operations) {
         const auto* resource = json_field(operation, "result_resource");
         const auto* provider = json_field(operation, "provider");
         if (resource != nullptr && provider != nullptr)
-            resources.push_back({&operation, json_text(json_field(*provider, "contract")), json_text(json_field(*resource, "cleanup_capability"))});
+            resources.push_back({&operation, json_text(json_field(*provider, "contract")), json_text(json_field(*resource, "cleanup_capability")),
+                optional_integer(operation, "result_symbol_id", -1), optional_integer(operation, "function_symbol_id", -1),
+                json_text(json_field(*resource, "ownership")) == "owned"});
     }
-    auto optional_integer = [](const Json& value, std::string_view field_name, long long fallback) {
-        const auto* item = json_field(value, field_name);
-        return item == nullptr ? fallback : json_integer(item, "lowering operation identity");
-    };
     std::map<long long, std::vector<const Json*>> blocks;
     for (const auto& operation : operations) blocks[optional_integer(operation, "block_id", 0)].push_back(&operation);
     for (auto& [block, items] : blocks) std::stable_sort(items.begin(), items.end(), [&](const Json* left, const Json* right) {
@@ -388,15 +395,55 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
         if (left_statement != right_statement) return left_statement < right_statement;
         return optional_integer(*left, "id", -1) < optional_integer(*right, "id", -1);
     });
-    for (const auto& resource : resources) {
-        auto is_cleanup = [&](const Json& operation) {
+    struct FunctionContract { long long body = 0; bool entry = false; };
+    std::map<long long, FunctionContract> functions;
+    if (plan_version == 2) {
+        for (const auto& raw_function : json_array(json_field(*plan, "functions"), "lowering plan functions")) {
+            const auto* entry = json_field(raw_function, "entry");
+            functions.emplace(optional_integer(raw_function, "symbol_id", -1), FunctionContract{
+                optional_integer(raw_function, "body_block_id", 0), entry != nullptr && std::get<bool>(*entry)});
+        }
+    }
+    auto reads_symbol = [&](const Json& operation, long long symbol) {
+        if (symbol < 0) return false;
+        std::function<bool(const Json&)> visit = [&](const Json& value) {
+            if (const auto* object = std::get_if<JsonObject>(&value)) {
+                const auto* kind = json_field(value, "kind");
+                const auto* identity = json_field(value, "symbol_id");
+                if (kind && identity && json_text(kind) == "identifier" && json_integer(identity, "identifier symbol") == symbol)
+                    return true;
+                for (const auto& [key, child] : *object) { (void)key; if (visit(child)) return true; }
+            } else if (const auto* array = std::get_if<JsonArray>(&value)) {
+                for (const auto& child : *array) if (visit(child)) return true;
+            }
+            return false;
+        };
+        const auto* operands = json_field(operation, "operands");
+        return operands != nullptr && visit(*operands);
+    };
+    auto directly_returns_symbol = [&](const Json& operation, long long symbol) {
+        if (symbol < 0) return false;
+        const auto* operands = json_field(operation, "operands");
+        if (operands == nullptr || !std::holds_alternative<JsonArray>(*operands)) return false;
+        const auto& values = std::get<JsonArray>(*operands);
+        if (values.size() != 1) return false;
+        const auto* operand = std::get_if<JsonObject>(&values.front());
+        if (operand == nullptr) return false;
+        const auto kind = operand->find("kind");
+        const auto identity = operand->find("symbol_id");
+        return kind != operand->end() && identity != operand->end() && json_text(&kind->second) == "identifier" &&
+            json_integer(&identity->second, "return identifier symbol") == symbol;
+    };
+    for (auto resource : resources) {
+        auto is_cleanup = [&](const Json& operation, long long owner) {
             const auto* provider = json_field(operation, "provider");
             return provider != nullptr && json_text(json_field(*provider, "contract")) == resource.contract &&
-                json_text(json_field(*provider, "symbol")) == resource.cleanup;
+                json_text(json_field(*provider, "symbol")) == resource.cleanup &&
+                (!resource.owner_sensitive || owner < 0 || reads_symbol(operation, owner));
         };
         std::function<bool(long long)> block_has_resource_action = [&](long long block) {
             for (const auto* operation : blocks[block]) {
-                if (operation == resource.acquisition || is_cleanup(*operation)) return true;
+                if (operation == resource.acquisition || is_cleanup(*operation, resource.owner)) return true;
                 if (json_text(json_field(*operation, "kind")) == "branch") {
                     const auto then_block = optional_integer(*operation, "then_block_id", -1);
                     const auto else_block = optional_integer(*operation, "else_block_id", -1);
@@ -405,13 +452,27 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
             }
             return false;
         };
+        const auto source_function = functions.find(resource.function);
+        const auto source_block = source_function == functions.end() ? 0 : source_function->second.body;
+        const bool source_is_entry = source_function == functions.end() || source_function->second.entry;
+        const Json* transfer_return = nullptr;
+        if (!source_is_entry && resource.owner_sensitive && resource.owner >= 0) {
+            for (const auto& operation : operations) {
+                if (optional_integer(operation, "function_symbol_id", -1) != resource.function ||
+                    json_text(json_field(operation, "kind")) != "return_value" || !directly_returns_symbol(operation, resource.owner)) continue;
+                if (transfer_return != nullptr)
+                    throw std::runtime_error("owned provider result has more than one return transfer path");
+                transfer_return = &operation;
+            }
+        }
+        bool transferred = false;
         std::function<std::set<int>(long long, std::set<int>)> walk = [&](long long block, std::set<int> states) {
             for (const auto* operation : blocks[block]) {
                 const auto kind = json_text(json_field(*operation, "kind"));
                 if (operation == resource.acquisition) {
                     if (states.count(0)) throw std::runtime_error("resource acquired again before its declared cleanup");
                     states = {0};
-                } else if (is_cleanup(*operation)) {
+                } else if (is_cleanup(*operation, resource.owner)) {
                     if (states.count(-1)) throw std::runtime_error("resource cleanup is reachable before acquisition");
                     if (states.count(1)) throw std::runtime_error("resource path executes its declared cleanup more than once");
                     states = {1};
@@ -427,6 +488,10 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
                     if (body_block >= 0 && block_has_resource_action(body_block))
                         throw std::runtime_error("resource acquisition or cleanup inside a loop requires an explicit lifetime proof");
                 } else if (kind == "return_value") {
+                    if (states.count(0) && operation == transfer_return) {
+                        transferred = true;
+                        return std::set<int>{};
+                    }
                     if (states.count(0)) throw std::runtime_error("resource path exits without its declared cleanup capability");
                     return std::set<int>{};
                 }
@@ -434,8 +499,29 @@ void validate_lowering_plan(const std::string& report, const std::vector<Require
             }
             return states;
         };
-        const auto exits = walk(0, {-1});
+        const auto exits = walk(source_block, {-1});
         if (exits.count(0)) throw std::runtime_error("resource path reaches program exit without its declared cleanup capability");
+        if (transfer_return != nullptr) {
+            if (!transferred) throw std::runtime_error("owned provider result does not transfer before its source function exits");
+            std::vector<const Json*> callers;
+            for (const auto& operation : operations)
+                if (json_text(json_field(operation, "kind")) == "call" &&
+                    optional_integer(operation, "callee_symbol_id", -1) == resource.function)
+                    callers.push_back(&operation);
+            if (callers.empty()) throw std::runtime_error("owned provider result has no receiving call boundary");
+            for (const auto* caller : callers) {
+                const auto owner = optional_integer(*caller, "result_symbol_id", -1);
+                if (owner < 0) throw std::runtime_error("owned provider result call boundary has no destination owner");
+                const auto caller_function = functions.find(optional_integer(*caller, "function_symbol_id", -1));
+                if (caller_function == functions.end()) throw std::runtime_error("owned provider result caller is absent from the function catalog");
+                if (!caller_function->second.entry)
+                    throw std::runtime_error("owned provider result forwarding beyond one function boundary is not admitted");
+                resource.acquisition = caller;
+                resource.owner = owner;
+                const auto caller_exits = walk(caller_function->second.body, {-1});
+                if (caller_exits.count(0)) throw std::runtime_error("resource path reaches caller exit without its declared cleanup capability");
+            }
+        }
     }
 }
 

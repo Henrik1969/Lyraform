@@ -26,20 +26,49 @@ source=$root/Lyraform/compiler/examples/text/text_runtime.flow
 jq -e '
   .status == "ok" and
   any(.lowering_plan.operations[]; .kind == "text_outcome" and .provider.symbol == "flow_text_concat" and .provider.parameter_types == "Text,Text" and .provider.return_type == "Text") and
+  any(.lowering_plan.operations[]; .kind == "text_outcome" and .provider.return_type == "Text" and
+    .result_resource.type == "Text" and .result_resource.ownership == "owned" and
+    .result_resource.lifetime == "value" and .result_resource.cleanup_capability == "flow_text_dispose") and
   any(.lowering_plan.operations[]; .kind == "text_outcome" and .provider.symbol == "flow_text_concat" and .result_outcome.type == "Outcome" and .result_outcome.representation == "tagged" and .result_outcome.failure_type == "TextFailure" and (.result_outcome.failure_codes | index("exhausted"))) and
   any(.lowering_plan.operations[]; .kind == "external_call" and .provider.symbol == "puts" and .provider.parameter_types == "Text")
 ' "$tmpdir/semantic.json" >/dev/null
 "$validate" "$tmpdir/semantic.json" | jq -e '.classification == "valid"' >/dev/null
+jq -S '.lowering_plan.operations | map(select(.provider.return_type == "Text") | .result_resource)' \
+  "$tmpdir/semantic.json" > "$tmpdir/semantic.result-resources.json"
 jq '.lowering_plan.operations = [.lowering_plan.operations[] | if .kind == "text_outcome" then del(.result_outcome) else . end]' \
   "$tmpdir/semantic.json" > "$tmpdir/missing-outcome.json"
 if "$validate" "$tmpdir/missing-outcome.json" >/dev/null 2>&1; then
   echo 'flowvalidate accepted a text_outcome operation without its typed outcome' >&2
   exit 1
 fi
+jq '.lowering_plan.operations |= map(if .provider.return_type == "Text" then del(.result_resource) else . end)' \
+  "$tmpdir/semantic.json" > "$tmpdir/missing-result-resource.json"
+if "$validate" "$tmpdir/missing-result-resource.json" >/dev/null 2>&1; then
+  echo 'flowvalidate accepted an owned Text provider result without cleanup authority' >&2
+  exit 1
+fi
+jq '.lowering_plan.operations |= map(if .provider.return_type == "Text" then .result_resource.cleanup_capability = "none" else . end)' \
+  "$tmpdir/semantic.json" > "$tmpdir/unresolved-result-cleanup.json"
+if "$validate" "$tmpdir/unresolved-result-cleanup.json" >/dev/null 2>&1; then
+  echo 'flowvalidate accepted an unresolved Text provider cleanup capability' >&2
+  exit 1
+fi
+jq '.lowering_plan.operations |= map(if .provider.return_type == "Text" then del(.result_symbol_id) else . end)' \
+  "$tmpdir/semantic.json" > "$tmpdir/missing-result-owner.json"
+if "$validate" "$tmpdir/missing-result-owner.json" >/dev/null 2>&1; then
+  echo 'flowvalidate accepted a non-entry Text provider result without an owner symbol' >&2
+  exit 1
+fi
 "$parallel" < "$tmpdir/semantic.json" > "$tmpdir/parallel.json"
 "$optimize" < "$tmpdir/parallel.json" > "$tmpdir/optimized.json"
 "$bind" --policy "$policy" < "$tmpdir/semantic.json" > "$tmpdir/binding.json"
 "$lower" --emit-llvm "$tmpdir/text.ll" --binding-report "$tmpdir/binding.json" < "$tmpdir/optimized.json" > "$tmpdir/lowering.json"
+for stage in parallel optimized; do
+  jq -S '.lowering_plan.operations | map(select(.provider.return_type == "Text") | .result_resource)' \
+    "$tmpdir/$stage.json" > "$tmpdir/$stage.result-resources.json"
+  cmp -s "$tmpdir/semantic.result-resources.json" "$tmpdir/$stage.result-resources.json"
+  "$validate" "$tmpdir/$stage.json" | jq -e '.classification == "valid"' >/dev/null
+done
 clang ${FLOWTEXT_CXX_FLAGS:-} "$tmpdir/text.ll" "$text_runtime" -o "$tmpdir/text"
 printf '%s\n' 'Lyraform' 'Lyraform — Igor' 'Lyraform / tester' 'Lyraform — Igor' > "$tmpdir/expected"
 "$tmpdir/text" > "$tmpdir/output"
@@ -47,7 +76,7 @@ cmp -s "$tmpdir/expected" "$tmpdir/output"
 
 printf 'import "%s/Lyraform/compiler/std/abi/libc.flow"\nimport "%s/Lyraform/compiler/std/abi/text.flow"\n\nprogram text_runtime_overflow\n\nfn join(left : Text, right : Text): Text {\n    value : Text(left + right)\n    return value\n}\n\nmain {\n    value : Text(join("' "$root" "$root" > "$tmpdir/overflow.flow"
 awk 'BEGIN { for (i = 0; i < 4097; ++i) printf "A" }' >> "$tmpdir/overflow.flow"
-printf '%s\n' '", "x"))' '    print value' '}' >> "$tmpdir/overflow.flow"
+printf '%s\n' '", "x"))' '    print value' '    disposed : c_int(0)' '    dispose(value) -> disposed' '}' >> "$tmpdir/overflow.flow"
 "$flowmini" --dump-frontend-bundle "$tmpdir/overflow.flow" > "$tmpdir/overflow.frontend.json"
 "$analyst" --lowering-plan-version 2 < "$tmpdir/overflow.frontend.json" > "$tmpdir/overflow.semantic.json"
 "$parallel" < "$tmpdir/overflow.semantic.json" > "$tmpdir/overflow.parallel.json"
