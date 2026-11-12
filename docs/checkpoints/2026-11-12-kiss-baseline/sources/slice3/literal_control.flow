@@ -1,0 +1,17 @@
+program implication
+ type AboveFive refines int32 {
+ invariant value > 5
+ }
+ type Positive refines int32 {
+ invariant value > 0
+ }
+ fn make(): AboveFive {
+ 7 -> return
+ }
+ fn consume(x : Positive): int32 {
+ 9 -> return
+ }
+ main {
+ result : c_int(consume(7))
+ result -> return
+ }

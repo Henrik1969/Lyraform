@@ -1,0 +1,1124 @@
+{
+  "A_abi": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_abi.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 11,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_abi.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 15,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_abi.flow",
+          "ast_path": "/statement_pool/3",
+          "line": 16,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_constant": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 1,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: unsupported structured branch condition\n",
+    "tiny.err": "flowtinylower error: map::at\n"
+  },
+  "A_constant_swapped": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 2,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: ordinary call argument carrier mismatch\n",
+    "tiny.out": "{\"backend\":\"tinyvm\",\"format\":\"flowtiny.lowering_result\",\"reason\":\"ordinary record call argument type mismatch\",\"status\":\"unsupported\",\"version\":1}\n"
+  },
+  "A_crosscopy": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_crosscopy.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 11,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_crosscopy.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 15,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_factored": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 1,
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "A_factored_crosscopy": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 1,
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "A_factored_swapped": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 1,
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "A_float_calls": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 6,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-9d28024eeb9b229f34f99578565818da",
+      "target_policy_id": "target-fbafce7218c9499cc18921c0290701fb",
+      "carrier": 2,
+      "result": 6,
+      "pc": 31,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "A_float_calls_crosscopy": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 2,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: unsupported structured value definition: conversion operation 10\n",
+    "tiny.out": "{\"backend\":\"tinyvm\",\"format\":\"flowtiny.lowering_result\",\"reason\":\"type carrier 'Duration' is not admitted by the scalar slice\",\"status\":\"unsupported\",\"version\":1}\n"
+  },
+  "A_float_calls_swapped": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 2,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: ordinary call argument carrier mismatch\n",
+    "tiny.out": "{\"backend\":\"tinyvm\",\"format\":\"flowtiny.lowering_result\",\"reason\":\"ordinary record call argument type mismatch\",\"status\":\"unsupported\",\"version\":1}\n"
+  },
+  "A_float_relabel": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 4,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-932b4dcca275b1a5736cd719b4872f76",
+      "target_policy_id": "target-fbafce7218c9499cc18921c0290701fb",
+      "carrier": 2,
+      "result": 4,
+      "pc": 31,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "A_inline": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_INTEGER_ADMISSION_REFUSED",
+        "message": "explicit-width integer value/range is unproved; an admitted overflow route is required",
+        "provenance": {
+          "ast_path": "/statement_pool/4",
+          "column": 2,
+          "line": 16,
+          "source": "sources/slice2/A_inline.flow"
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_int_factored": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_INTEGER_ADMISSION_REFUSED",
+        "message": "explicit-width integer value/range is unproved; an admitted overflow route is required",
+        "provenance": {
+          "ast_path": "/statement_pool/2",
+          "column": 2,
+          "line": 12,
+          "source": "sources/slice2/A_int_factored.flow"
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_integer": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_INTEGER_ADMISSION_REFUSED",
+        "message": "explicit-width integer value/range is unproved; an admitted overflow route is required",
+        "provenance": {
+          "ast_path": "/statement_pool/0",
+          "column": 2,
+          "line": 10,
+          "source": "sources/slice2/A_integer.flow"
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_nominal": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 6,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-299653671b9c4f5524c9bb8b9e788e4a",
+      "target_policy_id": "target-fbafce7218c9499cc18921c0290701fb",
+      "carrier": 2,
+      "result": 6,
+      "pc": 20,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "A_nominal_crosscopy": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 2,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: unsupported structured value definition: conversion operation 3\n",
+    "tiny.out": "{\"backend\":\"tinyvm\",\"format\":\"flowtiny.lowering_result\",\"reason\":\"type carrier 'Duration' is not admitted by the scalar slice\",\"status\":\"unsupported\",\"version\":1}\n"
+  },
+  "A_nominal_swapped": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 2,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: ordinary call argument carrier mismatch\n",
+    "tiny.out": "{\"backend\":\"tinyvm\",\"format\":\"flowtiny.lowering_result\",\"reason\":\"ordinary record call argument type mismatch\",\"status\":\"unsupported\",\"version\":1}\n"
+  },
+  "A_records": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_records.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 11,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_records.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 15,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_records.flow",
+          "ast_path": "/statement_pool/3",
+          "line": 16,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_swapped": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_swapped.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 11,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_swapped.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 15,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_swapped.flow",
+          "ast_path": "/statement_pool/3",
+          "line": 16,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_unwrapped": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 6,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-ce6ff7c9affd6cbf489651174fa99bdf",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 6,
+      "pc": 14,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "A_wide_factored": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_INTEGER_ADMISSION_REFUSED",
+        "message": "explicit-width integer value/range is unproved; an admitted overflow route is required",
+        "provenance": {
+          "ast_path": "/statement_pool/2",
+          "column": 2,
+          "line": 12,
+          "source": "sources/slice2/A_wide_factored.flow"
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_wide_locals": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_INTEGER_ADMISSION_REFUSED",
+        "message": "explicit-width integer value/range is unproved; an admitted overflow route is required",
+        "provenance": {
+          "ast_path": "/statement_pool/4",
+          "column": 2,
+          "line": 14,
+          "source": "sources/slice2/A_wide_locals.flow"
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_widened": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_widened.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 13,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_widened_crosscopy": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_widened_crosscopy.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 13,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "A_widened_swapped": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/A_widened_swapped.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 13,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "B_bool_specialization": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 8,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-d83e1fc7d66acc7693e16225f1475800",
+      "target_policy_id": "target-625151a144f9b9ec29b3cc4929627ecd",
+      "carrier": 2,
+      "result": 8,
+      "pc": 27,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "B_box": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 8,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-ac2858dce29da39d61edcf9bb8fd747d",
+      "target_policy_id": "target-625151a144f9b9ec29b3cc4929627ecd",
+      "carrier": 2,
+      "result": 8,
+      "pc": 25,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "B_direct": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 8,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-87966f229058cb612b6a5852b56f3d16",
+      "target_policy_id": "target-625151a144f9b9ec29b3cc4929627ecd",
+      "carrier": 2,
+      "result": 8,
+      "pc": 20,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "B_generic_use": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_UNKNOWN_TYPE",
+        "message": "declared type 'Box<int32>' cannot be resolved",
+        "provenance": {
+          "source": "sources/slice2/B_generic_use.flow",
+          "ast_path": "/statement_pool/5",
+          "line": 18,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "B_missing_field": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_RECORD_MISSING_FIELD",
+        "message": "record 'Box' requires field 'value'",
+        "provenance": {
+          "source": "sources/slice2/B_missing_field.flow",
+          "ast_path": "/statement_pool/6",
+          "line": 19,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_SOURCE_OPERATION_GAP",
+        "message": "ordinary record construction execution is not implemented; execution admission is refused",
+        "provenance": {
+          "source": "sources/slice2/B_missing_field.flow",
+          "ast_path": "/statement_pool/6",
+          "line": 19,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "B_mutate": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 1,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: $.target_fact: unsupported target kind: member/index execution is not admitted\n",
+    "tiny.err": "flowtinylower contract error: $.target_fact: unsupported target kind: member/index execution is not admitted\n"
+  },
+  "B_refined_box": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_RECORD_INVARIANT_UNPROVEN",
+        "message": "aggregate invariant requires statically known integer fields or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/B_refined_box.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 7,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_RECORD_INVARIANT_UNPROVEN",
+        "message": "aggregate invariant requires statically known integer fields or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/B_refined_box.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 11,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "B_uninitialized": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 1,
+    "tiny": 2,
+    "diagnostics": [],
+    "plan": "ready",
+    "lower.err": "flowlower error: ordinary call argument carrier mismatch\n",
+    "tiny.out": "{\"backend\":\"tinyvm\",\"format\":\"flowtiny.lowering_result\",\"reason\":\"ordinary record call argument type mismatch\",\"status\":\"unsupported\",\"version\":1}\n"
+  },
+  "C_bad_argument": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_VIOLATION",
+        "message": "refined function argument violates the refined value invariant",
+        "provenance": {
+          "source": "sources/slice2/C_bad_argument.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 12,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "C_bad_return": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/C_bad_return.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 12,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_REFINED_RETURN_VIOLATION",
+        "message": "refined function return violates the refined value invariant",
+        "provenance": {
+          "source": "sources/slice2/C_bad_return.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 6,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "C_composed": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/C_composed.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 12,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "C_identity": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/C_identity.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 12,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_REFINED_RETURN_UNPROVEN",
+        "message": "refined function return requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/C_identity.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 6,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "C_implication": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/C_implication.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 15,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "C_literal": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 9,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-51584346a341f98596c50708fd7ec562",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 9,
+      "pc": 9,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "C_local": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/C_local.flow",
+          "ast_path": "/statement_pool/3",
+          "line": 13,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "C_producer": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 7,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-a599e076344165d1a4c1527db02ad6f0",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 7,
+      "pc": 7,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "C_runtime_checked": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/C_runtime_checked.flow",
+          "ast_path": "/statement_pool/1",
+          "line": 10,
+          "column": 3
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "D_check_once": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 7,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-8ad87ab4c022856c1f91dd9dd28eb7b6",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 7,
+      "pc": 12,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "D_combined": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 0,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-b542fae2c76467beea7bafc469f9f712",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 0,
+      "pc": 8,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "D_combined_bad": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ASSIGNMENT_VIOLATION",
+        "message": "assignment violates the refined value invariant",
+        "provenance": {
+          "source": "sources/slice2/D_combined_bad.flow",
+          "ast_path": "/statement_pool/4",
+          "line": 10,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "D_guard": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 0,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-c4be44aa54f4f823004cd54b64df1a8b",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 0,
+      "pc": 10,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "D_guard_call": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_GUARD_NOT_PROVABLE",
+        "message": "transition affecting guard 'positive' requires runtime overwatch, which is not yet admitted",
+        "provenance": {
+          "source": "sources/slice2/D_guard_call.flow",
+          "ast_path": "/statement_pool/3",
+          "line": 11,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "D_guard_parameter": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_GUARD_NOT_PROVABLE",
+        "message": "guard activation is outside the bounded straight-line scalar proof slice",
+        "provenance": {
+          "source": "sources/slice2/D_guard_parameter.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 3,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "D_guard_violate": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_GUARD_TRANSITION_VIOLATION",
+        "message": "transition would violate active guard 'positive'",
+        "provenance": {
+          "source": "sources/slice2/D_guard_violate.flow",
+          "ast_path": "/statement_pool/3",
+          "line": 11,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "D_mutated_premise": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice2/D_mutated_premise.flow",
+          "ast_path": "/statement_pool/3",
+          "line": 11,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_REFINED_ASSIGNMENT_VIOLATION",
+        "message": "assignment violates the refined value invariant",
+        "provenance": {
+          "source": "sources/slice2/D_mutated_premise.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 10,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "D_refined": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 0,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-efdaa128f9d39a76e1a7c63cb3149a31",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 0,
+      "pc": 6,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  },
+  "D_refined_violate": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ASSIGNMENT_VIOLATION",
+        "message": "assignment violates the refined value invariant",
+        "provenance": {
+          "source": "sources/slice2/D_refined_violate.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 10,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  }
+}

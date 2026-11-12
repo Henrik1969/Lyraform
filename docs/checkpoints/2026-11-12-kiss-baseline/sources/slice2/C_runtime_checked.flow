@@ -1,0 +1,18 @@
+program C_runtime_checked
+type Positive refines int32 {
+ invariant value > 0
+}
+fn consume(x : Positive): int32 {
+ 9 -> return
+}
+fn checked(x : int32): int32 {
+ if x > 0 {
+  consume(x) -> return
+ } else {
+  0 -> return
+ }
+}
+main {
+ result : c_int(checked(7))
+ result -> return
+}

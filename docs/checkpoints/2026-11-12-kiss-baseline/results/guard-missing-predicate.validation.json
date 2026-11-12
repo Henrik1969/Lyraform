@@ -1,0 +1,8 @@
+{
+  "classification": "valid",
+  "format": "flowoptimize.optimization_report",
+  "path": "$",
+  "reason": "artifact is valid",
+  "source": "sources/slice2/D_combined.flow",
+  "version": 1
+}

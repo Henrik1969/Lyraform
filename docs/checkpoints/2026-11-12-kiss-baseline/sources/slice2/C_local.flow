@@ -1,0 +1,15 @@
+program C_local
+type Positive refines int32 {
+ invariant value > 0
+}
+fn make(): Positive {
+ 7 -> return
+}
+fn consume(x : Positive): int32 {
+ 9 -> return
+}
+main {
+ v : Positive(7)
+ result : c_int(consume(v))
+ result -> return
+}

@@ -1,0 +1,13 @@
+program D_mutated_premise
+type Positive refines int32 {
+ invariant value > 0
+}
+fn consume(x : Positive): int32 {
+ 9 -> return
+}
+main {
+ v : Positive(7)
+ -1 -> v
+ result : c_int(consume(v))
+ result -> return
+}

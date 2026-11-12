@@ -1,0 +1,12 @@
+program D_combined
+type Positive refines int32 {
+ invariant value > 0
+}
+main {
+ x : Positive(1)
+ guard small : x < 10
+ 4 -> x
+ unguard small
+ 11 -> x
+ 0 -> return
+}

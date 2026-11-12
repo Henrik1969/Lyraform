@@ -1,0 +1,8 @@
+program A_unwrapped
+fn energy(p : float64, d : float64): float64 {
+ p * d -> return
+}
+main {
+ e : float64(energy(2.0, 3.0))
+ if e == 6.0 { 6 -> return } else { 99 -> return }
+}

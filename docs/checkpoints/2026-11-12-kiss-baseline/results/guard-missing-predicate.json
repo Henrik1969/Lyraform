@@ -1,0 +1,459 @@
+{
+  "abi_type_contracts": [],
+  "aggregate_abi_layouts": [],
+  "effect_access_facts": [],
+  "effect_facts": [],
+  "external_operations": [],
+  "format": "flowoptimize.optimization_report",
+  "input": {
+    "format": "flowparallel.execution_plan",
+    "version": 1
+  },
+  "lowering_plan": {
+    "disposition_facts": [
+      {
+        "completion": "exactly_one",
+        "eliminated_dispositions": [
+          {
+            "kind": "failure",
+            "payload_type": "GuardViolation",
+            "proof_guard_fact_ids": [
+              1
+            ],
+            "reason": "proven_guard_preservation"
+          }
+        ],
+        "expression_id": 7,
+        "fact_id": 0,
+        "format": "lyraform.disposition_fact",
+        "function_symbol_id": 3,
+        "operation_id": 2,
+        "possible_dispositions": [
+          {
+            "commit": "atomic_destination",
+            "kind": "success",
+            "payload_type": "int32",
+            "route": {
+              "kind": "destination",
+              "symbol_id": 4
+            }
+          }
+        ],
+        "provenance": {
+          "ast_path": "/statement_pool/2",
+          "column": 2,
+          "line": 8,
+          "source": "sources/slice2/D_combined.flow"
+        },
+        "scope_id": 3,
+        "statement_id": 2,
+        "version": 1
+      }
+    ],
+    "format": "flowcore.lowering_plan",
+    "functions": [
+      {
+        "availability": "definition",
+        "body_block_id": 0,
+        "entry": true,
+        "name": "main",
+        "parameters": [],
+        "return_type": "c_int",
+        "scope_id": 3,
+        "symbol_id": 3
+      }
+    ],
+    "guard_facts": [
+      {
+        "affected_operation_id": null,
+        "classification": "proven_safe",
+        "dependencies": [
+          4
+        ],
+        "event": "activate",
+        "execution": "elided_static",
+        "fact_id": 0,
+        "format": "lyraform.guard_fact",
+        "guard_name": "small",
+        "guard_symbol_id": 5,
+        "predicate_expression_id": 999999,
+        "provenance": {
+          "ast_path": "/statement_pool/1",
+          "column": 2,
+          "line": 7,
+          "source": "sources/slice2/D_combined.flow"
+        },
+        "scope_id": 3,
+        "statement_id": 1,
+        "version": 1
+      },
+      {
+        "affected_operation_id": 2,
+        "classification": "proven_safe",
+        "dependencies": [
+          4
+        ],
+        "event": "transition",
+        "execution": "elided_static",
+        "fact_id": 1,
+        "format": "lyraform.guard_fact",
+        "guard_name": "small",
+        "guard_symbol_id": 5,
+        "predicate_expression_id": 999999,
+        "provenance": {
+          "ast_path": "/statement_pool/2",
+          "column": 2,
+          "line": 8,
+          "source": "sources/slice2/D_combined.flow"
+        },
+        "scope_id": 3,
+        "statement_id": 2,
+        "version": 1
+      },
+      {
+        "affected_operation_id": null,
+        "classification": "deactivated",
+        "dependencies": [
+          4
+        ],
+        "event": "deactivate",
+        "execution": "elided_static",
+        "fact_id": 2,
+        "format": "lyraform.guard_fact",
+        "guard_name": "small",
+        "guard_symbol_id": 5,
+        "predicate_expression_id": 999999,
+        "provenance": {
+          "ast_path": "/statement_pool/3",
+          "column": 2,
+          "line": 9,
+          "source": "sources/slice2/D_combined.flow"
+        },
+        "scope_id": 3,
+        "statement_id": 3,
+        "version": 1
+      }
+    ],
+    "operations": [
+      {
+        "arguments": [
+          3
+        ],
+        "block_id": 0,
+        "callee": "",
+        "callee_symbol_id": -1,
+        "expression_id": 3,
+        "function_symbol_id": 3,
+        "id": 0,
+        "kind": "value_definition",
+        "operands": [
+          {
+            "expression_id": 3,
+            "kind": "integer_literal",
+            "type": "int32",
+            "value": "1"
+          }
+        ],
+        "result_symbol_id": 4,
+        "scalar_fact": {
+          "compatibility": "admitted",
+          "declaration_statement_id": 0,
+          "destination_symbol_id": 4,
+          "destination_type": "int32",
+          "expression_id": 3,
+          "format": "lyraform.scalar_fact",
+          "kind": "declaration",
+          "provenance": {
+            "ast_path": "/statement_pool/0",
+            "column": 2,
+            "line": 6,
+            "source": "sources/slice2/D_combined.flow"
+          },
+          "source_type": "c_int",
+          "statement_id": 0,
+          "version": 1
+        },
+        "scope_id": 3,
+        "source_call_projection": false,
+        "statement_id": 0
+      },
+      {
+        "arguments": [
+          9
+        ],
+        "block_id": 0,
+        "callee": "",
+        "callee_symbol_id": -1,
+        "expression_id": 9,
+        "function_symbol_id": 3,
+        "id": 1,
+        "kind": "return_value",
+        "operands": [
+          {
+            "expression_id": 9,
+            "kind": "integer_literal",
+            "type": "c_int",
+            "value": "0"
+          }
+        ],
+        "scope_id": 3,
+        "source_call_projection": false,
+        "statement_id": 5
+      },
+      {
+        "arguments": [
+          7
+        ],
+        "block_id": 0,
+        "callee": "",
+        "callee_symbol_id": -1,
+        "expression_id": 7,
+        "function_symbol_id": 3,
+        "id": 2,
+        "kind": "assignment",
+        "operands": [
+          {
+            "expression_id": 7,
+            "kind": "integer_literal",
+            "type": "int32",
+            "value": "4"
+          }
+        ],
+        "result_symbol_id": 4,
+        "scalar_fact": {
+          "compatibility": "admitted",
+          "declaration_statement_id": 0,
+          "destination_symbol_id": 4,
+          "destination_type": "int32",
+          "expression_id": 7,
+          "format": "lyraform.scalar_fact",
+          "kind": "placement",
+          "provenance": {
+            "ast_path": "/statement_pool/2",
+            "column": 2,
+            "line": 8,
+            "source": "sources/slice2/D_combined.flow"
+          },
+          "source_type": "c_int",
+          "statement_id": 2,
+          "version": 1
+        },
+        "scope_id": 3,
+        "source_call_projection": false,
+        "statement_id": 2,
+        "target_fact": {
+          "assignability": "unresolved",
+          "base_symbol_id": 4,
+          "base_type": "int32",
+          "base_type_symbol_id": null,
+          "destination_type": "int32",
+          "destination_type_symbol_id": null,
+          "execution": "existing_policy",
+          "failure": null,
+          "format": "lyraform.target_fact",
+          "index_count": 0,
+          "indices": [],
+          "kind": "identifier",
+          "members": [],
+          "operation_id": 2,
+          "provenance": {
+            "ast_path": "/statement_pool/2/payload/target",
+            "column": 7,
+            "line": 8,
+            "source": "sources/slice2/D_combined.flow"
+          },
+          "resolution": "resolved",
+          "statement_id": 2,
+          "version": 2
+        }
+      },
+      {
+        "arguments": [
+          8
+        ],
+        "block_id": 0,
+        "callee": "",
+        "callee_symbol_id": -1,
+        "expression_id": 8,
+        "function_symbol_id": 3,
+        "id": 3,
+        "kind": "assignment",
+        "operands": [
+          {
+            "expression_id": 8,
+            "kind": "integer_literal",
+            "type": "int32",
+            "value": "11"
+          }
+        ],
+        "result_symbol_id": 4,
+        "scalar_fact": {
+          "compatibility": "admitted",
+          "declaration_statement_id": 0,
+          "destination_symbol_id": 4,
+          "destination_type": "int32",
+          "expression_id": 8,
+          "format": "lyraform.scalar_fact",
+          "kind": "placement",
+          "provenance": {
+            "ast_path": "/statement_pool/4",
+            "column": 2,
+            "line": 10,
+            "source": "sources/slice2/D_combined.flow"
+          },
+          "source_type": "c_int",
+          "statement_id": 4,
+          "version": 1
+        },
+        "scope_id": 3,
+        "source_call_projection": false,
+        "statement_id": 4,
+        "target_fact": {
+          "assignability": "unresolved",
+          "base_symbol_id": 4,
+          "base_type": "int32",
+          "base_type_symbol_id": null,
+          "destination_type": "int32",
+          "destination_type_symbol_id": null,
+          "execution": "existing_policy",
+          "failure": null,
+          "format": "lyraform.target_fact",
+          "index_count": 0,
+          "indices": [],
+          "kind": "identifier",
+          "members": [],
+          "operation_id": 3,
+          "provenance": {
+            "ast_path": "/statement_pool/4/payload/target",
+            "column": 8,
+            "line": 10,
+            "source": "sources/slice2/D_combined.flow"
+          },
+          "resolution": "resolved",
+          "statement_id": 4,
+          "version": 2
+        }
+      }
+    ],
+    "parse_validity": {
+      "coverage": "unassessed",
+      "format": "lyraform.parse_validity",
+      "message": "",
+      "recovery_used": false,
+      "scope": "compatibility",
+      "state": "outside_scope",
+      "version": 1
+    },
+    "source_operation_coverage": {
+      "format": "lyraform.source_operation_coverage",
+      "refused_count": 0,
+      "statement_count": 6,
+      "statements": [
+        {
+          "disposition": "lowered",
+          "kind": "let",
+          "operation_ids": [
+            0
+          ],
+          "statement_id": 0
+        },
+        {
+          "disposition": "static_semantic",
+          "kind": "guard_activate",
+          "operation_ids": [],
+          "statement_id": 1
+        },
+        {
+          "disposition": "lowered",
+          "kind": "placement",
+          "operation_ids": [
+            2
+          ],
+          "statement_id": 2
+        },
+        {
+          "disposition": "static_semantic",
+          "kind": "guard_deactivate",
+          "operation_ids": [],
+          "statement_id": 3
+        },
+        {
+          "disposition": "lowered",
+          "kind": "placement",
+          "operation_ids": [
+            3
+          ],
+          "statement_id": 4
+        },
+        {
+          "disposition": "lowered",
+          "kind": "return",
+          "operation_ids": [
+            1
+          ],
+          "statement_id": 5
+        }
+      ],
+      "status": "complete",
+      "version": 1
+    },
+    "status": "ready",
+    "version": 2
+  },
+  "message": "optimization boundary reached; derived matrix views are available; provider selection remains runtime policy",
+  "parallel_candidates": [],
+  "projections": [
+    {
+      "columns": 8,
+      "kind": "graph_to_matrix",
+      "name": "region_dependency",
+      "rows": 8,
+      "semiring": "boolean",
+      "status": "available",
+      "storage": "coo"
+    }
+  ],
+  "provider_effect_profiles": [],
+  "provider_policy": {
+    "candidates": [
+      "cpu",
+      "cuda"
+    ],
+    "cuda": {
+      "fallback": "cpu",
+      "requires": [
+        "runtime capability",
+        "measured cost benefit",
+        "provider contract"
+      ]
+    },
+    "decision": {
+      "provider": "",
+      "reason": "",
+      "representation": "",
+      "status": "deferred"
+    },
+    "selection": "runtime"
+  },
+  "source": {
+    "path": "sources/slice2/D_combined.flow"
+  },
+  "state": {
+    "canonical_graph": "unchanged",
+    "decision_effect": "advisory_policy_only",
+    "transformation": "identity"
+  },
+  "status": "ready",
+  "targets": [],
+  "transforms": [
+    {
+      "input_entries": 8,
+      "kind": "coo_deduplicate",
+      "output_entries": 8,
+      "proof": "Boolean relation duplicate idempotence",
+      "semantics_preserved": true,
+      "status": "not-needed"
+    }
+  ],
+  "version": 1
+}

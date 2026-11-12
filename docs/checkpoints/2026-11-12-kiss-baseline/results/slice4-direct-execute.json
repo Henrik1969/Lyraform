@@ -1,0 +1,12 @@
+{
+  "format": "flowtiny.execution_record",
+  "version": 1,
+  "status": "completed",
+  "artifact_format": 2,
+  "artifact_id": "tinyvm-ac2858dce29da39d61edcf9bb8fd747d",
+  "target_policy_id": "target-625151a144f9b9ec29b3cc4929627ecd",
+  "carrier": 2,
+  "result": 8,
+  "pc": 25,
+  "trap": 0
+}

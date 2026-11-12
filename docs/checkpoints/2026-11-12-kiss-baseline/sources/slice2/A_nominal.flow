@@ -1,0 +1,20 @@
+program A_records
+record Power { value : int32
+}
+record Duration { value : int32
+}
+record Energy { value : int32
+}
+target Demo {
+fn energy(p : Power, d : Duration): Energy {
+ result : Energy({value: 6})
+ result -> return
+}
+main {
+ p : Power({value: 2})
+ d : Duration({value: 3})
+ e : Energy(energy(p, d))
+ ev : int32(e.value)
+ if ev == 6 { 6 -> return } else { 99 -> return }
+}
+}

@@ -1,0 +1,14 @@
+program C_bad_argument
+type Positive refines int32 {
+ invariant value > 0
+}
+fn make(): Positive {
+ 7 -> return
+}
+fn consume(x : Positive): int32 {
+ 9 -> return
+}
+main {
+ result : c_int(consume(-1))
+ result -> return
+}

@@ -1,0 +1,9 @@
+program D_guard_parameter
+fn consume(x : int32): int32 {
+ guard positive : x > 0
+ 0 -> return
+}
+main {
+ result : c_int(consume(7))
+ result -> return
+}

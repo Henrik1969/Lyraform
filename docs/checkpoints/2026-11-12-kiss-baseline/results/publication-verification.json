@@ -1,0 +1,40 @@
+{
+  "mission": "preserve-current-research-baseline",
+  "revision": "9459705a9de14a91d62f796aa6bcd7f727fac165",
+  "started_utc": "20261112T223810Z",
+  "build_directory": "$BUILD",
+  "evidence_directory": "$VERIFICATION",
+  "status": "verification-passed",
+  "authorization": "User checkpoint/publication mission; stop on verification failure",
+  "commands": [
+    {
+      "command": "./igor doctor",
+      "exit_code": 0,
+      "seconds": 0.006,
+      "log": "doctor.log",
+      "sha256": "fdaf6db6e3238c3433613ed9d793282b2ba433f4e122bb0f13e6b629fb78d71c"
+    },
+    {
+      "command": "./igor check",
+      "exit_code": 0,
+      "seconds": 0.803,
+      "log": "check.log",
+      "sha256": "84cfba1f4311ea58a4c2ac26b0fee426125ecf29a71ad5ebb0baeb847c0680ac"
+    },
+    {
+      "command": "./igor build",
+      "exit_code": 0,
+      "seconds": 79.229,
+      "log": "build.log",
+      "sha256": "6ef748813793f8a8afe9bca00aa691e96382e1a302b56bcea705b81f5bd919cf"
+    },
+    {
+      "command": "./igor test",
+      "exit_code": 0,
+      "seconds": 119.825,
+      "log": "test.log",
+      "sha256": "391d8b4d92a00319c67fcbc1671853af65e1ee9ef0f16c65bcd21a4f8e8e4048"
+    }
+  ],
+  "finished_utc": "2026-11-12T22:41:30.479081+00:00"
+}
