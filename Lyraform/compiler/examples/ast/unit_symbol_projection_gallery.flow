@@ -4,7 +4,7 @@ type ExternalAlias refines vendor.Domain {
 }
 
 type Packet {
-    field payload : optional<collection.list<int>>
+    field payload : optional<collection.list<int32>>
 }
 
 fn convert(input : Bool) -> float {

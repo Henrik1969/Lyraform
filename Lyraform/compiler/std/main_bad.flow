@@ -1,6 +1,6 @@
 program std_main_bad
 
 main {
-    one : int(1)
+    one : int32(1)
     print one
 }

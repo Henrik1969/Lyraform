@@ -1,0 +1,461 @@
+{
+  "baseline": "9459705a9de14a91d62f796aa6bcd7f727fac165",
+  "source_trees": {
+    "slice2": {
+      "files": 774,
+      "bytes": 3145282,
+      "tree_sha256": "f4895e017b2ee448cd4c78c7376ccdb629073db7e09e3eaf3fd29d4e29b1cd84"
+    },
+    "slice3": {
+      "files": 45,
+      "bytes": 405305,
+      "tree_sha256": "6d92473a453376de75fefe4534c6f3a5e39d92b71d81161d5a00daf15a417bac"
+    },
+    "slice4": {
+      "files": 20,
+      "bytes": 63805,
+      "tree_sha256": "b4e2d95fd38f9b3492898eb7e6dd260fe9b6f3929b42b557000c8792d8e2bd11"
+    }
+  },
+  "files": [
+    {
+      "archive_path": "sources/slice2/A_abi.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_abi.flow",
+      "original_sha256": "1436a44811a0e917d59d25b3d232b3b0a649043daac0b086e0ea0b9de82d07e2",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_constant.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_constant.flow",
+      "original_sha256": "6f083b9a0d2e5a6bdd4681139ec6a8170fb195ccba08fc5b21423a0af8cb5117",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_constant_swapped.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_constant_swapped.flow",
+      "original_sha256": "80a0ef91809e73dd11ff853fb049b2330f402bfe84e3b9223356be2f2b4c3dca",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_crosscopy.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_crosscopy.flow",
+      "original_sha256": "b64942f35d3a48e8b4bce066baab21176cd6a392eb2935dceaf79d1d21de8d67",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_factored.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_factored.flow",
+      "original_sha256": "e3c7ff0ab75a722f65b79ca43a63addd14be7728ece02192929d622af58f4063",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_factored_crosscopy.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_factored_crosscopy.flow",
+      "original_sha256": "681ac8a8fd5c47a9d58ed2a14382d9988d9ed9ae402eb11e09fe08aa64c4c40d",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_factored_swapped.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_factored_swapped.flow",
+      "original_sha256": "d5c40cc491e3026ea5b70a613b26d8ff9f0fd414ace7471d503e2496007ca0f6",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_float_calls.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_float_calls.flow",
+      "original_sha256": "209b19ac2a457735ac54b4bbc8c954d8f0fa017282e2861fd45371e1baa05c8a",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_float_calls_crosscopy.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_float_calls_crosscopy.flow",
+      "original_sha256": "63e4b1941382eb6d6fa27fbe1b9b3f403b90b364362251cde75c203acf7b92e0",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_float_calls_swapped.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_float_calls_swapped.flow",
+      "original_sha256": "51816663a3cbad17cf42fcc1f8db82f9ac7b6f8d6213678d73fd4045d08329d6",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_float_relabel.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_float_relabel.flow",
+      "original_sha256": "8aa1b70258038ee580674961732d36b66844b9a906d89a782874c6c3f734fa0b",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_inline.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_inline.flow",
+      "original_sha256": "0044dc6d6be496851cde938858e6704c95cda7086a130307aa6b692f0e201763",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_int_factored.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_int_factored.flow",
+      "original_sha256": "7f0a7c88a3402f6cd6fb68056b993594531d84c3ba0c06956a53c64ad199a1fd",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_integer.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_integer.flow",
+      "original_sha256": "173a8ec6215eab791a5deb5c80b9f884d8e440b7a03c6bd79c58e803deac0048",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_nominal.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_nominal.flow",
+      "original_sha256": "06acfc9d78d2b6a80798e4bcf14605d19beac7bf861bfa462f7073fcc6c61e79",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_nominal_crosscopy.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_nominal_crosscopy.flow",
+      "original_sha256": "75685a0b02df5587d83e583de79774548ed381ed0f01eec26804678c4dbb9ab0",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_nominal_swapped.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_nominal_swapped.flow",
+      "original_sha256": "ab9ce613e0e970caa020f19915cfae26bb38742e66379774a59f50080de41466",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_records.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_records.flow",
+      "original_sha256": "4a15da33a1bb2e2ff72ec8c9fbe5b9ab7ef8df1e759f47fbe57d339226a5302e",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_swapped.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_swapped.flow",
+      "original_sha256": "4bddc347e2db410561b5620d1bfadc6edcc7eda9b88d7d8319321183576e4492",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_unwrapped.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_unwrapped.flow",
+      "original_sha256": "e2d3c46a366b7be942ac0f83acfdf403793705ef09b864c8885a9d02afc96596",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_wide_factored.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_wide_factored.flow",
+      "original_sha256": "bbf12922d04de4709d7d56b1133e93552d244abd614cabf0538fb0f106f4e943",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_wide_locals.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_wide_locals.flow",
+      "original_sha256": "6cae2a990452fd3c96a99dfe182209e968e88bd6f532ad8726466da85d581b49",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_widened.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_widened.flow",
+      "original_sha256": "6d3599d9c9c42b66eeac8658c745fe74570d060bbf35c7f32f2e46feaea5c037",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_widened_crosscopy.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_widened_crosscopy.flow",
+      "original_sha256": "9dbe507e661caa0f995020d5f01ae4253e22440f1fcda5243f02e97c3cffbf41",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/A_widened_swapped.flow",
+      "source_label": "lyraform-kiss-slice2-probes/A_widened_swapped.flow",
+      "original_sha256": "39059991d035d377b2936305e0250d6e5f3e3363cb4076dbe8dde0e43b494284",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_bool_specialization.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_bool_specialization.flow",
+      "original_sha256": "41c53f4c062900117fe7192c5a3ec64e52195e994411b9b083ada2d4bb68018e",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_box.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_box.flow",
+      "original_sha256": "fce901473d2f728fd7bb73b617289c7241161392d08fb7cb5549578b3490071b",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_direct.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_direct.flow",
+      "original_sha256": "267f9324a5679d6eda27f6b1ae62d5e6a7fface41e7508dff42a2c052af07174",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_generic_use.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_generic_use.flow",
+      "original_sha256": "2c07a1347d23ea6fe5533fa4a49366f9c47a43ab9584b12a0da36a52539d936a",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_missing_field.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_missing_field.flow",
+      "original_sha256": "c0c542ba5f0ac3fae531221ef6fe8a03fb3766e6d0b5ea2996fa9dfe34239271",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_mutate.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_mutate.flow",
+      "original_sha256": "c1e9eb02c9b6851bde6cd4d3aeeb9273f0a24d48e494b0bb6324727f4a30d0e3",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_refined_box.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_refined_box.flow",
+      "original_sha256": "5a62e35b939c828796cda5e3b3b6bca86048f54bcdda46b9a12837bb8b12485a",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/B_uninitialized.flow",
+      "source_label": "lyraform-kiss-slice2-probes/B_uninitialized.flow",
+      "original_sha256": "ec324b0378174eed92e5cb315ac333ff720d92c1f740c817ace4c884a4cc314a",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_bad_argument.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_bad_argument.flow",
+      "original_sha256": "a21cda5f7ea47ad7488e073eef1d14939855afd0dbe24ce570c5d8e478ae603c",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_bad_return.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_bad_return.flow",
+      "original_sha256": "7fdfe7759b21bf09446a8ca5ff0502edc0f55a71c0d57ca0ddf9371c35a20205",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_composed.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_composed.flow",
+      "original_sha256": "3287e771a5f0e27fb9d1bf4580977c8b3057cc5a4573ad7bf82bc01b0b9e6fd8",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_identity.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_identity.flow",
+      "original_sha256": "58c0384d91456440eb7d8f3e9aa4fd78a3f579c36ab2b77906e8389ce697827c",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_implication.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_implication.flow",
+      "original_sha256": "8dd3c62153b19658d1c9215cbe4b796fa4df1a3e08125ac2b84df5317d0dc76b",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_literal.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_literal.flow",
+      "original_sha256": "7527951022efaf084d5f7003c59ebb49b5855f356f4acf6fa4acb91b9dab6280",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_local.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_local.flow",
+      "original_sha256": "9e565097b72a4458fa5ecd5a46dc61749e642e22cee5e6ec594b31d47ade60c5",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_producer.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_producer.flow",
+      "original_sha256": "35bc945663ac16ba8d0fc6785ddbf978f9ec4101fd2f7baee271a2da59a0bb54",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/C_runtime_checked.flow",
+      "source_label": "lyraform-kiss-slice2-probes/C_runtime_checked.flow",
+      "original_sha256": "ea2db71415d8fd43610f5dd2e5411ebbe5f026491283d1798abcc8ee90c09c35",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_check_once.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_check_once.flow",
+      "original_sha256": "076bee003d5d753d504a9ea1a444b7749bf1c13eb1c8ef7f068243124a2ff70a",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_combined.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_combined.flow",
+      "original_sha256": "f857e73a173905c8ec0e29bd7a4b42e8f7b958c6458d96d46ad974b65098f6dd",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_combined_bad.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_combined_bad.flow",
+      "original_sha256": "479093edae6b7aff67e439ce1fdda610603627efc2760252f607d30ce882cc76",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_guard.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_guard.flow",
+      "original_sha256": "2e601d5902d1548856d4c852d3fbe916ad6b52a8bf4946f1b2130a7f079dd5e0",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_guard_call.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_guard_call.flow",
+      "original_sha256": "2b80a4ad41474ab6a426717c63021d862b028d5819ad7bd8c5d87765fc9c0c89",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_guard_parameter.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_guard_parameter.flow",
+      "original_sha256": "3f117a02ce79da701e4dd42c86f884bdda93406beeca92de550a8b44a4855242",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_guard_violate.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_guard_violate.flow",
+      "original_sha256": "ae66fb311668c736b72b23e8c2e376dcb0bdf240a27a022c334d723a8f92ff9d",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_mutated_premise.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_mutated_premise.flow",
+      "original_sha256": "b2a3015c4c88f8fe9aee4a5c7605e246a04846d0f9b13b82a599faa8593c2b26",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_refined.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_refined.flow",
+      "original_sha256": "1d2f74ab84704ca09997896a15d7219effc6bd3cd99bd2febc4b000f5ec55158",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice2/D_refined_violate.flow",
+      "source_label": "lyraform-kiss-slice2-probes/D_refined_violate.flow",
+      "original_sha256": "8a651b1e4bbc430b9ccae9b8d3cfcf88c3cb779fd74461557ec576fe4434c246",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice3/implication.flow",
+      "source_label": "lyraform-kiss-slice3/implication.flow",
+      "original_sha256": "0acbd9e59b73e46e3bf6f2e90b055113b2c2af27f651ae5233a26aac1c7827af",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice3/invalid_producer.flow",
+      "source_label": "lyraform-kiss-slice3/invalid_producer.flow",
+      "original_sha256": "15e1fa01c8eae2b24ae9911cf27e89d42e31256eea08dec6810acba2fc8a4bbb",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "sources/slice3/literal_control.flow",
+      "source_label": "lyraform-kiss-slice3/literal_control.flow",
+      "original_sha256": "3afaf58b4a7c182f751bc0530b52b70b22c9acafd32ed5f7879df2f834967fd2",
+      "treatment": "unchanged source bytes"
+    },
+    {
+      "archive_path": "results/slice2-manifest.json",
+      "source_label": "lyraform-kiss-slice2-probes/manifest.json",
+      "original_sha256": "40f892f9058772666e0e11bcbd1c67e963f884c6baad863ce00b8433de0c3681",
+      "treatment": "baseline, source hashes and expectations retained; duplicate results and local build path omitted"
+    },
+    {
+      "archive_path": "results/slice4-inventory.json",
+      "source_label": "lyraform-kiss-slice4/inventory.json",
+      "original_sha256": "5860f4a181ef14700368862fb1aced83792c3cfff950a5ee58eefcf01f2b30f2",
+      "treatment": "JSON projection; local source/build paths normalized"
+    },
+    {
+      "archive_path": "results/slice4-timings.json",
+      "source_label": "lyraform-kiss-slice4/timings.json",
+      "original_sha256": "e2c0fa551a121e05010f3466f461c898b50eff714db843c9a88068742e0e4358",
+      "treatment": "JSON projection; local source/build paths normalized"
+    },
+    {
+      "archive_path": "results/slice4-direct-execute.json",
+      "source_label": "lyraform-kiss-slice4/direct-execute.out",
+      "original_sha256": "2238458339941ee3d02ba047c2eeabf6b1b898e1b2cd5fe13badf87f18821bce",
+      "treatment": "JSON projection; local source/build paths normalized"
+    },
+    {
+      "archive_path": "results/guard-missing-predicate.json",
+      "source_label": "lyraform-kiss-slice3/guard-missing-predicate.json",
+      "original_sha256": "e0a065197202f4d06890a24eee6e57cd66ea38df8dcf83462cc2092017194782",
+      "treatment": "JSON projection; local source/build paths normalized"
+    },
+    {
+      "archive_path": "results/guard-missing-predicate.validation.json",
+      "source_label": "lyraform-kiss-slice3/guard-missing-predicate.validation.json",
+      "original_sha256": "dc5dd1e951fac69f80553162e5d703ee0babbe33d7d3a4ad48be196fa1debd6a",
+      "treatment": "JSON projection; local source/build paths normalized"
+    },
+    {
+      "archive_path": "results/publication-verification.json",
+      "source_label": "20261112T223810Z/verification.json",
+      "original_sha256": "ffe34e930731d6cc50d9f8bbe550e18580639d9d33b49b1a8d2aa910e86d41dc",
+      "treatment": "JSON projection; local source/build paths normalized"
+    },
+    {
+      "archive_path": "results/publication-test.log",
+      "source_label": "20261112T223810Z/test.log",
+      "original_sha256": "391d8b4d92a00319c67fcbc1671853af65e1ee9ef0f16c65bcd21a4f8e8e4048",
+      "treatment": "local paths normalized"
+    },
+    {
+      "archive_path": "results/toolchain.txt",
+      "source_label": "20261112T223810Z/environment.txt",
+      "original_sha256": "c470c2407c37ef2d23c78167d0e7a5fe5a75f74a78a80bd9ea673095eb0f40cc",
+      "treatment": "tool versions excerpt only"
+    },
+    {
+      "archive_path": "scripts/probe.py",
+      "source_label": "lyraform-kiss-slice2-probes/probe.py",
+      "original_sha256": "d9cce3e5990385b88d28f07aa0c3d1fde5a5cea693067cde0be751885079444d",
+      "treatment": "portable CLI adaptation; execution logic unchanged"
+    },
+    {
+      "archive_path": "scripts/measure.py",
+      "source_label": "lyraform-kiss-slice4/measure.py",
+      "original_sha256": "b7fe0f1d12468bfa74025732c11e2d636cbab80f3d580957a34a700f9eadbf1f",
+      "treatment": "portable CLI adaptation; measurement logic unchanged"
+    },
+    {
+      "archive_path": "scripts/direct-path.py",
+      "source_label": "lyraform-kiss-slice4/direct-path.py",
+      "original_sha256": "85842c8b964187548e83f3a2fbc6f7e265e494e5f0252ac635e735611e4ba332",
+      "treatment": "portable CLI adaptation; experiment logic unchanged"
+    },
+    {
+      "archive_path": "scripts/benchmark.py",
+      "source_label": "lyraform-kiss-slice4/benchmark.py",
+      "original_sha256": "0c0a919e943c3cfcae71c88e323ca0145d7ea7510b74386a041ab0282a6e75f6",
+      "treatment": "portable CLI adaptation; timing method unchanged"
+    }
+  ],
+  "omitted_originals": {
+    "lyraform-kiss-slice2-probes/generate.py": {
+      "sha256": "454985ac0400f16056ee271a8b218b649f72d6ae536842d2a2c738edc746700a",
+      "bytes": 2459,
+      "retention": "original remains local; not included"
+    },
+    "lyraform-kiss-slice3/traces.json": {
+      "sha256": "666425248f6d067ffb35e23e2ac3eeb0038a9329b958299647dcb0550f7b18a0",
+      "bytes": 278406,
+      "retention": "original remains local; not included"
+    },
+    "20261112T223810Z/doctor.log": {
+      "sha256": "fdaf6db6e3238c3433613ed9d793282b2ba433f4e122bb0f13e6b629fb78d71c",
+      "bytes": 586,
+      "retention": "original remains local; not included"
+    },
+    "20261112T223810Z/check.log": {
+      "sha256": "84cfba1f4311ea58a4c2ac26b0fee426125ecf29a71ad5ebb0baeb847c0680ac",
+      "bytes": 157722,
+      "retention": "original remains local; not included"
+    },
+    "20261112T223810Z/build.log": {
+      "sha256": "6ef748813793f8a8afe9bca00aa691e96382e1a302b56bcea705b81f5bd919cf",
+      "bytes": 278477,
+      "retention": "original remains local; not included"
+    }
+  },
+  "missing_records": [
+    "No standalone Slice 0 or Slice 1 report was found in the inspected audit locations.",
+    "Slice 5 completed in the conversation; archive contains a curated summary, not a verbatim export."
+  ]
+}

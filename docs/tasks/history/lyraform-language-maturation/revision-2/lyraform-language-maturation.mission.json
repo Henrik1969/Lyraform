@@ -1,0 +1,170 @@
+{
+  "format": "development.mission.v1",
+  "id": "lyraform.language-maturation",
+  "revision": "2",
+  "owner": "Henrik S\u00f8rensen",
+  "context": "LyraForm",
+  "intent": "Mature the intended language toward real application development.",
+  "canonical_definition": {
+    "path": "lyraform-language-maturation.md",
+    "sha256": "8f1ed855789533f0f1532b2489f9d9654df1d09e39df24e5da8e0a6c7e72a5b2"
+  },
+  "scope": [
+    "T0\u2013T7 as defined in canonical Markdown; stage selection and semantic decision gates apply."
+  ],
+  "non_goals": [
+    "No blanket full-language completion, self-hosting, publication or implementation authorization."
+  ],
+  "authorization": {
+    "status": "not-granted",
+    "reference": "2026-10-17 owner request authorizes examination and mission preparation; execution not selected.",
+    "scope": "Definition preparation only; implementation requires explicit selection."
+  },
+  "policies": [
+    {
+      "id": "GOV-001",
+      "revision": "1.1",
+      "uri": "../../../Policies/rules/GOV-001.md"
+    },
+    {
+      "id": "WORK-001",
+      "revision": "1.0",
+      "uri": "../../../Policies/rules/WORK-001.md"
+    },
+    {
+      "id": "STATE-001",
+      "revision": "1.0",
+      "uri": "../../../Policies/rules/STATE-001.md"
+    },
+    {
+      "id": "AGENT-001",
+      "revision": "1.0",
+      "uri": "../../../Policies/rules/AGENT-001.md"
+    }
+  ],
+  "external_dependencies": [
+    {
+      "id": "gate3",
+      "context": "LyraForm",
+      "condition": "Review and establish an authorized reproducible Gate 3 prerequisite baseline.",
+      "evidence": "../checkpoints/2026-10-13-source-disposition-policy-gate-3.md"
+    },
+    {
+      "id": "configresolve-reference",
+      "context": "ConfigResolve",
+      "condition": "Pin source, contracts and test corpus; classify known defects and experimental behavior before parity measurement.",
+      "evidence": "../../../ConfigResolve/docs/V1_SCALAR_EQUIVALENCE_AND_POLICY_AXES.md"
+    }
+  ],
+  "goal": {
+    "outcome": "Ratified practical profile and a ConfigResolve engine port plus consumer in Lyraform, with measured compatibility and explicit remaining language boundaries.",
+    "criteria": [
+      {
+        "id": "C1",
+        "metric": "uncovered required profile families",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Measure complete rubric C1 in canonical Markdown, including all stated prerequisites; attach reproducible evidence."
+      },
+      {
+        "id": "C2",
+        "metric": "Gate 4\u20137 requirement failures",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Measure complete rubric C2 in canonical Markdown, including all stated prerequisites; attach reproducible evidence."
+      },
+      {
+        "id": "C3",
+        "metric": "ConfigResolve port compatibility and coverage failures",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Measure complete rubric C3 in canonical Markdown, including all stated prerequisites; attach reproducible evidence."
+      },
+      {
+        "id": "C4",
+        "metric": "required verification failures",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Measure complete rubric C4 in canonical Markdown, including all stated prerequisites; attach reproducible evidence."
+      },
+      {
+        "id": "C5",
+        "metric": "reproduction and consolidation gaps",
+        "operator": "eq",
+        "expected": 0,
+        "required": true,
+        "method": "Measure complete rubric C5 in canonical Markdown, including all stated prerequisites; attach reproducible evidence."
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "context": "LyraForm",
+      "work": "Perform T0 exactly as bounded in canonical Markdown.",
+      "depends_on": []
+    },
+    {
+      "id": "T1",
+      "context": "LyraForm",
+      "work": "Perform T1 exactly as bounded in canonical Markdown.",
+      "depends_on": [
+        "T0"
+      ]
+    },
+    {
+      "id": "T2",
+      "context": "LyraForm",
+      "work": "Perform T2 exactly as bounded in canonical Markdown.",
+      "depends_on": [
+        "T1"
+      ]
+    },
+    {
+      "id": "T3",
+      "context": "LyraForm",
+      "work": "Perform T3 exactly as bounded in canonical Markdown.",
+      "depends_on": [
+        "T2"
+      ]
+    },
+    {
+      "id": "T4",
+      "context": "LyraForm",
+      "work": "Perform T4 exactly as bounded in canonical Markdown.",
+      "depends_on": [
+        "T0"
+      ]
+    },
+    {
+      "id": "T5",
+      "context": "LyraForm",
+      "work": "Perform T5 exactly as bounded in canonical Markdown.",
+      "depends_on": [
+        "T3",
+        "T4"
+      ]
+    },
+    {
+      "id": "T6",
+      "context": "LyraForm",
+      "work": "Perform T6 exactly as bounded in canonical Markdown.",
+      "depends_on": [
+        "T5"
+      ]
+    },
+    {
+      "id": "T7",
+      "context": "LyraForm",
+      "work": "Perform T7 exactly as bounded in canonical Markdown.",
+      "depends_on": [
+        "T6"
+      ]
+    }
+  ],
+  "revision_provenance": "Henrik selected ConfigResolve as the port target on 2026-10-17; prior definition preserved under history/lyraform-language-maturation/revision-1."
+}

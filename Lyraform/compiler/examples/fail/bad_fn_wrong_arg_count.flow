@@ -1,12 +1,12 @@
 program bad_fn_wrong_arg_count
 
-fn add(a : int, b : int): int {
+fn add(a : int32, b : int32): int32 {
     a + b -> return
 }
 
 main {
-    x : int(1)
-    y : int(0)
+    x : int32(1)
+    y : int32(0)
     add(x) -> y
     print y
 }

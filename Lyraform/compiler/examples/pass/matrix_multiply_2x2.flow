@@ -1,16 +1,16 @@
 program matrix_multiply_2x2
 
 main {
-    a    : array<int>[2, 2]([1,2,3,4])
-    b    : array<int>[2, 2]([5,6,7,8])
-    c    : array<int>[2, 2]([0,0,0,0])
-    zero : int(0)
-    one  : int(1)
-    two  : int(2)
-    i    : int(0)
-    j    : int(0)
-    k    : int(0)
-    sum  : int(0)
+    a    : array<int32>[2, 2]([1,2,3,4])
+    b    : array<int32>[2, 2]([5,6,7,8])
+    c    : array<int32>[2, 2]([0,0,0,0])
+    zero : int32(0)
+    one  : int32(1)
+    two  : int32(2)
+    i    : int32(0)
+    j    : int32(0)
+    k    : int32(0)
+    sum  : int32(0)
 
     while i < two {
         zero -> j

@@ -19,10 +19,10 @@
                 "id": 0,
                 "kind": "refined_type",
                 "name": "IntList",
-                "base_type": "collection.list<int>",
+                "base_type": "collection.list<int32>",
                 "base_type_ref": {
                     "kind": "generic",
-                    "text": "collection.list<int>",
+                    "text": "collection.list<int32>",
                     "payload": {
                         "constructor_segments": [
                             "collection",
@@ -31,10 +31,10 @@
                         "arguments": [
                             {
                                 "kind": "named",
-                                "text": "int",
+                                "text": "int32",
                                 "payload": {
                                     "name_segments": [
-                                        "int"
+                                        "int32"
                                     ]
                                 },
                                 "location": {
@@ -111,10 +111,10 @@
                     },
                     {
                         "name": "fallback",
-                        "type": "optional<collection.list<int>>",
+                        "type": "optional<collection.list<int32>>",
                         "type_ref": {
                             "kind": "generic",
-                            "text": "optional<collection.list<int>>",
+                            "text": "optional<collection.list<int32>>",
                             "payload": {
                                 "constructor_segments": [
                                     "optional"
@@ -122,7 +122,7 @@
                                 "arguments": [
                                     {
                                         "kind": "generic",
-                                        "text": "collection.list<int>",
+                                        "text": "collection.list<int32>",
                                         "payload": {
                                             "constructor_segments": [
                                                 "collection",
@@ -131,10 +131,10 @@
                                             "arguments": [
                                                 {
                                                     "kind": "named",
-                                                    "text": "int",
+                                                    "text": "int32",
                                                     "payload": {
                                                         "name_segments": [
-                                                            "int"
+                                                            "int32"
                                                         ]
                                                     },
                                                     "location": {
@@ -162,6 +162,7 @@
                         }
                     }
                 ],
+                "invariants": [],
                 "location": {
                     "line": 7,
                     "column": 6
@@ -175,10 +176,10 @@
                 "parameters": [
                     {
                         "name": "input",
-                        "type": "optional<collection.list<int>>",
+                        "type": "optional<collection.list<int32>>",
                         "type_ref": {
                             "kind": "generic",
-                            "text": "optional<collection.list<int>>",
+                            "text": "optional<collection.list<int32>>",
                             "payload": {
                                 "constructor_segments": [
                                     "optional"
@@ -186,7 +187,7 @@
                                 "arguments": [
                                     {
                                         "kind": "generic",
-                                        "text": "collection.list<int>",
+                                        "text": "collection.list<int32>",
                                         "payload": {
                                             "constructor_segments": [
                                                 "collection",
@@ -195,10 +196,10 @@
                                             "arguments": [
                                                 {
                                                     "kind": "named",
-                                                    "text": "int",
+                                                    "text": "int32",
                                                     "payload": {
                                                         "name_segments": [
-                                                            "int"
+                                                            "int32"
                                                         ]
                                                     },
                                                     "location": {
@@ -227,17 +228,17 @@
                     },
                     {
                         "name": "grid",
-                        "type": "array<int>[2,3]",
+                        "type": "array<int32>[2,3]",
                         "type_ref": {
                             "kind": "array",
-                            "text": "array<int>[2,3]",
+                            "text": "array<int32>[2,3]",
                             "payload": {
                                 "element_type": {
                                     "kind": "named",
-                                    "text": "int",
+                                    "text": "int32",
                                     "payload": {
                                         "name_segments": [
-                                            "int"
+                                            "int32"
                                         ]
                                     },
                                     "location": {
@@ -250,14 +251,14 @@
                                         "text": "2",
                                         "location": {
                                             "line": 14,
-                                            "column": 23
+                                            "column": 25
                                         }
                                     },
                                     {
                                         "text": "3",
                                         "location": {
                                             "line": 14,
-                                            "column": 26
+                                            "column": 28
                                         }
                                     }
                                 ]
@@ -273,10 +274,10 @@
                         }
                     }
                 ],
-                "return_type": "result.Result<array<int>,Error>",
+                "return_type": "result.Result<array<int32>,Error>",
                 "return_type_ref": {
                     "kind": "generic",
-                    "text": "result.Result<array<int>,Error>",
+                    "text": "result.Result<array<int32>,Error>",
                     "payload": {
                         "constructor_segments": [
                             "result",
@@ -285,14 +286,14 @@
                         "arguments": [
                             {
                                 "kind": "array",
-                                "text": "array<int>",
+                                "text": "array<int32>",
                                 "payload": {
                                     "element_type": {
                                         "kind": "named",
-                                        "text": "int",
+                                        "text": "int32",
                                         "payload": {
                                             "name_segments": [
-                                                "int"
+                                                "int32"
                                             ]
                                         },
                                         "location": {
@@ -317,7 +318,7 @@
                                 },
                                 "location": {
                                     "line": 15,
-                                    "column": 32
+                                    "column": 34
                                 }
                             }
                         ]
@@ -353,10 +354,10 @@
             "id": 0,
             "kind": "refined_type",
             "name": "IntList",
-            "base_type": "collection.list<int>",
+            "base_type": "collection.list<int32>",
             "base_type_ref": {
                 "kind": "generic",
-                "text": "collection.list<int>",
+                "text": "collection.list<int32>",
                 "payload": {
                     "constructor_segments": [
                         "collection",
@@ -365,10 +366,10 @@
                     "arguments": [
                         {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -445,10 +446,10 @@
                 },
                 {
                     "name": "fallback",
-                    "type": "optional<collection.list<int>>",
+                    "type": "optional<collection.list<int32>>",
                     "type_ref": {
                         "kind": "generic",
-                        "text": "optional<collection.list<int>>",
+                        "text": "optional<collection.list<int32>>",
                         "payload": {
                             "constructor_segments": [
                                 "optional"
@@ -456,7 +457,7 @@
                             "arguments": [
                                 {
                                     "kind": "generic",
-                                    "text": "collection.list<int>",
+                                    "text": "collection.list<int32>",
                                     "payload": {
                                         "constructor_segments": [
                                             "collection",
@@ -465,10 +466,10 @@
                                         "arguments": [
                                             {
                                                 "kind": "named",
-                                                "text": "int",
+                                                "text": "int32",
                                                 "payload": {
                                                     "name_segments": [
-                                                        "int"
+                                                        "int32"
                                                     ]
                                                 },
                                                 "location": {
@@ -496,6 +497,7 @@
                     }
                 }
             ],
+            "invariants": [],
             "location": {
                 "line": 7,
                 "column": 6
@@ -509,10 +511,10 @@
             "parameters": [
                 {
                     "name": "input",
-                    "type": "optional<collection.list<int>>",
+                    "type": "optional<collection.list<int32>>",
                     "type_ref": {
                         "kind": "generic",
-                        "text": "optional<collection.list<int>>",
+                        "text": "optional<collection.list<int32>>",
                         "payload": {
                             "constructor_segments": [
                                 "optional"
@@ -520,7 +522,7 @@
                             "arguments": [
                                 {
                                     "kind": "generic",
-                                    "text": "collection.list<int>",
+                                    "text": "collection.list<int32>",
                                     "payload": {
                                         "constructor_segments": [
                                             "collection",
@@ -529,10 +531,10 @@
                                         "arguments": [
                                             {
                                                 "kind": "named",
-                                                "text": "int",
+                                                "text": "int32",
                                                 "payload": {
                                                     "name_segments": [
-                                                        "int"
+                                                        "int32"
                                                     ]
                                                 },
                                                 "location": {
@@ -561,17 +563,17 @@
                 },
                 {
                     "name": "grid",
-                    "type": "array<int>[2,3]",
+                    "type": "array<int32>[2,3]",
                     "type_ref": {
                         "kind": "array",
-                        "text": "array<int>[2,3]",
+                        "text": "array<int32>[2,3]",
                         "payload": {
                             "element_type": {
                                 "kind": "named",
-                                "text": "int",
+                                "text": "int32",
                                 "payload": {
                                     "name_segments": [
-                                        "int"
+                                        "int32"
                                     ]
                                 },
                                 "location": {
@@ -584,14 +586,14 @@
                                     "text": "2",
                                     "location": {
                                         "line": 14,
-                                        "column": 23
+                                        "column": 25
                                     }
                                 },
                                 {
                                     "text": "3",
                                     "location": {
                                         "line": 14,
-                                        "column": 26
+                                        "column": 28
                                     }
                                 }
                             ]
@@ -607,10 +609,10 @@
                     }
                 }
             ],
-            "return_type": "result.Result<array<int>,Error>",
+            "return_type": "result.Result<array<int32>,Error>",
             "return_type_ref": {
                 "kind": "generic",
-                "text": "result.Result<array<int>,Error>",
+                "text": "result.Result<array<int32>,Error>",
                 "payload": {
                     "constructor_segments": [
                         "result",
@@ -619,14 +621,14 @@
                     "arguments": [
                         {
                             "kind": "array",
-                            "text": "array<int>",
+                            "text": "array<int32>",
                             "payload": {
                                 "element_type": {
                                     "kind": "named",
-                                    "text": "int",
+                                    "text": "int32",
                                     "payload": {
                                         "name_segments": [
-                                            "int"
+                                            "int32"
                                         ]
                                     },
                                     "location": {
@@ -651,7 +653,7 @@
                             },
                             "location": {
                                 "line": 15,
-                                "column": 32
+                                "column": 34
                             }
                         }
                     ]
@@ -844,7 +846,7 @@
                 "name": "local",
                 "type_ref": {
                     "kind": "generic",
-                    "text": "optional<collection.list<int>>",
+                    "text": "optional<collection.list<int32>>",
                     "payload": {
                         "constructor_segments": [
                             "optional"
@@ -852,7 +854,7 @@
                         "arguments": [
                             {
                                 "kind": "generic",
-                                "text": "collection.list<int>",
+                                "text": "collection.list<int32>",
                                 "payload": {
                                     "constructor_segments": [
                                         "collection",
@@ -861,10 +863,10 @@
                                     "arguments": [
                                         {
                                             "kind": "named",
-                                            "text": "int",
+                                            "text": "int32",
                                             "payload": {
                                                 "name_segments": [
-                                                    "int"
+                                                    "int32"
                                                 ]
                                             },
                                             "location": {
@@ -889,10 +891,10 @@
                 "initializer_expression": 0
             },
             "name": "local",
-            "type": "optional<collection.list<int>>",
+            "type": "optional<collection.list<int32>>",
             "type_ref": {
                 "kind": "generic",
-                "text": "optional<collection.list<int>>",
+                "text": "optional<collection.list<int32>>",
                 "payload": {
                     "constructor_segments": [
                         "optional"
@@ -900,7 +902,7 @@
                     "arguments": [
                         {
                             "kind": "generic",
-                            "text": "collection.list<int>",
+                            "text": "collection.list<int32>",
                             "payload": {
                                 "constructor_segments": [
                                     "collection",
@@ -909,10 +911,10 @@
                                 "arguments": [
                                     {
                                         "kind": "named",
-                                        "text": "int",
+                                        "text": "int32",
                                         "payload": {
                                             "name_segments": [
-                                                "int"
+                                                "int32"
                                             ]
                                         },
                                         "location": {
@@ -950,14 +952,14 @@
                 "name": "scratch",
                 "type_ref": {
                     "kind": "array",
-                    "text": "array<int>[Rows,2]",
+                    "text": "array<int32>[Rows,2]",
                     "payload": {
                         "element_type": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -970,14 +972,14 @@
                                 "text": "Rows",
                                 "location": {
                                     "line": 17,
-                                    "column": 26
+                                    "column": 28
                                 }
                             },
                             {
                                 "text": "2",
                                 "location": {
                                     "line": 17,
-                                    "column": 32
+                                    "column": 34
                                 }
                             }
                         ]
@@ -990,17 +992,17 @@
                 "initializer_expression": 4
             },
             "name": "scratch",
-            "type": "array<int>[Rows,2]",
+            "type": "array<int32>[Rows,2]",
             "type_ref": {
                 "kind": "array",
-                "text": "array<int>[Rows,2]",
+                "text": "array<int32>[Rows,2]",
                 "payload": {
                     "element_type": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -1013,14 +1015,14 @@
                             "text": "Rows",
                             "location": {
                                 "line": 17,
-                                "column": 26
+                                "column": 28
                             }
                         },
                         {
                             "text": "2",
                             "location": {
                                 "line": 17,
-                                "column": 32
+                                "column": 34
                             }
                         }
                     ]
@@ -1062,7 +1064,7 @@
                 "name": "values",
                 "type_ref": {
                     "kind": "generic",
-                    "text": "collection.list<int>",
+                    "text": "collection.list<int32>",
                     "payload": {
                         "constructor_segments": [
                             "collection",
@@ -1071,10 +1073,10 @@
                         "arguments": [
                             {
                                 "kind": "named",
-                                "text": "int",
+                                "text": "int32",
                                 "payload": {
                                     "name_segments": [
-                                        "int"
+                                        "int32"
                                     ]
                                 },
                                 "location": {
@@ -1092,10 +1094,10 @@
                 "initializer_expression": 10
             },
             "name": "values",
-            "type": "collection.list<int>",
+            "type": "collection.list<int32>",
             "type_ref": {
                 "kind": "generic",
-                "text": "collection.list<int>",
+                "text": "collection.list<int32>",
                 "payload": {
                     "constructor_segments": [
                         "collection",
@@ -1104,10 +1106,10 @@
                     "arguments": [
                         {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {

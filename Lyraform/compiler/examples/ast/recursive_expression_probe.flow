@@ -1,15 +1,15 @@
 program recursive_expression_probe
 
 type Point {
-    field x : int
-    field y : int
+    field x : int32
+    field y : int32
 }
 
 main {
-    arr : list<int>([1, 2, 3])
-    i : int(0)
+    arr : list<int32>([1, 2, 3])
+    i : int32(0)
     point : Point({x: 10, y: 20})
-    result : int(0)
+    result : int32(0)
 
     result = outer(inner(1 + arr[i]))
     arr = [arr[i], leaf(point.x)]

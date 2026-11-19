@@ -1,0 +1,21 @@
+program B_box
+record Box { value : int32
+}
+target Demo {
+fn make(x : int32): Box {
+ b : Box({value: x})
+ b -> return
+}
+fn replace(b : Box, x : int32): Box {
+ next : Box({value: x})
+ next -> return
+}
+fn get(b : Box): int32 {
+ b.value -> return
+}
+main {
+ old : Box(make(3))
+ next : Box(replace(old, 8))
+ if get(old) == 3 { get(next) -> return } else { 99 -> return }
+}
+}

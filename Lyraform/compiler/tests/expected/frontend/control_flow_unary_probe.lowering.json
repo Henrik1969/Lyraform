@@ -282,7 +282,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]
@@ -315,7 +315,7 @@
           "key": "declared_type_spelling",
           "value": {
             "type": "string",
-            "value": "int"
+            "value": "int32"
           }
         }
       ]

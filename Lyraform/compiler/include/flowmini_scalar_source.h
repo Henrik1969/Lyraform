@@ -135,7 +135,7 @@ inline Adapted adapt(const ast::AstModule& ast, const Model& model,
         } else if (const auto* value = std::get_if<ast::BinaryExpr>(&payload)) {
             const auto left = expression(*value->left), right = expression(*value->right);
             const std::map<std::string, std::string> atoms = {{"+","int.add"},{"-","int.sub"},{"*","int.mul"},
-                {"/","int.div"},{"%","int.mod"},{"<","int.lt"},{">","int.gt"},{"==","int.eq"}};
+                {"div","int.div"},{"%","int.mod"},{"<","int.lt"},{">","int.gt"},{"==","int.eq"}};
             const auto atom = atoms.find(value->op);
             if (atom == atoms.end()) refuse("runtime backend does not implement admitted operator " + value->op);
             const auto kind = value->op == "==" && model.expression_types.at(static_cast<int>(*value->left)) == Type::boolean ? "bool.eq" : atom->second;

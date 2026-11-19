@@ -11,7 +11,7 @@ Symbols: 12
     Fact kind=Custom key=source_unit_kind value="program"
   Symbol #2 scope=#2 name=IntList kind=Type facts=1
     declaration_location=<source>:4:1
-    Fact kind=TypeReference key=base_type_spelling value="collection.list<int>"
+    Fact kind=TypeReference key=base_type_spelling value="collection.list<int32>"
   Symbol #3 scope=#2 name=MatrixBox kind=Struct facts=0
     declaration_location=<source>:7:6
   Symbol #4 scope=#3 name=values kind=Field facts=1
@@ -19,24 +19,24 @@ Symbols: 12
     Fact kind=TypeReference key=declared_type_spelling value="array<math.scalar>[Rows,2]"
   Symbol #5 scope=#3 name=fallback kind=Field facts=1
     declaration_location=<source>:9:5
-    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int>>"
+    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int32>>"
   Symbol #6 scope=#2 name=transform kind=Function facts=1
     declaration_location=<source>:12:1
-    Fact kind=TypeReference key=return_type_spelling value="result.Result<array<int>,Error>"
+    Fact kind=TypeReference key=return_type_spelling value="result.Result<array<int32>,Error>"
   Symbol #7 scope=#4 name=input kind=Parameter facts=1
     declaration_location=<source>:13:5
-    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int>>"
+    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int32>>"
   Symbol #8 scope=#4 name=grid kind=Parameter facts=1
     declaration_location=<source>:14:5
-    Fact kind=TypeReference key=declared_type_spelling value="array<int>[2,3]"
+    Fact kind=TypeReference key=declared_type_spelling value="array<int32>[2,3]"
   Symbol #9 scope=#4 name=local kind=Variable facts=1
     declaration_location=<source>:16:5
-    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int>>"
+    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int32>>"
   Symbol #10 scope=#4 name=scratch kind=Variable facts=1
     declaration_location=<source>:17:5
-    Fact kind=TypeReference key=declared_type_spelling value="array<int>[Rows,2]"
+    Fact kind=TypeReference key=declared_type_spelling value="array<int32>[Rows,2]"
   Symbol #11 scope=#2 name=main kind=Procedure facts=0
     declaration_location=<source>:21:1
   Symbol #12 scope=#5 name=values kind=Variable facts=1
     declaration_location=<source>:22:5
-    Fact kind=TypeReference key=declared_type_spelling value="collection.list<int>"
+    Fact kind=TypeReference key=declared_type_spelling value="collection.list<int32>"

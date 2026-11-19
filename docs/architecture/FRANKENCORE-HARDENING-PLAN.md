@@ -1,5 +1,10 @@
 # Frankencore Hardening and Improvement Plan
 
+**Naming decision, 2026-10-17:** [FrankenCore/IDENTITY-001](../../../FrankenCore/Policies/IDENTITY-001.md)
+clarifies that FrankenCore defines architecture and policies, while FrankenPOP
+is a possible future system governed by them. Boundary wording below has been
+reconciled; the remaining proposal is not promoted by this clarification.
+
 **Status:** Proposed architectural baseline  
 **Audience:** Codex, maintainers, contributors, architecture review  
 **Purpose:** Convert the current Frankencore/FrankenPOP architecture into enforceable contracts, invariants, and implementation gates.
@@ -39,15 +44,13 @@ Until that baseline exists, experimental development may continue, but new archi
 
 ## 2. Canonical Project Boundaries
 
-The following distinction is architectural law unless explicitly revised.
+The architecture/system distinction follows IDENTITY-001. Other design details in this plan retain their proposed status.
 
 ### FrankenPOP!
 
-FrankenPOP! is the umbrella architecture and ecosystem.
+FrankenPOP is a possible future system based on FrankenCore architecture and policies.
 
-It includes:
-
-- Frankencore;
+It may compose implementations of FrankenCore contracts, for example:
 - Flowcore;
 - presentation systems;
 - capability providers;
@@ -60,7 +63,7 @@ It includes:
 
 ### Frankencore
 
-Frankencore is the **constitutional core and substrate mediation layer**.
+FrankenCore defines the **architecture and policies**. Substrate-mediation implementations are governed components, not the definition of that authority.
 
 Its responsibilities include:
 
@@ -78,7 +81,7 @@ Frankencore must not become synonymous with the entire operating environment.
 
 ### Flowcore
 
-Flowcore is a language, orchestration, transformation, and execution architecture that lives within FrankenPOP!.
+Flowcore is a language, orchestration, transformation, and execution architecture that a future FrankenPOP system may use.
 
 Flowcore may consume Frankencore contracts.
 
@@ -134,8 +137,8 @@ The following terms should be standardized before further architectural expansio
 
 | Term | Canonical Meaning |
 |---|---|
-| FrankenPOP! | Entire architecture/ecosystem |
-| Frankencore | Constitutional core and substrate mediation layer |
+| FrankenPOP | Possible future system based on FrankenCore architecture and policies |
+| FrankenCore | Architecture and policy authority; distinct from concrete governed components |
 | Flowcore | Typed language/orchestration/execution architecture |
 | Substrate | External mechanism Frankencore builds upon |
 | Capability | Something an entity can truthfully perform |

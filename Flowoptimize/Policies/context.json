@@ -1,0 +1,36 @@
+{
+  "format": "development.policy-context.v1",
+  "project": "LyraForm/Flowoptimize",
+  "title": "Lyraform component Flowoptimize",
+  "shared_registry": "../../../Policies/PROJECTS.json",
+  "shared_baseline": "1.3",
+  "parent_context": "../../Policies/context.json",
+  "agent": "../AGENTS.md",
+  "policy_index": "README.md",
+  "local_policies": [
+    {
+      "path": "LOCAL-001.md",
+      "version": "1.1",
+      "status": "active policy map and scope record; not a conformance certificate"
+    }
+  ],
+  "state_location": "../.mission-state/<mission-id>/<revision>/",
+  "capabilities": [
+    "libraries"
+  ],
+  "audit": "AUDIT.md",
+  "evidence": [
+    {
+      "path": "../README.md",
+      "sha256": "f2a81bc8c9e3074c569eb6195a533d0c82e09de15c620a77bc6920d02b0b98f4",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../CMakeLists.txt",
+      "sha256": "6562596dceee864290b5ff0130acb1b2cefea9e5659ebf8fbca520c17e7ceb84",
+      "observed": "2026-10-17"
+    }
+  ],
+  "open_decisions": [],
+  "runtime_compliance": "not-certified"
+}

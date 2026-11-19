@@ -4,7 +4,7 @@ program comment_demo
     This whole block is ignored.
 
     main {
-        bad : int(999)
+        bad : int32(999)
         print bad
     }
 
@@ -15,8 +15,8 @@ program comment_demo
 
 main {
     // inline comment before code
-    x : int(40) // declaration comment
-    y : int(2)
+    x : int32(40) // declaration comment
+    y : int32(2)
 
     /*
         Temporarily disabled:

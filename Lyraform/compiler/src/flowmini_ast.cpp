@@ -1097,6 +1097,18 @@ namespace flowmini::ast {
                 out << "],\n";
 
                 dump_indent(out, indent + 2);
+                out << "\"invariants\": [";
+                for (std::size_t i = 0; i < recordDecl->invariants.size(); ++i) {
+                    if (i != 0) { out << ", "; }
+                    out << "{\"condition_expression\": "
+                        << recordDecl->invariants[i].condition_expression
+                        << ", \"location\": ";
+                    dump_source_location_json(out, recordDecl->invariants[i].location);
+                    out << "}";
+                }
+                out << "],\n";
+
+                dump_indent(out, indent + 2);
                 out << "\"location\": ";
                 dump_source_location_json(out, recordDecl->location);
                 out << "\n";

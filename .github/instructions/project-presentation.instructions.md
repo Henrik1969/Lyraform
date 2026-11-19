@@ -17,3 +17,10 @@ navigable, and evidence-bound.
 - Keep build commands executable from a clean checkout and avoid machine-local
   paths.
 - Never replace detailed evidence documents with promotional summaries.
+
+## Governance binding
+
+Follow the [project policy map](../../Policies/README.md) and
+[executor entry point](../../AGENTS.md). This document is
+a scoped workflow adapter, not a separate policy authority. Existing presentation
+and hygiene constraints remain; local exceptions require explicit policy records.

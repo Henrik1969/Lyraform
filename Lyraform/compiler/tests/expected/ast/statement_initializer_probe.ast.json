@@ -19,13 +19,13 @@
                 "name": "seed",
                 "parameter_count": 0,
                 "parameters": [],
-                "return_type": "int",
+                "return_type": "int32",
                 "return_type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -61,13 +61,13 @@
             "name": "seed",
             "parameter_count": 0,
             "parameters": [],
-            "return_type": "int",
+            "return_type": "int32",
             "return_type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -269,10 +269,10 @@
                 "name": "scalar",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -283,13 +283,13 @@
                 "initializer_expression": 1
             },
             "name": "scalar",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -313,7 +313,7 @@
                 "name": "values",
                 "type_ref": {
                     "kind": "generic",
-                    "text": "list<int>",
+                    "text": "list<int32>",
                     "payload": {
                         "constructor_segments": [
                             "list"
@@ -321,10 +321,10 @@
                         "arguments": [
                             {
                                 "kind": "named",
-                                "text": "int",
+                                "text": "int32",
                                 "payload": {
                                     "name_segments": [
-                                        "int"
+                                        "int32"
                                     ]
                                 },
                                 "location": {
@@ -342,10 +342,10 @@
                 "initializer_expression": 5
             },
             "name": "values",
-            "type": "list<int>",
+            "type": "list<int32>",
             "type_ref": {
                 "kind": "generic",
-                "text": "list<int>",
+                "text": "list<int32>",
                 "payload": {
                     "constructor_segments": [
                         "list"
@@ -353,10 +353,10 @@
                     "arguments": [
                         {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -433,10 +433,10 @@
                 "name": "nested",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -447,13 +447,13 @@
                 "initializer_expression": 11
             },
             "name": "nested",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {

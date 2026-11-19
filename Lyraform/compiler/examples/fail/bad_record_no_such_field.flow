@@ -1,13 +1,13 @@
 program bad_record_no_such_field
 
 type Point {
-    field x : int
-    field y : int
+    field x : int32
+    field y : int32
 }
 
 main {
     p : Point({x:10, y:20})
-    value : int(0)
+    value : int32(0)
     p.z -> value
     print value
 }

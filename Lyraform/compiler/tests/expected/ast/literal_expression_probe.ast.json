@@ -21,13 +21,13 @@
                 "fields": [
                     {
                         "name": "x",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -42,13 +42,13 @@
                     },
                     {
                         "name": "y",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -62,6 +62,7 @@
                         }
                     }
                 ],
+                "invariants": [],
                 "location": {
                     "line": 4,
                     "column": 6
@@ -90,13 +91,13 @@
             "fields": [
                 {
                     "name": "x",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -111,13 +112,13 @@
                 },
                 {
                     "name": "y",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -131,6 +132,7 @@
                     }
                 }
             ],
+            "invariants": [],
             "location": {
                 "line": 4,
                 "column": 6
@@ -342,7 +344,7 @@
                 "name": "xs",
                 "type_ref": {
                     "kind": "generic",
-                    "text": "list<int>",
+                    "text": "list<int32>",
                     "payload": {
                         "constructor_segments": [
                             "list"
@@ -350,10 +352,10 @@
                         "arguments": [
                             {
                                 "kind": "named",
-                                "text": "int",
+                                "text": "int32",
                                 "payload": {
                                     "name_segments": [
-                                        "int"
+                                        "int32"
                                     ]
                                 },
                                 "location": {
@@ -371,10 +373,10 @@
                 "initializer_expression": 0
             },
             "name": "xs",
-            "type": "list<int>",
+            "type": "list<int32>",
             "type_ref": {
                 "kind": "generic",
-                "text": "list<int>",
+                "text": "list<int32>",
                 "payload": {
                     "constructor_segments": [
                         "list"
@@ -382,10 +384,10 @@
                     "arguments": [
                         {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {

@@ -4,8 +4,8 @@ import "../../std/math.flow"
 program import_repeat
 
 main {
-    five : int(5)
-    result : int(0)
+    five : int32(5)
+    result : int32(0)
     square(five) -> result
     print result
 }

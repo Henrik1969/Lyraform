@@ -55,13 +55,13 @@
                 "fields": [
                     {
                         "name": "age",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -96,6 +96,7 @@
                         }
                     }
                 ],
+                "invariants": [],
                 "location": {
                     "line": 8,
                     "column": 6
@@ -227,13 +228,13 @@
             "fields": [
                 {
                     "name": "age",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -268,6 +269,7 @@
                     }
                 }
             ],
+            "invariants": [],
             "location": {
                 "line": 8,
                 "column": 6
@@ -711,7 +713,7 @@
                 "name": "values",
                 "type_ref": {
                     "kind": "generic",
-                    "text": "list<int>",
+                    "text": "list<int32>",
                     "payload": {
                         "constructor_segments": [
                             "list"
@@ -719,10 +721,10 @@
                         "arguments": [
                             {
                                 "kind": "named",
-                                "text": "int",
+                                "text": "int32",
                                 "payload": {
                                     "name_segments": [
-                                        "int"
+                                        "int32"
                                     ]
                                 },
                                 "location": {
@@ -740,10 +742,10 @@
                 "initializer_expression": 4
             },
             "name": "values",
-            "type": "list<int>",
+            "type": "list<int32>",
             "type_ref": {
                 "kind": "generic",
-                "text": "list<int>",
+                "text": "list<int32>",
                 "payload": {
                     "constructor_segments": [
                         "list"
@@ -751,10 +753,10 @@
                     "arguments": [
                         {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -785,14 +787,14 @@
                 "name": "matrix",
                 "type_ref": {
                     "kind": "array",
-                    "text": "array<int>[2,2]",
+                    "text": "array<int32>[2,2]",
                     "payload": {
                         "element_type": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -805,14 +807,14 @@
                                 "text": "2",
                                 "location": {
                                     "line": 25,
-                                    "column": 25
+                                    "column": 27
                                 }
                             },
                             {
                                 "text": "2",
                                 "location": {
                                     "line": 25,
-                                    "column": 28
+                                    "column": 30
                                 }
                             }
                         ]
@@ -825,17 +827,17 @@
                 "initializer_expression": 8
             },
             "name": "matrix",
-            "type": "array<int>[2,2]",
+            "type": "array<int32>[2,2]",
             "type_ref": {
                 "kind": "array",
-                "text": "array<int>[2,2]",
+                "text": "array<int32>[2,2]",
                 "payload": {
                     "element_type": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -848,14 +850,14 @@
                             "text": "2",
                             "location": {
                                 "line": 25,
-                                "column": 25
+                                "column": 27
                             }
                         },
                         {
                             "text": "2",
                             "location": {
                                 "line": 25,
-                                "column": 28
+                                "column": 30
                             }
                         }
                     ]
@@ -969,10 +971,10 @@
                 "name": "selected",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -983,13 +985,13 @@
                 "initializer_expression": 19
             },
             "name": "selected",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {
@@ -1013,10 +1015,10 @@
                 "name": "age",
                 "type_ref": {
                     "kind": "named",
-                    "text": "int",
+                    "text": "int32",
                     "payload": {
                         "name_segments": [
-                            "int"
+                            "int32"
                         ]
                     },
                     "location": {
@@ -1027,13 +1029,13 @@
                 "initializer_expression": 23
             },
             "name": "age",
-            "type": "int",
+            "type": "int32",
             "type_ref": {
                 "kind": "named",
-                "text": "int",
+                "text": "int32",
                 "payload": {
                     "name_segments": [
-                        "int"
+                        "int32"
                     ]
                 },
                 "location": {

@@ -1,0 +1,131 @@
+[
+  {
+    "case": "valid",
+    "frontend_exit": 0,
+    "analyst_exit": 0,
+    "status": "ok",
+    "plan_status": "ready",
+    "diagnostics": [],
+    "lower_exit": 1,
+    "lower_stderr": "flowlower error: unsupported structured value definition\n",
+    "artifact_exists": false
+  },
+  {
+    "case": "reordered",
+    "frontend_exit": 0,
+    "analyst_exit": 0,
+    "status": "ok",
+    "plan_status": "ready",
+    "diagnostics": [],
+    "lower_exit": 1,
+    "lower_stderr": "flowlower error: unsupported structured value definition\n",
+    "artifact_exists": false
+  },
+  {
+    "case": "missing",
+    "frontend_exit": 0,
+    "analyst_exit": 0,
+    "status": "ok",
+    "plan_status": "ready",
+    "diagnostics": [],
+    "lower_exit": 1,
+    "lower_stderr": "flowlower error: unsupported structured value definition\n",
+    "artifact_exists": false
+  },
+  {
+    "case": "extra",
+    "frontend_exit": 0,
+    "analyst_exit": 0,
+    "status": "ok",
+    "plan_status": "ready",
+    "diagnostics": [],
+    "lower_exit": 1,
+    "lower_stderr": "flowlower error: unsupported structured value definition\n",
+    "artifact_exists": false
+  },
+  {
+    "case": "wrong-type",
+    "frontend_exit": 0,
+    "analyst_exit": 0,
+    "status": "ok",
+    "plan_status": "ready",
+    "diagnostics": [],
+    "lower_exit": 1,
+    "lower_stderr": "flowlower error: unsupported structured value definition\n",
+    "artifact_exists": false
+  },
+  {
+    "case": "unknown-record",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_UNKNOWN_TYPE",
+        "severity": "error",
+        "message": "declared type 'Unknown' cannot be resolved",
+        "root_cause": true,
+        "subject": {
+          "kind": "symbol",
+          "id": 6
+        },
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix/unknown-record/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "symbol:6"
+      }
+    ]
+  },
+  {
+    "case": "unknown-member",
+    "frontend_exit": 0,
+    "analyst_exit": 2,
+    "status": "error",
+    "plan_status": "blocked",
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_UNKNOWN_FIELD",
+        "severity": "error",
+        "message": "record type 'Candidate' has no field 'absent'",
+        "root_cause": true,
+        "subject": {
+          "kind": "symbol",
+          "id": 6
+        },
+        "provenance": {
+          "source": "/tmp/configresolve-record-matrix/unknown-member/source.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 10,
+          "column": 5
+        },
+        "region": "expression:3"
+      }
+    ]
+  },
+  {
+    "case": "copy",
+    "frontend_exit": 0,
+    "analyst_exit": 0,
+    "status": "ok",
+    "plan_status": "ready",
+    "diagnostics": [],
+    "lower_exit": 1,
+    "lower_stderr": "flowlower error: unsupported structured value definition\n",
+    "artifact_exists": false
+  },
+  {
+    "case": "renamed",
+    "frontend_exit": 0,
+    "analyst_exit": 0,
+    "status": "ok",
+    "plan_status": "ready",
+    "diagnostics": [],
+    "lower_exit": 1,
+    "lower_stderr": "flowlower error: unsupported structured value definition\n",
+    "artifact_exists": false
+  }
+]

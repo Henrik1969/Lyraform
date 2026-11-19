@@ -1,7 +1,12 @@
 # Frankencore Constitutional Baseline v0.1
 
+**Naming decision, 2026-10-17:** [FrankenCore/IDENTITY-001](../../../FrankenCore/Policies/IDENTITY-001.md)
+clarifies that FrankenCore defines architecture and policies, while FrankenPOP
+is a possible future system governed by them. Boundary wording below has been
+reconciled; the remaining proposal is not promoted by this clarification.
+
 **Status:** proposed constitutional baseline  
-**Scope:** Frankencore, the constitutional core and substrate-mediation layer
+**Scope:** Proposed component contracts under FrankenCore architecture and policies, including substrate mediation
 
 This document defines the first small set of laws against which Frankencore
 components can be audited. It does not require a universal runtime library,
@@ -9,10 +14,10 @@ object hierarchy, persistence mechanism, or Flowcore dependency.
 
 ## Boundaries
 
-- **FrankenPOP!** is the complete ecosystem and umbrella architecture.
-- **Frankencore** is the constitutional core and substrate-mediation layer.
+- **FrankenPOP** is a possible future system implementation based on FrankenCore architecture and policies.
+- **FrankenCore** defines the architecture and policies. Concrete substrate-mediation components implement its contracts; they do not own its authority.
 - **Flowcore** is an optional language, orchestration, transformation, and
-  execution architecture within FrankenPOP!.
+  execution architecture that a future FrankenPOP system may use.
 - A **substrate** is an external mechanism exposed through an adapter or
   provider boundary.
 

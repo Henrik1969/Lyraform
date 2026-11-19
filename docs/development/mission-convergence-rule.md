@@ -134,6 +134,6 @@ Protocol link in root `AGENTS.md`:
 > reuse, and consolidate at each gate. A prerequisite stage must name its
 > executable dependency and state its narrower maturity claim.
 
-The link makes the rule part of the normal Codex instruction chain. An
-explicitly selected mission still controls its own Git authority and exact
-definition of done.
+The link makes the rule part of the project executor instruction chain. An
+explicitly selected mission records its authorized Git scope and measurable
+goal criteria under the applicable policies; it cannot grant itself authority.

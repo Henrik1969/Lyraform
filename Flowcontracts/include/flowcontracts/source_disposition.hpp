@@ -37,6 +37,33 @@ inline void validate_source_disposition_topology(const json::Value& raw,
         provenance(required(t, "provenance", owner), owner + ".provenance");
         return spelling;
     };
+    auto result_resource = [&](const json::Value& value, const std::string& owner,
+                               const std::string& outgoing) {
+        const auto& resource = object(value, owner);
+        if (resource.size() != 8 ||
+            !resource.contains("type") || !resource.contains("ownership") ||
+            !resource.contains("access") || !resource.contains("lifetime") ||
+            !resource.contains("nullable") || !resource.contains("cleanup_capability") ||
+            !resource.contains("origin") || !resource.contains("proof"))
+            throw Error(owner, "response result resource contract is incomplete or has undeclared fields");
+        const auto resource_type = text(resource, "type", owner);
+        const auto ownership = text(resource, "ownership", owner);
+        const auto access = text(resource, "access", owner);
+        const auto lifetime = text(resource, "lifetime", owner);
+        const auto nullable = text(resource, "nullable", owner);
+        const auto cleanup = text(resource, "cleanup_capability", owner);
+        const auto origin = text(resource, "origin", owner);
+        const auto proof = text(resource, "proof", owner);
+        if (resource_type != outgoing ||
+            (ownership != "borrowed" && ownership != "owned") ||
+            access != "read" || nullable != "false" || origin.empty() || proof.empty())
+            throw Error(owner, "response result resource disagrees with the typed boundary");
+        if (ownership == "borrowed" && (lifetime != "call" || cleanup != "none"))
+            throw Error(owner, "borrowed response results require call lifetime and no cleanup");
+        if (ownership == "owned" && (lifetime != "owned" || cleanup.empty() || cleanup == "none"))
+            throw Error(owner, "owned response results require owned lifetime and cleanup capability");
+        return ownership;
+    };
 
     if (text(root, "format", path) != "lyraform.source_disposition_topology" ||
         number(root, "version", path) != 1 || text(root, "status", path) != "semantic" ||
@@ -95,6 +122,13 @@ inline void validate_source_disposition_topology(const json::Value& raw,
     if (success_type != "Text" || failures != std::set<std::string>{"TextFailure"})
         throw Error(path + ".producer", "bounded TextOutcome carrier types changed");
 
+    if (const auto* raw_projection = optional(producer, "result_projection")) {
+        const auto& projection = object(*raw_projection, path + ".producer.result_projection");
+        if (text(projection, "kind", path) != "atomic_tagged_result" ||
+            text(projection, "carrier_type", path) != "TextOutcome")
+            throw Error(path + ".producer.result_projection", "producer must preserve its atomic tagged carrier");
+    }
+
     std::map<Integer, std::tuple<std::string, std::string, std::string>> responses;
     const auto& response_values = array(required(root, "response_functions", path), path + ".response_functions");
     if (response_values.empty() || response_values.size() > 64)
@@ -105,14 +139,21 @@ inline void validate_source_disposition_topology(const json::Value& raw,
         const auto id = number(response, "function_symbol_id", owner_path);
         const auto incoming = type(required(response, "incoming_failure_type", owner_path), owner_path + ".incoming_failure_type");
         const auto outgoing = type(required(response, "outgoing_type", owner_path), owner_path + ".outgoing_type");
+        result_resource(required(response, "result_resource", owner_path),
+                        owner_path + ".result_resource", outgoing);
         const auto response_class = text(response, "response_class", owner_path);
         if (id < 0 || !failures.count(incoming) ||
             text(response, "input_projection", owner_path) != "immutable_failure_envelope" ||
             (response_class != "recover" && response_class != "transform") ||
             !responses.emplace(id, std::tuple{incoming, response_class, outgoing}).second)
             throw Error(owner_path, "invalid or duplicate response function");
+        if (const auto* parameter = optional(response, "parameter_symbol_id"))
+            if (integer(*parameter, owner_path + ".parameter_symbol_id") < 0)
+                throw Error(owner_path, "response envelope parameter identity must be non-negative");
         if (response_class == "recover" && outgoing != success_type)
             throw Error(owner_path, "recovery result differs from producer success type");
+        if (response_class == "transform")
+            throw Error(owner_path, "single-consumer topology lacks accountable transformed-failure successor authority");
         if (text(response, "obligation_transition", owner_path) !=
             (response_class == "recover" ? "close_original" : "linked_successor"))
             throw Error(owner_path, "response transition disagrees with its declared class");
@@ -166,6 +207,20 @@ inline void validate_source_disposition_topology(const json::Value& raw,
         number(junction, "producer_operation_id", path + ".junction") != operation)
         throw Error(path + ".junction", "junction does not preserve the exact producer attempt and type");
     provenance(required(junction, "provenance", path + ".junction"), path + ".junction.provenance");
+
+    // Additive resolved destination witness. Historical Gate 2/3 artifacts may
+    // omit it; a Graph IR projection must require it rather than resolve names.
+    if (const auto* raw_rejoin = optional(root, "rejoin")) {
+        const auto owner_path = path + ".rejoin";
+        const auto& rejoin = object(*raw_rejoin, owner_path);
+        if (text(rejoin, "node_id", owner_path).empty() ||
+            number(rejoin, "function_symbol_id", owner_path) < 0 ||
+            number(rejoin, "parameter_symbol_id", owner_path) < 0 ||
+            text(rejoin, "input_type", owner_path) != success_type ||
+            text(rejoin, "wire_id", owner_path) != rejoin_wire)
+            throw Error(owner_path, "resolved rejoin destination does not match the typed junction");
+        provenance(required(rejoin, "provenance", owner_path), owner_path + ".provenance");
+    }
 
     const auto& containment = object(required(root, "containment", path), path + ".containment");
     const auto containment_wire = text(containment, "wire_id", path + ".containment");

@@ -4,6 +4,6 @@ type Thing refines UnknownBase {
 }
 
 main {
-    x : int(1)
+    x : int32(1)
     print x
 }

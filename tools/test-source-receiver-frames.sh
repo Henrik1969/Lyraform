@@ -56,7 +56,7 @@ fi
 test "$(grep -c 'route receiver.out =>' "$tmpdir/missing.log")" -eq 2
 grep -Eq 'failure at receiver.in via wire:[0-9]+ signal:[0-9]+:' "$tmpdir/missing.log"
 # Source body failure has no output activation or downstream invocation.
-sed 's/local + value -> local/value \/ 0 -> local/' "$tmpdir/receiver.flow" > "$tmpdir/failure.flow"
+sed 's/local + value -> local/value div 0 -> local/' "$tmpdir/receiver.flow" > "$tmpdir/failure.flow"
 if printf '3\n' | "$flowmini" --trace true "$tmpdir/failure.flow" > "$tmpdir/failure.out" 2> "$tmpdir/failure.log"; then
     echo 'failing receiver succeeded' >&2; exit 1
 fi

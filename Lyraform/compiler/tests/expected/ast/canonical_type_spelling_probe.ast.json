@@ -399,13 +399,13 @@
                     },
                     {
                         "name": "integer_alias",
-                        "type": "int",
+                        "type": "int32",
                         "type_ref": {
                             "kind": "named",
-                            "text": "int",
+                            "text": "int32",
                             "payload": {
                                 "name_segments": [
-                                    "int"
+                                    "int32"
                                 ]
                             },
                             "location": {
@@ -482,6 +482,7 @@
                         }
                     }
                 ],
+                "invariants": [],
                 "location": {
                     "line": 4,
                     "column": 6
@@ -888,13 +889,13 @@
                 },
                 {
                     "name": "integer_alias",
-                    "type": "int",
+                    "type": "int32",
                     "type_ref": {
                         "kind": "named",
-                        "text": "int",
+                        "text": "int32",
                         "payload": {
                             "name_segments": [
-                                "int"
+                                "int32"
                             ]
                         },
                         "location": {
@@ -971,6 +972,7 @@
                     }
                 }
             ],
+            "invariants": [],
             "location": {
                 "line": 4,
                 "column": 6

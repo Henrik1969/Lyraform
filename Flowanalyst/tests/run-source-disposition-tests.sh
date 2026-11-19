@@ -9,15 +9,18 @@ trap 'rm -rf "$tmpdir"' EXIT
 compiler="$build/flowmini/flowmini"
 analyst="$build/flowanalyst/flowanalyst"
 validator="$build/flowcontracts/flowvalidate"
+host_policy="$root/Lyraform/compiler/examples/disposition/policy/text_outcome_consumer.host-policy.json"
 
 analyze() {
     source=$1
     "$compiler" --dump-frontend-bundle "$source" > "$tmpdir/frontend.json"
-    "$analyst" --lowering-plan-version 2 "$tmpdir/frontend.json" > "$tmpdir/report.json"
+    "$analyst" --lowering-plan-version 2 --host-disposition-policy "$host_policy" \
+        "$tmpdir/frontend.json" > "$tmpdir/report.json"
 }
 
 analyze "$specimen"
-"$analyst" --lowering-plan-version 2 "$tmpdir/frontend.json" > "$tmpdir/repeated.json"
+"$analyst" --lowering-plan-version 2 --host-disposition-policy "$host_policy" \
+    "$tmpdir/frontend.json" > "$tmpdir/repeated.json"
 cmp "$tmpdir/report.json" "$tmpdir/repeated.json"
 jq -e '
     .status=="ok" and (.diagnostics|length)==0 and .lowering_plan.status=="blocked" and
@@ -33,6 +36,11 @@ jq -e '
     (.lowering_plan.source_disposition.response_functions[0].input_projection=="immutable_failure_envelope") and
     (.lowering_plan.source_disposition.response_functions[0].response_class=="recover") and
     (.lowering_plan.source_disposition.response_functions[0].outgoing_type.spelling=="Text") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.type=="Text") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.ownership=="borrowed") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.lifetime=="call") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.cleanup_capability=="none") and
+    (.lowering_plan.source_disposition.response_functions[0].result_resource.origin=="static_literal") and
     (.lowering_plan.source_disposition.consumer.closed_set==true) and
     (.lowering_plan.source_disposition.consumer.selection_requirement=="fixed_single_route_gate_3") and
     (.lowering_plan.source_disposition.junction.pairing=="same_producer_attempt_exclusive") and
@@ -67,6 +75,9 @@ for mutation in \
     '.producer.success_type.identity="type:Bool"' \
     '.response_functions[0].incoming_failure_type.spelling="OtherFailure"' \
     '.response_functions[0].outgoing_type.spelling="Bool" | .response_functions[0].outgoing_type.identity="type:Bool"' \
+    '.response_functions[0].result_resource.ownership="owned"' \
+    '.response_functions[0].result_resource.cleanup_capability="flow_text_dispose"' \
+    'del(.response_functions[0].result_resource)' \
     '.response_functions[0].input_projection="mutable"' \
     '.response_functions[0].obligation_transition="linked_successor"' \
     '.consumer.accepted_failure_types=[]' \
@@ -118,11 +129,37 @@ refuse_source() {
     test "$status" -eq 2
     jq -e --arg code "$expected" --arg name "$name.flow" '
         .status=="error" and .lowering_plan.status=="blocked" and
-        (.lowering_plan|has("source_disposition")|not) and
+        ($code=="FLOWANALYST_CALL_FAILURE_ENVELOPE" or ($code|startswith("FLOWANALYST_FAILURE_ENVELOPE_")) or
+            (.lowering_plan|has("source_disposition")|not)) and
         any(.diagnostics[]; .code==$code and (.provenance.source|endswith($name)) and
             .provenance.line>0 and .provenance.column>0)' "$tmpdir/refused.json" >/dev/null
     refusal_count=$((refusal_count + 1))
 }
+
+refuse_source bare_failure_payload FLOWANALYST_CALL_FAILURE_ENVELOPE \
+    '/    return 0/i\
+    raw : TextFailure(1)\
+    result : Text(use_fallback(raw))'
+refuse_source literal_as_envelope FLOWANALYST_CALL_FAILURE_ENVELOPE \
+    '/    return 0/i\
+    result : Text(use_fallback(1))'
+
+refuse_source ordinary_producer_call FLOWANALYST_DISPOSITION_ORDINARY_CALL_UNSUPPORTED \
+    '/    return 0/i\
+    extra : Text(compose_text())'
+
+refuse_source write_envelope FLOWANALYST_FAILURE_ENVELOPE_WRITE_UNSUPPORTED \
+    '/    fallback : Text/i\
+    raw : TextFailure(1)\
+    raw -> problem'
+refuse_source envelope_as_payload_value FLOWANALYST_FAILURE_ENVELOPE_USE_UNSUPPORTED \
+    '/    fallback : Text/i\
+    raw : TextFailure(problem)'
+refuse_source envelope_as_payload_call FLOWANALYST_CALL_FAILURE_ENVELOPE \
+    '/fn use_fallback/i\
+fn payload_code(value : TextFailure): c_int { return 0 }
+/    fallback : Text/i\
+    ignored : c_int(payload_code(problem))'
 
 refuse_source wrong_recovery FLOWANALYST_DISPOSITION_REJOIN_TYPE \
     's/recover Text/recover c_int/'
@@ -140,6 +177,15 @@ refuse_source unknown_response FLOWANALYST_DISPOSITION_UNKNOWN_RESPONSE \
     's/    use_fallback/    missing_response/'
 refuse_source unaccounted_transform FLOWANALYST_DISPOSITION_UNACCOUNTED_TRANSFORM \
     's/recover Text/transform Text/'
+refuse_source unknown_transform_successor FLOWANALYST_DISPOSITION_UNKNOWN_SUCCESSOR \
+    's/recover Text/transform Text/; /main {/i\
+wire handled.failure => absent.failure'
+refuse_source success_as_transform_successor FLOWANALYST_DISPOSITION_SUCCESSOR_KIND \
+    's/recover Text/transform Text/; /main {/i\
+wire handled.failure => display.failure'
+refuse_source containment_as_transform_successor FLOWANALYST_DISPOSITION_SUCCESSOR_KIND \
+    's/recover Text/transform Text/; /main {/i\
+wire handled.failure => quarantine.failure'
 refuse_source cycle FLOWANALYST_DISPOSITION_CYCLE_UNSUPPORTED \
     '/main {/i\
 wire display.out => producer_node.in'

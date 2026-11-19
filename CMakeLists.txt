@@ -816,13 +816,13 @@ install(DIRECTORY
 )
 
 install(DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}/Frankencore/Core/Contracts/include/
-    ${CMAKE_CURRENT_SOURCE_DIR}/Frankencore/Core/Language/include/
-    ${CMAKE_CURRENT_SOURCE_DIR}/Frankencore/Core/Packages/include/
-    ${CMAKE_CURRENT_SOURCE_DIR}/Frankencore/Core/Policy/include/
-    ${CMAKE_CURRENT_SOURCE_DIR}/Frankencore/Core/Provenance/include/
-    ${CMAKE_CURRENT_SOURCE_DIR}/Frankencore/Core/Requirements/include/
-    ${CMAKE_CURRENT_SOURCE_DIR}/Frankencore/Core/Runtime/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/Capabilities/Contracts/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/Capabilities/LanguageMap/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/Capabilities/DebianPackages/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/Capabilities/ConfigResolveAdapter/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/Capabilities/Provenance/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/Capabilities/Requirements/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/Capabilities/RuntimeDiscovery/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flowcore
     FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
 )
@@ -953,3 +953,8 @@ add_test(NAME structured_cli_diagnostics
         FLOWCORE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}
         FLOWMINI_BIN=$<TARGET_FILE:flowmini>
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-structured-cli-diagnostics.sh)
+
+# Igor must not reuse a cache owned by another source checkout.
+add_test(NAME lyraform_igor_build_context
+    COMMAND ${CMAKE_COMMAND} -E env python3
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-igor-build-context.py)

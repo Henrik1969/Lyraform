@@ -3,6 +3,6 @@ import "../../std/main_bad.flow"
 program bad_import_main
 
 main {
-    one : int(1)
+    one : int32(1)
     print one
 }

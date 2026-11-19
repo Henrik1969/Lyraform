@@ -1,13 +1,13 @@
 program internal_nested_record_demo
 
 type Point {
-    field x : int
-    field y : int
+    field x : int32
+    field y : int32
 }
 
 type Gear {
-    field teeth : int
-    field rpm : int
+    field teeth : int32
+    field rpm : int32
 }
 
 type GearPair {
@@ -15,8 +15,8 @@ type GearPair {
     field driven : Gear
 }
 
-fn ratio_hint(pair : GearPair): int {
-    result : int(0)
+fn ratio_hint(pair : GearPair): int32 {
+    result : int32(0)
     pair.driver.teeth * pair.driven.rpm -> result
     result -> return
 }
@@ -25,8 +25,8 @@ main {
     driver : Gear({teeth:12, rpm:100})
     driven : Gear({teeth:36, rpm:0})
     pair : GearPair({driver:driver, driven:driven})
-    value : int(0)
-    result : int(0)
+    value : int32(0)
+    result : int32(0)
 
     pair.driver.teeth -> value
     print value

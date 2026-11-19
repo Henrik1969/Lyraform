@@ -4,17 +4,17 @@ import "../../std/collatz.flow"
 program capable_imported
 
 main {
-    zero  : int(0)
-    one   : int(1)
-    two   : int(2)
-    three : int(3)
-    four  : int(4)
-    five  : int(5)
-    nine  : int(9)
-    ten   : int(10)
-    forty_two : int(42)
+    zero  : int32(0)
+    one   : int32(1)
+    two   : int32(2)
+    three : int32(3)
+    four  : int32(4)
+    five  : int32(5)
+    nine  : int32(9)
+    ten   : int32(10)
+    forty_two : int32(42)
 
-    result : int(0)
+    result : int32(0)
 
     identity(forty_two) -> result
     print result
@@ -31,10 +31,10 @@ main {
     choose_larger(nine, four) -> result
     print result
 
-    matrix : array<int>[2, 3]([1,2,3,4,5,6])
-    row    : int(1)
-    col    : int(2)
-    value  : int(0)
+    matrix : array<int32>[2, 3]([1,2,3,4,5,6])
+    row    : int32(1)
+    col    : int32(2)
+    value  : int32(0)
 
     matrix[row, col] -> value
     print value

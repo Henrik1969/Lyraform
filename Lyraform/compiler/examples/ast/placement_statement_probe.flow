@@ -1,8 +1,8 @@
 program placement_statement_probe
 
 type Gear {
-    field teeth : int
-    field rpm : int
+    field teeth : int32
+    field rpm : int32
 }
 
 type GearPair {
@@ -10,16 +10,16 @@ type GearPair {
     field driven : Gear
 }
 
-fn keep(value : int): int {
+fn keep(value : int32): int32 {
     value -> return
 }
 
 main {
-    scalar : int(0)
-    i : int(0)
-    j : int(1)
-    values : list<int>([0, 0])
-    matrix : array<int>[2, 2]([0, 0, 0, 0])
+    scalar : int32(0)
+    i : int32(0)
+    j : int32(1)
+    values : list<int32>([0, 0])
+    matrix : array<int32>[2, 2]([0, 0, 0, 0])
     driver : Gear({teeth:12, rpm:100})
     driven : Gear({teeth:36, rpm:0})
     pair : GearPair({driver:driver, driven:driven})

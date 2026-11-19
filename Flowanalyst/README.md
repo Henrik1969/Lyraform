@@ -48,10 +48,12 @@ entrypoint shape. It emits analysis regions and a Boolean dependency matrix.
 More checks will be added as explicit semantic contracts, without moving
 semantic meaning backward into Flowmini.
 
-The bounded `int`/`Bool` declaration and identifier-placement path now uses
-shared canonical scalar rules. Incompatible flows are refused before a ready
-lowering plan, and covered operations carry versioned type/identity/provenance
-facts through the stage artifacts. See
+The bounded explicit-width integer (`int32`/`int64`)/`Bool` declaration and
+identifier-placement path now uses explicit-width admission plus the shared
+scalar rules where that bounded algebra applies. Bare `int` is rejected as a
+source type; `c_int` remains a separate host/ABI carrier. Incompatible flows
+are refused before a ready lowering plan, and covered operations carry
+versioned type/identity/provenance facts through the stage artifacts. See
 [`canonical scalar semantics`](../docs/architecture/canonical-scalar-semantics-v1.md)
 for the exact scope, compatibility boundary and Gate 2 status.
 
@@ -107,6 +109,24 @@ for matching external operations. A receiver is classified as
 profiled, read-only, infallible by-value scalar observation. Unprofiled calls,
 mixed bodies, pointer or aggregate carriers, mutation, and unknown shapes do
 not acquire parallel authority.
+
+For the bounded source-disposition Gate 3 slice,
+`--disposition-policy PATH` accepts one
+`lyraform.source_disposition_policy_selection/v1` artifact when a closed
+consumer exposes more than one legal response route. A one-route consumer does
+not accept external route policy: Flowanalyst emits the deterministic
+`fixed_single_route` selection from source-owned semantic identities.
+`--host-disposition-policy PATH` supplies the separate
+`lyraform.host_disposition_policy_selection/v1` artifact; the only currently
+admitted command-host action is `report_and_fail`.
+
+Both artifacts remain declarative and `execution: unsupported`. Flowanalyst
+binds them to the exact module revision, consumer instance, failure type,
+route, response function and transition, or containment scope. Policy cannot
+add a route, change a type or transition, create success, or make the lowering
+plan executable. The canonical supplied artifact is embedded unchanged in the
+blocked semantic report so independent validation can verify the same object
+that deployment supplied.
 
 The independent consumer boundary is specified in
 [`docs/flowanalyst/v0.1-consumer-contract.md`](../docs/flowanalyst/v0.1-consumer-contract.md).

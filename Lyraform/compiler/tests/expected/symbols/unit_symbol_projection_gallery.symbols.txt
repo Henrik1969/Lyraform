@@ -15,7 +15,7 @@ Symbols: 6
     declaration_location=<source>:7:6
   Symbol #4 scope=#3 name=payload kind=Field facts=1
     declaration_location=<source>:8:5
-    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int>>"
+    Fact kind=TypeReference key=declared_type_spelling value="optional<collection.list<int32>>"
   Symbol #5 scope=#2 name=convert kind=Function facts=1
     declaration_location=<source>:11:1
     Fact kind=TypeReference key=return_type_spelling value="float"

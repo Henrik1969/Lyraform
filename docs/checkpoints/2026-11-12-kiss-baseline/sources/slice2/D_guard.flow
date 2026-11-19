@@ -1,0 +1,15 @@
+program D_guard
+type Positive refines int32 {
+ invariant value > 0
+}
+fn make(): int32 {
+ 4 -> return
+}
+main {
+x : int32(1)
+ guard positive : x > 0
+ 4 -> x
+ unguard positive
+ -1 -> x
+ 0 -> return
+}

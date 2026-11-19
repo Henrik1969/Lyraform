@@ -17,7 +17,8 @@ refuse() {
     set -e
     test "$rc" -eq 2
     jq -e '.status == "error" and .lowering_plan.status != "ready" and
-        any(.diagnostics[]; .code == "FLOWANALYST_SCALAR_FLOW_REFUSED" and
+        any(.diagnostics[]; (.code == "FLOWANALYST_SCALAR_FLOW_REFUSED" or
+            .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED") and
             .provenance.line > 0 and .provenance.column > 0 and
             (.provenance.ast_path | startswith("/statement_pool/")))' "$tmpdir/refused.json" >/dev/null
     if "$FLOWMINI_ORACLE_BIN" --test-legacy-oracle "$tmpdir/program.flow" > "$tmpdir/legacy.out" 2>/dev/null; then
@@ -36,26 +37,26 @@ refuse() {
     done
 }
 
-refuse 'x : int(0)
+refuse 'x : int32(0)
 true -> x'
-refuse 'x : int(true)'
+refuse 'x : int32(true)'
 refuse 'flag : Bool(true)
-x : int(flag)'
+x : int32(flag)'
 refuse 'flag : Bool(20)'
 refuse 'flag : Bool(false)
 20 -> flag'
-refuse 'x : int(0)
+refuse 'x : int32(0)
 flag : Bool(true)
 flag -> x'
-refuse 'x : int(0)
+refuse 'x : int32(0)
 x < 2 -> x'
-refuse 'x : int(0)
+refuse 'x : int32(0)
 x + true -> x'
-refuse 'x : int("text")'
+refuse 'x : int32("text")'
 refuse '20 -> absent'
-refuse 'x : int(x)'
+refuse 'x : int32(x)'
 refuse '20 -> later
-later : int(0)'
+later : int32(0)'
 
 facts() {
     jq -S '[.lowering_plan.operations[] | .scalar_fact // empty]' "$1"
@@ -113,20 +114,20 @@ x -> return"
     done
 }
 
-admit 'x : int(20)
+admit 'x : int32(20)
 30 -> x' 30
-admit 'x : int(0)
+admit 'x : int32(0)
 flag : Bool(false)
 true -> flag
 if flag { 31 -> x }' 31
-admit 'x : int(1)
-y : int(2)
+admit 'x : int32(1)
+y : int32(2)
 flag : Bool(x < y)
 flag == false -> flag
 if flag { 10 -> x }
 x + y -> x' 3
-admit 'seed : int(24)
-x : int(seed)
+admit 'seed : int32(24)
+x : int32(seed)
 source_flag : Bool(true)
 flag : Bool(source_flag)
 if flag { 25 -> x }' 25 1
@@ -145,7 +146,9 @@ set +e
 conflicting_status=$?
 set -e
 test "$conflicting_status" -eq 2
-jq -e '.status == "error" and any(.diagnostics[]; .code == "FLOWANALYST_SCALAR_FLOW_REFUSED")' "$tmpdir/conflicting-report.json" >/dev/null
+jq -e '.status == "error" and any(.diagnostics[];
+    .code == "FLOWANALYST_SCALAR_FLOW_REFUSED" or
+    .code == "FLOWANALYST_INTEGER_ADMISSION_REFUSED")' "$tmpdir/conflicting-report.json" >/dev/null
 
 # Mutate captured input without reopening source. All three consumers must
 # reject contradictory or malformed proof before an executable is published.

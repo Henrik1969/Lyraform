@@ -1,0 +1,56 @@
+{
+  "frontend": {
+    "median_ms": 1.365,
+    "min_ms": 1.05,
+    "max_ms": 1.558,
+    "samples": 11
+  },
+  "analyst": {
+    "median_ms": 4.167,
+    "min_ms": 3.147,
+    "max_ms": 5.24,
+    "samples": 11
+  },
+  "bind": {
+    "median_ms": 5.997,
+    "min_ms": 4.125,
+    "max_ms": 8.937,
+    "samples": 11
+  },
+  "parallel": {
+    "median_ms": 3.952,
+    "min_ms": 3.103,
+    "max_ms": 9.274,
+    "samples": 11
+  },
+  "optimize": {
+    "median_ms": 3.479,
+    "min_ms": 2.242,
+    "max_ms": 8.402,
+    "samples": 11
+  },
+  "prepare": {
+    "median_ms": 7.917,
+    "min_ms": 6.396,
+    "max_ms": 9.74,
+    "samples": 11
+  },
+  "validate_optimized": {
+    "median_ms": 5.274,
+    "min_ms": 2.566,
+    "max_ms": 7.009,
+    "samples": 11
+  },
+  "validate_prepared": {
+    "median_ms": 1.748,
+    "min_ms": 1.303,
+    "max_ms": 4.185,
+    "samples": 11
+  },
+  "focused_existing_refinement_test": {
+    "seconds": 0.187,
+    "exit": 0,
+    "stdout": "{\"valid\": \"admitted\", \"invalid\": \"refused\", \"unknown\": \"refused\", \"llvm\": \"checked\", \"tinyvm\": \"checked\"}\n",
+    "stderr": ""
+  }
+}

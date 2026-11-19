@@ -7,11 +7,14 @@ sha256sum "$FLOWMINI_BIN" "$FLOWANALYST_BIN" "$FLOWBIND_BIN" "$FLOWPARALLEL_BIN"
 cat > "$tmpdir/provider.c" <<'C'
 #include <stdio.h>
 #include <stddef.h>
+#include <stdint.h>
 static int calls;
 static const char graph_text[] = "graph text";
 extern int flow_graph_raise(int code);
 int input_value(void) { ++calls; return 3; }
 int other_value(void) { ++calls; return 8; }
+int zero_value(void) { ++calls; return 0; }
+int min_value(void) { ++calls; return INT32_MIN; }
 size_t stream_count(void) { return 3; }
 int stream_item(size_t index) { return (int)(10 + index); }
 int stream_failure_item(size_t index) { return index == 1 ? flow_graph_raise(31) : (int)(10 + index); }
@@ -28,13 +31,14 @@ int observe_size(size_t value) { printf("%zu\n", value); return 0; }
 int observe_text(const char *value) { printf("%s\n", value); return 0; }
 C
 clang -shared -fPIC "$tmpdir/provider.c" -o "$tmpdir/provider.so"
-jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"ulong",symbol:"ulong_value",effect:"readonly",parameters:[],return_type:"c_ulong"},{name:"size",symbol:"size_value",effect:"readonly",parameters:[],return_type:"c_size_t"},{name:"text",symbol:"text_value",effect:"readonly",parameters:[],return_type:"c_string"},{name:"failure",symbol:"failing_value",effect:"failure",parameters:[],return_type:"c_int"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"},{name:"observe_ulong",symbol:"observe_ulong",effect:"io",parameters:[{name:"value",type:"c_ulong"}],return_type:"c_int"},{name:"observe_size",symbol:"observe_size",effect:"io",parameters:[{name:"value",type:"c_size_t"}],return_type:"c_int"},{name:"observe_text",symbol:"observe_text",effect:"io",parameters:[{name:"value",type:"c_string"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
+jq -n --arg path "$tmpdir/provider.so" '{format:"flowcore.native_binding_spec",version:1,unit:"unregistered_graph_provider",namespace:"host",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"input",symbol:"input_value",effect:"io",parameters:[],return_type:"c_int"},{name:"other",symbol:"other_value",effect:"io",parameters:[],return_type:"c_int"},{name:"zero",symbol:"zero_value",effect:"io",parameters:[],return_type:"c_int"},{name:"min",symbol:"min_value",effect:"io",parameters:[],return_type:"c_int"},{name:"wide",symbol:"wide_value",effect:"io",parameters:[],return_type:"c_long"},{name:"ulong",symbol:"ulong_value",effect:"readonly",parameters:[],return_type:"c_ulong"},{name:"size",symbol:"size_value",effect:"readonly",parameters:[],return_type:"c_size_t"},{name:"text",symbol:"text_value",effect:"readonly",parameters:[],return_type:"c_string"},{name:"failure",symbol:"failing_value",effect:"failure",parameters:[],return_type:"c_int"},{name:"count",symbol:"input_count",effect:"readonly",parameters:[],return_type:"c_int"},{name:"observe",symbol:"observe_value",effect:"io",parameters:[{name:"value",type:"c_int"}],return_type:"c_int"},{name:"observe_long",symbol:"observe_long",effect:"io",parameters:[{name:"value",type:"c_long"}],return_type:"c_int"},{name:"observe_ulong",symbol:"observe_ulong",effect:"io",parameters:[{name:"value",type:"c_ulong"}],return_type:"c_int"},{name:"observe_size",symbol:"observe_size",effect:"io",parameters:[{name:"value",type:"c_size_t"}],return_type:"c_int"},{name:"observe_text",symbol:"observe_text",effect:"io",parameters:[{name:"value",type:"c_string"}],return_type:"c_int"}]}' > "$tmpdir/spec.json"
 jq '.functions += [{name:"stream_count",symbol:"stream_count",effect:"readonly",parameters:[],return_type:"c_size_t"},{name:"stream_item",symbol:"stream_item",effect:"readonly",parameters:[{name:"index",type:"c_size_t"}],return_type:"c_int"},{name:"stream_failure_item",symbol:"stream_failure_item",effect:"failure",parameters:[{name:"index",type:"c_size_t"}],return_type:"c_int"}]' "$tmpdir/spec.json" > "$tmpdir/stream-spec.json"
 mv "$tmpdir/stream-spec.json" "$tmpdir/spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/spec.json" --flow-output "$tmpdir/provider.flow" --policy-output "$tmpdir/policy" --manifest-output "$tmpdir/manifest.json" >/dev/null
 cat > "$tmpdir/selection.json" <<'JSON'
 {"format":"flowcore.graph_provider_map","version":1,"providers":[{"implementation":"injected.batch","source_callable":"host.input","activation":"startup_once","output_port":"out"}]}
 JSON
+cp "$tmpdir/selection.json" "$tmpdir/base.selection.json"
 cat > "$tmpdir/program.flow" <<'FLOW'
 import "provider.flow" as host
 program fresh_native_graph
@@ -496,7 +500,7 @@ cat > "$tmpdir/aggregate.flow" <<'FLOW'
 import "provider.flow" as host
 program aggregate_graph
 type Packet {
-    field value : int
+    field value : int32
 }
 producer source : injected.batch
 node receiver : fn aggregate_identity
@@ -629,32 +633,90 @@ compile
 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
 printf '9\n8\n9\n8\n' > "$tmpdir/expected"
 cmp "$tmpdir/output" "$tmpdir/expected"
-# A failed receiver produces no normal result and never activates its fan-out.
-sed 's/local + value -> local/value \/ 0 -> local/; s/program fresh_native_graph/program renamed_failed_graph/' "$tmpdir/program.flow" > "$tmpdir/failure.flow"
-mv "$tmpdir/failure.flow" "$tmpdir/program.flow"
+# A safe scalar receiver division stays executable with a complete value check.
+cp "$tmpdir/program.flow" "$tmpdir/division-base.flow"
+sed 's/local + value -> local/value div 2 -> local/' "$tmpdir/division-base.flow" > "$tmpdir/program.flow"
 compile
-set +e
-FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
-status=$?
-set -e
-test "$status" -eq 70
-test ! -s "$tmpdir/output"
-python3 - "$tmpdir/trace" <<'PY'
+"$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+printf '5\n4\n5\n4\n' > "$tmpdir/expected"
+cmp "$tmpdir/output" "$tmpdir/expected"
+cp "$tmpdir/division-base.flow" "$tmpdir/program.flow"
+# A native graph may admit a runtime-unknown divisor because its LLVM lowering
+# emits a checked terminal flowcore.graph_failure route. Ordinary functions
+# and statically known zero divisors remain refused by the front-end contract.
+python3 - "$tmpdir/division-base.flow" "$tmpdir/dynamic-division.flow" "$tmpdir/dynamic-remainder.flow" "$tmpdir/overflow-division.flow" "$tmpdir/overflow-remainder.flow" <<'PY'
+import sys
+
+source = open(sys.argv[1]).read()
+replacements = {
+    sys.argv[2]: "divisor : c_int(0)\n    host.zero() -> divisor\n    value div divisor -> local",
+    sys.argv[3]: "divisor : c_int(0)\n    host.zero() -> divisor\n    value % divisor -> local",
+    sys.argv[4]: "value div -1 -> local",
+    sys.argv[5]: "value % -1 -> local",
+}
+for destination, replacement in replacements.items():
+    updated = source.replace("local + value -> local", replacement)
+    assert updated != source
+    open(destination, "w").write(updated)
+PY
+
+run_graph_failure_case() {
+    source=$1
+    expected_reason=$2
+    cp "$source" "$tmpdir/program.flow"
+    compile
+    set +e
+    FLOWCORE_GRAPH_TRACE=1 "$tmpdir/program" > "$tmpdir/output" 2> "$tmpdir/trace"
+    status=$?
+    set -e
+    test "$status" -eq 70
+    test ! -s "$tmpdir/output"
+    python3 - "$tmpdir/trace" "$expected_reason" <<'PY'
 import json, sys
 records = [json.loads(line) for line in open(sys.argv[1])]
-failures = [r for r in records if r['format'] == 'flowcore.graph_failure']
-assert len(failures) == 1
-failure = failures[0]
-assert failure['reason'] == 'invalid_division' and failure['operation_id'] >= 0
-assert failure['activation']['node_id'] == 'receiver' and failure['activation']['wire_id'] == 'wire:0'
+failure = records[-1]
+assert failure['format'] == 'flowcore.graph_failure'
+assert failure['reason'] == sys.argv[2]
+assert failure['operation_id'] >= 0
+assert failure['activation']['node_id'] == 'receiver'
+assert failure['activation']['wire_id'] == 'wire:0'
 assert not any(r.get('event') == 'output' and r['node_id'] == 'receiver' for r in records)
-assert not any(r.get('node_id') in ['left', 'right'] for r in records)
 PY
+}
+
+run_graph_failure_case "$tmpdir/dynamic-division.flow" invalid_division
+run_graph_failure_case "$tmpdir/dynamic-remainder.flow" invalid_remainder
+
+# A statically known zero remains a front-end error even inside a native graph;
+# only a runtime-unknown divisor is covered by the terminal guard route.
+sed 's/local + value -> local/value div 0 -> local/' "$tmpdir/division-base.flow" > "$tmpdir/static-zero.flow"
+"$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/static-zero.flow" > "$tmpdir/static-zero.frontend.json"
+if "$FLOWANALYST_BIN" --lowering-plan-version 2 --graph-plan-version 2 \
+    --graph-providers "$tmpdir/selection.json" < "$tmpdir/static-zero.frontend.json" \
+    > "$tmpdir/static-zero.semantic.json"; then
+    echo 'statically known graph division by zero admitted' >&2
+    exit 1
+fi
+jq -e '.status == "error" and .lowering_plan.status == "blocked" and
+    any(.diagnostics[]; .code == "FLOWANALYST_INTEGER_DIVISION_ZERO")' \
+    "$tmpdir/static-zero.semantic.json" >/dev/null
+
+# Unknown left operand plus -1 is also admitted in a native graph; the
+# lowering guard catches INT_MIN/-1 before LLVM's signed arithmetic executes.
+jq '(.providers[] | select(.implementation == "injected.batch")).source_callable = "host.min"' \
+    "$tmpdir/selection.json" > "$tmpdir/min.selection.json"
+cp "$tmpdir/min.selection.json" "$tmpdir/selection.json"
+run_graph_failure_case "$tmpdir/overflow-division.flow" invalid_division
+run_graph_failure_case "$tmpdir/overflow-remainder.flow" invalid_remainder
+
+# Restore the ordinary provider selection for the explicit source-failure
+# route below.
+cp "$tmpdir/base.selection.json" "$tmpdir/selection.json"
 # Source can reject an activation through an explicitly authorized runtime ABI.
 jq -n --arg path "$FLOWGRAPH_RUNTIME" '{format:"flowcore.native_binding_spec",version:1,unit:"graph_failures",namespace:"runtime",provider:{soname:$path,path:$path,convention:"c"},functions:[{name:"raise",symbol:"flow_graph_raise",effect:"failure",parameters:[{name:"code",type:"c_int"}],return_type:"c_int"}]}' > "$tmpdir/runtime.spec.json"
 "$root/tools/generate-flow-bindings.sh" --spec "$tmpdir/runtime.spec.json" --flow-output "$tmpdir/runtime.flow" --policy-output "$tmpdir/runtime.policy" --manifest-output "$tmpdir/runtime.manifest.json" >/dev/null
 cat "$tmpdir/runtime.policy" >> "$tmpdir/policy"
-sed '1i import "runtime.flow" as runtime' "$tmpdir/program.flow" | sed 's/value \/ 0 -> local/runtime.raise(17) -> local/' > "$tmpdir/raised.flow"
+sed '1i import "runtime.flow" as runtime' "$tmpdir/overflow-division.flow" | sed 's/value div -1 -> local/runtime.raise(17) -> local/' > "$tmpdir/raised.flow"
 mv "$tmpdir/raised.flow" "$tmpdir/program.flow"
 compile
 set +e

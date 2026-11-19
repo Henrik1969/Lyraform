@@ -20,8 +20,8 @@ static void arithmetic_and_control(void){
 }
 static void more_arithmetic(void){
     TinyvmConstant c[]={{1,TINYVM_CARRIER_I64,100},{2,TINYVM_CARRIER_I64,4}};
-    InstrWord code[]={{TV1_CONST,0,1,0},{TV1_CONST,1,2,0},{TV1_SUB,2,0,1},{TV1_MUL,3,2,1},{TV1_SDIV,4,3,1},{TV1_CMP_GE,5,4,2},{TV1_RETURN,4,0,0}};
-    TinyvmProvenance p[7]={0};provenance(p,7);TinyvmArtifactV2 a=artifact(code,7,c,2,p,6);TinyvmIsaV1Context ctx=execute(&a,100,true);if(ctx.result.carrier!=TINYVM_CARRIER_I64||ctx.result.bits!=96)fail("sub/mul/div result");tinyvm_isa_v1_context_destroy(&ctx);
+    InstrWord code[]={{TV1_CONST,0,1,0},{TV1_CONST,1,2,0},{TV1_SUB,2,0,1},{TV1_MUL,3,2,1},{TV1_SDIV,4,3,1},{TV1_SREM,5,3,1},{TV1_CMP_GE,6,4,2},{TV1_RETURN,5,0,0}};
+    TinyvmProvenance p[8]={0};provenance(p,8);TinyvmArtifactV2 a=artifact(code,8,c,2,p,7);TinyvmIsaV1Context ctx=execute(&a,100,true);if(ctx.result.carrier!=TINYVM_CARRIER_I64||ctx.result.bits!=0)fail("sub/mul/div/remainder result");tinyvm_isa_v1_context_destroy(&ctx);
 }
 static void comparisons_and_terminals(void){
     TinyvmConstant c[]={{1,TINYVM_CARRIER_I64,4},{2,TINYVM_CARRIER_I64,5},{3,TINYVM_CARRIER_I1,0}};
@@ -36,6 +36,7 @@ static void handles(void){
 static void expected_traps(void){
     TinyvmConstant c[]={{1,TINYVM_CARRIER_I32,1},{2,TINYVM_CARRIER_I32,0}};
     InstrWord divide[]={{TV1_CONST,0,1,0},{TV1_CONST,1,2,0},{TV1_SDIV,2,0,1},{TV1_RETURN,2,0,0}};TinyvmProvenance pd[4]={0};provenance(pd,4);TinyvmArtifactV2 a=artifact(divide,4,c,2,pd,3);TinyvmIsaV1Context ctx=execute(&a,20,false);if(ctx.trap!=TV1_TRAP_DIVISION_BY_ZERO||ctx.trap_instruction!=2)fail("division trap");tinyvm_isa_v1_context_destroy(&ctx);
+    InstrWord remainder[]={{TV1_CONST,0,1,0},{TV1_CONST,1,2,0},{TV1_SREM,2,0,1},{TV1_RETURN,2,0,0}};TinyvmProvenance pr[4]={0};provenance(pr,4);a=artifact(remainder,4,c,2,pr,3);ctx=execute(&a,20,false);if(ctx.trap!=TV1_TRAP_DIVISION_BY_ZERO||ctx.trap_instruction!=2)fail("remainder trap");tinyvm_isa_v1_context_destroy(&ctx);
     InstrWord uninitialized[]={{TV1_RETURN,0,0,0}};TinyvmProvenance pu[1]={0};provenance(pu,1);a=artifact(uninitialized,1,NULL,0,pu,1);ctx=execute(&a,20,false);if(ctx.trap!=TV1_TRAP_UNINITIALIZED_SLOT)fail("uninitialized trap");tinyvm_isa_v1_context_destroy(&ctx);
     InstrWord loop[]={{TV1_JMP,0,0,0},{TV1_HALT,0,0,0}};TinyvmProvenance pl[2]={0};provenance(pl,2);a=artifact(loop,2,NULL,0,pl,0);ctx=execute(&a,5,false);if(ctx.trap!=TV1_TRAP_STEP_LIMIT)fail("step-limit trap");tinyvm_isa_v1_context_destroy(&ctx);
     TinyvmConstant overflow_constants[]={{1,TINYVM_CARRIER_I32,INT32_MAX},{2,TINYVM_CARRIER_I32,1}};InstrWord overflow[]={{TV1_CONST,0,1,0},{TV1_CONST,1,2,0},{TV1_ADD,2,0,1},{TV1_RETURN,2,0,0}};TinyvmProvenance po[4]={0};provenance(po,4);a=artifact(overflow,4,overflow_constants,2,po,3);ctx=execute(&a,20,true);if(ctx.result.bits!=(uint64_t)(int64_t)INT32_MIN)fail("modular arithmetic result");tinyvm_isa_v1_context_destroy(&ctx);

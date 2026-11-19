@@ -62,7 +62,7 @@ fixture and reference producer only; JSON is an inspectable projection and
 does not force the future runtime storage model. Its contract is checked by
 `tools/check-frankencore-mutation-provenance.sh`.
 
-The promoted core currently lives at `Frankencore/Core/Provenance` and is
+The promoted core currently lives at `Capabilities/Provenance` and is
 exposed to CMake consumers as `Frankencore::Provenance`.
 
 Boundary consumers should use `validate_checked(const MutationRecord&)` for

@@ -12,21 +12,21 @@ Symbols: 9
     declaration_location=<source>:4:6
   Symbol #3 scope=#3 name=x kind=Field facts=1
     declaration_location=<source>:5:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #4 scope=#3 name=y kind=Field facts=1
     declaration_location=<source>:6:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #5 scope=#2 name=main kind=Procedure facts=0
     declaration_location=<source>:9:1
   Symbol #6 scope=#4 name=arr kind=Variable facts=1
     declaration_location=<source>:10:5
-    Fact kind=TypeReference key=declared_type_spelling value="list<int>"
+    Fact kind=TypeReference key=declared_type_spelling value="list<int32>"
   Symbol #7 scope=#4 name=i kind=Variable facts=1
     declaration_location=<source>:11:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #8 scope=#4 name=point kind=Variable facts=1
     declaration_location=<source>:12:5
     Fact kind=TypeReference key=declared_type_spelling value="Point"
   Symbol #9 scope=#4 name=result kind=Variable facts=1
     declaration_location=<source>:13:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"

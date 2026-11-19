@@ -1,12 +1,12 @@
 program expression_kind_probe
 
-fn square(n : int) -> int {
+fn square(n : int32) -> int32 {
     return n * n
 }
 
 main {
-    a : int(1)
-    b : int(2)
+    a : int32(1)
+    b : int32(2)
     c : float(3.14)
     s : string("hello")
     flag : Bool(true)

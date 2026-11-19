@@ -24,7 +24,10 @@ inline void validate_target_fact(const json::Value& raw) {
         if (!target_null(base) && target_string(base).empty()) target_fail();
         const bool typed=!target_null(destination);
         if (typed && (kind!="identifier" || n("base_symbol_id")<0 ||
-            (target_string(destination)!="int" && target_string(destination)!="Bool") || base!=destination)) target_fail();
+            (target_string(destination)!="int" && target_string(destination)!="int32" &&
+             target_string(destination)!="int64" && target_string(destination)!="c_int" &&
+             target_string(destination)!="c_long" && target_string(destination)!="c_ulong" &&
+             target_string(destination)!="c_size_t" && target_string(destination)!="Bool") || base!=destination)) target_fail();
         if (s("resolution")!=(n("base_symbol_id")<0?"unsupported_semantics":typed?"resolved":"partially_resolved")) target_fail();
         if (s("execution")!=(kind=="identifier"?"existing_policy":"unsupported")) target_fail();
     } else if (version==2 || version==3) {
@@ -55,9 +58,15 @@ inline void validate_target_fact(const json::Value& raw) {
                     target_string(required(a,"update"))!="reconstruct_and_rebind" ||
                     target_integer(required(a,"source_expression_id"))<0 ||
                     target_integer(required(a,"root_declaration_statement_id"))<0 ||
-                    (target_string(required(a,"source_type"))!="int" && target_string(required(a,"source_type"))!="Bool") ||
+                    (target_string(required(a,"source_type"))!="int" && target_string(required(a,"source_type"))!="int32" &&
+                     target_string(required(a,"source_type"))!="int64" && target_string(required(a,"source_type"))!="Bool") ||
                     required(a,"destination_type")!=required(f,"destination_type")) target_fail("v3 reconstruction authority is invalid");
-                const bool compatible=required(a,"source_type")==required(a,"destination_type");
+                const auto integer_type=[](const json::Value& value) {
+                    const auto name=target_string(value);
+                    return name=="int" || name=="int32" || name=="int64";
+                };
+                const bool compatible=required(a,"source_type")==required(a,"destination_type") ||
+                    (integer_type(required(a,"source_type")) && integer_type(required(a,"destination_type")));
                 if ((assignability=="assignable")!=compatible) target_fail("member compatibility result contradicts scalar types");
                 if (resolution!="resolved") target_fail("v3 decided assignability lacks a resolved target");
             }
@@ -72,7 +81,10 @@ inline void validate_target_fact(const json::Value& raw) {
         }
         if (kind=="identifier" && resolution=="resolved") {
             if (n("base_symbol_id")<0 || target_null(base) || target_null(destination) || base!=destination ||
-                (target_string(destination)!="int" && target_string(destination)!="Bool") ||
+                (target_string(destination)!="int" && target_string(destination)!="int32" &&
+                 target_string(destination)!="int64" && target_string(destination)!="c_int" &&
+                 target_string(destination)!="c_long" && target_string(destination)!="c_ulong" &&
+                 target_string(destination)!="c_size_t" && target_string(destination)!="Bool") ||
                 !target_null(base_symbol) || !target_null(destination_symbol)) target_fail();
         }
     } else target_fail();

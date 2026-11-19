@@ -1,9 +1,9 @@
 program list_index_read_write
 
 main {
-    arr : list<int>([1,9,3])
-    i   : int(1)
-    x   : int(0)
+    arr : list<int32>([1,9,3])
+    i   : int32(1)
+    x   : int32(0)
 
     arr[i] -> x
     print x

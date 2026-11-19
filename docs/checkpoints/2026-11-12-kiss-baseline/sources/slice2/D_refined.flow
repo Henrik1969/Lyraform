@@ -1,0 +1,12 @@
+program D_refined
+type Positive refines int32 {
+ invariant value > 0
+}
+fn make(): int32 {
+ 4 -> return
+}
+main {
+x : Positive(1)
+ 4 -> x
+ 0 -> return
+}

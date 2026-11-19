@@ -79,11 +79,18 @@ struct TypeField {
     std::string type;
 };
 
+struct VariantCase {
+    std::string name;
+    std::string payloadType;
+};
+
 struct TypeDef {
     std::string name;
     std::string base;
     std::vector<TypeInvariant> invariants;
     std::vector<TypeField> fields;
+    bool isVariant = false;
+    std::vector<VariantCase> variants;
 };
 
 struct AbiTypeDef {
@@ -136,7 +143,14 @@ class Parser {
 public:
     explicit Parser(const std::vector<Token>& tokens) : tokens_(tokens) {
         types_.emplace("int", TypeDef{"int", "", {}, {}});
+        // Explicit-width source integers are canonical vocabulary. The
+        // compatibility parser keeps the historical runtime carrier, but it
+        // must still accept the current spellings when used as an oracle.
+        types_.emplace("int32", TypeDef{"int32", "int", {}, {}});
+        types_.emplace("int64", TypeDef{"int64", "int", {}, {}});
         types_.emplace("Bool", TypeDef{"Bool", "", {}, {}});
+        types_.emplace("Text", TypeDef{"Text", "", {}, {}});
+        types_.emplace("float64", TypeDef{"float64", "", {}, {}});
         types_.emplace("c_int", TypeDef{"c_int", "int", {}, {}});
         types_.emplace("c_long", TypeDef{"c_long", "int", {}, {}});
         types_.emplace("c_ulong", TypeDef{"c_ulong", "int", {}, {}});
@@ -432,6 +446,11 @@ private:
         return def != nullptr && !def->fields.empty();
     }
 
+    [[nodiscard]] bool isVariantType(const std::string& type) const {
+        const TypeDef* def = lookupType(type);
+        return def != nullptr && def->isVariant;
+    }
+
     [[nodiscard]] const TypeField* findTypeField(const std::string& type, const std::string& field) const {
         const TypeDef* def = lookupType(type);
         if (def == nullptr) { return nullptr; }
@@ -469,7 +488,7 @@ private:
     }
 
     [[nodiscard]] bool isCallableType(const std::string& type) const {
-        return isIntLikeType(type) || type == "Bool" || type == "c_string" || isAbiStructType(type) || isRecordType(type);
+        return isIntLikeType(type) || type == "Bool" || type == "Text" || type == "c_string" || isAbiStructType(type) || isRecordType(type);
     }
 
     [[nodiscard]] bool isSubtypeOf(const std::string& actual, const std::string& wanted) const {
@@ -671,7 +690,7 @@ private:
 
     [[nodiscard]] Expr parseValueMulExpr() {
         Expr left = parseValuePrimaryExpr();
-        while (check(TokenKind::Star) || check(TokenKind::Slash) || check(TokenKind::Percent)) {
+        while (check(TokenKind::Star) || check(TokenKind::Slash) || check(TokenKind::Percent) || check(TokenKind::KeywordDiv)) {
             const TokenKind op = peek().kind; ++pos_;
             Expr right = parseValuePrimaryExpr();
             Expr expr; expr.kind = ExprKind::Binary; expr.op = op; expr.left = std::make_unique<Expr>(std::move(left)); expr.right = std::make_unique<Expr>(std::move(right));
@@ -739,7 +758,7 @@ private:
             case TokenKind::Plus: return "int.add";
             case TokenKind::Minus: return "int.sub";
             case TokenKind::Star: return "int.mul";
-            case TokenKind::Slash: return "int.div";
+            case TokenKind::KeywordDiv: return "int.div";
             case TokenKind::Percent: return "int.mod";
             case TokenKind::Greater: return "int.gt";
             case TokenKind::Less: return "int.lt";
@@ -1102,6 +1121,35 @@ private:
         TypeDef def;
         def.name = nameToken.text;
         if (types_.count(def.name) != 0) { fail(nameToken, "duplicate type declaration '" + def.name + "'"); }
+
+        if (check(TokenKind::Identifier) && peek().text == "variant") {
+            static_cast<void>(expectIdentifier("expected 'variant' after type name"));
+            def.isVariant = true;
+            expect(TokenKind::LeftBrace, "expected '{' before variant body");
+            skipNewlines();
+            while (!check(TokenKind::RightBrace) && !check(TokenKind::End)) {
+                const Token& caseToken = expectIdentifier("expected 'case' in variant body");
+                if (caseToken.text != "case") { fail(caseToken, "expected 'case' in variant body"); }
+                const Token& name = expectIdentifier("expected variant case name");
+                std::string payloadType;
+                if (match(TokenKind::Colon)) {
+                    payloadType = expectIdentifier("expected variant payload type").text;
+                    if (!typeExists(payloadType) || isAbiPointerType(payloadType)) {
+                        fail(name, "variant case '" + name.text + "' uses unknown or sealed payload type '" + payloadType + "'");
+                    }
+                }
+                for (const auto& existing : def.variants) {
+                    if (existing.name == name.text) { fail(name, "duplicate variant case '" + name.text + "'"); }
+                }
+                def.variants.push_back(VariantCase{name.text, payloadType});
+                expectLineEnd("expected newline after variant case");
+                skipNewlines();
+            }
+            expect(TokenKind::RightBrace, "expected '}' after variant body");
+            if (def.variants.empty()) { fail(nameToken, "variant '" + def.name + "' must declare at least one case"); }
+            types_[def.name] = std::move(def);
+            return;
+        }
 
         if (check(TokenKind::Identifier) && peek().text == "refines") {
             static_cast<void>(expectIdentifier("expected 'refines' after type name"));
@@ -1633,7 +1681,9 @@ private:
         expectIdentifier("expected 'list'");
         expect(TokenKind::Less, "expected '<' in list<int> declaration");
         const std::string elementType = expectIdentifier("expected list element type").text;
-        if (elementType != "int") { fail(peek(), "only list<int> is supported in flowmini v11 sugar"); }
+        if (elementType != "int" && elementType != "int32" && elementType != "int64") {
+            fail(peek(), "only list<int>, list<int32>, and list<int64> are supported in flowmini compatibility sugar");
+        }
         expect(TokenKind::Greater, "expected '>' in list<int> declaration");
         expect(TokenKind::LeftParen, "list declaration requires initializer");
         expect(TokenKind::LeftBracket, "list<int> initializer must start with '['");
@@ -1665,7 +1715,9 @@ private:
         expectIdentifier("expected 'array'");
         expect(TokenKind::Less, "expected '<' in array<int> declaration");
         const std::string elementType = expectIdentifier("expected array element type").text;
-        if (elementType != "int") { fail(peek(), "only array<int> is supported in flowmini v11 sugar"); }
+        if (elementType != "int" && elementType != "int32" && elementType != "int64") {
+            fail(peek(), "only array<int>, array<int32>, and array<int64> are supported in flowmini compatibility sugar");
+        }
         expect(TokenKind::Greater, "expected '>' in array<int> declaration");
         expect(TokenKind::LeftBracket, "expected '[' before array shape");
         std::vector<int> shape;

@@ -1,0 +1,75 @@
+{
+  "implication": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice3/implication.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 15,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "invalid_producer": {
+    "front": 0,
+    "semantic": 2,
+    "diagnostics": [
+      {
+        "code": "FLOWANALYST_REFINED_ARGUMENT_UNPROVEN",
+        "message": "refined function argument requires a statically provable invariant or an admitted runtime enforcement route",
+        "provenance": {
+          "source": "sources/slice3/invalid_producer.flow",
+          "ast_path": "/statement_pool/2",
+          "line": 15,
+          "column": 2
+        }
+      },
+      {
+        "code": "FLOWANALYST_REFINED_RETURN_VIOLATION",
+        "message": "refined function return violates the refined value invariant",
+        "provenance": {
+          "source": "sources/slice3/invalid_producer.flow",
+          "ast_path": "/statement_pool/0",
+          "line": 9,
+          "column": 2
+        }
+      }
+    ],
+    "plan": "blocked"
+  },
+  "literal_control": {
+    "front": 0,
+    "semantic": 0,
+    "bind": 0,
+    "parallel": 0,
+    "optimize": 0,
+    "validate": 0,
+    "prepare": 0,
+    "validate_backend": 0,
+    "lower": 0,
+    "link": 0,
+    "native_result": 9,
+    "tiny": 0,
+    "tiny_run": 0,
+    "tiny_result": {
+      "format": "flowtiny.execution_record",
+      "version": 1,
+      "status": "completed",
+      "artifact_format": 2,
+      "artifact_id": "tinyvm-2bdfa2f376107a10c57c19f82eb6a1fd",
+      "target_policy_id": "target-8b44b43a3db9618a561503857b90ad4c",
+      "carrier": 2,
+      "result": 9,
+      "pc": 9,
+      "trap": 0
+    },
+    "diagnostics": [],
+    "plan": "ready"
+  }
+}

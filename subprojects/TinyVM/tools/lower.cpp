@@ -11,8 +11,10 @@ extern "C" {
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <cstdint>
 #include <deque>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <new>
 #include <map>
@@ -77,6 +79,46 @@ public:
     void compile() {
         flowcontracts::require_executable_targets(required(root_, "lowering_plan"));
         const auto& plan = required_object(root_, "lowering_plan");
+        // Version 1 captured artifacts predate explicit plan admission status.
+        // Callable plan v2 must carry it; a blocked plan is never executable.
+        if (const auto* status = optional(plan, "status")) {
+            if (string(*status, "$.lowering_plan.status") != "ready")
+                throw Unsupported("lowering plan is not ready for execution");
+        } else if (integer(required(plan, "version"), "$.lowering_plan.version") >= 2) {
+            throw Unsupported("callable lowering plan lacks execution admission status");
+        }
+        compile_body();
+    }
+#ifdef FLOWTINY_RECORD_UNIT
+    void compile_record_unit() {
+        const auto& plan = required_object(root_, "lowering_plan");
+        if (string(required(plan, "status"), "$.status") != "blocked" || !optional(plan, "ordinary_record_types"))
+            throw Unsupported("record unit requires the unchanged blocked record plan");
+        flowcontracts::validate_lowering_plan(required(root_, "lowering_plan"));
+        compile_body();
+    }
+    std::vector<std::size_t> record_unit_leaves(Integer symbol) const {
+        std::vector<std::size_t> result;
+        std::function<void(std::size_t)> append = [&](std::size_t value) {
+            if (!record_values_.count(value)) { result.push_back(value); return; }
+            for (const auto child : record_values_.at(value).fields) append(child);
+        };
+        append(symbols_.at(symbol));
+        return result;
+    }
+#endif
+private:
+    int plan_version_ = 1;
+
+    void compile_body() {
+        const auto& plan = required_object(root_, "lowering_plan");
+        if (const auto* catalog = optional(plan, "ordinary_record_types")) {
+            flowcontracts::validate_ordinary_record_operands(required(root_, "lowering_plan"));
+            for (const auto& item : required_array(object(*catalog), "types")) {
+                const auto& type = object(item);
+                record_types_.emplace(integer(required(type, "symbol_id"), "$.record.symbol_id"), &type);
+            }
+        }
         if (const auto* layouts = optional(root_, "aggregate_abi_layouts")) {
             const auto& layout_values = array(*layouts, "$.aggregate_abi_layouts");
             for (const auto& value : layout_values) {
@@ -102,16 +144,21 @@ public:
             }
         }
         const auto plan_version = integer(required(plan, "version", "$.lowering_plan"), "$.lowering_plan.version");
+        plan_version_ = plan_version;
         if (plan_version == 2) for (const auto& value : required_array(plan, "functions", "$.lowering_plan")) {
             const auto& function = object(value, "$.lowering_plan.functions[]");
             Callable callable; callable.body = integer(required(function, "body_block_id", "$.function"), "$.function.body_block_id");
             callable.result = string(required(function, "return_type", "$.function"), "$.function.return_type");
+            if (const auto* record = optional(function, "record_symbol_id"))
+                callable.result = "ordinary_record:" + std::to_string(integer(*record, "$.function.record_symbol_id"));
             callable.entry = boolean(required(function, "entry", "$.function"), "$.function.entry");
             callable.available = string(required(function, "availability", "$.function"), "$.function.availability") == "definition";
             for (const auto& parameter : required_array(function, "parameters", "$.function")) {
                 const auto& item = object(parameter, "$.function.parameters[]");
-                callable.parameters.emplace_back(integer(required(item, "symbol_id", "$.parameter"), "$.parameter.symbol_id"),
-                                                 string(required(item, "type", "$.parameter"), "$.parameter.type"));
+                auto type = string(required(item, "type", "$.parameter"), "$.parameter.type");
+                if (const auto* record = optional(item, "record_symbol_id"))
+                    type = "ordinary_record:" + std::to_string(integer(*record, "$.parameter.record_symbol_id"));
+                callable.parameters.emplace_back(integer(required(item, "symbol_id", "$.parameter"), "$.parameter.symbol_id"), type);
             }
             callables_[integer(required(function, "symbol_id", "$.function"), "$.function.symbol_id")] = std::move(callable);
         }
@@ -156,6 +203,7 @@ public:
         if (code.empty() || (code.back().opcode != TV1_RETURN && code.back().opcode != TV1_TRAP && code.back().opcode != TV1_HALT)) emit_return_zero();
     }
 
+public:
     std::vector<InstrWord> code;
     std::vector<TinyvmConstant> constants;
     std::vector<TinyvmString> strings;
@@ -176,7 +224,11 @@ private:
     std::map<Integer,Callable> callables_;
     std::map<Integer,std::size_t> call_results_;
     std::set<std::string> aggregate_types_;
+    struct RecordValue { Integer type; std::vector<std::size_t> fields; };
+    std::map<Integer, const Object*> record_types_;
+    std::map<std::size_t, RecordValue> record_values_;
     std::size_t* function_result_ = nullptr;
+    std::size_t* function_record_result_ = nullptr;
     std::vector<std::size_t>* function_return_jumps_ = nullptr;
     std::set<Integer> active_blocks_;
     std::set<const Object*> terminal_branches_;
@@ -453,12 +505,23 @@ private:
 
     std::uint32_t carrier(std::string_view type) const {
         if (type == "bool" || type == "Bool") return TINYVM_CARRIER_I1;
-        if (type == "int" || type == "c_int") return TINYVM_CARRIER_I32;
-        if (type == "c_long" || type == "c_ulong" || type == "c_size_t") return TINYVM_CARRIER_I64;
+        if (type == "int32" || type == "c_int") return TINYVM_CARRIER_I32;
+        if (type == "int64" || type == "c_long" || type == "c_ulong" || type == "c_size_t") return TINYVM_CARRIER_I64;
+        if (type == "float" || type == "float64" || type == "c_double") return TINYVM_CARRIER_F64;
         if (type == "c_string" || type == "c_pointer" || type == "Text") return TINYVM_CARRIER_OPAQUE_HANDLE;
         if (type == "TextOutcome") return TINYVM_CARRIER_TEXT_OUTCOME;
         if (aggregate_types_.count(std::string{type})) return TINYVM_CARRIER_I64;
         throw Unsupported("type carrier '" + std::string(type) + "' is not admitted by the scalar slice");
+    }
+    static std::optional<Integer> record_identity(std::string_view type) {
+        constexpr std::string_view prefix = "ordinary_record:";
+        if (type.substr(0, prefix.size()) != prefix) return std::nullopt;
+        try {
+            std::size_t consumed = 0;
+            const auto value = std::stoll(std::string(type.substr(prefix.size())), &consumed, 10);
+            if (consumed != type.size() - prefix.size() || value < 0) return std::nullopt;
+            return static_cast<Integer>(value);
+        } catch (...) { return std::nullopt; }
     }
     std::size_t slot() { return next_slot_++; }
     std::size_t symbol_slot(Integer identity) {
@@ -480,17 +543,116 @@ private:
     std::size_t literal(std::uint32_t type, std::uint64_t bits) {
         const auto result = slot(); slot_types_[result] = type; emit(TV1_CONST, result, constant(type, bits), 0); return result;
     }
+    std::size_t copy_value(std::size_t source) {
+        const auto destination = slot();
+        if (record_values_.count(source)) {
+            const auto original = record_values_.at(source);
+            RecordValue copy{original.type, {}};
+            for (const auto field : original.fields) copy.fields.push_back(copy_value(field));
+            record_values_.emplace(destination, std::move(copy));
+        } else {
+            slot_types_[destination] = slot_types_.at(source);
+            emit(TV1_MOVE, destination, source, 0);
+        }
+        return destination;
+    }
+    std::size_t allocate_record(Integer type) {
+        if (!record_types_.count(type)) throw Unsupported("record result type is absent");
+        RecordValue record{type, {}};
+        for (const auto& field_value : required_array(*record_types_.at(type), "fields")) {
+            const auto& field = object(field_value);
+            const auto& reference = object(required(field, "type"));
+            if (string(required(reference, "kind"), "$.type.kind") == "record")
+                record.fields.push_back(allocate_record(integer(required(reference, "symbol_id"), "$.type.id")));
+            else {
+                const auto field_slot = slot();
+                slot_types_[field_slot] = carrier(string(required(reference, "name"), "$.type.name"));
+                record.fields.push_back(field_slot);
+            }
+        }
+        const auto result = slot();
+        record_values_.emplace(result, std::move(record));
+        return result;
+    }
+    void copy_into(std::size_t destination, std::size_t source) {
+        if (record_values_.count(source)) {
+            if (!record_values_.count(destination) || record_values_.at(destination).type != record_values_.at(source).type ||
+                record_values_.at(destination).fields.size() != record_values_.at(source).fields.size())
+                throw Unsupported("ordinary record result tree mismatch");
+            const auto source_fields = record_values_.at(source).fields;
+            const auto destination_fields = record_values_.at(destination).fields;
+            for (std::size_t index = 0; index < source_fields.size(); ++index)
+                copy_into(destination_fields[index], source_fields[index]);
+            return;
+        }
+        if (slot_types_.at(destination) != slot_types_.at(source)) throw Unsupported("ordinary record result field carrier mismatch");
+        emit(TV1_MOVE, destination, source, 0);
+    }
     std::size_t expression(const Value& value) {
         const auto& node = object(value, "$.expression");
         const auto kind = string(required(node, "kind", "$.expression"), "$.expression.kind");
+        if (kind == "record_construct") {
+            const auto identity = integer(required(node, "record_symbol_id"), "$.record.type");
+            if (!record_types_.count(identity)) throw Unsupported("record construction type is absent");
+            const auto& declared = required_array(*record_types_.at(identity), "fields");
+            const auto& supplied = required_array(node, "fields");
+            if (declared.size() != supplied.size()) throw Unsupported("record construction field count mismatch");
+            RecordValue record{identity, {}};
+            for (std::size_t index = 0; index < supplied.size(); ++index) {
+                const auto& field = object(supplied[index]);
+                const auto& declaration = object(declared[index]);
+                if (string(required(field, "name"), "$.field") != string(required(declaration, "name"), "$.field"))
+                    throw Unsupported("record construction field identity mismatch");
+                const auto input = expression(required(field, "operand"));
+                const auto& reference = object(required(declaration, "type"));
+                if (string(required(reference, "kind"), "$.type.kind") == "record") {
+                    if (!record_values_.count(input) || record_values_.at(input).type != integer(required(reference, "symbol_id"), "$.type.id"))
+                        throw Unsupported("record construction nested type mismatch");
+                } else if (record_values_.count(input) || slot_types_.at(input) != carrier(string(required(reference, "name"), "$.type.name")))
+                    throw Unsupported("record construction scalar type mismatch");
+                record.fields.push_back(copy_value(input));
+            }
+            const auto result = slot(); record_values_.emplace(result, std::move(record)); return result;
+        }
+        if (kind == "record_value") {
+            const auto symbol = integer(required(node, "symbol_id"), "$.record.symbol");
+            if (!symbols_.count(symbol)) throw Unsupported("record local has no value");
+            const auto value = symbols_.at(symbol);
+            if (!record_values_.count(value) || record_values_.at(value).type != integer(required(node, "record_symbol_id"), "$.record.type"))
+                throw Unsupported("record read type mismatch");
+            return value;
+        }
+        if (kind == "record_project") {
+            const auto base = expression(required(node, "base"));
+            const auto identity = integer(required(node, "record_symbol_id"), "$.record.type");
+            if (!record_values_.count(base) || record_values_.at(base).type != identity || !record_types_.count(identity))
+                throw Unsupported("record projection base type mismatch");
+            const auto name = string(required(node, "field"), "$.record.field");
+            const auto& fields = required_array(*record_types_.at(identity), "fields");
+            for (std::size_t index = 0; index < fields.size(); ++index)
+                if (string(required(object(fields[index]), "name"), "$.field") == name)
+                    return record_values_.at(base).fields.at(index);
+            throw Unsupported("record projection field is absent");
+        }
         if (kind == "integer_literal") {
             const auto type = carrier(string(required(node, "type", "$.expression"), "$.expression.type"));
             const auto text = string(required(node, "value", "$.expression"), "$.expression.value");
+            if (type == TINYVM_CARRIER_F64) {
+                std::size_t consumed = 0; const double value = std::stod(text, &consumed);
+                if (consumed != text.size()) throw Unsupported("non-canonical floating literal");
+                std::uint64_t bits = 0; std::memcpy(&bits, &value, sizeof bits); return literal(type, bits);
+            }
             std::size_t consumed = 0; const auto signed_value = std::stoll(text, &consumed, 10);
             if (consumed != text.size()) throw Unsupported("non-canonical integer literal");
             if (type == TINYVM_CARRIER_I32 && (signed_value < INT32_MIN || signed_value > INT32_MAX)) throw Unsupported("i32 literal is out of range");
             const auto bits = type == TINYVM_CARRIER_I32 ? static_cast<std::uint64_t>(static_cast<std::int64_t>(static_cast<std::int32_t>(signed_value))) : static_cast<std::uint64_t>(signed_value);
             return literal(type, bits);
+        }
+        if (kind == "float_literal") {
+            const auto text = string(required(node, "value", "$.expression"), "$.expression.value");
+            std::size_t consumed = 0; const double value = std::stod(text, &consumed);
+            if (consumed != text.size()) throw Unsupported("non-canonical floating literal");
+            std::uint64_t bits = 0; std::memcpy(&bits, &value, sizeof bits); return literal(TINYVM_CARRIER_F64, bits);
         }
         if (kind == "bool_literal") {
             const auto text = string(required(node, "value", "$.expression"), "$.expression.value");
@@ -542,29 +704,54 @@ private:
             const auto operation = string(required(node, "operator", "$.expression"), "$.expression.operator");
             const auto operand = expression(required(node, "operand", "$.expression"));
             if (operation == "+") return operand;
+            if (operation == "not") {
+                if (slot_types_.at(operand) != TINYVM_CARRIER_I1)
+                    throw Unsupported("Boolean not requires a Bool operand");
+                const auto zero = literal(TINYVM_CARRIER_I1, 0), result = slot();
+                slot_types_[result] = TINYVM_CARRIER_I1;
+                emit(TV1_CMP_EQ, result, operand, zero);
+                return result;
+            }
             if (operation != "-") throw Unsupported("unary operator '" + operation + "' is not admitted");
             // Negation preserves the operand carrier, as the LLVM backend does.
             // The surrounding expression's type may describe its return context.
-            const auto zero = literal(slot_types_.at(operand), 0), result = slot();
-            slot_types_[result] = slot_types_.at(operand); emit(TV1_SUB, result, zero, operand); return result;
+            const auto operand_type = slot_types_.at(operand);
+            const auto zero = literal(operand_type, 0), result = slot();
+            slot_types_[result] = operand_type;
+            emit(operand_type == TINYVM_CARRIER_F64 ? TV1_FNEG : TV1_SUB,
+                 result,
+                 operand_type == TINYVM_CARRIER_F64 ? operand : zero,
+                 operand_type == TINYVM_CARRIER_F64 ? 0 : operand); return result;
         }
         if (kind == "binary") {
-            const auto left = expression(required(node, "left", "$.expression"));
+            auto left = expression(required(node, "left", "$.expression"));
             auto right = expression(required(node, "right", "$.expression"));
-            const auto left_type = slot_types_.at(left), right_type = slot_types_.at(right);
+            auto left_type = slot_types_.at(left), right_type = slot_types_.at(right);
             if (left_type != right_type) {
-                const bool integers = (left_type == TINYVM_CARRIER_I32 || left_type == TINYVM_CARRIER_I64) &&
-                                      (right_type == TINYVM_CARRIER_I32 || right_type == TINYVM_CARRIER_I64);
-                if (!integers) throw Unsupported("binary operand carrier mismatch");
-                const auto converted = slot(); slot_types_[converted] = left_type;
-                emit(TV1_CONVERT, converted, right, left_type); right = converted;
+                const bool left_float = left_type == TINYVM_CARRIER_F64, right_float = right_type == TINYVM_CARRIER_F64;
+                const bool left_integer = left_type == TINYVM_CARRIER_I32 || left_type == TINYVM_CARRIER_I64;
+                const bool right_integer = right_type == TINYVM_CARRIER_I32 || right_type == TINYVM_CARRIER_I64;
+                if (left_float && right_integer) {
+                    const auto converted = slot(); slot_types_[converted] = TINYVM_CARRIER_F64;
+                    emit(TV1_CONVERT, converted, right, TINYVM_CARRIER_F64); right = converted; right_type = TINYVM_CARRIER_F64;
+                } else if (right_float && left_integer) {
+                    const auto converted = slot(); slot_types_[converted] = TINYVM_CARRIER_F64;
+                    emit(TV1_CONVERT, converted, left, TINYVM_CARRIER_F64); left = converted; left_type = TINYVM_CARRIER_F64;
+                } else if (left_integer && right_integer) {
+                    const auto converted = slot(); slot_types_[converted] = left_type;
+                    emit(TV1_CONVERT, converted, right, left_type); right = converted; right_type = left_type;
+                } else throw Unsupported("binary operand carrier mismatch");
             }
             if (left_type == TINYVM_CARRIER_OPAQUE_HANDLE)
                 throw Unsupported("opaque handle binary operations are not admitted");
             const auto operation = string(required(node, "operator", "$.expression"), "$.expression.operator");
-            const std::map<std::string, std::int64_t> opcodes{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"/",TV1_SDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
+            const bool floating = left_type == TINYVM_CARRIER_F64;
+            const std::map<std::string, std::int64_t> opcodes = floating
+                ? std::map<std::string, std::int64_t>{{"+",TV1_FADD},{"-",TV1_FSUB},{"*",TV1_FMUL},{"/",TV1_FDIV},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}}
+                : std::map<std::string, std::int64_t>{{"+",TV1_ADD},{"-",TV1_SUB},{"*",TV1_MUL},{"div",TV1_SDIV},{"%",TV1_SREM},{"==",TV1_CMP_EQ},{"!=",TV1_CMP_NE},{"<",TV1_CMP_LT},{"<=",TV1_CMP_LE},{">",TV1_CMP_GT},{">=",TV1_CMP_GE}};
             const auto found = opcodes.find(operation); if (found == opcodes.end()) throw Unsupported("binary operator '" + operation + "' is not admitted");
-            const auto result = slot(); slot_types_[result] = found->second >= TV1_CMP_EQ ? static_cast<std::uint32_t>(TINYVM_CARRIER_I1) : slot_types_.at(left); emit(found->second, result, left, right); return result;
+            const bool comparison = operation == "==" || operation == "!=" || operation == "<" || operation == "<=" || operation == ">" || operation == ">=";
+            const auto result = slot(); slot_types_[result] = comparison ? static_cast<std::uint32_t>(TINYVM_CARRIER_I1) : slot_types_.at(left); emit(found->second, result, left, right); return result;
         }
         throw Unsupported("expression kind '" + kind + "' is not admitted by the scalar slice");
     }
@@ -623,6 +810,14 @@ private:
             const auto result_type = string(required(provider, "return_type", "$.operation.provider"), "$.operation.provider.return_type");
             const auto contract = string(required(provider, "contract", "$.operation.provider"), "$.operation.provider.contract");
             const auto effect = string(required(provider, "effect", "$.operation.provider"), "$.operation.provider.effect");
+            if (plan_version_ == 2 && result_type == "Text") {
+                const auto* resource = optional(operation, "result_resource");
+                if (!resource ||
+                    string(required(object(*resource), "type", "$.operation.result_resource"), "$.operation.result_resource.type") != "Text" ||
+                    string(required(object(*resource), "ownership", "$.operation.result_resource"), "$.operation.result_resource.ownership") != "owned" ||
+                    string(required(object(*resource), "cleanup_capability", "$.operation.result_resource"), "$.operation.result_resource.cleanup_capability") != "flow_text_dispose")
+                    throw Unsupported("owned Text provider result lacks the canonical flow_text_dispose contract");
+            }
             const bool aggregate_result = aggregate_types_.count(result_type) != 0;
             const bool aggregate_parameter = parameters.find(',') == std::string::npos && aggregate_types_.count(parameters) != 0;
             const bool bounded_observation = bounded_observation_provider(provider);
@@ -688,25 +883,56 @@ private:
             if (operands.size() != callable.parameters.size()) throw Unsupported("ordinary call operand count mismatch");
             std::vector<std::size_t> values; for (const auto& operand : operands) values.push_back(expression(operand));
             for (std::size_t index=0; index<values.size(); ++index) {
-                const auto destination=symbol_slot(callable.parameters[index].first); slot_types_[destination]=carrier(callable.parameters[index].second);
-                if(slot_types_.at(values[index])!=slot_types_.at(destination))throw Unsupported("ordinary call argument carrier mismatch");
-                emit(TV1_MOVE,destination,values[index],0);
+                const auto parameter_record = record_identity(callable.parameters[index].second);
+                if (parameter_record) {
+                    if (!record_values_.count(values[index]) || record_values_.at(values[index]).type != *parameter_record)
+                        throw Unsupported("ordinary record call argument type mismatch");
+                    symbols_[callable.parameters[index].first] = copy_value(values[index]);
+                } else {
+                    const auto destination=symbol_slot(callable.parameters[index].first); slot_types_[destination]=carrier(callable.parameters[index].second);
+                    if(slot_types_.at(values[index])!=slot_types_.at(destination))throw Unsupported("ordinary call argument carrier mismatch");
+                    emit(TV1_MOVE,destination,values[index],0);
+                }
             }
-            auto result=slot(); slot_types_[result]=carrier(callable.result);
-            std::vector<std::size_t> return_jumps; auto* previous_result=function_result_; auto* previous_jumps=function_return_jumps_;
-            function_result_=&result; function_return_jumps_=&return_jumps;
+            auto result=slot();
+            const auto result_record = record_identity(callable.result);
+            if (result_record) {
+                // Allocate one stable result tree. Every control-flow return
+                // copies into this tree; branch-local metadata must not replace
+                // the anchor with the last statically compiled branch.
+                result = allocate_record(*result_record);
+            }
+            else slot_types_[result]=carrier(callable.result);
+            std::vector<std::size_t> return_jumps; auto* previous_result=function_result_; auto* previous_record_result=function_record_result_; auto* previous_jumps=function_return_jumps_;
+            function_result_ = result_record ? nullptr : &result;
+            function_record_result_ = result_record ? &result : nullptr;
+            function_return_jumps_=&return_jumps;
             if (!compile_block(callable.body)) throw Unsupported("callable function has a path without a result");
             const auto continuation=static_cast<std::int64_t>(code.size()); for(const auto jump:return_jumps)code[jump].a=continuation;
-            function_result_=previous_result; function_return_jumps_=previous_jumps;
+            function_result_=previous_result; function_record_result_=previous_record_result; function_return_jumps_=previous_jumps;
             const auto expression_id=integer(required(operation,"expression_id","$.operation"),"$.operation.expression_id"); call_results_[expression_id]=result;
             if(const auto* result_identity=optional(operation,"result_symbol_id")) {
-                const auto destination=symbol_slot(integer(*result_identity,"$.operation.result_symbol_id")); slot_types_[destination]=carrier(callable.result);
-                emit(TV1_MOVE,destination,result,0);
+                const auto destination_identity = integer(*result_identity,"$.operation.result_symbol_id");
+                if (result_record) {
+                    // The following value-definition operation owns the source
+                    // symbol. Keep this call result as an expression anchor;
+                    // defining it here would look like a record rebinding.
+                    (void)destination_identity;
+                }
+                else { const auto destination=symbol_slot(destination_identity); slot_types_[destination]=carrier(callable.result); emit(TV1_MOVE,destination,result,0); }
             }
             return;
         }
         const auto value = expression(operands.front());
         if (kind == "return_value") {
+            if (record_values_.count(value)) {
+                if (!function_record_result_ || record_values_.at(value).type != record_values_.at(*function_record_result_).type)
+                    throw Unsupported("ordinary record return type mismatch");
+                copy_into(*function_record_result_, value);
+                const auto jump=code.size(); emit(TV1_JMP,0,0,0); function_return_jumps_->push_back(jump);
+                return;
+            }
+            if (function_record_result_) throw Unsupported("ordinary record return requires a record value");
             if(function_result_) {
                 if (slot_types_.at(*function_result_) != slot_types_.at(value)) throw Unsupported("callable return carrier mismatch");
                 emit(TV1_MOVE,*function_result_,value,0); const auto jump=code.size(); emit(TV1_JMP,0,0,0); function_return_jumps_->push_back(jump); }
@@ -714,6 +940,12 @@ private:
             return;
         }
         const auto identity = integer(required(operation, "result_symbol_id", "$.operation"), "$.operation.result_symbol_id");
+        if (record_values_.count(value)) {
+            if (kind != "value_definition" || symbols_.count(identity))
+                throw Unsupported("record rebinding is not admitted by this value projection");
+            symbols_[identity] = copy_value(value);
+            return;
+        }
         const auto destination = symbol_slot(identity);
         slot_types_[destination] = slot_types_.at(value);
         if (destination != value) emit(TV1_MOVE, destination, value, 0);

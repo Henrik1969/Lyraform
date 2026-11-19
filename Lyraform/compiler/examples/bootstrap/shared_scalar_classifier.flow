@@ -1,12 +1,12 @@
 program shared_scalar_classifier
 
-fn scalar_class(value : int): int {
-    digit_low : int(48)
-    digit_high : int(57)
-    digit : int(1)
-    space_code : int(32)
-    whitespace : int(2)
-    other : int(0)
+fn scalar_class(value : int32): int32 {
+    digit_low : int32(48)
+    digit_high : int32(57)
+    digit : int32(1)
+    space_code : int32(32)
+    whitespace : int32(2)
+    other : int32(0)
 
     if value >= digit_low {
         if value <= digit_high {
@@ -19,19 +19,19 @@ fn scalar_class(value : int): int {
     other -> return
 }
 
-fn tokenizer_probe(value : int): int {
+fn tokenizer_probe(value : int32): int32 {
     scalar_class(value) -> return
 }
 
-fn document_probe(value : int): int {
+fn document_probe(value : int32): int32 {
     scalar_class(value) -> return
 }
 
 main {
-    scalar : int(53)
-    token_class : int(0)
-    document_class : int(0)
-    mismatch : int(99)
+    scalar : int32(53)
+    token_class : int32(0)
+    document_class : int32(0)
+    mismatch : int32(99)
 
     tokenizer_probe(scalar) -> token_class
     document_probe(scalar) -> document_class

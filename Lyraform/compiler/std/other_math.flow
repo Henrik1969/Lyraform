@@ -1,5 +1,5 @@
 unit std_other_math
 
-fn square(n : int): int {
+fn square(n : int32): int32 {
     n -> return
 }

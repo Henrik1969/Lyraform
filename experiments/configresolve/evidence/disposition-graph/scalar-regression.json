@@ -1,0 +1,211 @@
+{
+  "protected_files_verified": 911,
+  "cases": 96,
+  "results": {
+    "comparison": {
+      "exit": 0,
+      "sha256": "a9d54770bcca24217ed351ee28e96f21a01828281bd6cfca4dafd8db8a2fb0fa"
+    },
+    "renamed": {
+      "exit": 0,
+      "sha256": "a9d54770bcca24217ed351ee28e96f21a01828281bd6cfca4dafd8db8a2fb0fa"
+    },
+    "hostile-oracle": {
+      "exit": 1,
+      "sha256": "f052b33c8780c2e404dc8d7e22c5e15202fe40ee5a14e9bfd92ffc9dc121bf7c"
+    },
+    "standalone": {
+      "exit": 2,
+      "sha256": "2eaa1e24e27e4d98c0ab9e90e2b71e7085d18b6de984f6e9e75e5f0f9955d836"
+    },
+    "tinyvm": {
+      "lower_exit": 0,
+      "report": "{\"artifact_id\":\"tinyvm-b9440590d66c6ed75f7098cdd8fea208\",\"backend\":\"tinyvm\",\"format\":\"flowtiny.lowering_result\",\"isa_version\":1,\"status\":\"emitted\",\"version\":1}\n",
+      "execution": "{\"format\":\"flowtiny.execution_record\",\"version\":1,\"status\":\"completed\",\"artifact_format\":2,\"artifact_id\":\"tinyvm-b9440590d66c6ed75f7098cdd8fea208\",\"target_policy_id\":\"target-8b44b43a3db9618a561503857b90ad4c\",\"carrier\":2,\"result\":0,\"pc\":6978,\"trap\":0}\n"
+    }
+  },
+  "compiler_modified": true,
+  "reviewed_generic_changes": [
+    "Flowanalyst/CMakeLists.txt",
+    "Flowanalyst/Policies/AUDIT.md",
+    "Flowanalyst/Policies/context.json",
+    "Flowanalyst/src/main.cpp",
+    "Flowanalyst/tests/run-source-disposition-policy-tests.sh",
+    "Flowanalyst/tests/run-target-preservation-tests.sh",
+    "Flowbind/src/main.cpp",
+    "Flowcontracts/include/flowcontracts/disposition_facts.hpp",
+    "Flowcontracts/include/flowcontracts/source_disposition.hpp",
+    "Flowcontracts/include/flowcontracts/validate.hpp",
+    "Flowlower/src/prepare.cpp",
+    "subprojects/TinyVM/tools/lower.cpp"
+  ],
+  "scope": "Two integer facts only; not the complete port",
+  "commands": [
+    [
+      "c++",
+      "-std=c++20",
+      "-I",
+      "/home/henrik/Projekter/Udvikling/ConfigResolve/include",
+      "/home/henrik/Projekter/Udvikling/LyraForm/experiments/configresolve/reference-pair.cpp",
+      "/tmp/configresolve-port-reference/libconfigresolve.a",
+      "-o",
+      "/tmp/configresolve-scalar-after-graph/reference-pair"
+    ],
+    [
+      "/tmp/configresolve-scalar-after-graph/reference-pair"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowmini/flowmini",
+      "--dump-frontend-bundle",
+      "/tmp/configresolve-scalar-after-graph/comparison.flow"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowanalyst/flowanalyst",
+      "--lowering-plan-version",
+      "2"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowtools/flowparallel/flowparallel"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowoptimize/flowoptimize"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowlower/flowlower",
+      "--emit-llvm",
+      "/tmp/configresolve-scalar-after-graph/comparison/program.ll"
+    ],
+    [
+      "clang",
+      "/tmp/configresolve-scalar-after-graph/comparison/program.ll",
+      "-o",
+      "/tmp/configresolve-scalar-after-graph/comparison/program"
+    ],
+    [
+      "nm",
+      "-u",
+      "/tmp/configresolve-scalar-after-graph/comparison/program"
+    ],
+    [
+      "/tmp/configresolve-scalar-after-graph/comparison/program"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowmini/flowmini",
+      "--dump-frontend-bundle",
+      "/tmp/configresolve-scalar-after-graph/renamed.flow"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowanalyst/flowanalyst",
+      "--lowering-plan-version",
+      "2"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowtools/flowparallel/flowparallel"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowoptimize/flowoptimize"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowlower/flowlower",
+      "--emit-llvm",
+      "/tmp/configresolve-scalar-after-graph/renamed/program.ll"
+    ],
+    [
+      "clang",
+      "/tmp/configresolve-scalar-after-graph/renamed/program.ll",
+      "-o",
+      "/tmp/configresolve-scalar-after-graph/renamed/program"
+    ],
+    [
+      "nm",
+      "-u",
+      "/tmp/configresolve-scalar-after-graph/renamed/program"
+    ],
+    [
+      "/tmp/configresolve-scalar-after-graph/renamed/program"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowmini/flowmini",
+      "--dump-frontend-bundle",
+      "/tmp/configresolve-scalar-after-graph/hostile-oracle.flow"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowanalyst/flowanalyst",
+      "--lowering-plan-version",
+      "2"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowtools/flowparallel/flowparallel"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowoptimize/flowoptimize"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowlower/flowlower",
+      "--emit-llvm",
+      "/tmp/configresolve-scalar-after-graph/hostile-oracle/program.ll"
+    ],
+    [
+      "clang",
+      "/tmp/configresolve-scalar-after-graph/hostile-oracle/program.ll",
+      "-o",
+      "/tmp/configresolve-scalar-after-graph/hostile-oracle/program"
+    ],
+    [
+      "nm",
+      "-u",
+      "/tmp/configresolve-scalar-after-graph/hostile-oracle/program"
+    ],
+    [
+      "/tmp/configresolve-scalar-after-graph/hostile-oracle/program"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowmini/flowmini",
+      "--dump-frontend-bundle",
+      "/home/henrik/Projekter/Udvikling/LyraForm/experiments/configresolve/scalar-resolution.flow"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowanalyst/flowanalyst",
+      "--lowering-plan-version",
+      "2"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowtools/flowparallel/flowparallel"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowoptimize/flowoptimize"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowlower/flowlower",
+      "--emit-llvm",
+      "/tmp/configresolve-scalar-after-graph/standalone/program.ll"
+    ],
+    [
+      "clang",
+      "/tmp/configresolve-scalar-after-graph/standalone/program.ll",
+      "-o",
+      "/tmp/configresolve-scalar-after-graph/standalone/program"
+    ],
+    [
+      "nm",
+      "-u",
+      "/tmp/configresolve-scalar-after-graph/standalone/program"
+    ],
+    [
+      "/tmp/configresolve-scalar-after-graph/standalone/program"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/flowlower/flowprepare",
+      "/tmp/configresolve-scalar-after-graph/comparison/optimized.json"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/tinyvm/flowtinylower",
+      "/tmp/configresolve-scalar-after-graph/comparison/prepared.json",
+      "/tmp/configresolve-scalar-after-graph/comparison/program.tvm"
+    ],
+    [
+      "/tmp/lyraform-capabilities-health-20261017/tinyvm/flowtinyrun",
+      "/tmp/configresolve-scalar-after-graph/comparison/program.tvm"
+    ]
+  ]
+}

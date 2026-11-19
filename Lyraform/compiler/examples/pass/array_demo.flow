@@ -1,11 +1,11 @@
 program array_demo
 
 main {
-    matrix : array<int>[2, 3]([1,2,3,4,5,6])
-    row    : int(1)
-    col    : int(2)
-    value  : int(0)
-    ten    : int(10)
+    matrix : array<int32>[2, 3]([1,2,3,4,5,6])
+    row    : int32(1)
+    col    : int32(2)
+    value  : int32(0)
+    ten    : int32(10)
 
     matrix[row, col] -> value
     print value

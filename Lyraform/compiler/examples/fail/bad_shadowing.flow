@@ -1,10 +1,10 @@
 program bad_shadowing
 
 main {
-    person : int(30)
+    person : int32(30)
 
     while person > 0 {
-        person : int(12)
+        person : int32(12)
         print person
     }
 }

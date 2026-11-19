@@ -8,17 +8,25 @@ compiler="$build/flowmini/flowmini"
 analyst="$build/flowanalyst/flowanalyst"
 parallel="$build/flowtools/flowparallel/flowparallel"
 "$compiler" --dump-frontend-bundle "$root/target-preservation.flow" > "$tmpdir/frontend.json"
-for version in 1 2; do
+for version in 2 1; do
+    expected=0
+    if test "$version" = 2; then expected=2; fi
+    set +e
     "$analyst" --lowering-plan-version "$version" "$tmpdir/frontend.json" > "$tmpdir/semantic.json"
+    first=$?
     "$analyst" --lowering-plan-version "$version" "$tmpdir/frontend.json" > "$tmpdir/repeated.json"
+    second=$?
+    set -e
+    test "$first" -eq "$expected"
+    test "$second" -eq "$expected"
     cmp "$tmpdir/semantic.json" "$tmpdir/repeated.json"
     jq -S '[.lowering_plan.operations[] | .target_fact // empty]' "$tmpdir/semantic.json" > "$tmpdir/facts.json"
     jq -e 'length==5 and .[0].version==2 and .[0].assignability=="unresolved" and
         all(.[1:3][]; .version==3 and .assignability.state=="assignable" and .assignability.update=="reconstruct_and_rebind") and
         all(.[3:][]; .version==2 and .assignability=="unresolved") and
         ([.[].kind]==["identifier","field_path","field_path","indexed","indexed"]) and
-        .[0].destination_type=="int" and .[0].resolution=="resolved" and
-        all(.[1:3][]; .base_symbol_id>=0 and .base_type_symbol_id>=0 and .destination_type=="int" and
+        .[0].destination_type=="int32" and .[0].resolution=="resolved" and
+        all(.[1:3][]; .base_symbol_id>=0 and .base_type_symbol_id>=0 and .destination_type=="int32" and
             .resolution=="resolved" and .execution=="unsupported") and
         ([.[2].members[].name]==["a","b"]) and all(.[2].members[]; .member_symbol_id>=0 and .member_type!=null) and
         .[4].index_count==2 and .[4].indices[0].expression_id != .[4].indices[1].expression_id and
@@ -26,6 +34,16 @@ for version in 1 2; do
     jq -S '[.ast.statement_pool[] | select(.kind=="placement" and .payload.target.kind=="indexed") | .payload.target.indexes]' "$tmpdir/frontend.json" > "$tmpdir/parsed-indices.json"
     jq -S '[.[] | select(.kind=="indexed") | [.indices[].expression_id]]' "$tmpdir/facts.json" > "$tmpdir/preserved-indices.json"
     cmp "$tmpdir/parsed-indices.json" "$tmpdir/preserved-indices.json"
+    if test "$version" = 2; then
+        # Preserve the resolved target facts even when executable admission is
+        # refused. The record literal is structural, not an executable value.
+        jq -e '.status == "error" and .lowering_plan.status == "blocked" and
+            .lowering_plan.source_operation_coverage.status == "refused" and
+            any(.diagnostics[]; .code == "FLOWANALYST_SOURCE_OPERATION_GAP")' "$tmpdir/semantic.json" > /dev/null
+        cp "$tmpdir/facts.json" "$tmpdir/v2-facts.json"
+        continue
+    fi
+    cmp "$tmpdir/v2-facts.json" "$tmpdir/facts.json"
     "$build/flowbind/flowbind" "$tmpdir/semantic.json" > "$tmpdir/binding.json"
     jq -S '.target_facts' "$tmpdir/binding.json" > "$tmpdir/bound-facts.json"
     cmp "$tmpdir/facts.json" "$tmpdir/bound-facts.json"
@@ -64,4 +82,4 @@ for mutation in \
     if "$build/flowlower/flowlower" --emit-llvm "$tmpdir/forbidden.ll" "$tmpdir/hostile.json" >/dev/null 2>&1; then exit 1; fi
     if "$build/tinyvm/flowtinylower" "$tmpdir/hostile.json" "$tmpdir/forbidden.tvm" >/dev/null 2>&1; then exit 1; fi
 done
-echo 'Target preservation: PASS (5 target shapes, 2 plan versions, 5 stage boundaries, backend refusal, 10 hostile mutations)'
+echo 'Target preservation: PASS (5 target shapes preserved across 2 plan versions, v2 admission refusal, v1 stage preservation and backend refusal, 10 hostile mutations)'

@@ -25,84 +25,84 @@ Symbols: 31
     declaration_location=<source>:4:1
   Symbol #4 scope=#2 name=identity kind=Function facts=1
     declaration_location=<source>:7:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #5 scope=#3 name=x kind=Parameter facts=1
     declaration_location=<source>:7:13
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #6 scope=#2 name=add kind=Function facts=1
     declaration_location=<source>:11:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #7 scope=#4 name=a kind=Parameter facts=1
     declaration_location=<source>:11:8
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #8 scope=#4 name=b kind=Parameter facts=1
-    declaration_location=<source>:11:17
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    declaration_location=<source>:11:19
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #9 scope=#2 name=square kind=Function facts=1
     declaration_location=<source>:15:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #10 scope=#5 name=n kind=Parameter facts=1
     declaration_location=<source>:15:11
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #11 scope=#2 name=cube kind=Function facts=1
     declaration_location=<source>:19:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #12 scope=#6 name=n kind=Parameter facts=1
     declaration_location=<source>:19:9
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #13 scope=#2 name=factorial kind=Function facts=1
     declaration_location=<source>:23:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #14 scope=#7 name=n kind=Parameter facts=1
     declaration_location=<source>:23:14
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #15 scope=#7 name=one kind=Variable facts=1
     declaration_location=<source>:24:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #16 scope=#7 name=acc kind=Variable facts=1
     declaration_location=<source>:25:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #17 scope=#2 name=choose_larger kind=Function facts=1
     declaration_location=<source>:35:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #18 scope=#9 name=a kind=Parameter facts=1
     declaration_location=<source>:35:18
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #19 scope=#9 name=b kind=Parameter facts=1
-    declaration_location=<source>:35:27
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    declaration_location=<source>:35:29
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #20 scope=#2 name=collatz_next kind=Function facts=1
     declaration_location=<source>:44:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #21 scope=#12 name=n kind=Parameter facts=1
     declaration_location=<source>:44:17
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #22 scope=#12 name=zero kind=Variable facts=1
     declaration_location=<source>:45:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #23 scope=#12 name=two kind=Variable facts=1
     declaration_location=<source>:46:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #24 scope=#12 name=three kind=Variable facts=1
     declaration_location=<source>:47:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #25 scope=#12 name=one kind=Variable facts=1
     declaration_location=<source>:48:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #26 scope=#12 name=rem kind=Variable facts=1
     declaration_location=<source>:49:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #27 scope=#2 name=main kind=Procedure facts=0
     declaration_location=<source>:61:1
   Symbol #28 scope=#15 name=three kind=Variable facts=1
     declaration_location=<source>:62:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #29 scope=#15 name=four kind=Variable facts=1
     declaration_location=<source>:63:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #30 scope=#15 name=five kind=Variable facts=1
     declaration_location=<source>:64:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #31 scope=#15 name=result kind=Variable facts=1
     declaration_location=<source>:65:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"

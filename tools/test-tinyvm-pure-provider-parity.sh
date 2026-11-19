@@ -30,13 +30,15 @@ native_status() {
 }
 
 # Keep a negative result independent of the invoking process's nice value.
+# abs uses the same declared host-status carrier, so no narrowing is implicit.
+# The separate labs specimen still covers the c_long provider contract.
 cat > "$tmpdir/negative-provider-result.flow" <<EOF
 import "$root/Lyraform/compiler/std/abi/libc.flow"
 program negative_provider_result
 main {
-    input : c_long(-42)
-    output : c_long(0)
-    labs(input) -> output
+    input : c_int(-42)
+    output : c_int(0)
+    abs(input) -> output
     return -output
 }
 EOF

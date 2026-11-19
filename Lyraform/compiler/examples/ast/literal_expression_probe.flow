@@ -1,12 +1,12 @@
 program literal_expression_probe
 
 type Point {
-    field x : int
-    field y : int
+    field x : int32
+    field y : int32
 }
 
 main {
-    xs : list<int>([1, 2, 3])
+    xs : list<int32>([1, 2, 3])
     p : Point({x: 10, y: 20})
 
     xs = [4, 5, 6]

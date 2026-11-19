@@ -10,21 +10,21 @@ scopes, documented in docs/language/named-targets.md.
 
 program ast_spacing_edgecases
 
-fn compact(a:int,b:int):int {
+fn compact(a:int32,b:int32):int32 {
     a + b -> return
 }
 
 fn spaced (
-    a : int,
-    b : int
-) : int {
+    a : int32,
+    b : int32
+) : int32 {
     a + b -> return
 }
 
 main {
-    one : int(1)
-    two : int(2)
-    out : int(0)
+    one : int32(1)
+    two : int32(2)
+    out : int32(0)
 
     compact(one, two) -> out
     print out
@@ -33,21 +33,21 @@ main {
     print out
 }program ast_spacing_edgecases
 
-fn compact(a:int,b:int):int {
+fn compact(a:int32,b:int32):int32 {
     a + b -> return
     }
 
     fn spaced (
-        a : int,
-	    b : int
-	    ) : int {
+        a : int32,
+	    b : int32
+	    ) : int32 {
 	        a + b -> return
 		}
 
 		main {
-		    one : int(1)
-		        two : int(2)
-			    out : int(0)
+		    one : int32(1)
+		        two : int32(2)
+			    out : int32(0)
 
 			        compact(one, two) -> out
 				    print out

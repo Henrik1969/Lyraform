@@ -1,11 +1,11 @@
 program bad_if_shadowing
 
 main {
-    person : int(30)
-    zero   : int(0)
+    person : int32(30)
+    zero   : int32(0)
 
     if person > zero {
-        person : int(12)
+        person : int32(12)
         print person
     }
 }

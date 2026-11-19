@@ -63,7 +63,6 @@ std::string read_input(int argc, char** argv) {
 }
 
 std::string quote(std::string_view value) { std::string result = "\""; for (char character : value) { if (character == '\\' || character == '"') result.push_back('\\'); result.push_back(character); } result.push_back('"'); return result; }
-std::string json_escape(std::string_view value) { std::string escaped; for (const char character : value) { if (character == '\\' || character == '"') escaped.push_back('\\'); if (character == '\n') escaped += "\\n"; else if (character == '\r') escaped += "\\r"; else if (character == '\t') escaped += "\\t"; else escaped.push_back(character); } return escaped; }
 
 int run_with_libraries(const flowcontracts::SemanticReport& semantic, Library& runtime, Library& blas) {
     const auto rows = static_cast<std::size_t>(semantic.dependency_matrix.rows);

@@ -1,0 +1,209 @@
+{
+  "format": "configresolve.port-contract-inventory.v1",
+  "scope": "Complete file/family inventory, not complete function-level parity",
+  "families": [
+    {
+      "id": "values",
+      "headers": [
+        "include/configresolve/value.hpp"
+      ],
+      "implementation": [
+        "src/value.cpp"
+      ],
+      "tests": [
+        "tests/test_scalar_characterization.cpp"
+      ],
+      "contract_or_observation": "Null, Bool, Int, Float, String; typed optional getters; scalar equivalence defects recorded",
+      "language_dependencies": "Tagged values, Text, exact integer and floating behavior",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "keys",
+      "headers": [
+        "include/configresolve/key.hpp"
+      ],
+      "implementation": [
+        "src/key.cpp"
+      ],
+      "tests": [],
+      "contract_or_observation": "Dotted validity, ordering and component projection; empty key accepted by current implementation",
+      "language_dependencies": "Text traversal, collections",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "facts",
+      "headers": [
+        "include/configresolve/fact.hpp",
+        "include/configresolve/source.hpp"
+      ],
+      "implementation": [
+        "src/fact.cpp",
+        "src/source.cpp"
+      ],
+      "tests": [
+        "tests/test_configresolve.cpp"
+      ],
+      "contract_or_observation": "Ordered facts, roles and provenance; defaults enter as facts",
+      "language_dependencies": "Independent records, sequences",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "resolution",
+      "headers": [
+        "include/configresolve/policy.hpp",
+        "include/configresolve/result.hpp"
+      ],
+      "implementation": [
+        "src/policy.cpp",
+        "src/resolver.cpp",
+        "src/result.cpp"
+      ],
+      "tests": [],
+      "contract_or_observation": "Source precedence, required/type/range rules, four conflict policies; candidates and diagnostics retained",
+      "language_dependencies": "Collections, comparisons, ordinary calls, explicit result",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "diagnostics",
+      "headers": [
+        "include/configresolve/diagnostic.hpp"
+      ],
+      "implementation": [
+        "src/diagnostic.cpp"
+      ],
+      "tests": [],
+      "contract_or_observation": "Error/warning records with key/source; ok() gates successful consumption",
+      "language_dependencies": "Structured values and Text",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "loaders",
+      "headers": [
+        "include/configresolve/loaders.hpp"
+      ],
+      "implementation": [
+        "src/loaders.cpp"
+      ],
+      "tests": [
+        "tests/test_loaders.cpp",
+        "tests/test_files.cpp"
+      ],
+      "contract_or_observation": "Defaults, CLI, environment, file discovery/loaders produce facts and diagnostics",
+      "language_dependencies": "Byte/Text processing, I/O capabilities, cleanup",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "schema",
+      "headers": [
+        "include/configresolve/schema.hpp"
+      ],
+      "implementation": [
+        "src/schema.cpp"
+      ],
+      "tests": [
+        "tests/test_schema.cpp"
+      ],
+      "contract_or_observation": "Schema validates shape; does not own runtime access/export policy",
+      "language_dependencies": "Typed collections and validation",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "store",
+      "headers": [
+        "include/configresolve/store.hpp"
+      ],
+      "implementation": [
+        "src/store.cpp"
+      ],
+      "tests": [
+        "tests/test_store.cpp"
+      ],
+      "contract_or_observation": "Governed mutation, transaction commit/rejection/reset, preservation on failure, export/redaction",
+      "language_dependencies": "Explicit state authority, lifecycle, collections",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "views",
+      "headers": [
+        "include/configresolve/view.hpp"
+      ],
+      "implementation": [
+        "src/view.cpp"
+      ],
+      "tests": [
+        "tests/test_views.cpp"
+      ],
+      "contract_or_observation": "Scoped read-only access, local/full-path export, scope isolation, explicit fallbacks",
+      "language_dependencies": "Library composition, explicit observation lifetime",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "bindings",
+      "headers": [
+        "include/configresolve/binding.hpp"
+      ],
+      "implementation": [],
+      "tests": [
+        "tests/test_bindings.cpp"
+      ],
+      "contract_or_observation": "Typed projection from governed views; no alternate configuration authority",
+      "language_dependencies": "User-defined records and typed library calls",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "public-surface",
+      "headers": [
+        "include/configresolve/configresolve.hpp",
+        "include/configresolve/configresolve.h",
+        "include/configresolve/version.hpp"
+      ],
+      "implementation": [
+        "src/c_api.cpp"
+      ],
+      "tests": [
+        "tests/test_c_api.c",
+        "tests/test_api_consistency.cpp"
+      ],
+      "contract_or_observation": "Umbrella/version API, C handles and lifecycle; binary ABI is a separate decision",
+      "language_dependencies": "Module exports, host interoperability",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "hostile",
+      "headers": [],
+      "implementation": [],
+      "tests": [
+        "tests/test_fire.cpp"
+      ],
+      "contract_or_observation": "Invalid keys, ambiguity, redaction, view isolation, rejected transactions and hostile inputs",
+      "language_dependencies": "Negative and adversarial port tests",
+      "port_status": "not-implemented",
+      "authority_status": "reference-contract-and-observations-to-distinguish-per-case"
+    },
+    {
+      "id": "experimental",
+      "headers": [],
+      "implementation": [],
+      "tests": [
+        "tests/test_experimental_contract.cpp",
+        "tests/test_experimental_input_routing.cpp"
+      ],
+      "contract_or_observation": "Evidence only: does not promote experimental/v2 models into stable port requirements",
+      "language_dependencies": "Decision boundary",
+      "port_status": "not-implemented",
+      "authority_status": "experimental-evidence-only"
+    }
+  ],
+  "unmapped_files": []
+}

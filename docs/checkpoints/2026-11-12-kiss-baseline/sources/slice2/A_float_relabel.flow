@@ -1,0 +1,31 @@
+program A_records
+record Power { value : float64
+}
+record Duration { value : float64
+}
+record Energy { value : float64
+}
+target Demo {
+fn two(): float64 {
+ 2.0 -> return
+}
+fn three(): float64 {
+ 3.0 -> return
+}
+fn energy(p : Power, d : Duration): Energy {
+ pv : float64(p.value)
+ dv : float64(d.value)
+ product : float64(pv * dv)
+ result : Energy({value: product})
+ result -> return
+}
+main {
+ pv : float64(two())
+ p : Power({value: pv})
+ dv : float64(three())
+ d : Duration({value: p.value})
+ e : Energy(energy(p, d))
+ ev : float64(e.value)
+ if ev == 4.0 { 4 -> return } else { 99 -> return }
+}
+}

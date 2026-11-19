@@ -20,6 +20,7 @@ policy=$tmpdir/policy
 printf '%s\n' \
   'allow libflowtext.so flow_text_concat_status c memory Text,Text c_int' \
   'allow libflowtext.so flow_text_concat c memory Text,Text Text' \
+  'allow libflowtext.so flow_text_dispose c memory Text c_int' \
   'allow libc.so.6 puts c io Text c_int' \
   'allow libc.so.6 puts c io c_string c_int' > "$policy"
 export LD_LIBRARY_PATH=$(dirname "$text_runtime")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
@@ -56,7 +57,7 @@ run_case "$root/Lyraform/compiler/examples/text/text_recovery.flow" 'Lyraform' s
 
 printf 'import "%s/Lyraform/compiler/std/abi/libc.flow"\nimport "%s/Lyraform/compiler/std/abi/text.flow"\n\nprogram text_recovery_overflow\n\nfn status(left : Text, right : Text): c_int {\n    code : c_int(concat_status(left, right))\n    code -> return\n}\n\nfn join(left : Text, right : Text): Text {\n    value : Text(left + right)\n    return value\n}\n\nmain {\n    zero : c_int(0)\n    code : c_int(status("' "$root" "$root" > "$tmpdir/overflow.flow"
 awk 'BEGIN { for (i = 0; i < 4097; ++i) printf "A" }' >> "$tmpdir/overflow.flow"
-printf '%s\n' '", "x"))' '    if code == zero {' '        value : Text(join("Lyra", "form"))' '        print value' '    }' '    if code != zero {' '        puts("concat failed") -> code' '    }' '}' >> "$tmpdir/overflow.flow"
+printf '%s\n' '", "x"))' '    if code == zero {' '        value : Text(join("Lyra", "form"))' '        print value' '        disposed : c_int(dispose(value))' '    }' '    if code != zero {' '        puts("concat failed") -> code' '    }' '}' >> "$tmpdir/overflow.flow"
 run_case "$tmpdir/overflow.flow" 'concat failed' overflow
 
 echo 'Text recovery boundary: PASS (Flow status carrier, explicit branch, LLVM/TinyVM parity)'

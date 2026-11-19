@@ -23,10 +23,12 @@ inline std::string fact_value(const Json& symbol, const std::string& key) {
         if (text(get(&fact,"key"))==key) return text(get(get(&fact,"value"),"value"));
     return {};
 }
-inline Catalog catalog(const Index& symbols, const Index& scopes, const Index& origins) {
+inline Catalog catalog(const Index& symbols, const Index& scopes, const Index& origins,
+                       const std::map<int, std::string>& refinement_base_types = {}) {
     using namespace lyraform::scalar::frontend;
     Catalog result; std::map<std::string,std::vector<int>> type_symbols;
-    for (const auto& [key,symbol]:symbols) if (text(get(symbol,"kind"))=="Struct")
+    for (const auto& [key,symbol]:symbols) if (text(get(symbol,"kind"))=="Struct" ||
+        (text(get(symbol,"kind"))=="Type" && refinement_base_types.count(key)))
         type_symbols[text(get(symbol,"name"))].push_back(key);
     for (const auto& [key,symbol]:symbols) {
         if (text(get(symbol,"kind"))!="Struct") continue;
@@ -50,7 +52,8 @@ inline Catalog catalog(const Index& symbols, const Index& scopes, const Index& o
 inline Result resolve(const Json& bundle,const Json& target,int statement,int operation,int base,
     const std::string& base_type,const std::string& scalar_destination_type,const Catalog& types,
     int source_expression=-1,lyraform::scalar::Type source_type=lyraform::scalar::Type::outside_slice,
-    int root_declaration_statement=-1) {
+    int root_declaration_statement=-1,
+    const std::map<int, std::string>& refinement_base_types = {}) {
     using namespace flowcontracts::json; using namespace lyraform::scalar::frontend;
     const auto kind=text(get(&target,"kind"));
     const auto path="/statement_pool/"+std::to_string(statement)+"/payload/target";
@@ -109,7 +112,9 @@ inline Result resolve(const Json& bundle,const Json& target,int statement,int op
             const auto& member=candidates->second.front(); segment["member_symbol_id"]=Integer{member.symbol};
             segment["member_declaration_name"]=member.name; segment["member_declaration_path"]=member.declaration_path;
             segment["member_declaration_location"]=member.declaration_location;
-            segment["member_type"]=member.type;
+            const auto member_refinement = refinement_base_types.find(member.type_symbol);
+            segment["member_type"] = member_refinement == refinement_base_types.end()
+                ? Json{member.type} : Json{member_refinement->second};
             segment["member_type_symbol_id"]=member.type_symbol>=0?Json{Integer{member.type_symbol}}:Json{nullptr};
             resulting_type=member.type; resulting_type_symbol=member.type_symbol;
         }
@@ -118,16 +123,23 @@ inline Result resolve(const Json& bundle,const Json& target,int statement,int op
         result.admitted=false; result.code="FLOWANALYST_TARGET_BASE_UNRESOLVED";
         result.message="target base declaration is unresolved";
     }
+    const auto refinement = refinement_base_types.find(resulting_type_symbol);
+    const std::string destination_carrier = refinement == refinement_base_types.end()
+        ? resulting_type : refinement->second;
+    const bool explicit_integer = destination_carrier == "int32" || destination_carrier == "int64";
+    const bool destination_scalar = lyraform::scalar::selected(lyraform::scalar::type(destination_carrier)) || explicit_integer;
     const bool member_candidate=kind=="field_path" && result.admitted && resolution=="resolved" &&
-        root_declaration_statement>=0 && lyraform::scalar::selected(source_type) &&
-        lyraform::scalar::selected(lyraform::scalar::type(resulting_type));
+        root_declaration_statement>=0 && lyraform::scalar::selected(source_type) && destination_scalar;
     std::string assignability="unresolved";
     if (member_candidate) {
-        assignability=lyraform::scalar::compatible(source_type,lyraform::scalar::type(resulting_type))?"assignable":"refused";
+        const bool compatible = explicit_integer
+            ? source_type == lyraform::scalar::Type::integer
+            : lyraform::scalar::compatible(source_type,lyraform::scalar::type(destination_carrier));
+        assignability=compatible?"assignable":"refused";
         if (assignability=="refused") {
             result.admitted=false; result.code="FLOWANALYST_MEMBER_ASSIGNABILITY_REFUSED";
             result.message="member flow requires source and destination members of the same scalar type (source "+
-                std::string(lyraform::scalar::name(source_type))+", destination "+resulting_type+")";
+                std::string(lyraform::scalar::name(source_type))+", destination "+destination_carrier+")";
         }
     }
     const auto failure=result.admitted?Json{nullptr}:Json{Object{{"code",result.code},{"message",result.message}}};
@@ -141,15 +153,15 @@ inline Result resolve(const Json& bundle,const Json& target,int statement,int op
             {"root_authority",decided?Json{"established_local_rebinding/v1"}:Json{nullptr}},
             {"update",decided?Json{"reconstruct_and_rebind"}:Json{nullptr}},
             {"source_expression_id",decided?Json{Integer{source_expression}}:Json{nullptr}},
-            {"source_type",decided?Json{std::string(lyraform::scalar::name(source_type))}:Json{nullptr}},
-            {"destination_type",decided?Json{resulting_type}:Json{nullptr}},
+            {"source_type",decided?Json{explicit_integer && source_type == lyraform::scalar::Type::integer ? destination_carrier : std::string(lyraform::scalar::name(source_type))}:Json{nullptr}},
+            {"destination_type",decided?Json{destination_carrier}:Json{nullptr}},
             {"root_declaration_statement_id",decided?Json{Integer{root_declaration_statement}}:Json{nullptr}}};
     }
     result.evidence=Object{{"format","lyraform.target_fact"},{"version",version},{"kind",kind},
         {"operation_id",Integer{operation}},{"statement_id",Integer{statement}},{"base_symbol_id",Integer{base}},
         {"base_type",base_type.empty()?Json{nullptr}:Json{base_type}},
         {"base_type_symbol_id",base_type_symbol>=0?Json{Integer{base_type_symbol}}:Json{nullptr}},
-        {"destination_type",resulting_type.empty()?Json{nullptr}:Json{resulting_type}},
+        {"destination_type",resulting_type.empty()?Json{nullptr}:Json{destination_carrier}},
         {"destination_type_symbol_id",resulting_type_symbol>=0?Json{Integer{resulting_type_symbol}}:Json{nullptr}},
         {"resolution",resolution},{"assignability",assignability_fact},
         {"execution",kind=="identifier"?"existing_policy":"unsupported"},

@@ -1,5 +1,9 @@
 # Lyraform compiler
 
+Current identity: **Lyraform**. Canonical development directory: **LyraForm/**.
+See [placement and historical naming policy](../Policies/PLACEMENT-001.md). Earlier names and
+version labels are historical evidence, not competing current authority.
+
 This directory contains the current Lyraform compiler implementation. It is
 the continuation of the executable Flowmini prototype that formerly served as
 the active Flowcore language line.
@@ -8,7 +12,7 @@ the active Flowcore language line.
 
 ```text
 implementation: Lyraform/compiler
-lineage:       v0.29 reusable native language chain
+historical lineage: v0.29 reusable native language chain
 authority:     main
 toolchain:     igor
 status:        experimental / unstable / not production-ready

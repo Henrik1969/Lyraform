@@ -4,6 +4,6 @@ import "../../std/other_math.flow"
 program bad_import_duplicate_fn
 
 main {
-    one : int(1)
+    one : int32(1)
     print one
 }

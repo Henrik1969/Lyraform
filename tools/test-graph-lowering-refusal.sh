@@ -24,7 +24,7 @@ wire navigate.out => display.in
 wire display.out => halt.in
 
 main {
-    marker : int(1)
+    marker : int32(1)
 }
 EOF
 sed 's/program flow_less/program unrelated_graph_name/' "$source" > "$tmpdir/renamed.flow"
@@ -58,7 +58,7 @@ program arbitrary_receiver
 node receiver : fn transform
 producer source : start.record
 wire source.out => receiver.in
-fn transform(value : int): int {
+fn transform(value : int32): int32 {
     return value + 1
 }
 main { return 0 }
@@ -110,7 +110,7 @@ node left : fn first
 node right : fn second
 wire source.out => left.in
 wire left.out => right.in
-fn first(value : int): int { return value }
+fn first(value : int32): int32 { return value }
 fn second(value : Bool): Bool { return value }
 main { return 0 }
 EOF
@@ -119,7 +119,7 @@ if "$FLOWANALYST_BIN" --lowering-plan-version 2 < "$tmpdir/typed.json" > "$tmpdi
     echo 'incompatible receiver types admitted' >&2; exit 1
 fi
 jq -e 'any(.diagnostics[]; .code == "FLOWANALYST_GRAPH_RECEIVER_TYPE")' "$tmpdir/typed.semantic.json" >/dev/null
-sed 's/Bool/int/g' "$tmpdir/typed.flow" > "$tmpdir/compatible.flow"
+sed 's/Bool/int32/g' "$tmpdir/typed.flow" > "$tmpdir/compatible.flow"
 "$FLOWMINI_BIN" --dump-frontend-bundle "$tmpdir/compatible.flow" > "$tmpdir/compatible.json"
 if "$FLOWANALYST_BIN" --lowering-plan-version 2 < "$tmpdir/compatible.json" > "$tmpdir/compatible.semantic.json"; then
     echo 'syntax-only graph unexpectedly executed' >&2; exit 1

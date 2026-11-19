@@ -88,7 +88,7 @@ fn navigate_page(input_status : c_int): c_int {
     input.line_count() -> count
     pages : c_int(1)
     if count > 0 {
-        (count - 1) / size + 1 -> pages
+        (count - 1) div size + 1 -> pages
     }
     last : c_int(0)
     pages - 1 -> last
@@ -138,7 +138,7 @@ fn render_page(page : c_int): c_int {
     input.page_size() -> size
     pages : c_int(1)
     if count > 0 {
-        (count - 1) / size + 1 -> pages
+        (count - 1) div size + 1 -> pages
     }
     displayed : c_int(0)
     page + 1 -> displayed

@@ -3,8 +3,8 @@ program control_flow_unary_probe
 main {
     flag : Bool(true)
     inverted : Bool(false)
-    negative : int(-1)
-    index : int(0)
+    negative : int32(-1)
+    index : int32(0)
 
     not flag -> inverted
 

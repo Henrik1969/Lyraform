@@ -128,7 +128,8 @@ inline SourceGraph source_graph(const json::Value& value, std::string path = "$"
     }
     const auto native_carrier = [&](const std::string& type) {
         return aggregate_types.count(type) || type == "c_int" || type == "c_long" || type == "c_ulong" ||
-            type == "c_size_t" || type == "c_string" || type == "int" || type == "bool" || type == "Bool" || type == "Text";
+            type == "c_size_t" || type == "c_string" || type == "int" || type == "int32" || type == "int64" ||
+            type == "bool" || type == "Bool" || type == "Text";
     };
     std::map<std::string, std::string> state_initial_values;
     if (const auto* states = optional(syntax, "states")) {

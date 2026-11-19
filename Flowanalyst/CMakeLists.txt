@@ -82,3 +82,54 @@ add_test(NAME lyraform_guard_static_lifecycle
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-guard-static-tests.sh ${CMAKE_BINARY_DIR})
 add_test(NAME lyraform_source_disposition_gate2
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-source-disposition-tests.sh ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_source_disposition_policy_gate3
+    COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-source-disposition-policy-tests.sh ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_record_execution_admission
+    COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-record-admission-tests.sh ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_disposition_graph_preservation
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-disposition-graph-tests.py ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_contract_stabilization
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-contract-stabilization.py --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_explicit_integer_width
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-explicit-integer-width.py
+        --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_integer_conversions
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-integer-conversions.py
+        --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_arithmetic_division_canon
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-arithmetic-division-canon.py
+        --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_numeric_promotion_canon
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-numeric-promotion-canon.py
+        --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_floating_exceptional_precision
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-floating-exceptional-precision.py
+        --build ${CMAKE_BINARY_DIR})
+
+add_test(NAME lyraform_unreachable_invalid_branch
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-unreachable-invalid-branch.py
+        --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_construction
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-construction.py
+        --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_assignment
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-assignment.py
+        --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_function_boundaries
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-function-boundaries.py
+        --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_aggregate_fields
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-aggregate-fields.py
+        --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_refinement_nested_aggregates
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-refinement-nested-aggregates.py
+        --build ${CMAKE_BINARY_DIR})
+add_test(NAME lyraform_record_cross_field_invariants
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run-record-cross-field-invariant-tests.py
+        ${CMAKE_BINARY_DIR})

@@ -1,22 +1,58 @@
 #pragma once
 #include <flowcontracts/parse_validity.hpp>
+#include <flowcontracts/floating_semantics.hpp>
+#include <flowcontracts/integer_admission.hpp>
+#include <flowcontracts/explicit_integer_width.hpp>
 #include <flowcontracts/target_facts.hpp>
 #include <flowcontracts/guard_facts.hpp>
 #include <flowcontracts/disposition_facts.hpp>
 
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/scalar_semantics.hpp>
+#include <functional>
 #include <map>
 
 namespace flowcontracts {
+
+inline void validate_floating_admission(const json::Value& value, std::string_view base) {
+    using namespace json;
+    std::function<void(const Value&, const std::string&)> visit;
+    visit = [&](const Value& current, const std::string& path) {
+        if (const auto* object = std::get_if<Object>(&current)) {
+            const auto kind = optional(*object, "kind");
+            if (kind && string(*kind, path + ".kind") == "float_literal") {
+                const auto raw = required(*object, "value", path);
+                const auto spelling = string(raw, path + ".value");
+                if (!floating::finite_literal(spelling))
+                    throw Error(path + ".value", "floating literal is not a finite binary64 value");
+            }
+            for (const auto& [key, child] : *object) visit(child, path + "." + key);
+        } else if (const auto* array = std::get_if<Array>(&current)) {
+            for (std::size_t index = 0; index < array->size(); ++index)
+                visit((*array)[index], path + "[" + std::to_string(index) + "]");
+        }
+    };
+    visit(value, std::string(base));
+}
+
+inline lyraform::scalar::Type scalar_fact_type(std::string_view spelling) {
+    // Host integer carriers participate in the same bounded integer algebra,
+    // while their original spelling remains present in the serialized fact.
+    return lyraform::scalar::carrier_type(spelling);
+}
+
 inline json::Value scalar_fact(const lyraform::scalar::Fact& fact) {
     using namespace json;
+    const auto source_type = fact.source_type_name.empty()
+        ? std::string(lyraform::scalar::name(fact.source_type)) : fact.source_type_name;
+    const auto destination_type = fact.destination_type_name.empty()
+        ? std::string(lyraform::scalar::name(fact.destination_type)) : fact.destination_type_name;
     return Object{{"format", "lyraform.scalar_fact"}, {"version", Integer{1}},
         {"kind", fact.declaration ? "declaration" : "placement"},
         {"statement_id", fact.statement}, {"declaration_statement_id", fact.declaration_statement},
         {"expression_id", fact.expression}, {"destination_symbol_id", fact.destination},
-        {"source_type", std::string(lyraform::scalar::name(fact.source_type))},
-        {"destination_type", std::string(lyraform::scalar::name(fact.destination_type))},
+        {"source_type", source_type},
+        {"destination_type", destination_type},
         {"compatibility", fact.admitted() ? "admitted" : "refused"},
         {"provenance", Object{{"source", fact.origin.source}, {"ast_path", fact.origin.ast_path},
             {"line", fact.origin.line}, {"column", fact.origin.column}}}};
@@ -33,7 +69,9 @@ inline lyraform::scalar::Type scalar_operand_type(const json::Value& value, cons
     const auto kind = string(required(operand, "kind", path), path + ".kind");
     const auto spelling = string(required(operand, "type", path), path + ".type");
     if (kind == "integer_literal") {
-        if (spelling != "int" && spelling != "c_int") throw Error(path, "scalar integer literal carrier changed");
+        if (spelling != "int" && spelling != "int32" && spelling != "int64" &&
+            spelling != "c_int" && spelling != "c_long" && spelling != "c_ulong" && spelling != "c_size_t")
+            throw Error(path, "scalar integer literal carrier changed");
         return Type::integer;
     }
     if (kind == "bool_literal") {
@@ -46,20 +84,47 @@ inline lyraform::scalar::Type scalar_operand_type(const json::Value& value, cons
         const auto symbol = integer(required(operand, "symbol_id", path), path + ".symbol_id");
         if (symbol < 0) throw Error(path, "invalid scalar source symbol");
         const auto declaration = declarations.find(symbol);
-        if (declaration != declarations.end() && declaration->second != type(spelling))
+        if (declaration != declarations.end() && declaration->second != carrier_type(spelling))
             throw Error(path, "scalar source declaration type mismatch");
-        return type(spelling);
+        return carrier_type(spelling);
+    }
+    if (kind == "conversion") {
+        const auto& input = required(operand, "operand", path);
+        const auto source = scalar_operand_type(input, path + ".operand", declarations, depth + 1);
+        if (source != scalar_fact_type(string(required(operand, "from_type", path), path + ".from_type")))
+            throw Error(path, "scalar conversion source type mismatch");
+        return source;
     }
     if (kind == "unary") return unary(string(required(operand, "operator", path), path + ".operator"),
         scalar_operand_type(required(operand, "operand", path), path + ".operand", declarations, depth + 1));
     if (kind == "binary") return binary(string(required(operand, "operator", path), path + ".operator"),
         scalar_operand_type(required(operand, "left", path), path + ".left", declarations, depth + 1),
         scalar_operand_type(required(operand, "right", path), path + ".right", declarations, depth + 1));
+    if (kind == "index") {
+        const auto intrinsic = optional(operand, "intrinsic");
+        if (!intrinsic) throw Error(path, "unsupported scalar index intrinsic");
+        const auto intrinsic_name = string(*intrinsic, path + ".intrinsic");
+        if (intrinsic_name != "list_index" && intrinsic_name != "array_index")
+            throw Error(path, "unsupported scalar index intrinsic");
+        if (const auto* index = optional(operand, "index")) {
+            if (scalar_operand_type(*index, path + ".index", declarations, depth + 1) != Type::integer)
+                throw Error(path, "scalar index is not an integer");
+        }
+        for (const auto& index : optional(operand, "indexes") ? array(*optional(operand, "indexes"), path + ".indexes") : Array{})
+            if (scalar_operand_type(index, path + ".indexes", declarations, depth + 1) != Type::integer)
+                throw Error(path, "scalar index is not an integer");
+        return carrier_type(spelling);
+    }
+    if (kind == "field_access" || kind == "record_project") return carrier_type(spelling);
+    if (kind == "call" || kind == "call_result") return carrier_type(spelling);
     return Type::outside_slice;
 }
 
 inline void validate_scalar_facts(const json::Value& value, std::string_view base) {
     require_plan_parse_validity(value);
+    validate_floating_admission(value, base);
+    validate_explicit_integer_width(value, std::string(base));
+    validate_integer_admission(value, base);
     validate_target_facts(value);
     validate_guard_facts(value, base);
     using namespace json;
@@ -76,8 +141,8 @@ inline void validate_scalar_facts(const json::Value& value, std::string_view bas
             const auto& fact = object(*raw);
             if (string(required(fact, "kind")) != "declaration") continue;
             const auto symbol = integer(required(fact, "destination_symbol_id"));
-            declaration_types.emplace(symbol, type(string(required(fact, "destination_type"))));
-            if (!declarations.emplace(symbol, std::pair{integer(required(fact, "statement_id")), type(string(required(fact, "destination_type")))}).second)
+            declaration_types.emplace(symbol, scalar_fact_type(string(required(fact, "destination_type"))));
+            if (!declarations.emplace(symbol, std::pair{integer(required(fact, "statement_id")), scalar_fact_type(string(required(fact, "destination_type")))}).second)
                 throw Error(std::string(base), "duplicate scalar declaration fact");
         }
     }
@@ -93,8 +158,8 @@ inline void validate_scalar_facts(const json::Value& value, std::string_view bas
         const auto operation_kind = string(required(operation, "kind"));
         if ((kind != "declaration" || operation_kind != "value_definition") &&
             (kind != "placement" || operation_kind != "assignment")) throw Error(path, "scalar fact operation kind mismatch");
-        const auto source = type(string(required(fact, "source_type")));
-        const auto destination = type(string(required(fact, "destination_type")));
+        const auto source = scalar_fact_type(string(required(fact, "source_type")));
+        const auto destination = scalar_fact_type(string(required(fact, "destination_type")));
         if (string(required(fact, "compatibility")) != "admitted" || !compatible(source, destination))
             throw Error(path, "scalar flow is not admitted");
         for (const auto key : {"statement_id", "expression_id"}) {

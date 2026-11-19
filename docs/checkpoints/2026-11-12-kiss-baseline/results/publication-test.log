@@ -1,0 +1,424 @@
+Igor: building...
+ninja: no work to do.
+Igor: running the canonical test suite...
+Internal ctest changing into directory: $BUILD
+Test project $BUILD
+        Start   1: lyraform_current_documentation
+  1/207 Test   #1: lyraform_current_documentation ...................   Passed    0.16 sec
+        Start   2: lyraform_agent_workspace_hygiene
+  2/207 Test   #2: lyraform_agent_workspace_hygiene .................   Passed    0.02 sec
+        Start   3: lyraform_canonical_authority_freeze
+  3/207 Test   #3: lyraform_canonical_authority_freeze ..............   Passed    0.20 sec
+        Start   4: lyraform_canonical_source_form_audit
+  4/207 Test   #4: lyraform_canonical_source_form_audit .............   Passed    0.49 sec
+        Start   5: lyraform_canonical_source_operation_coverage
+  5/207 Test   #5: lyraform_canonical_source_operation_coverage .....   Passed    0.28 sec
+        Start   6: lyraform_legacy_deprecation
+  6/207 Test   #6: lyraform_legacy_deprecation ......................   Passed    0.07 sec
+        Start 106: flowanalyst_pipeline
+  7/207 Test #106: flowanalyst_pipeline .............................   Passed    1.26 sec
+        Start   7: flowcore_integration_corpus
+  8/207 Test   #7: flowcore_integration_corpus ......................   Passed    0.19 sec
+        Start   8: flowcore_pipeline_matrix
+  9/207 Test   #8: flowcore_pipeline_matrix .........................   Passed    0.43 sec
+        Start   9: flowcore_pass_corpus
+ 10/207 Test   #9: flowcore_pass_corpus .............................   Passed    6.91 sec
+        Start 132: flowbind_provider
+ 11/207 Test #132: flowbind_provider ................................   Passed    2.12 sec
+        Start  10: flowcore_stdlib_boundary
+ 12/207 Test  #10: flowcore_stdlib_boundary .........................   Passed    0.74 sec
+        Start  11: native_binding_inventory
+ 13/207 Test  #11: native_binding_inventory .........................   Passed    0.21 sec
+        Start  12: native_file_producer_inventory
+ 14/207 Test  #12: native_file_producer_inventory ...................   Passed    0.06 sec
+        Start  13: scheduling_admission_inventory
+ 15/207 Test  #13: scheduling_admission_inventory ...................   Passed    0.03 sec
+        Start  14: stage0_seed_capture
+ 16/207 Test  #14: stage0_seed_capture ..............................   Passed    0.08 sec
+        Start  15: callable_lowering_boundary
+ 17/207 Test  #15: callable_lowering_boundary .......................   Passed    0.59 sec
+        Start  16: bootstrap_gap_inventory
+ 18/207 Test  #16: bootstrap_gap_inventory ..........................   Passed    0.02 sec
+        Start  17: native_binding_selection
+ 19/207 Test  #17: native_binding_selection .........................   Passed    0.31 sec
+        Start  18: native_binding_generation
+ 20/207 Test  #18: native_binding_generation ........................   Passed    1.40 sec
+        Start  19: native_ncurses_binding
+ 21/207 Test  #19: native_ncurses_binding ...........................   Passed    0.02 sec
+        Start 189: flowlower_pipeline
+ 22/207 Test #189: flowlower_pipeline ...............................   Passed    6.32 sec
+        Start  20: ncurses_flow_pipeline
+ 23/207 Test  #20: ncurses_flow_pipeline ............................   Passed    0.20 sec
+        Start  21: sel_tui_pipeline
+ 24/207 Test  #21: sel_tui_pipeline .................................   Passed    1.48 sec
+        Start  22: flowcore_graph_routing
+ 25/207 Test  #22: flowcore_graph_routing ...........................   Passed    0.16 sec
+        Start  23: flow_less_pager
+ 26/207 Test  #23: flow_less_pager ..................................   Passed    2.79 sec
+        Start  24: graph_lowering_refusal
+ 27/207 Test  #24: graph_lowering_refusal ...........................   Passed    0.32 sec
+        Start  25: source_receiver_frames
+ 28/207 Test  #25: source_receiver_frames ...........................   Passed    0.11 sec
+        Start  26: source_graph_artifact
+ 29/207 Test  #26: source_graph_artifact ............................   Passed    0.55 sec
+        Start  27: provider_call_identity
+ 30/207 Test  #27: provider_call_identity ...........................   Passed    0.25 sec
+        Start  28: parallel_candidate_identity
+ 31/207 Test  #28: parallel_candidate_identity ......................   Passed    0.11 sec
+        Start  29: canonical_authority_preservation
+ 32/207 Test  #29: canonical_authority_preservation .................   Passed    0.40 sec
+        Start  30: flow_less_ncurses_pager
+ 33/207 Test  #30: flow_less_ncurses_pager ..........................   Passed    1.18 sec
+        Start  31: profile_free_generic_lowering
+ 34/207 Test  #31: profile_free_generic_lowering ....................   Passed    1.30 sec
+        Start  32: text_value_boundary
+ 35/207 Test  #32: text_value_boundary ..............................   Passed    0.16 sec
+        Start  33: text_runtime_boundary
+ 36/207 Test  #33: text_runtime_boundary ............................   Passed    0.62 sec
+        Start  34: text_runtime_tagged_api
+ 37/207 Test  #34: text_runtime_tagged_api ..........................   Passed    0.05 sec
+        Start  55: tinyvm_runtime_text_parity
+ 38/207 Test  #55: tinyvm_runtime_text_parity .......................   Passed    0.34 sec
+        Start  56: tinyvm_memory_parity
+ 39/207 Test  #56: tinyvm_memory_parity .............................   Passed    0.24 sec
+        Start  35: text_recovery_boundary
+ 40/207 Test  #35: text_recovery_boundary ...........................   Passed    0.41 sec
+        Start  36: text_outcome_boundary
+ 41/207 Test  #36: text_outcome_boundary ............................   Passed    9.98 sec
+        Start  37: math_library_boundary
+ 42/207 Test  #37: math_library_boundary ............................   Passed    0.21 sec
+        Start  38: strnlen_library_boundary
+ 43/207 Test  #38: strnlen_library_boundary .........................   Passed    0.22 sec
+        Start  39: ctype_library_boundary
+ 44/207 Test  #39: ctype_library_boundary ...........................   Passed    0.26 sec
+        Start  40: file_resource_boundary
+ 45/207 Test  #40: file_resource_boundary ...........................   Passed    0.24 sec
+        Start  41: file_io_boundary
+ 46/207 Test  #41: file_io_boundary .................................   Passed    0.53 sec
+        Start  42: namespace_ambiguity
+ 47/207 Test  #42: namespace_ambiguity ..............................   Passed    0.13 sec
+        Start  95: tinyvm_backend_lowering_boundary
+ 48/207 Test  #95: tinyvm_backend_lowering_boundary .................   Passed    0.21 sec
+        Start 184: flowlower_backend_artifact
+ 49/207 Test #184: flowlower_backend_artifact .......................   Passed    0.10 sec
+        Start  43: tinyvm_scalar_backend_parity
+ 50/207 Test  #43: tinyvm_scalar_backend_parity .....................   Passed    0.80 sec
+        Start  44: tinyvm_graph_parity
+ 51/207 Test  #44: tinyvm_graph_parity ..............................   Passed    0.63 sec
+        Start  45: tinyvm_parallel_parity
+ 52/207 Test  #45: tinyvm_parallel_parity ...........................   Passed    0.36 sec
+        Start  46: tinyvm_aggregate_parity
+ 53/207 Test  #46: tinyvm_aggregate_parity ..........................   Passed    0.38 sec
+        Start  47: tinyvm_wide_aggregate_parity
+ 54/207 Test  #47: tinyvm_wide_aggregate_parity .....................   Passed    0.40 sec
+        Start  48: tinyvm_stream_parity
+ 55/207 Test  #48: tinyvm_stream_parity .............................   Passed    0.93 sec
+        Start  49: tinyvm_aggregate_stream_parity
+ 56/207 Test  #49: tinyvm_aggregate_stream_parity ...................   Passed    0.27 sec
+        Start  50: tinyvm_aggregate_stream_pipeline_parity
+ 57/207 Test  #50: tinyvm_aggregate_stream_pipeline_parity ..........   Passed    0.32 sec
+        Start  51: tinyvm_persistent_parity
+ 58/207 Test  #51: tinyvm_persistent_parity .........................   Passed    0.41 sec
+        Start  52: tinyvm_persistent_aggregate_parity
+ 59/207 Test  #52: tinyvm_persistent_aggregate_parity ...............   Passed    0.29 sec
+        Start  53: tinyvm_governed_provider_parity
+ 60/207 Test  #53: tinyvm_governed_provider_parity ..................   Passed    3.70 sec
+        Start  54: tinyvm_text_boundary_parity
+ 61/207 Test  #54: tinyvm_text_boundary_parity ......................   Passed    0.17 sec
+        Start  57: tinyvm_install_shape
+ 62/207 Test  #57: tinyvm_install_shape .............................   Passed    0.09 sec
+        Start  58: native_source_graph
+ 63/207 Test  #58: native_source_graph ..............................   Passed    7.37 sec
+        Start  59: native_aggregate_graph
+ 64/207 Test  #59: native_aggregate_graph ...........................   Passed    0.18 sec
+        Start  60: native_parallel_graph
+ 65/207 Test  #60: native_parallel_graph ............................   Passed    1.04 sec
+        Start  61: native_aggregate_parallel_graph
+ 66/207 Test  #61: native_aggregate_parallel_graph ..................   Passed    0.20 sec
+        Start  62: flowmini_support_boundary
+ 67/207 Test  #62: flowmini_support_boundary ........................   Passed    0.07 sec
+        Start  63: structured_cli_diagnostics
+ 68/207 Test  #63: structured_cli_diagnostics .......................   Passed    0.03 sec
+        Start  64: lyraform_igor_build_context
+ 69/207 Test  #64: lyraform_igor_build_context ......................   Passed    0.10 sec
+        Start  65: flowcontracts_json
+ 70/207 Test  #65: flowcontracts_json ...............................   Passed    0.29 sec
+        Start  66: flowcontracts_ownership_transfer
+ 71/207 Test  #66: flowcontracts_ownership_transfer .................   Passed    0.00 sec
+        Start  67: flowcontracts_failure_consumer
+ 72/207 Test  #67: flowcontracts_failure_consumer ...................   Passed    0.00 sec
+        Start  68: flowcontracts_failure_response_transition
+ 73/207 Test  #68: flowcontracts_failure_response_transition ........   Passed    0.00 sec
+        Start  69: flowcontracts_failure_flow_execution
+ 74/207 Test  #69: flowcontracts_failure_flow_execution .............   Passed    0.00 sec
+        Start  70: flowcontracts_failure_flow_closed_set
+ 75/207 Test  #70: flowcontracts_failure_flow_closed_set ............   Passed    0.00 sec
+        Start  71: flowcontracts_failure_flow_chain
+ 76/207 Test  #71: flowcontracts_failure_flow_chain .................   Passed    0.00 sec
+        Start  72: flowcontracts_failure_response_attempt
+ 77/207 Test  #72: flowcontracts_failure_response_attempt ...........   Passed    0.00 sec
+        Start  73: flowcontracts_fault_containment
+ 78/207 Test  #73: flowcontracts_fault_containment ..................   Passed    0.00 sec
+        Start  74: flowcontracts_failure_response_fault
+ 79/207 Test  #74: flowcontracts_failure_response_fault .............   Passed    0.00 sec
+        Start  75: flowcontracts_effect_scheduling
+ 80/207 Test  #75: flowcontracts_effect_scheduling ..................   Passed    0.00 sec
+        Start  76: flowvalidate_artifacts
+ 81/207 Test  #76: flowvalidate_artifacts ...........................   Passed    0.19 sec
+        Start  77: flowvalidate_allocation_fault
+ 82/207 Test  #77: flowvalidate_allocation_fault ....................   Passed    0.01 sec
+        Start  78: flowcontracts_identity_preservation
+ 83/207 Test  #78: flowcontracts_identity_preservation ..............   Passed    0.46 sec
+        Start  79: flowcontracts_disposition_route_projection
+ 84/207 Test  #79: flowcontracts_disposition_route_projection .......   Passed    0.18 sec
+        Start  80: flowcontracts_disposition_route_cli
+ 85/207 Test  #80: flowcontracts_disposition_route_cli ..............   Passed    0.31 sec
+        Start  81: tinyvm_recovered_demo
+ 86/207 Test  #81: tinyvm_recovered_demo ............................   Passed    0.00 sec
+        Start  82: tinyvm_dispatch_smoke
+ 87/207 Test  #82: tinyvm_dispatch_smoke ............................   Passed    0.00 sec
+        Start  83: tinyvm_isa_conformance
+ 88/207 Test  #83: tinyvm_isa_conformance ...........................   Passed    0.00 sec
+        Start  84: tinyvm_artifact_boundary
+ 89/207 Test  #84: tinyvm_artifact_boundary .........................   Passed    0.08 sec
+        Start  85: tinyvm_artifact_v2_roundtrip
+ 90/207 Test  #85: tinyvm_artifact_v2_roundtrip .....................   Passed    0.03 sec
+        Start  86: tinyvm_artifact_v2_boundary
+ 91/207 Test  #86: tinyvm_artifact_v2_boundary ......................   Passed    0.05 sec
+        Start  87: tinyvm_artifact_v2_hostile
+ 92/207 Test  #87: tinyvm_artifact_v2_hostile .......................   Passed    0.09 sec
+        Start  88: tinyvm_artifact_v2_allocation_fault
+ 93/207 Test  #88: tinyvm_artifact_v2_allocation_fault ..............   Passed    0.06 sec
+        Start  89: tinyvm_artifact_v2_publication_fault
+ 94/207 Test  #89: tinyvm_artifact_v2_publication_fault .............   Passed    0.05 sec
+        Start  90: tinyvm_artifact_v1_publication_fault
+ 95/207 Test  #90: tinyvm_artifact_v1_publication_fault .............   Passed    0.05 sec
+        Start  91: tinyvm_artifact_v1_allocation_fault
+ 96/207 Test  #91: tinyvm_artifact_v1_allocation_fault ..............   Passed    0.00 sec
+        Start  92: tinyvm_runtime_provider_allocation_fault
+ 97/207 Test  #92: tinyvm_runtime_provider_allocation_fault .........   Passed    0.01 sec
+        Start  93: tinyvm_isa_v1_conformance
+ 98/207 Test  #93: tinyvm_isa_v1_conformance ........................   Passed    0.00 sec
+        Start  94: tinyvm_isa_v1_file_boundary
+ 99/207 Test  #94: tinyvm_isa_v1_file_boundary ......................   Passed    0.04 sec
+        Start  96: tinyvm_backend_lowering_allocation_fault
+100/207 Test  #96: tinyvm_backend_lowering_allocation_fault .........   Passed    0.01 sec
+        Start  97: tinyvm_backend_lowering_publication_uncertain
+101/207 Test  #97: tinyvm_backend_lowering_publication_uncertain ....   Passed    0.09 sec
+        Start  98: flowmini_utf8_source_boundary
+102/207 Test  #98: flowmini_utf8_source_boundary ....................   Passed    0.14 sec
+        Start  99: flowmini_allocation_fault
+103/207 Test  #99: flowmini_allocation_fault ........................   Passed    0.02 sec
+        Start 100: flowmini_publication_fault
+104/207 Test #100: flowmini_publication_fault .......................   Passed    0.23 sec
+        Start 101: lyraform_disposition_syntax
+105/207 Test #101: lyraform_disposition_syntax ......................   Passed    0.15 sec
+        Start 102: TokenTree_smoke_tests
+106/207 Test #102: TokenTree_smoke_tests ............................   Passed    0.01 sec
+        Start 103: symboltable_tests
+107/207 Test #103: symboltable_tests ................................   Passed    0.00 sec
+        Start 104: lyraform_scalar_semantics
+108/207 Test #104: lyraform_scalar_semantics ........................   Passed    0.01 sec
+        Start 105: lyraform_scalar_authority
+109/207 Test #105: lyraform_scalar_authority ........................   Passed    2.16 sec
+        Start 107: lyraform_scalar_source_path
+110/207 Test #107: lyraform_scalar_source_path ......................   Passed    4.95 sec
+        Start 108: flowanalyst_allocation_fault
+111/207 Test #108: flowanalyst_allocation_fault .....................   Passed    0.03 sec
+        Start 109: lyraform_scalar_parse_validity
+112/207 Test #109: lyraform_scalar_parse_validity ...................   Passed    0.67 sec
+        Start 110: lyraform_scalar_parse_collisions
+113/207 Test #110: lyraform_scalar_parse_collisions .................   Passed    1.66 sec
+        Start 111: lyraform_target_parse_completeness
+114/207 Test #111: lyraform_target_parse_completeness ...............   Passed    0.62 sec
+        Start 112: lyraform_target_preservation
+115/207 Test #112: lyraform_target_preservation .....................   Passed    0.44 sec
+        Start 113: lyraform_field_path_resolution
+116/207 Test #113: lyraform_field_path_resolution ...................   Passed    0.44 sec
+        Start 114: lyraform_guard_static_lifecycle
+117/207 Test #114: lyraform_guard_static_lifecycle ..................   Passed    2.09 sec
+        Start 115: lyraform_source_disposition_gate2
+118/207 Test #115: lyraform_source_disposition_gate2 ................   Passed    1.11 sec
+        Start 116: lyraform_source_disposition_policy_gate3
+119/207 Test #116: lyraform_source_disposition_policy_gate3 .........   Passed    1.81 sec
+        Start 117: lyraform_record_execution_admission
+120/207 Test #117: lyraform_record_execution_admission ..............   Passed    3.12 sec
+        Start 118: lyraform_disposition_graph_preservation
+121/207 Test #118: lyraform_disposition_graph_preservation ..........   Passed    6.44 sec
+        Start 119: lyraform_contract_stabilization
+122/207 Test #119: lyraform_contract_stabilization ..................   Passed    2.84 sec
+        Start 120: lyraform_explicit_integer_width
+123/207 Test #120: lyraform_explicit_integer_width ..................   Passed    0.20 sec
+        Start 121: lyraform_integer_conversions
+124/207 Test #121: lyraform_integer_conversions .....................   Passed    3.29 sec
+        Start 122: lyraform_arithmetic_division_canon
+125/207 Test #122: lyraform_arithmetic_division_canon ...............   Passed    1.32 sec
+        Start 123: lyraform_numeric_promotion_canon
+126/207 Test #123: lyraform_numeric_promotion_canon .................   Passed    1.24 sec
+        Start 124: lyraform_floating_exceptional_precision
+127/207 Test #124: lyraform_floating_exceptional_precision ..........   Passed    1.41 sec
+        Start 125: lyraform_unreachable_invalid_branch
+128/207 Test #125: lyraform_unreachable_invalid_branch ..............   Passed    0.20 sec
+        Start 126: lyraform_refinement_construction
+129/207 Test #126: lyraform_refinement_construction .................   Passed    0.26 sec
+        Start 127: lyraform_refinement_assignment
+130/207 Test #127: lyraform_refinement_assignment ...................   Passed    0.24 sec
+        Start 128: lyraform_refinement_function_boundaries
+131/207 Test #128: lyraform_refinement_function_boundaries ..........   Passed    0.33 sec
+        Start 129: lyraform_refinement_aggregate_fields
+132/207 Test #129: lyraform_refinement_aggregate_fields .............   Passed    0.25 sec
+        Start 130: lyraform_refinement_nested_aggregates
+133/207 Test #130: lyraform_refinement_nested_aggregates ............   Passed    0.23 sec
+        Start 131: lyraform_record_cross_field_invariants
+134/207 Test #131: lyraform_record_cross_field_invariants ...........   Passed    0.07 sec
+        Start 133: flowbind_fuzz
+135/207 Test #133: flowbind_fuzz ....................................   Passed    1.11 sec
+        Start 134: flowbind_allocation_fault
+136/207 Test #134: flowbind_allocation_fault ........................   Passed    0.02 sec
+        Start 135: flowoptimize_pipeline
+137/207 Test #135: flowoptimize_pipeline ............................   Passed    0.29 sec
+        Start 136: flowoptimize_allocation_fault
+138/207 Test #136: flowoptimize_allocation_fault ....................   Passed    0.04 sec
+        Start 137: frankencore_conformance
+139/207 Test #137: frankencore_conformance ..........................   Passed    0.52 sec
+        Start 138: frankencore_clock_monotonic
+140/207 Test #138: frankencore_clock_monotonic ......................   Passed    0.00 sec
+        Start 139: frankencore_clock_realtime
+141/207 Test #139: frankencore_clock_realtime .......................   Passed    0.01 sec
+        Start 140: frankencore_clock_contract
+142/207 Test #140: frankencore_clock_contract .......................   Passed    0.11 sec
+        Start 141: frankencore_clock_rejects_unknown_clock
+143/207 Test #141: frankencore_clock_rejects_unknown_clock ..........   Passed    0.01 sec
+        Start 142: flowtext_runtime_allocation_failure
+144/207 Test #142: flowtext_runtime_allocation_failure ..............   Passed    0.00 sec
+        Start 143: flowactivation_source_runtime
+145/207 Test #143: flowactivation_source_runtime ....................   Passed    0.11 sec
+        Start 144: frankencore_runtime_probe
+146/207 Test #144: frankencore_runtime_probe ........................   Passed    0.02 sec
+        Start 145: frankencore_runtime_probe_fault
+147/207 Test #145: frankencore_runtime_probe_fault ..................   Passed    0.03 sec
+        Start 146: frankencore_runtime_probe_close_fault
+148/207 Test #146: frankencore_runtime_probe_close_fault ............   Passed    0.04 sec
+        Start 147: frankencore_runtime_memory
+149/207 Test #147: frankencore_runtime_memory .......................   Passed    0.00 sec
+        Start 148: flowparallel_matrix_benchmark_diagnostics
+150/207 Test #148: flowparallel_matrix_benchmark_diagnostics ........   Passed    0.04 sec
+        Start 149: flowparallel_matrix_benchmark_allocation_fault
+151/207 Test #149: flowparallel_matrix_benchmark_allocation_fault ...   Passed    0.11 sec
+        Start 150: flowparallel_exception_containment
+152/207 Test #150: flowparallel_exception_containment ...............   Passed    0.26 sec
+        Start 151: flowparallel_allocation_fault
+153/207 Test #151: flowparallel_allocation_fault ....................   Passed    0.02 sec
+        Start 152: flowparallel_pipeline
+154/207 Test #152: flowparallel_pipeline ............................   Passed    0.35 sec
+        Start 153: flowparallel_smoketest
+155/207 Test #153: flowparallel_smoketest ...........................   Passed    0.13 sec
+        Start 154: flowparallel_cuda_resource_cleanup
+156/207 Test #154: flowparallel_cuda_resource_cleanup ...............   Passed    0.01 sec
+        Start 155: flowparallel_dynamic_library_cleanup
+157/207 Test #155: flowparallel_dynamic_library_cleanup .............   Passed    0.01 sec
+        Start 156: flowparallel_cuda_execute_allocation_fault
+158/207 Test #156: flowparallel_cuda_execute_allocation_fault .......   Passed    0.10 sec
+        Start 157: flowparallel_cpu_provider
+159/207 Test #157: flowparallel_cpu_provider ........................   Passed    0.31 sec
+        Start 158: flowparallel_cpu_allocation_fault
+160/207 Test #158: flowparallel_cpu_allocation_fault ................   Passed    0.04 sec
+        Start 159: flowparallel_cpu_execution
+161/207 Test #159: flowparallel_cpu_execution .......................   Passed    0.09 sec
+        Start 160: flowparallel_cpu_execution_allocation_fault
+162/207 Test #160: flowparallel_cpu_execution_allocation_fault ......   Passed    0.00 sec
+        Start 161: flowparallel_cuda_provider
+163/207 Test #161: flowparallel_cuda_provider .......................   Passed    0.36 sec
+        Start 162: flowparallel_cuda_allocation_fault
+164/207 Test #162: flowparallel_cuda_allocation_fault ...............   Passed    0.04 sec
+        Start 163: flowparallel_runtime_planner
+165/207 Test #163: flowparallel_runtime_planner .....................   Passed    0.28 sec
+        Start 164: flowparallel_runtime_planner_allocation_fault
+166/207 Test #164: flowparallel_runtime_planner_allocation_fault ....   Passed    0.04 sec
+        Start 165: flowparallel_graph_reference
+167/207 Test #165: flowparallel_graph_reference .....................   Passed    0.05 sec
+        Start 166: flowparallel_graph_reference_allocation_fault
+168/207 Test #166: flowparallel_graph_reference_allocation_fault ....   Passed    0.01 sec
+        Start 167: flowparallel_graph_planner
+169/207 Test #167: flowparallel_graph_planner .......................   Passed    0.08 sec
+        Start 168: flowparallel_graph_cuda_allocation_fault
+170/207 Test #168: flowparallel_graph_cuda_allocation_fault .........   Passed    0.03 sec
+        Start 169: flowparallel_graph_planner_allocation_fault
+171/207 Test #169: flowparallel_graph_planner_allocation_fault ......   Passed    0.04 sec
+        Start 170: frankencore_revision_contract
+172/207 Test #170: frankencore_revision_contract ....................   Passed    0.22 sec
+        Start 171: frankencore_revision_rejects_non_monotonic
+173/207 Test #171: frankencore_revision_rejects_non_monotonic .......   Passed    0.00 sec
+        Start 172: frankencore_provenance_api
+174/207 Test #172: frankencore_provenance_api .......................   Passed    0.00 sec
+        Start 173: frankencore_error_state_history
+175/207 Test #173: frankencore_error_state_history ..................   Passed    0.32 sec
+        Start 174: frankencore_reference_structured_diagnostics
+176/207 Test #174: frankencore_reference_structured_diagnostics .....   Passed    0.05 sec
+        Start 175: frankencore_packages_probe
+177/207 Test #175: frankencore_packages_probe .......................   Passed    0.35 sec
+        Start 176: frankencore_packages_allocation_fault
+178/207 Test #176: frankencore_packages_allocation_fault ............   Passed    0.00 sec
+        Start 177: frankencore_contracts_probe
+179/207 Test #177: frankencore_contracts_probe ......................   Passed    0.03 sec
+        Start 178: frankencore_language_probe
+180/207 Test #178: frankencore_language_probe .......................   Passed    0.00 sec
+        Start 179: frankencore_language_allocation_fault
+181/207 Test #179: frankencore_language_allocation_fault ............   Passed    0.00 sec
+        Start 180: frankencore_requirements_probe
+182/207 Test #180: frankencore_requirements_probe ...................   Passed    0.00 sec
+        Start 181: frankencore_requirements_allocation_fault
+183/207 Test #181: frankencore_requirements_allocation_fault ........   Passed    0.00 sec
+        Start 182: franken_ls_compatibility
+184/207 Test #182: franken_ls_compatibility .........................   Passed    0.02 sec
+        Start 183: flowcat_flowcore_pipeline
+185/207 Test #183: flowcat_flowcore_pipeline ........................   Passed    0.35 sec
+        Start 185: flowprepare_allocation_fault
+186/207 Test #185: flowprepare_allocation_fault .....................   Passed    0.03 sec
+        Start 186: flowtarget_policy_boundary
+187/207 Test #186: flowtarget_policy_boundary .......................   Passed    0.12 sec
+        Start 187: flowtarget_allocation_fault
+188/207 Test #187: flowtarget_allocation_fault ......................   Passed    0.04 sec
+        Start 188: flowtarget_cross_compile
+189/207 Test #188: flowtarget_cross_compile .........................   Passed    0.32 sec
+        Start 190: flowlower_allocation_fault
+190/207 Test #190: flowlower_allocation_fault .......................   Passed    0.03 sec
+        Start 191: flowlower_publication_fault
+191/207 Test #191: flowlower_publication_fault ......................   Passed    0.23 sec
+        Start 192: flowcore_pipeline_matrix
+192/207 Test #192: flowcore_pipeline_matrix .........................   Passed    0.59 sec
+        Start 193: flowcore_pass_corpus
+193/207 Test #193: flowcore_pass_corpus .............................   Passed    7.73 sec
+        Start 194: flowgraph_runtime_bounds
+194/207 Test #194: flowgraph_runtime_bounds .........................   Passed    0.04 sec
+        Start 195: flowgraph_runtime_launch_fault
+195/207 Test #195: flowgraph_runtime_launch_fault ...................   Passed    0.00 sec
+        Start 196: flowlower_source_callable_abi
+196/207 Test #196: flowlower_source_callable_abi ....................   Passed    1.87 sec
+        Start 197: flowlower_dynamic_failure_routing
+197/207 Test #197: flowlower_dynamic_failure_routing ................   Passed    0.30 sec
+        Start 198: flowkernel_readonly
+198/207 Test #198: flowkernel_readonly ..............................   Passed    0.00 sec
+        Start 199: flowkernel_tempfs
+199/207 Test #199: flowkernel_tempfs ................................   Passed    0.00 sec
+        Start 200: flowkernel_ipc
+200/207 Test #200: flowkernel_ipc ...................................   Passed    0.00 sec
+        Start 201: flowkernel_socket_ipc
+201/207 Test #201: flowkernel_socket_ipc ............................   Passed    0.00 sec
+        Start 202: flowkernel_loopback
+202/207 Test #202: flowkernel_loopback ..............................   Passed    0.01 sec
+        Start 203: flowkernel_namespaces
+203/207 Test #203: flowkernel_namespaces ............................   Passed    0.01 sec
+        Start 204: flowkernel_all
+204/207 Test #204: flowkernel_all ...................................   Passed    0.01 sec
+        Start 205: flowkernel_all_contract
+205/207 Test #205: flowkernel_all_contract ..........................   Passed    0.02 sec
+        Start 206: flowkernel_require_complete
+206/207 Test #206: flowkernel_require_complete ......................   Passed    0.03 sec
+        Start 207: flowkernel_structured_diagnostics
+207/207 Test #207: flowkernel_structured_diagnostics ................   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 207
+
+Total Test time (real) = 119.78 sec
+Igor: tests complete

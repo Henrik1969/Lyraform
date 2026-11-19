@@ -1,0 +1,56 @@
+{
+  "format": "development.policy-context.v1",
+  "project": "LyraForm/subprojects/TinyVM",
+  "title": "Recovered VM prototype",
+  "shared_registry": "../../../../Policies/PROJECTS.json",
+  "shared_baseline": "1.3",
+  "parent_context": "../../../Policies/context.json",
+  "agent": "../AGENTS.md",
+  "policy_index": "README.md",
+  "local_policies": [
+    {
+      "path": "LOCAL-001.md",
+      "version": "1.1",
+      "status": "active policy map and scope record; not a conformance certificate"
+    }
+  ],
+  "state_location": "../.mission-state/<mission-id>/<revision>/",
+  "capabilities": [
+    "libraries"
+  ],
+  "audit": "AUDIT.md",
+  "evidence": [
+    {
+      "path": "../ISA-V2.md",
+      "sha256": "e0666467d1b59946f1e4ea528e56d2baa80d5ced57187939bbabe4fbcca56b5d",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../README.md",
+      "sha256": "310ab664db9366759e2009d76ce2cd84810168c01eaa0ae52fb093723b30e35f",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../CMakeLists.txt",
+      "sha256": "9506d4c834116c61bbeddf9e2716cb197c5645098c3564af6854318bab07a024",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../ARTIFACT-V2.md",
+      "sha256": "3a6ce0c56fd5053a9c6f19e4eafce82f26e26013ed0dd7270480b92d201dcb3d",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../ARTIFACT-V1.md",
+      "sha256": "ca9848b15f7a0a6bf552ee819e2873a7c8f4bdbbf3a03213733b8031f31c8530",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../ISA-V1.md",
+      "sha256": "a65fd5471c265f341802dce33d4bc5de8bf3513a052c2fddf118a314840c9c0c",
+      "observed": "2026-10-17"
+    }
+  ],
+  "open_decisions": [],
+  "runtime_compliance": "not-certified"
+}

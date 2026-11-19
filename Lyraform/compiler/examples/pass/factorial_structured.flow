@@ -1,9 +1,9 @@
 program factorial_structured
 
 main {
-    n   : int(stdin.int())
-    one : int(1)
-    acc : int(1)
+    n   : int32(stdin.int())
+    one : int32(1)
+    acc : int32(1)
 
     while n > one {
         acc * n -> acc

@@ -1,9 +1,9 @@
 program bad_array_rank
 
 main {
-    matrix : array<int>[2, 3]([1,2,3,4,5,6])
-    row    : int(1)
-    value  : int(0)
+    matrix : array<int32>[2, 3]([1,2,3,4,5,6])
+    row    : int32(1)
+    value  : int32(0)
 
     matrix[row] -> value
 }

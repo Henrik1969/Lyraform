@@ -1,13 +1,19 @@
-# Lyraform v0.29 compiler — Reusable Native Language Chain
+# Lyraform compiler — Reusable Native Language Chain
 
-This is the active Lyraform implementation line on `main`:
+Current identity: **Lyraform**. Canonical development directory: **LyraForm/**.
+See [placement and historical naming policy](../../Policies/PLACEMENT-001.md). Earlier names and
+version labels are historical evidence, not competing current authority.
+
+This is the Lyraform compiler. Earlier version labels describe historical lineage.
+The current checkout and selected mission determine active work; `main` is the
+integration branch:
 
 ```text
 main
 ```
 
 It inherits the tagged `flowmini-v0.24-frontend-border` implementation and the
-historical v0.25 projection milestone. The current v0.29 line carries that
+historical v0.25 projection milestone. The historical v0.29 line carries that
 frontend boundary through semantic analysis, capability binding, lowering, and
 native execution.
 
@@ -22,7 +28,7 @@ The historical v0.25 milestone matured that structural projection boundary:
 - harden the versioned frontend bundle contract;
 - prepare a trustworthy input boundary for later semantic analysis.
 
-The current v0.29 line extends beyond that projection boundary with semantic
+The historical v0.29 line extends beyond that projection boundary with semantic
 analysis, capability binding, Graph IR/lowering boundaries, and native runtime
 proofs. The historical projection contract remains the documented input
 boundary.
@@ -74,15 +80,21 @@ ctest --test-dir cmake-build-debug --output-on-failure
 # includes flowmini_utf8_source_boundary
 ```
 
-Opening baseline:
+Latest structural fixture snapshot:
 
 ```text
-AST golden tests:          26/26
-Symbol projection tests:   11/11
-Frontend bundle tests:      5 golden, 1 isolated, 11 negative
-Flowmini suite:             78/78
-CTest:                       2/2
+AST golden tests:          29/29
+Symbol projection tests:   14/14
+Frontend bundle tests:      8 golden, 1 isolated, 19 negative
 ```
+
+These counts describe the explicit-width structural fixture surface after the
+2026-11-03 migration. Older totals were opening evidence for earlier language
+snapshots and are not current status claims. The categorized `flowmini_suite`
+remains a deprecated compatibility/oracle workflow; its acceptance is not
+semantic authority for the canonical staged chain. Current migration evidence
+and remaining implementation gaps are recorded in
+[`docs/checkpoints/2026-11-03-explicit-width-fixture-migration.md`](../../docs/checkpoints/2026-11-03-explicit-width-fixture-migration.md).
 
 Build trees, runtime build output, test reports, and cache files are local
 artifacts and must not be committed.

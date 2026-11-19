@@ -1,0 +1,190 @@
+{
+  "boundary_transforms": "forbidden_without_equivalence_proof",
+  "commit_law": "atomic_tagged_result",
+  "edges": [
+    {
+      "from": "producer_node",
+      "id": "disposition-wire:0",
+      "lane": "success",
+      "payload": {
+        "identity": "type:Text",
+        "provenance": {
+          "column": 1,
+          "line": 9,
+          "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+        },
+        "spelling": "Text"
+      },
+      "to": "handled:success-junction"
+    },
+    {
+      "from": "producer_node",
+      "id": "disposition-wire:1",
+      "lane": "failure",
+      "payload": [
+        {
+          "identity": "type:TextFailure",
+          "provenance": {
+            "column": 33,
+            "line": 9,
+            "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+          },
+          "spelling": "TextFailure"
+        }
+      ],
+      "to": "handled:failure-dispatch"
+    },
+    {
+      "from": "producer_node",
+      "id": "disposition-wire:2",
+      "lane": "fault",
+      "payload": [
+        {
+          "identity": "type:TextIntegrityFault",
+          "provenance": {
+            "column": 56,
+            "line": 9,
+            "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+          },
+          "spelling": "TextIntegrityFault"
+        }
+      ],
+      "to": "quarantine"
+    },
+    {
+      "from": "handled:success-junction",
+      "id": "disposition-wire:3",
+      "lane": "success",
+      "payload": {
+        "identity": "type:Text",
+        "provenance": {
+          "column": 1,
+          "line": 9,
+          "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+        },
+        "spelling": "Text"
+      },
+      "to": "display"
+    },
+    {
+      "from": "handled:failure-dispatch",
+      "id": "selected-route:0",
+      "lane": "failure",
+      "payload": {
+        "identity": "type:TextFailure",
+        "spelling": "TextFailure"
+      },
+      "to": "handled:response:0"
+    },
+    {
+      "from": "handled:response:0",
+      "id": "response-result:0",
+      "lane": "recovered_success",
+      "payload": {
+        "identity": "type:Text",
+        "spelling": "Text"
+      },
+      "to": "handled:success-junction"
+    }
+  ],
+  "execution": "unsupported",
+  "format": "lyraform.disposition_graph",
+  "host_policy": {
+    "action": "report_and_fail",
+    "containment": {
+      "node_id": "quarantine",
+      "scope_kind": "activation"
+    },
+    "execution": "unsupported",
+    "format": "lyraform.host_disposition_policy_selection",
+    "module": {
+      "identity": "module:text_outcome_consumer",
+      "revision": "frontend-v2:disposition-v1:decls-12:ops-9"
+    },
+    "policy": {
+      "authority": "lyraform.command-host-policy",
+      "profile": "command-host.initial",
+      "provenance": {
+        "column": 1,
+        "line": 1,
+        "source": "Lyraform/compiler/examples/disposition/policy/text_outcome_consumer.host-policy.json"
+      },
+      "revision": "1"
+    },
+    "status": "selected",
+    "version": 1
+  },
+  "module": {
+    "identity": "module:text_outcome_consumer",
+    "provenance": {
+      "column": 1,
+      "line": 9,
+      "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+    },
+    "revision": "frontend-v2:disposition-v1:decls-12:ops-9",
+    "source_origins": [
+      "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow",
+      "Lyraform/compiler/std/abi/libc.flow",
+      "Lyraform/compiler/std/abi/text.flow"
+    ]
+  },
+  "nodes": [
+    {
+      "function_symbol_id": 38,
+      "id": "producer_node",
+      "operation_id": 0,
+      "role": "producer"
+    },
+    {
+      "consumer_identity": "consumer-declaration:10",
+      "id": "handled:failure-dispatch",
+      "role": "failure_dispatch"
+    },
+    {
+      "consumer_identity": "consumer-declaration:10",
+      "id": "handled:success-junction",
+      "pairing": "same_producer_attempt_exclusive",
+      "role": "exclusive_success_junction"
+    },
+    {
+      "function_symbol_id": 43,
+      "id": "display",
+      "parameter_symbol_id": 44,
+      "role": "rejoin_destination"
+    },
+    {
+      "action": "halt_and_quarantine",
+      "id": "quarantine",
+      "role": "activation_containment",
+      "scope_kind": "activation"
+    },
+    {
+      "function_symbol_id": 40,
+      "id": "handled:response:0",
+      "role": "ordinary_response",
+      "route_id": 0,
+      "transition": {
+        "obligation_transition": "close_original",
+        "outgoing_type": {
+          "identity": "type:Text",
+          "spelling": "Text"
+        },
+        "response_class": "recover"
+      }
+    }
+  ],
+  "obligation_id": "operation:0:outcome",
+  "policy": {
+    "authority": "lyraform.semantic-policy-selector",
+    "profile": "compiler.fixed_single_route",
+    "provenance": {
+      "column": 1,
+      "line": 25,
+      "source": "Lyraform/compiler/examples/disposition/text_outcome_consumer.flow"
+    },
+    "revision": "frontend-v2:disposition-v1:decls-12:ops-9"
+  },
+  "schedule": "serial",
+  "status": "validated_projection",
+  "version": 1
+}

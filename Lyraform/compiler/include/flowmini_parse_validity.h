@@ -94,6 +94,11 @@ inline void require_source_coverage(const ast::AstModule& module, const std::vec
         const auto& value = module.expression_pool[id].payload;
         if (const auto* v = std::get_if<ast::IdentifierExpr>(&value)) expected.push_back(v->name);
         else if (const auto* v = std::get_if<ast::IntegerLiteralExpr>(&value)) expected.push_back(v->text);
+        else if (const auto* v = std::get_if<ast::FloatLiteralExpr>(&value)) {
+            const auto dot = v->text.find('.');
+            if (dot == std::string::npos || dot == 0 || dot + 1 >= v->text.size()) refuse("invalid floating literal spelling");
+            expected.push_back(v->text.substr(0, dot)); expected.push_back("."); expected.push_back(v->text.substr(dot + 1));
+        }
         else if (const auto* v = std::get_if<ast::BoolLiteralExpr>(&value)) expected.push_back(v->text);
         else if (const auto* v = std::get_if<ast::UnaryExpr>(&value)) {
             expected.push_back(v->op);

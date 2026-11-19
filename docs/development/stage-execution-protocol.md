@@ -1,4 +1,4 @@
-# Codex Meta-Mission — Stage Execution Protocol
+# Mission Stage Execution Protocol
 
 ## Purpose
 
@@ -66,7 +66,7 @@ Record:
 * known unresolved semantics;
 * explicit protected scope.
 
-Unless a stage mission says otherwise:
+Unless an explicitly authorized local policy linked by the mission says otherwise:
 
 * do not touch unrelated dirty worktree content;
 * do not touch `master`;
@@ -91,9 +91,17 @@ vertical endpoint, accepted law and fact owners, unresolved decisions, reused
 and retired mechanisms, positive/negative/hostile evidence, reproducibility,
 falsifying evidence, and consolidation owed before expansion.
 
-Each mission version uses fresh Git-local state and a launch manifest under
-`.git/codex/runs/<mission-id>/`. Never inherit `DONE` or `BLOCKED` from another
-mission or use a tracked worktree file as administrative state.
+Each mission revision uses fresh, identity-bound state under
+`.mission-state/<mission-id>/<revision>/`, following
+[EXECUTION-001](../../Policies/EXECUTION-001.md). Essential state is independent
+of executor product. Legacy Git-local Codex records remain unchanged and require
+an explicit validated handoff before use with another executor. Never inherit
+DONE, BLOCKED, authorization or measurements from a separate mission.
+
+Each stage states intent separately from a measurable goal and identifies one
+or more subtasks. Completion requires confirmed goal criteria; checklist or
+session completion alone is insufficient. A local policy file must identify any
+exception to standing procedure and the mission must link to that file.
 
 ---
 
@@ -381,7 +389,7 @@ Explicit refusal is a correct result.
 
 # 13. Phase K — Verification
 
-Unless the stage explicitly changes the required verification set, run:
+Unless an explicit local policy linked by the stage changes the required verification set, run:
 
 ```text
 ./igor doctor
@@ -675,4 +683,6 @@ HUMAN REVIEW
 NEXT STAGE
 ```
 
-This protocol remains in force unless a future mission explicitly overrides part of it.
+This protocol remains in force. A scoped change requires an explicitly authorized
+local policy file with its parent reference and evidence; the mission links to
+that decision. A mission document alone cannot override it.

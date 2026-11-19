@@ -32,3 +32,10 @@ Before finishing:
 2. Run `git diff --check`.
 3. In the pull-request body, list changed presentation surfaces, authoritative
    evidence used, commands run, and any unresolved conflict or uncertainty.
+
+## Governance binding
+
+Follow the [project policy map](../Policies/README.md) and
+[executor entry point](../AGENTS.md). This document is
+a scoped workflow adapter, not a separate policy authority. Existing presentation
+and hygiene constraints remain; local exceptions require explicit policy records.

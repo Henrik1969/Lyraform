@@ -13,6 +13,7 @@ main(args : list<string>) {
     offset : c_pointer(0)
     capacity : c_size_t(1048576)
     count : c_long(0)
+    count_zero : c_long(0)
     closed : c_int(0)
 
     while index < argument_count {
@@ -22,10 +23,10 @@ main(args : list<string>) {
             one -> return
         }
         sendfile(stdout_fd, fd, offset, capacity) -> count
-        while count > zero {
+        while count > count_zero {
             sendfile(stdout_fd, fd, offset, capacity) -> count
         }
-        if count < zero {
+        if count < count_zero {
             close(fd) -> closed
             one -> return
         }

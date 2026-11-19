@@ -1,0 +1,19 @@
+program A_swapped
+record Power { value : float64
+}
+record Duration { value : float64
+}
+record Energy { value : float64
+}
+target Demo {
+fn energy(p : Power, d : Duration): Energy {
+ result : Energy({value: p.value * d.value})
+ result -> return
+}
+main {
+ p : Power({value: 2.0})
+ d : Duration({value: 3.0})
+ e : Energy(energy(d, p))
+ if e.value == 6.0 { 6 -> return } else { 99 -> return }
+}
+}

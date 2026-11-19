@@ -1,0 +1,13 @@
+program D_check_once
+type Positive refines int32 {
+ invariant value > 0
+}
+fn make(): int32 {
+ 4 -> return
+}
+main {
+x : int32(1)
+ checked : Bool(x > 0)
+ -1 -> x
+ if checked { 7 -> return } else { 99 -> return }
+}

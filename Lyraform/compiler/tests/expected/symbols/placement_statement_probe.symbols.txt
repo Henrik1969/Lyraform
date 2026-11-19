@@ -14,10 +14,10 @@ Symbols: 18
     declaration_location=<source>:4:6
   Symbol #3 scope=#3 name=teeth kind=Field facts=1
     declaration_location=<source>:5:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #4 scope=#3 name=rpm kind=Field facts=1
     declaration_location=<source>:6:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #5 scope=#2 name=GearPair kind=Struct facts=0
     declaration_location=<source>:9:6
   Symbol #6 scope=#4 name=driver kind=Field facts=1
@@ -28,27 +28,27 @@ Symbols: 18
     Fact kind=TypeReference key=declared_type_spelling value="Gear"
   Symbol #8 scope=#2 name=keep kind=Function facts=1
     declaration_location=<source>:14:1
-    Fact kind=TypeReference key=return_type_spelling value="int"
+    Fact kind=TypeReference key=return_type_spelling value="int32"
   Symbol #9 scope=#5 name=value kind=Parameter facts=1
     declaration_location=<source>:14:9
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #10 scope=#2 name=main kind=Procedure facts=0
     declaration_location=<source>:18:1
   Symbol #11 scope=#6 name=scalar kind=Variable facts=1
     declaration_location=<source>:19:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #12 scope=#6 name=i kind=Variable facts=1
     declaration_location=<source>:20:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #13 scope=#6 name=j kind=Variable facts=1
     declaration_location=<source>:21:5
-    Fact kind=TypeReference key=declared_type_spelling value="int"
+    Fact kind=TypeReference key=declared_type_spelling value="int32"
   Symbol #14 scope=#6 name=values kind=Variable facts=1
     declaration_location=<source>:22:5
-    Fact kind=TypeReference key=declared_type_spelling value="list<int>"
+    Fact kind=TypeReference key=declared_type_spelling value="list<int32>"
   Symbol #15 scope=#6 name=matrix kind=Variable facts=1
     declaration_location=<source>:23:5
-    Fact kind=TypeReference key=declared_type_spelling value="array<int>[2,2]"
+    Fact kind=TypeReference key=declared_type_spelling value="array<int32>[2,2]"
   Symbol #16 scope=#6 name=driver kind=Variable facts=1
     declaration_location=<source>:24:5
     Fact kind=TypeReference key=declared_type_spelling value="Gear"

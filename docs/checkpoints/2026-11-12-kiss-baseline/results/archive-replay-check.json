@@ -1,0 +1,28 @@
+{
+  "slice2": {
+    "cases": 52,
+    "outcome_mismatches": []
+  },
+  "slice3": {
+    "cases": 3,
+    "outcome_mismatches": []
+  },
+  "source_hashes": {
+    "slice2": 52,
+    "matched": true
+  },
+  "portable_scripts": {
+    "probe": "55 cases reproduced",
+    "direct_path": {
+      "plan_equal": true,
+      "llvm_byte_equal": true,
+      "tiny_result": 8,
+      "tiny_trap": 0
+    },
+    "measure": "executed successfully on fresh full build",
+    "benchmark": "executed successfully; original timings not replaced",
+    "guard_artifact": "normalized artifact still classified valid"
+  },
+  "implementation_revision": "9459705a9de14a91d62f796aa6bcd7f727fac165",
+  "comparison_scope": "stage exit codes, admission status, diagnostic codes, native result and TinyVM status/result/trap; generated IDs and source paths intentionally excluded"
+}

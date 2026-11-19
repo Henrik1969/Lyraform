@@ -1,11 +1,11 @@
 program power2_structured
 
 main {
-    exp  : int(stdin.int())
-    zero : int(0)
-    one  : int(1)
-    base : int(2)
-    acc  : int(1)
+    exp  : int32(stdin.int())
+    zero : int32(0)
+    one  : int32(1)
+    base : int32(2)
+    acc  : int32(1)
 
     while exp > zero {
         acc * base -> acc

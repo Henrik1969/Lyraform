@@ -1,0 +1,21 @@
+program B_box
+record Box { value : Bool
+}
+target Demo {
+fn make(x : Bool): Box {
+ b : Box({value: x})
+ b -> return
+}
+fn replace(b : Box, x : Bool): Box {
+ next : Box({value: x})
+ next -> return
+}
+fn get(b : Box): Bool {
+ b.value -> return
+}
+main {
+ old : Box(make(true))
+ next : Box(replace(old, false))
+ if get(old) { if get(next) { 99 -> return } else { 8 -> return } } else { 99 -> return }
+}
+}

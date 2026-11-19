@@ -1,21 +1,21 @@
 program internal_record_demo
 
 type Point {
-    field x : int
-    field y : int
+    field x : int32
+    field y : int32
 }
 
-fn sum_point(p : Point): int {
-    result : int(0)
+fn sum_point(p : Point): int32 {
+    result : int32(0)
     p.x + p.y -> result
     result -> return
 }
 
 main {
     p : Point({x:10, y:32})
-    value : int(0)
-    forty_two : int(42)
-    result : int(0)
+    value : int32(0)
+    forty_two : int32(42)
+    result : int32(0)
 
     p.x -> value
     print value

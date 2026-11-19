@@ -1,0 +1,532 @@
+{
+  "size": {
+    "Flowanalyst": {
+      "implementation_files": 6,
+      "physical_lines": 4910,
+      "test_files": 23,
+      "direct_flowcontracts_include_sites": 17,
+      "shared_headers": {
+        "flowcontracts/json.hpp": 1,
+        "flowcontracts/bounded_input.hpp": 1,
+        "flowcontracts/diagnostics.hpp": 1,
+        "flowcontracts/graph_provider_map.hpp": 1,
+        "flowcontracts/source_graph.hpp": 1,
+        "flowcontracts/scalar_facts.hpp": 1,
+        "flowcontracts/parse_validity.hpp": 1,
+        "flowcontracts/ownership_transfer.hpp": 1,
+        "flowcontracts/effect_scheduling.hpp": 1,
+        "flowcontracts/source_disposition.hpp": 1,
+        "flowcontracts/source_disposition_policy.hpp": 1,
+        "flowcontracts/disposition_graph.hpp": 1,
+        "flowcontracts/floating_semantics.hpp": 1,
+        "flowcontracts/scalar_analysis.hpp": 4
+      }
+    },
+    "Flowcontracts": {
+      "implementation_files": 41,
+      "physical_lines": 9421,
+      "test_files": 16,
+      "direct_flowcontracts_include_sites": 76,
+      "shared_headers": {
+        "flowcontracts/json.hpp": 22,
+        "flowcontracts/ordinary_record_types.hpp": 3,
+        "flowcontracts/ordinary_record_operands.hpp": 2,
+        "flowcontracts/scheduling.hpp": 3,
+        "flowcontracts/source_graph.hpp": 3,
+        "flowcontracts/graph_execution.hpp": 1,
+        "flowcontracts/binding_evidence.hpp": 3,
+        "flowcontracts/scalar_facts.hpp": 1,
+        "flowcontracts/source_operation_coverage.hpp": 1,
+        "flowcontracts/effect_scheduling.hpp": 2,
+        "flowcontracts/failure_flow_execution.hpp": 3,
+        "flowcontracts/outcome_execution.hpp": 1,
+        "flowcontracts/ownership_transfer.hpp": 1,
+        "flowcontracts/source_disposition.hpp": 3,
+        "flowcontracts/source_disposition_policy.hpp": 2,
+        "flowcontracts/disposition_graph.hpp": 1,
+        "flowcontracts/disposition_diagnostic.hpp": 1,
+        "flowcontracts/fault_containment.hpp": 2,
+        "flowcontracts/failure_flow_closed_set.hpp": 3,
+        "flowcontracts/failure_response_transition.hpp": 1,
+        "flowcontracts/failure_consumer.hpp": 1,
+        "flowcontracts/scalar_semantics.hpp": 3,
+        "flowcontracts/parse_validity.hpp": 1,
+        "flowcontracts/floating_semantics.hpp": 1,
+        "flowcontracts/integer_admission.hpp": 1,
+        "flowcontracts/explicit_integer_width.hpp": 1,
+        "flowcontracts/target_facts.hpp": 1,
+        "flowcontracts/guard_facts.hpp": 1,
+        "flowcontracts/disposition_facts.hpp": 1,
+        "flowcontracts/graph_provider_map.hpp": 1,
+        "flowcontracts/artifacts.hpp": 1,
+        "flowcontracts/disposition_route_projection.hpp": 1,
+        "flowcontracts/validate.hpp": 1,
+        "flowcontracts/bounded_input.hpp": 1,
+        "flowcontracts/diagnostics.hpp": 1
+      }
+    },
+    "Flowbind": {
+      "implementation_files": 1,
+      "physical_lines": 842,
+      "test_files": 2,
+      "direct_flowcontracts_include_sites": 4,
+      "shared_headers": {
+        "flowcontracts/artifacts.hpp": 1,
+        "flowcontracts/bounded_input.hpp": 1,
+        "flowcontracts/diagnostics.hpp": 1,
+        "flowcontracts/disposition_facts.hpp": 1
+      }
+    },
+    "Flowparallel": {
+      "implementation_files": 15,
+      "physical_lines": 1810,
+      "test_files": 29,
+      "direct_flowcontracts_include_sites": 8,
+      "shared_headers": {
+        "flowcontracts/artifacts.hpp": 7,
+        "flowcontracts/json.hpp": 1
+      }
+    },
+    "Flowoptimize": {
+      "implementation_files": 1,
+      "physical_lines": 154,
+      "test_files": 2,
+      "direct_flowcontracts_include_sites": 3,
+      "shared_headers": {
+        "flowcontracts/artifacts.hpp": 1,
+        "flowcontracts/bounded_input.hpp": 1,
+        "flowcontracts/diagnostics.hpp": 1
+      }
+    },
+    "Flowlower": {
+      "implementation_files": 5,
+      "physical_lines": 2097,
+      "test_files": 18,
+      "direct_flowcontracts_include_sites": 12,
+      "shared_headers": {
+        "flowcontracts/validate.hpp": 3,
+        "flowcontracts/bounded_input.hpp": 3,
+        "flowcontracts/diagnostics.hpp": 3,
+        "flowcontracts/json.hpp": 1,
+        "flowcontracts/source_graph.hpp": 1,
+        "flowcontracts/ordinary_record_operands.hpp": 1
+      }
+    },
+    "Lyraform/compiler": {
+      "implementation_files": 27,
+      "physical_lines": 13904,
+      "test_files": 89,
+      "direct_flowcontracts_include_sites": 7,
+      "shared_headers": {
+        "flowcontracts/scalar_semantics.hpp": 2,
+        "flowcontracts/scalar_analysis.hpp": 1,
+        "flowcontracts/bounded_input.hpp": 3,
+        "flowcontracts/diagnostics.hpp": 1
+      }
+    },
+    "subprojects/TinyVM": {
+      "implementation_files": 20,
+      "physical_lines": 2709,
+      "test_files": 20,
+      "direct_flowcontracts_include_sites": 4,
+      "shared_headers": {
+        "flowcontracts/validate.hpp": 1,
+        "flowcontracts/bounded_input.hpp": 1,
+        "flowcontracts/diagnostics.hpp": 1,
+        "flowcontracts/effect_scheduling.hpp": 1
+      }
+    }
+  },
+  "build_actions": [
+    {
+      "start_ms": 3,
+      "end_ms": 195,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/artifact.c.o"
+    },
+    {
+      "start_ms": 195,
+      "end_ms": 239,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/instructions.c.o"
+    },
+    {
+      "start_ms": 3,
+      "end_ms": 370,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/artifact_v2.c.o"
+    },
+    {
+      "start_ms": 239,
+      "end_ms": 403,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/isa_v1.c.o"
+    },
+    {
+      "start_ms": 403,
+      "end_ms": 428,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/vm.c.o"
+    },
+    {
+      "start_ms": 428,
+      "end_ms": 442,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/vm_function.c.o"
+    },
+    {
+      "start_ms": 442,
+      "end_ms": 461,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/vm_switch.c.o"
+    },
+    {
+      "start_ms": 461,
+      "end_ms": 506,
+      "output": "tinyvm/CMakeFiles/flowtinyrun.dir/tools/run.c.o"
+    },
+    {
+      "start_ms": 370,
+      "end_ms": 555,
+      "output": "tinyvm/CMakeFiles/tinyvm_recovered.dir/src/runtime_provider.c.o"
+    },
+    {
+      "start_ms": 555,
+      "end_ms": 620,
+      "output": "tinyvm/libtinyvm_recovered.a"
+    },
+    {
+      "start_ms": 620,
+      "end_ms": 651,
+      "output": "tinyvm/flowtinyrun"
+    },
+    {
+      "start_ms": 651,
+      "end_ms": 1192,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flow_common.cpp.o"
+    },
+    {
+      "start_ms": 1192,
+      "end_ms": 2114,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_payload.cpp.o"
+    },
+    {
+      "start_ms": 2114,
+      "end_ms": 2597,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_lexer.cpp.o"
+    },
+    {
+      "start_ms": 2597,
+      "end_ms": 7079,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_parser.cpp.o"
+    },
+    {
+      "start_ms": 7079,
+      "end_ms": 11670,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_runtime.cpp.o"
+    },
+    {
+      "start_ms": 11670,
+      "end_ms": 12369,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_structural.cpp.o"
+    },
+    {
+      "start_ms": 12369,
+      "end_ms": 12807,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_token_tree_bridge.cpp.o"
+    },
+    {
+      "start_ms": 12807,
+      "end_ms": 14291,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_ast.cpp.o"
+    },
+    {
+      "start_ms": 3,
+      "end_ms": 15643,
+      "output": "flowcontracts/CMakeFiles/flowvalidate.dir/src/flowvalidate.cpp.o"
+    },
+    {
+      "start_ms": 15643,
+      "end_ms": 15684,
+      "output": "flowcontracts/flowvalidate"
+    },
+    {
+      "start_ms": 506,
+      "end_ms": 15753,
+      "output": "tinyvm/CMakeFiles/flowtinylower.dir/tools/lower.cpp.o"
+    },
+    {
+      "start_ms": 15753,
+      "end_ms": 15815,
+      "output": "tinyvm/flowtinylower"
+    },
+    {
+      "start_ms": 15815,
+      "end_ms": 16613,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_frontend_bundle.cpp.o"
+    },
+    {
+      "start_ms": 15684,
+      "end_ms": 17067,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_symbol_projection.cpp.o"
+    },
+    {
+      "start_ms": 17067,
+      "end_ms": 17085,
+      "output": "flowmini/subprojects/testabi/CMakeFiles/flowmini_testabi.dir/testabi.c.o"
+    },
+    {
+      "start_ms": 17085,
+      "end_ms": 17094,
+      "output": "libflowmini_testabi.so"
+    },
+    {
+      "start_ms": 17094,
+      "end_ms": 17467,
+      "output": "flowmini/subprojects/TokenTree/tokentree_v1/CMakeFiles/TokenTree_objects.dir/src/tokentree.cpp.o"
+    },
+    {
+      "start_ms": 17467,
+      "end_ms": 17532,
+      "output": "flowmini/subprojects/TokenTree/tokentree_v1/libTokenTree.a"
+    },
+    {
+      "start_ms": 14291,
+      "end_ms": 18387,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/flowmini_ast_builder.cpp.o"
+    },
+    {
+      "start_ms": 17533,
+      "end_ms": 18468,
+      "output": "flowmini/subprojects/SymbolTable/SymbolTable_v1_1/CMakeFiles/symboltable_static.dir/src/SymbolTable.cpp.o"
+    },
+    {
+      "start_ms": 18387,
+      "end_ms": 18657,
+      "output": "flowmini/subprojects/SymbolTable/SymbolTable_v1_1/CMakeFiles/symboltable_static.dir/src/SymbolPolicy.cpp.o"
+    },
+    {
+      "start_ms": 18468,
+      "end_ms": 18822,
+      "output": "flowmini/subprojects/SymbolTable/SymbolTable_v1_1/CMakeFiles/symboltable_static.dir/src/SymbolTreeView.cpp.o"
+    },
+    {
+      "start_ms": 18822,
+      "end_ms": 18888,
+      "output": "flowmini/subprojects/SymbolTable/SymbolTable_v1_1/libsymboltable.a"
+    },
+    {
+      "start_ms": 16613,
+      "end_ms": 20296,
+      "output": "flowmini/CMakeFiles/flowmini.dir/src/main.cpp.o"
+    },
+    {
+      "start_ms": 20296,
+      "end_ms": 20336,
+      "output": "flowmini/flowmini"
+    },
+    {
+      "start_ms": 18888,
+      "end_ms": 29844,
+      "output": "flowbind/CMakeFiles/flowbind.dir/src/main.cpp.o"
+    },
+    {
+      "start_ms": 29844,
+      "end_ms": 29903,
+      "output": "flowbind/flowbind"
+    },
+    {
+      "start_ms": 20336,
+      "end_ms": 33982,
+      "output": "flowoptimize/CMakeFiles/flowoptimize.dir/src/main.cpp.o"
+    },
+    {
+      "start_ms": 33982,
+      "end_ms": 34022,
+      "output": "flowoptimize/flowoptimize"
+    },
+    {
+      "start_ms": 29903,
+      "end_ms": 43698,
+      "output": "flowtools/flowparallel/CMakeFiles/flowparallel.dir/src/main.cpp.o"
+    },
+    {
+      "start_ms": 43698,
+      "end_ms": 43738,
+      "output": "flowtools/flowparallel/flowparallel"
+    },
+    {
+      "start_ms": 18657,
+      "end_ms": 46948,
+      "output": "flowanalyst/CMakeFiles/flowanalyst.dir/src/main.cpp.o"
+    },
+    {
+      "start_ms": 46948,
+      "end_ms": 46988,
+      "output": "flowanalyst/flowanalyst"
+    },
+    {
+      "start_ms": 34022,
+      "end_ms": 50921,
+      "output": "flowlower/CMakeFiles/flowlower.dir/src/main.cpp.o"
+    },
+    {
+      "start_ms": 50921,
+      "end_ms": 50959,
+      "output": "flowlower/flowlower"
+    },
+    {
+      "start_ms": 43738,
+      "end_ms": 57142,
+      "output": "flowlower/CMakeFiles/flowprepare.dir/src/prepare.cpp.o"
+    },
+    {
+      "start_ms": 57142,
+      "end_ms": 57184,
+      "output": "flowlower/flowprepare"
+    }
+  ],
+  "artifacts": {
+    "A_float_calls": {
+      "bytes": {
+        "front": 36737,
+        "semantic": 24956,
+        "bind": 653,
+        "parallel": 16741,
+        "optimize": 14984,
+        "prepare": 14590
+      },
+      "plan_equal_to_semantic": {
+        "semantic": true,
+        "bind": false,
+        "parallel": true,
+        "optimize": true,
+        "prepare": true
+      },
+      "compact_plan_bytes": 12294
+    },
+    "B_box": {
+      "bytes": {
+        "front": 25360,
+        "semantic": 17972,
+        "bind": 653,
+        "parallel": 11946,
+        "optimize": 10679,
+        "prepare": 10285
+      },
+      "plan_equal_to_semantic": {
+        "semantic": true,
+        "bind": false,
+        "parallel": true,
+        "optimize": true,
+        "prepare": true
+      },
+      "compact_plan_bytes": 8185
+    },
+    "D_combined": {
+      "bytes": {
+        "front": 10237,
+        "semantic": 9111,
+        "bind": 1678,
+        "parallel": 7748,
+        "optimize": 7541,
+        "prepare": 7135
+      },
+      "plan_equal_to_semantic": {
+        "semantic": true,
+        "bind": false,
+        "parallel": true,
+        "optimize": true,
+        "prepare": true
+      },
+      "compact_plan_bytes": 6323
+    }
+  },
+  "observed_formats": [
+    [
+      "flowanalyst.analysis_graph",
+      "1"
+    ],
+    [
+      "flowanalyst.graph_analysis",
+      "1"
+    ],
+    [
+      "flowanalyst.semantic_report",
+      "1"
+    ],
+    [
+      "flowbind.binding_report",
+      "1"
+    ],
+    [
+      "flowcore.backend_lowering_artifact",
+      "1"
+    ],
+    [
+      "flowcore.lowering_plan",
+      "2"
+    ],
+    [
+      "flowmini.ast.v2",
+      ""
+    ],
+    [
+      "flowmini.disposition_syntax",
+      "1"
+    ],
+    [
+      "flowmini.frontend_bundle",
+      "2"
+    ],
+    [
+      "flowmini.graph_syntax",
+      "1"
+    ],
+    [
+      "flowmini.structural_origins",
+      "1"
+    ],
+    [
+      "flowoptimize.optimization_report",
+      "1"
+    ],
+    [
+      "flowparallel.execution_plan",
+      "1"
+    ],
+    [
+      "lyraform.disposition_fact",
+      "1"
+    ],
+    [
+      "lyraform.guard_fact",
+      "1"
+    ],
+    [
+      "lyraform.ordinary_record_execution",
+      "1"
+    ],
+    [
+      "lyraform.ordinary_record_types",
+      "1"
+    ],
+    [
+      "lyraform.parse_validity",
+      "1"
+    ],
+    [
+      "lyraform.scalar_fact",
+      "1"
+    ],
+    [
+      "lyraform.source_operation_coverage",
+      "1"
+    ],
+    [
+      "lyraform.target_fact",
+      "2"
+    ],
+    [
+      "none",
+      "0"
+    ],
+    [
+      "symboltable.snapshot",
+      "1"
+    ]
+  ]
+}

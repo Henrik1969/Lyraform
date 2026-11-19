@@ -59,7 +59,7 @@ inline bool parse_validity_admits(const json::Value& evidence, const json::Value
                         fail("canonical scalar proof contradicts target shape");
                 } else if (kind == "let") {
                     const auto type = json::string(json::required(entry, "type"), "$.statement.type");
-                    if ((type != "int" && type != "Bool") ||
+                    if ((type != "int32" && type != "int64" && type != "Bool") ||
                         std::holds_alternative<std::nullptr_t>(json::required(payload, "initializer_expression")))
                         fail("canonical scalar proof contradicts declaration initialization");
                 } else if (kind != "expression") fail("canonical scalar proof contradicts statement shape");

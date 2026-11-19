@@ -27,34 +27,34 @@ refuse() {
     jq '.status="ok" | .lowering_plan.status="ready"' "$tmpdir/refused.json" > "$tmpdir/forged.json"
     if "$FLOWPARALLEL_BIN" "$tmpdir/forged.json" >/dev/null 2>&1; then exit 1; fi
 }
-refuse 'x : int(0)
+refuse 'x : int32(0)
 20 -> x : Bool'
-refuse 'x : int(0)
+refuse 'x : int32(0)
 20 -> x : Bool
 x -> return'
-refuse 'x : int(20) junk 99
+refuse 'x : int32(20) junk 99
 print x'
-refuse 'x : int(20 99)
+refuse 'x : int32(20 99)
 print x'
-refuse 'x : int(0)
+refuse 'x : int32(0)
 20 -> x junk'
-refuse 'x : int(20)
+refuse 'x : int32(20)
 unknown 99
 print x'
-refuse 'x : int(20)
+refuse 'x : int32(20)
 { true -> x }
 print x'
-refuse 'x : int((20)'
-refuse 'x : int(20))'
-refuse 'x : int(20)
+refuse 'x : int32((20)'
+refuse 'x : int32(20))'
+refuse 'x : int32(20)
 print x junk'
-refuse 'x : int(20 +)'
+refuse 'x : int32(20 +)'
 refuse 'if true'
 
-for body in 'x : int(20)' 'flag : Bool(false)' 'a : int(20)
-b : int(a)' 'x : int(0)
+for body in 'x : int32(20)' 'flag : Bool(false)' 'a : int32(20)
+b : int32(a)' 'x : int32(0)
 20 -> x
-30 -> x' 'x : int((2 + 3) * 4)'; do
+30 -> x' 'x : int32((2 + 3) * 4)'; do
     source_file "$body"
     export_source
     jq -e '.parse_validity.state=="canonical_valid" and .parse_validity.coverage=="complete"' "$tmpdir/frontend.json" >/dev/null
@@ -72,7 +72,7 @@ jq -e '.status=="ok"' "$tmpdir/empty-report.json" >/dev/null
 if "$FLOWMINI_TEST_BIN" --test-forbid-legacy "$tmpdir/program.flow" > /dev/null 2> "$tmpdir/empty.err"; then exit 1; fi
 grep -q 'lacks parser validity' "$tmpdir/empty.err"
 # Make a valid prepared artifact for downstream hostile-evidence tests.
-source_file 'x : int(20)
+source_file 'x : int32(20)
 x -> return'
 export_source
 "$FLOWANALYST_BIN" "$tmpdir/frontend.json" > "$tmpdir/valid.json"

@@ -1,0 +1,6 @@
+{
+  "ISO C++ does not support \u2018__int128\u2019 for \u2018values\u2019 [-Wpedantic]": 35,
+  "ISO C++ does not support \u2018__int128\u2019 for \u2018type name\u2019 [-Wpedantic]": 490,
+  "ISO C++ does not support \u2018__int128\u2019 for \u2018products\u2019 [-Wpedantic]": 35,
+  "missing initializer for member \u2018flowmini::{anonymous}::TypeDef::variants\u2019 [-Wmissing-field-initializers]": 52
+}

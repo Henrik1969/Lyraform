@@ -4,6 +4,6 @@ program bad_unterminated_block_comment
     never closed
 
 main {
-    x : int(1)
+    x : int32(1)
     print x
 }

@@ -131,6 +131,16 @@ int lower(std::string_view report, const Options& options, std::string_view bind
         throw std::runtime_error("unsupported Flowoptimize report version");
     if (input_format == "flowcore.backend_lowering_artifact") {
         flowcontracts::validate_backend_lowering_artifact(root);
+        const auto* plan = field(root, "lowering_plan");
+        // Preparation is not execution admission. Historical plan v1 may omit
+        // status; callable plan v2 must carry it, and blocked is never runnable.
+        if (const auto* status = field(*plan, "status")) {
+            if (text(status) != "ready")
+                throw flowcontracts::json::Error("$.lowering_plan.status", "lowering plan is not ready");
+        } else if (integer(field(*plan, "version"), "lowering_plan.version") >= 2) {
+            throw flowcontracts::json::Error("$.lowering_plan.status", "callable plan lacks execution admission status");
+        }
+
         if (!binding_report.empty()) throw std::runtime_error("backend lowering artifacts already contain authorization evidence");
         if (input_version == 2) {
             const auto* policy = field(root, "target_policy");

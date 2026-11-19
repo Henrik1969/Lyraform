@@ -2,6 +2,7 @@
 
 #include <flowcontracts/json.hpp>
 #include <flowcontracts/source_graph.hpp>
+#include <flowcontracts/ordinary_record_operands.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -53,14 +54,28 @@ struct Provider {
 };
 struct Operation {
     int id = -1, expression = -1, statement = -1, block = -1, function_symbol = -1, callee_symbol = -1, result_symbol = -1, then_block = -1, else_block = -1, body_block = -1;
-    std::string kind;
+    std::string kind, result_cleanup;
     const Json* operand = nullptr;
     std::optional<Provider> provider;
 };
 struct Callable { int symbol=-1, body_block=-1; bool entry=false; std::string name, result; std::vector<std::pair<int,std::string>> parameters; };
 
+struct NativeDispositionBridge {
+    int producer = -1, response = -1, response_parameter = -1, rejoin = -1;
+    int operation = -1, disposition = -1;
+    int64_t route = -1;
+    std::string module, revision, activation, producer_node, obligation;
+    std::string success_type, failure_type, fault_type;
+    std::string failure_wire, fault_wire, containment, policy, host_policy;
+    std::string provenance, commit_law, response_provenance;
+    std::string response_ownership, response_lifetime, response_cleanup;
+    std::string attempt, correlation, response_attempt;
+};
+
 inline std::string llvm_type(std::string_view carrier) {
     if (carrier == "int") return "i32";
+    if (carrier == "int32") return "i32";
+    if (carrier == "int64") return "i64";
     if (carrier == "bool" || carrier == "Bool") return "i1";
     if (carrier == "c_int") return "i32";
     if (carrier == "c_long" || carrier == "c_ulong" || carrier == "c_size_t") return "i64";
@@ -95,10 +110,13 @@ public:
         std::ostringstream out;
         out << "; Flowcore generic structured lowering plan: ordered blocks, calls, branches and returns\n"
                "target triple = \"x86_64-pc-linux-gnu\"\n";
+        emit_record_types(out);
+        if (native_disposition_bridge_) emit_activation_types(out);
         emit_globals(out); emit_declarations(out);
         if(graph_native_) emit_graph_globals(out);
         if(plan_version_==2) {
             for(const auto& [identity,function]:callables_)if(!function.entry&&function.body_block>=0)emit_function(function,out);
+            if (native_disposition_bridge_) emit_native_disposition_bridge(out);
             for(const auto& [identity,function]:callables_)if(function.entry){emit_function(function,out); if(graph_native_) emit_graph_main(function,out); return out.str();}
             throw std::runtime_error("callable lowering plan has no selected entry definition");
         }
@@ -119,9 +137,12 @@ private:
     std::map<int,Callable> callables_;
     std::map<int, std::vector<const Operation*>> blocks_;
     std::map<int, std::string> symbol_types_;
+    std::set<int> envelope_parameters_;
     std::map<int, const Json*> definitions_;
     std::map<std::string, std::string> carrier_representations_;
     std::map<std::string, std::string> aggregate_types_;
+    std::map<int, const Json*> record_types_;
+    std::map<std::string, std::string> record_carriers_;
     std::set<Provider> providers_, authorized_;
     bool has_branch_ = false, has_declared_carrier_ = false, has_nonroot_block_ = false, invalid_control_ = false, unsupported_ = false, uses_args_ = false, has_text_outcome_ = false;
     int temporary_ = 0, label_ = 0, required_argc_ = 0;
@@ -134,12 +155,48 @@ private:
     std::map<int,std::pair<std::string,std::string>> call_results_;
     bool has_list_length_ = false;
     std::map<int, std::size_t> string_sizes_;
+    std::optional<NativeDispositionBridge> native_disposition_bridge_;
 
     static Provider provider(const Json& value) {
         return {text(field(value,"contract")), text(field(value,"library")), text(field(value,"convention")),
                 text(field(value,"symbol")), text(field(value,"effect")), text(field(value,"parameter_types")), text(field(value,"return_type")), flowcontracts::binding_evidence(flowcontracts::json::object(value), "$.provider")};
     }
+    static std::string record_carrier(int identity) { return "ordinary_record:" + std::to_string(identity); }
+    std::string operand_carrier(const Json& operand) const {
+        if (text(field(operand, "type")) != "ordinary_record") return text(field(operand, "type"));
+        const auto* identity = text(field(operand, "kind")) == "record_project"
+            ? field(*field(operand, "result_type"), "symbol_id") : field(operand, "record_symbol_id");
+        return record_carrier(integer(identity, "record operand identity"));
+    }
+    std::string record_field_type(const Json& reference) const {
+        if (text(field(reference, "kind")) == "scalar") return llvm_type(text(field(reference, "name")));
+        return llvm_type(record_carrier(integer(field(reference, "symbol_id"), "record field identity")));
+    }
+    void emit_record_types(std::ostringstream& out) const {
+        for (const auto& [identity, record] : record_types_) {
+            out << llvm_type(record_carrier(identity)) << " = type { ";
+            bool first = true;
+            for (const auto& member : array(field(*record, "fields"), "record.fields")) {
+                if (!first) out << ", ";
+                first = false;
+                const auto type = record_field_type(*field(member, "type"));
+                if (type.empty()) throw std::runtime_error("unsupported native record field type");
+                out << type;
+            }
+            out << " }\n";
+        }
+    }
+    void emit_activation_types(std::ostringstream& out) const {
+        out << "%flow.activation.authority = type { "
+               "ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr, "
+               "i64, i64, i64, i64, i64, i64 }\n"
+               "%flow.activation.value = type { ptr, ptr, i64 }\n"
+               "%flow.activation.envelope = type { %flow.activation.authority, ptr, ptr, ptr, %flow.activation.value }\n"
+               "%flow.activation.result = type { i32, %flow.activation.value, ptr, i32, i64, ptr, ptr, ptr }\n"
+               "%flow.activation.frame = type { i32, %flow.activation.authority, ptr, ptr, %flow.activation.envelope, %flow.activation.result }\n";
+    }
     std::string llvm_type(std::string_view carrier) const {
+        if (const auto record = record_carriers_.find(std::string(carrier)); record != record_carriers_.end()) return record->second;
         const auto builtin = flowlower::structured::llvm_type(carrier);
         if (!builtin.empty()) return builtin;
         const auto found = carrier_representations_.find(std::string{carrier});
@@ -147,6 +204,11 @@ private:
         const auto aggregate = aggregate_types_.find(std::string{carrier});
         if (aggregate != aggregate_types_.end()) return aggregate->second;
         return {};
+    }
+    std::string symbol_llvm_type(int symbol) const {
+        if (envelope_parameters_.count(symbol)) return "ptr";
+        const auto found = symbol_types_.find(symbol);
+        return found == symbol_types_.end() ? std::string{} : llvm_type(found->second);
     }
     void load() {
         const auto format = text(field(root_, "format"));
@@ -191,6 +253,14 @@ private:
         }
         const auto* plan = field(root_, "lowering_plan");
         if (!plan || text(field(*plan,"format")) != "flowcore.lowering_plan") return;
+        if (const auto* catalog = field(*plan, "ordinary_record_types")) {
+            flowcontracts::validate_ordinary_record_operands(*plan);
+            for (const auto& record : array(field(*catalog, "types"), "ordinary_record_types.types")) {
+                const int identity = integer(field(record, "symbol_id"), "record.symbol_id");
+                record_types_[identity] = &record;
+                record_carriers_[record_carrier(identity)] = "%flow.record." + std::to_string(identity);
+            }
+        }
         if (const auto* graph = field(*plan, "source_graph")) {
             graph_model_ = flowcontracts::source_graph(*graph, "$.lowering_plan.source_graph");
             if (!graph_model_->executable) throw std::runtime_error("source graph execution is not admitted");
@@ -207,8 +277,25 @@ private:
             Callable function; function.symbol=integer(field(item,"symbol_id"),"function.symbol_id");
             function.body_block=integer(field(item,"body_block_id"),"function.body_block_id"); function.entry=std::get<bool>(*field(item,"entry"));
             function.name=text(field(item,"name")); function.result=text(field(item,"return_type"));
-            for(const auto& parameter:array(field(item,"parameters"),"function.parameters"))
-                function.parameters.emplace_back(integer(field(parameter,"symbol_id"),"parameter.symbol_id"),text(field(parameter,"type")));
+            if (const auto* record = field(item, "record_symbol_id")) function.result = record_carrier(integer(record, "function.record_symbol_id"));
+            if (const auto* projection = field(item, "result_projection")) {
+                if (text(field(*projection, "kind")) != "atomic_tagged_result" ||
+                    text(field(*projection, "carrier_type")) != "TextOutcome")
+                    throw std::runtime_error("unsupported callable result projection");
+                function.result = text(field(*projection, "carrier_type"));
+            }
+
+            for(const auto& parameter:array(field(item,"parameters"),"function.parameters")) {
+                const int symbol = integer(field(parameter,"symbol_id"),"parameter.symbol_id");
+                auto type = text(field(parameter,"type"));
+                if (const auto* record = field(parameter, "record_symbol_id")) type = record_carrier(integer(record, "parameter.record_symbol_id"));
+                function.parameters.emplace_back(symbol,type);
+                if (const auto* projection = field(parameter, "input_projection")) {
+                    if (text(projection) != "immutable_failure_envelope")
+                        throw std::runtime_error("unsupported callable input projection");
+                    envelope_parameters_.insert(symbol);
+                }
+            }
             for(const auto& [symbol,type]:function.parameters)symbol_types_[symbol]=type;
             callables_[function.symbol]=std::move(function);
         }
@@ -222,13 +309,19 @@ private:
             const auto& operands=array(field(item,"operands"),"operation.operands"); if (!operands.empty()) op.operand=&operands.front();
             if (const auto* facts=field(item,"provider")) {
                 op.provider=provider(*facts); providers_.insert(*op.provider);
+                const auto* result_resource = field(item, "result_resource");
+                if (result_resource) op.result_cleanup = text(field(*result_resource, "cleanup_capability"));
+                if (plan_version_ == 2 && op.provider->result == "Text" &&
+                    (!result_resource || op.result_cleanup != "flow_text_dispose" ||
+                     text(field(*result_resource, "ownership")) != "owned"))
+                    throw std::runtime_error("owned Text provider result lacks the canonical flow_text_dispose contract");
                 if (op.kind == "text_outcome") has_text_outcome_ = true;
                 if (flowlower::structured::llvm_type(op.provider->result).empty() && !llvm_type(op.provider->result).empty()) has_declared_carrier_=true;
                 for (const auto& carrier : carriers(op.provider->parameters))
                     if (flowlower::structured::llvm_type(carrier).empty() && !llvm_type(carrier).empty()) has_declared_carrier_=true;
                 if (op.result_symbol>=0) symbol_types_[op.result_symbol]=op.provider->result;
             }
-            if (op.kind=="value_definition" && op.result_symbol>=0 && op.operand) { definitions_[op.result_symbol]=op.operand; symbol_types_[op.result_symbol]=text(field(*op.operand,"type")); }
+            if (op.kind=="value_definition" && op.result_symbol>=0 && op.operand) { definitions_[op.result_symbol]=op.operand; symbol_types_[op.result_symbol]=operand_carrier(*op.operand); }
             if(op.kind=="call"&&plan_version_==2&&callables_.count(op.callee_symbol)) {
                 if(op.result_symbol>=0)symbol_types_[op.result_symbol]=callables_.at(op.callee_symbol).result;
             }
@@ -282,6 +375,138 @@ private:
             }
         }
         if (has_list_length_) required_argc_=0;
+        discover_native_disposition_bridge(*plan);
+    }
+    void discover_native_disposition_bridge(const Json& plan) {
+        native_disposition_bridge_.reset();
+        if (plan_version_ != 2) return;
+        const auto* topology = field(plan, "source_disposition");
+        const auto* graph = field(plan, "disposition_graph");
+        const auto* selection_policy = field(plan, "source_disposition_policy");
+        const auto* host_policy = field(plan, "host_disposition_policy");
+        if (!topology || !graph || !selection_policy || !host_policy ||
+            text(field(*graph, "format")) != "lyraform.disposition_graph" ||
+            integer(field(*graph, "version"), "disposition_graph.version") != 3 ||
+            text(field(*graph, "status")) != "validated_projection" ||
+            text(field(*graph, "execution")) != "unsupported" ||
+            text(field(*topology, "execution")) != "unsupported" ||
+            text(field(*selection_policy, "status")) != "selected" ||
+            text(field(*selection_policy, "execution")) != "unsupported" ||
+            text(field(*host_policy, "status")) != "selected" ||
+            text(field(*host_policy, "execution")) != "unsupported") return;
+
+        const auto* producer_json = field(*topology, "producer");
+        const auto* junction = field(*topology, "junction");
+        const auto* containment_json = field(*topology, "containment");
+        const auto* module_json = field(*topology, "module");
+        const auto* responses_json = field(*topology, "response_functions");
+        const auto* selections_json = field(*selection_policy, "selections");
+        if (!producer_json || !junction || !containment_json || !module_json ||
+            !responses_json || !selections_json ||
+            !std::holds_alternative<Array>(*responses_json) ||
+            !std::holds_alternative<Array>(*selections_json)) return;
+        const auto& responses = std::get<Array>(*responses_json);
+        const auto& selections = std::get<Array>(*selections_json);
+        if (responses.size() != 1 || selections.size() != 1) return;
+        const auto& response_json = responses.front();
+        const auto& selection_json = selections.front();
+        const auto* producer_failures = field(*producer_json, "failure_types");
+        const auto* producer_faults = field(*producer_json, "fault_types");
+        const auto* response_failure = field(response_json, "incoming_failure_type");
+        const auto* response_output = field(response_json, "outgoing_type");
+        const auto* response_resource = field(response_json, "result_resource");
+        const auto* producer_success = field(*producer_json, "success_type");
+        if (!producer_failures || !producer_faults || !response_failure ||
+            !response_output || !response_resource || !producer_success ||
+            !std::holds_alternative<Array>(*producer_failures) ||
+            !std::holds_alternative<Array>(*producer_faults)) return;
+        const auto& failures = std::get<Array>(*producer_failures);
+        const auto& faults = std::get<Array>(*producer_faults);
+        if (failures.size() != 1 || faults.size() != 1) return;
+
+        NativeDispositionBridge bridge;
+        bridge.module = text(field(*module_json, "identity"));
+        bridge.revision = text(field(*module_json, "revision"));
+        bridge.activation = "activation:native-source-disposition:1";
+        bridge.attempt = "attempt:native-source-disposition:1";
+        bridge.correlation = "correlation:native-source-disposition:1";
+        bridge.response_attempt = "response:native-source-disposition:1";
+        bridge.producer_node = text(field(*producer_json, "graph_node_id"));
+        bridge.obligation = text(field(*producer_json, "obligation_id"));
+        bridge.success_type = text(field(*producer_success, "identity"));
+        bridge.failure_type = text(field(failures.front(), "identity"));
+        bridge.fault_type = text(field(faults.front(), "identity"));
+        bridge.failure_wire = text(field(*junction, "failure_wire_id"));
+        bridge.fault_wire = text(field(*containment_json, "wire_id"));
+        bridge.containment = text(field(*containment_json, "node_id"));
+        bridge.policy = flowcontracts::json::serialize(*selection_policy);
+        bridge.host_policy = flowcontracts::json::serialize(*host_policy);
+        bridge.provenance = flowcontracts::json::serialize(*field(*producer_json, "provenance"));
+        bridge.commit_law = text(field(*producer_json, "commit_law"));
+        bridge.response_provenance = flowcontracts::json::serialize(*field(response_json, "provenance"));
+        const auto& resource = *response_resource;
+        bridge.response_ownership = text(field(resource, "ownership"));
+        bridge.response_lifetime = text(field(resource, "lifetime"));
+        bridge.response_cleanup = text(field(resource, "cleanup_capability"));
+        bridge.operation = integer(field(*producer_json, "operation_id"), "producer.operation_id");
+        bridge.disposition = integer(field(*producer_json, "disposition_id"), "producer.disposition_id");
+        bridge.producer = integer(field(*producer_json, "function_symbol_id"), "producer.function_symbol_id");
+        bridge.response = integer(field(response_json, "function_symbol_id"), "response.function_symbol_id");
+        bridge.response_parameter = integer(field(response_json, "parameter_symbol_id"), "response.parameter_symbol_id");
+        bridge.rejoin = integer(field(*field(*topology, "rejoin"), "function_symbol_id"), "rejoin.function_symbol_id");
+        bridge.route = integer(field(selection_json, "route_id"), "selection.route_id");
+        if (bridge.module.empty() || bridge.revision.empty() || bridge.producer_node.empty() ||
+            bridge.obligation.empty() || bridge.success_type.empty() || bridge.failure_type.empty() ||
+            bridge.fault_type.empty() || bridge.failure_wire.empty() || bridge.fault_wire.empty() ||
+            bridge.containment.empty() || bridge.commit_law.empty() || bridge.response_provenance.empty() ||
+            bridge.operation < 0 || bridge.disposition < 0 || bridge.producer < 0 ||
+            bridge.response < 0 || bridge.response_parameter < 0 || bridge.rejoin < 0 || bridge.route < 0 ||
+            text(field(response_json, "response_class")) != "recover" ||
+            text(field(response_json, "input_projection")) != "immutable_failure_envelope" ||
+            text(field(response_json, "obligation_transition")) != "close_original" ||
+            text(field(*response_output, "identity")) != bridge.success_type ||
+            text(field(resource, "type")) != text(field(*response_output, "spelling")) ||
+            text(field(resource, "access")) != "read" ||
+            text(field(resource, "nullable")) != "false" ||
+            integer(field(selection_json, "response_function_symbol_id"), "selection.response_function_symbol_id") != bridge.response) return;
+        const auto response_origin = text(field(resource, "origin"));
+        const auto response_proof = text(field(resource, "proof"));
+        const bool borrowed_response = bridge.response_ownership == "borrowed" &&
+            bridge.response_lifetime == "call" && bridge.response_cleanup == "none" &&
+            response_origin == "static_literal" && response_proof == "literal_has_no_escape";
+        const bool owned_response = bridge.response_ownership == "owned" &&
+            bridge.response_lifetime == "owned" && bridge.response_cleanup == "flow_text_dispose";
+        if (!borrowed_response && !owned_response) return;
+
+        const auto producer = callables_.find(bridge.producer);
+        const auto response = callables_.find(bridge.response);
+        const auto rejoin = callables_.find(bridge.rejoin);
+        if (producer == callables_.end() || response == callables_.end() || rejoin == callables_.end() ||
+            !producer->second.parameters.empty() || producer->second.result != "TextOutcome" ||
+            response->second.parameters.size() != 1 ||
+            !envelope_parameters_.count(response->second.parameters.front().first) ||
+            llvm_type(response->second.result) != "ptr" || response->second.result != "Text" ||
+            rejoin->second.parameters.size() != 1 || rejoin->second.parameters.front().second != "Text" ||
+            rejoin->second.result != "c_int") return;
+        if (response->second.parameters.front().first != bridge.response_parameter) return;
+
+        int response_returns = 0;
+        for (const auto& operation : operations_) {
+            if (operation.function_symbol != bridge.response || operation.kind != "return_value") continue;
+            ++response_returns;
+            if (!operation.operand || text(field(*operation.operand, "kind")) != "identifier") return;
+            const int symbol = integer(field(*operation.operand, "symbol_id"), "response.return.symbol_id");
+            const auto definition = definitions_.find(symbol);
+            if (definition == definitions_.end() || text(field(*definition->second, "kind")) != "string_literal" ||
+                text(field(*definition->second, "type")) != "Text") return;
+        }
+        if (response_returns != 1) return;
+        const auto& rejoin_json = *field(*topology, "rejoin");
+        if (integer(field(rejoin_json, "parameter_symbol_id"), "rejoin.parameter_symbol_id") !=
+                rejoin->second.parameters.front().first ||
+            text(field(rejoin_json, "input_type")) != text(field(*producer_success, "spelling")) ||
+            text(field(*field(*graph, "policy"), "profile")) != "compiler.fixed_single_route") return;
+        native_disposition_bridge_ = std::move(bridge);
     }
     void authorize() const {
         if (!providers_.empty() && authorized_.empty()) throw std::runtime_error("generic structured plan requires a ready typed binding report");
@@ -318,9 +543,50 @@ private:
             out << "@flow_string_expr_" << expression_id << " = private unnamed_addr constant ["
                 << literal.size() + 1 << " x i8] c\"" << escaped_string(literal) << "\"\n";
         }
+        if (native_disposition_bridge_) {
+            const auto& bridge = *native_disposition_bridge_;
+            const auto string_global = [&out](std::string_view name, const std::string& value) {
+                out << "@flow.disposition." << name << " = private unnamed_addr constant ["
+                    << value.size() + 1 << " x i8] c\"" << escaped_string(value) << "\"\n";
+            };
+            string_global("module", bridge.module);
+            string_global("revision", bridge.revision);
+            string_global("activation", bridge.activation);
+            string_global("producer", bridge.producer_node);
+            string_global("obligation", bridge.obligation);
+            string_global("success_type", bridge.success_type);
+            string_global("failure_type", bridge.failure_type);
+            string_global("fault_type", bridge.fault_type);
+            string_global("failure_wire", bridge.failure_wire);
+            string_global("fault_wire", bridge.fault_wire);
+            string_global("containment", bridge.containment);
+            string_global("policy", bridge.policy);
+            string_global("host_policy", bridge.host_policy);
+            string_global("provenance", bridge.provenance);
+            string_global("commit_law", bridge.commit_law);
+            string_global("response_provenance", bridge.response_provenance);
+            string_global("attempt", bridge.attempt);
+            string_global("correlation", bridge.correlation);
+            string_global("response_attempt", bridge.response_attempt);
+            out << "@flow.disposition.authority = private constant %flow.activation.authority { "
+                   "ptr @flow.disposition.module, ptr @flow.disposition.revision, "
+                   "ptr @flow.disposition.activation, ptr @flow.disposition.producer, "
+                   "ptr @flow.disposition.obligation, ptr @flow.disposition.success_type, "
+                   "ptr @flow.disposition.failure_type, ptr @flow.disposition.fault_type, "
+                   "ptr @flow.disposition.failure_wire, ptr @flow.disposition.fault_wire, "
+                   "ptr @flow.disposition.containment, ptr @flow.disposition.policy, "
+                   "ptr @flow.disposition.host_policy, ptr @flow.disposition.provenance, "
+                   "ptr @flow.disposition.commit_law, ptr @flow.disposition.response_provenance, "
+                   "i64 " << bridge.operation << ", i64 " << bridge.producer << ", i64 " << bridge.disposition
+                << ", i64 " << bridge.response << ", i64 " << bridge.response_parameter << ", i64 " << bridge.route << " }\n";
+        }
     }
     void emit_declarations(std::ostringstream& out) const {
         if (has_text_outcome_) out << "declare i32 @flow_text_concat_outcome(ptr, ptr, ptr)\n";
+        if (native_disposition_bridge_) {
+            out << "declare i32 @flow_activation_route_text(ptr, ptr, ptr, ptr, ptr, ptr, ptr, i64, i64, i64, ptr, ptr, ptr, ptr)\n"
+                   "declare i32 @flow_text_dispose(ptr)\n";
+        }
         std::map<std::string, std::pair<std::string, std::string>> native_symbols;
         for (const auto& p:providers_) {
             if (!c_symbol(p.symbol) || llvm_type(p.result).empty()) throw std::runtime_error("unsupported structured provider ABI");
@@ -344,7 +610,7 @@ private:
         return function.entry ? (graph_native_ ? "flow.source.entry" : "main") : "flow.function." + std::to_string(function.symbol);
     }
     void emit_allocations(std::ostringstream& out) const {
-        for (const auto& [symbol,type]:symbol_types_) { const auto llvm=llvm_type(type); if(!llvm.empty()) out<<"  "<<slot(symbol)<<" = alloca "<<llvm<<", align "<<(llvm=="i32"?4:(llvm.rfind("{ ", 0) == 0 ? 4 : 8))<<"\n"; }
+        for (const auto& [symbol,type]:symbol_types_) { const auto llvm=symbol_llvm_type(symbol); if(!llvm.empty()) out<<"  "<<slot(symbol)<<" = alloca "<<llvm<<", align "<<(llvm=="i32"?4:(llvm.rfind("{ ", 0) == 0 ? 4 : 8))<<"\n"; }
         for (const auto& [symbol,value]:definitions_) if(text(field(*value,"kind"))=="writable_storage") {
             const auto* storage=field(*value,"storage"); const int bytes=integer(storage?field(*storage,"bytes"):nullptr,"storage.bytes");
             if(bytes<=0) throw std::runtime_error("invalid compatibility writable storage size");
@@ -369,7 +635,8 @@ private:
     void emit_graph_globals(std::ostringstream& out) const {
         out<<"declare void @flow_graph_enter(ptr)\ndeclare void @flow_graph_operation(i64)\ndeclare void @flow_graph_event(ptr)\ndeclare void @flow_graph_drop(ptr)\ndeclare void @flow_graph_fail(i64, ptr) noreturn\ndeclare void @flow_graph_state_before(ptr, i64, i64)\ndeclare void @flow_graph_state_after(ptr, i64, i64)\n"
            <<"declare void @flow_graph_stream_item_enter(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_enter(ptr, ptr, i64, i64, i64, i64)\ndeclare void @flow_graph_stream_event(ptr, i64, i64, i64)\ndeclare void @flow_graph_stream_drop(ptr, ptr, i64, i64, i64)\ndeclare void @flow_graph_parallel_run(ptr, ptr, ptr, i64)\ndeclare void @flow_graph_parallel_result(i64, i64)\ndeclare void @flow_graph_effect_enter(i64, ptr)\ndeclare void @flow_graph_effect_result(ptr, i64, i64)\n";
-        out<<"@flow.graph.division = private constant [17 x i8] c\"invalid_division\\00\"\n";
+        out<<"@flow.graph.division = private constant [17 x i8] c\"invalid_division\\00\"\n"
+           <<"@flow.graph.remainder = private constant [18 x i8] c\"invalid_remainder\\00\"\n";
         for (const auto& step : graph_steps()) {
             const auto id = integer(field(step, "activation_id"), "activation_id");
             for (const auto* event : {"enter", "output", "drop"}) {
@@ -751,6 +1018,22 @@ private:
         }
         out << "  call void @flow_graph_enter(ptr null)\n  %graph.exit = call i32 @" << callable_name(entry) << "()\n  ret i32 %graph.exit\n}\n";
     }
+    void emit_native_disposition_bridge(std::ostringstream& out) const {
+        if (!native_disposition_bridge_) return;
+        const auto& bridge = *native_disposition_bridge_;
+        out << "define i32 @flow.source.disposition() {\n"
+               "entry:\n"
+               "  %flow.disposition.frame = alloca %flow.activation.frame, align 8\n"
+               "  store %flow.activation.frame zeroinitializer, ptr %flow.disposition.frame\n"
+               "  %flow.disposition.status = call i32 @flow_activation_route_text(ptr %flow.disposition.frame, ptr @flow.disposition.authority, ptr @flow.function." << bridge.producer
+            << ", ptr @flow.function." << bridge.response << ", ptr @flow.function." << bridge.rejoin
+            << ", ptr @flow_text_dispose, "
+            << (bridge.response_cleanup == "flow_text_dispose" ? "ptr @flow_text_dispose" : "ptr null")
+            << ", i64 " << bridge.response << ", i64 " << bridge.response_parameter
+            << ", i64 " << bridge.route << ", ptr @flow.disposition.attempt, ptr @flow.disposition.correlation, ptr @flow.disposition.response_attempt, ptr @flow.disposition.response_provenance)\n"
+               "  ret i32 %flow.disposition.status\n"
+               "}\n";
+    }
     void emit_function(const Callable& function,std::ostringstream& out) {
         temporary_=0; label_=0; call_results_.clear();
         const auto name=callable_name(function);
@@ -758,9 +1041,9 @@ private:
         const auto result_type = llvm_type(return_carrier_);
         if(result_type.empty() || (result_type == "ptr" && function.result != "c_string" && function.result != "Text") || (function.entry && result_type != "i32"))throw std::runtime_error("unsupported callable function signature");
         out<<"define "<<result_type<<" @"<<name<<"(";
-        for(std::size_t index=0;index<function.parameters.size();++index){if(index)out<<", ";const auto type=llvm_type(function.parameters[index].second);if(type.empty())throw std::runtime_error("unsupported callable parameter type");out<<type<<" %flow_arg_"<<function.parameters[index].first;}
+        for(std::size_t index=0;index<function.parameters.size();++index){if(index)out<<", ";const auto type=symbol_llvm_type(function.parameters[index].first);if(type.empty())throw std::runtime_error("unsupported callable parameter type");out<<type<<" %flow_arg_"<<function.parameters[index].first;}
         out<<") {\nentry:\n"; emit_allocations(out);
-        for(const auto& [symbol,type]:function.parameters)out<<"  store "<<llvm_type(type)<<" %flow_arg_"<<symbol<<", ptr "<<slot(symbol)<<"\n";
+        for(const auto& [symbol,type]:function.parameters)out<<"  store "<<symbol_llvm_type(symbol)<<" %flow_arg_"<<symbol<<", ptr "<<slot(symbol)<<"\n";
         out<<"  br label %flow_block_"<<function.body_block<<"\n";
         if (!emit_block(function.body_block,out,"flow_function_exit") && !function.entry)
             throw std::runtime_error("callable function has a path without a result: " + std::to_string(function.symbol));
@@ -768,13 +1051,61 @@ private:
     }
     std::string load_symbol(int symbol,std::ostringstream& out) {
         const auto found=symbol_types_.find(symbol); if(found==symbol_types_.end()) return {};
-        const auto name="%flow_load_"+std::to_string(temporary_++); out<<"  "<<name<<" = load "<<llvm_type(found->second)<<", ptr "<<slot(symbol)<<"\n"; return name;
+        const auto name="%flow_load_"+std::to_string(temporary_++); out<<"  "<<name<<" = load "<<symbol_llvm_type(symbol)<<", ptr "<<slot(symbol)<<"\n"; return name;
     }
     std::pair<std::string,std::string> expression(const Json& value,std::ostringstream& out,std::string expected={}) {
         const auto kind=text(field(value,"kind")); auto type=text(field(value,"type")); if(!expected.empty()) type=expected;
+        if (kind == "record_construct") {
+            const int identity = integer(field(value, "record_symbol_id"), "record.symbol_id");
+            if (!record_types_.count(identity)) throw std::runtime_error("record construction type is unavailable");
+            const auto native = llvm_type(record_carrier(identity));
+            const auto& declared = array(field(*record_types_.at(identity), "fields"), "record.fields");
+            const auto& supplied = array(field(value, "fields"), "record.operands");
+            if (declared.size() != supplied.size()) throw std::runtime_error("record construction field count mismatch");
+            std::string aggregate = "zeroinitializer";
+            for (std::size_t index = 0; index < supplied.size(); ++index) {
+                if (text(field(supplied[index], "name")) != text(field(declared[index], "name")))
+                    throw std::runtime_error("record construction field order mismatch");
+                auto [field_type, field_value] = expression(*field(supplied[index], "operand"), out);
+                if (field_type != record_field_type(*field(declared[index], "type")) || field_value.empty())
+                    throw std::runtime_error("record construction field type mismatch");
+                const auto inserted = "%flow_record_insert_" + std::to_string(temporary_++);
+                out << "  " << inserted << " = insertvalue " << native << " " << aggregate << ", "
+                    << field_type << " " << field_value << ", " << index << "\n";
+                aggregate = inserted;
+            }
+            return {native, aggregate};
+        }
+        if (kind == "record_value") {
+            const int symbol = integer(field(value, "symbol_id"), "record.symbol_id");
+            const auto native = llvm_type(operand_carrier(value));
+            if (native.empty() || symbol_llvm_type(symbol) != native)
+                throw std::runtime_error("record read definition type mismatch");
+            return {native, load_symbol(symbol, out)};
+        }
+        if (kind == "record_project") {
+            const int identity = integer(field(value, "record_symbol_id"), "record.symbol_id");
+            if (!record_types_.count(identity)) throw std::runtime_error("record projection type is unavailable");
+            const auto native = llvm_type(record_carrier(identity));
+            auto [base_type, base] = expression(*field(value, "base"), out);
+            if (base_type != native || base.empty()) throw std::runtime_error("record projection base mismatch");
+            const auto& fields = array(field(*record_types_.at(identity), "fields"), "record.fields");
+            for (std::size_t index = 0; index < fields.size(); ++index) {
+                if (text(field(fields[index], "name")) != text(field(value, "field"))) continue;
+                const auto extracted = "%flow_record_extract_" + std::to_string(temporary_++);
+                out << "  " << extracted << " = extractvalue " << native << " " << base << ", " << index << "\n";
+                return {record_field_type(*field(fields[index], "type")), extracted};
+            }
+            throw std::runtime_error("record projection field is unavailable");
+        }
         if(kind=="integer_literal") {
             const auto literal=text(field(value,"value"));
             if (llvm_type(type)=="ptr" && literal=="0") return {"ptr","null"};
+            if (llvm_type(type)=="double") {
+                auto floating = literal;
+                if (floating.find_first_of(".eE") == std::string::npos) floating += ".0";
+                return {"double", floating};
+            }
             return {llvm_type(type),literal};
         }
         if(kind=="float_literal") {
@@ -799,11 +1130,17 @@ private:
             return {"ptr", result};
         }
         if(kind=="identifier") {
-            const int symbol=integer(field(value,"symbol_id"),"symbol_id"); const auto native_type=llvm_type(symbol_types_[symbol]); auto loaded=load_symbol(symbol,out);
+            const int symbol=integer(field(value,"symbol_id"),"symbol_id"); const auto native_type=symbol_llvm_type(symbol);
+            if (envelope_parameters_.count(symbol) && !expected.empty())
+                throw std::runtime_error("failure envelope cannot be used as a payload carrier");
+            auto loaded=load_symbol(symbol,out);
             const auto wanted=expected.empty()?native_type:llvm_type(expected); if(wanted==native_type) return {native_type,loaded};
             const auto converted="%flow_promote_"+std::to_string(temporary_++);
             if(native_type=="i32"&&wanted=="i64") out<<"  "<<converted<<" = sext i32 "<<loaded<<" to i64\n";
-            else if(native_type=="i64"&&wanted=="i32") out<<"  "<<converted<<" = trunc i64 "<<loaded<<" to i32\n"; else return {};
+            else if(native_type=="i64"&&wanted=="i32") out<<"  "<<converted<<" = trunc i64 "<<loaded<<" to i32\n";
+            else if(native_type=="i32"&&wanted=="double") out<<"  "<<converted<<" = sitofp i32 "<<loaded<<" to double\n";
+            else if(native_type=="i64"&&wanted=="double") out<<"  "<<converted<<" = sitofp i64 "<<loaded<<" to double\n";
+            else return {};
             return {wanted,converted};
         }
         if(kind=="field_access") {
@@ -818,7 +1155,25 @@ private:
         }
         if(kind=="call_result") {
             const int expression_id=integer(field(value,"expression_id"),"expression_id");
-            const auto found=call_results_.find(expression_id); return found==call_results_.end()?std::pair<std::string,std::string>{}:found->second;
+            const auto found=call_results_.find(expression_id);
+            if (found != call_results_.end()) return found->second;
+            if (text(field(value, "type")) != "ordinary_record") return {};
+            const int callee_symbol = integer(field(value, "callee_symbol_id"), "callee_symbol_id");
+            if (!callables_.count(callee_symbol)) return {};
+            const auto& function = callables_.at(callee_symbol);
+            const auto& arguments = array(field(value, "arguments"), "call_result.arguments");
+            if (arguments.size() != function.parameters.size()) return {};
+            std::vector<std::pair<std::string,std::string>> args;
+            for (std::size_t index = 0; index < arguments.size(); ++index)
+                args.push_back(expression(arguments[index], out, function.parameters[index].second));
+            for (std::size_t index = 0; index < args.size(); ++index)
+                if (args[index].first != symbol_llvm_type(function.parameters[index].first) || args[index].second.empty()) return {};
+            const auto result = "%flow_call_nested_" + std::to_string(expression_id);
+            out << "  " << result << " = call " << llvm_type(function.result) << " @" << callable_name(function) << "(";
+            for (std::size_t index = 0; index < args.size(); ++index) { if (index) out << ", "; out << args[index].first << " " << args[index].second; }
+            out << ")\n";
+            call_results_[expression_id] = {llvm_type(function.result), result};
+            return call_results_.at(expression_id);
         }
         if(kind=="call" && text(field(value,"intrinsic"))=="list_length") return {"i32","%argc"};
         if(kind=="index" && text(field(value,"intrinsic"))=="list_index") {
@@ -832,14 +1187,26 @@ private:
             if(from_type==to) return {to,from};
             const auto result="%flow_convert_"+std::to_string(temporary_++);
             if(from_type=="i64"&&to=="i32") out<<"  "<<result<<" = trunc i64 "<<from<<" to i32\n";
-            else if(from_type=="i32"&&to=="i64") out<<"  "<<result<<" = sext i32 "<<from<<" to i64\n"; else return {};
+            else if(from_type=="i32"&&to=="i64") out<<"  "<<result<<" = sext i32 "<<from<<" to i64\n";
+            else if(from_type=="i32"&&to=="double") out<<"  "<<result<<" = sitofp i32 "<<from<<" to double\n";
+            else if(from_type=="i64"&&to=="double") out<<"  "<<result<<" = sitofp i64 "<<from<<" to double\n";
+            else return {};
             return {to,result};
         }
         if(kind=="unary") {
             auto [operand_type,operand]=expression(*field(value,"operand"),out,type); const auto op=text(field(value,"operator"));
             if(op=="+") return {operand_type,operand};
+            if (op == "not") {
+                if (operand_type != "i1" || operand.empty()) return {};
+                const auto result = "%flow_not_" + std::to_string(temporary_++);
+                out << "  " << result << " = xor i1 " << operand << ", true\n";
+                return {"i1", result};
+            }
             if(op!="-") return {};
-            const auto result="%flow_unary_"+std::to_string(temporary_++); out<<"  "<<result<<" = sub "<<operand_type<<" 0, "<<operand<<"\n"; return {operand_type,result};
+            const auto result="%flow_unary_"+std::to_string(temporary_++);
+            if (operand_type == "double") out<<"  "<<result<<" = fneg double "<<operand<<"\n";
+            else out<<"  "<<result<<" = sub "<<operand_type<<" 0, "<<operand<<"\n";
+            return {operand_type,result};
         }
         if(kind=="binary") {
             auto [left_type,left]=expression(*field(value,"left"),out); auto [right_type,right]=expression(*field(value,"right"),out,text(field(*field(value,"left"),"type")));
@@ -853,19 +1220,24 @@ private:
                 } else out<<"  "<<result<<" = icmp "<<instruction<<" "<<left_type<<" "<<left<<", "<<right<<"\n";
                 return {"i1",result};
             }
-            if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="/")instruction="sdiv"; else return {};
+            if (left_type == "double") {
+                if(op=="+")instruction="fadd"; else if(op=="-")instruction="fsub"; else if(op=="*")instruction="fmul"; else if(op=="/")instruction="fdiv"; else return {};
+            } else {
+                if(op=="+")instruction="add"; else if(op=="-")instruction="sub"; else if(op=="*")instruction="mul"; else if(op=="div")instruction="sdiv"; else if(op=="%")instruction="srem"; else return {};
+            }
             if(left.empty()||right.empty()||left_type!=right_type) return {};
-            if (graph_native_ && instruction == "sdiv") {
-                if (left_type != "i32" && left_type != "i64") throw std::runtime_error("unsupported graph division carrier");
+            if (graph_native_ && (instruction == "sdiv" || instruction == "srem")) {
+                if (left_type != "i32" && left_type != "i64") throw std::runtime_error("unsupported graph integer arithmetic carrier");
                 const auto id = std::to_string(temporary_++);
                 const auto minimum = left_type == "i32" ? "-2147483648" : "-9223372036854775808";
+                const auto reason = instruction == "sdiv" ? "@flow.graph.division" : "@flow.graph.remainder";
                 out<<"  %graph.zero."<<id<<" = icmp eq "<<left_type<<" "<<right<<", 0\n"
                    <<"  %graph.min."<<id<<" = icmp eq "<<left_type<<" "<<left<<", "<<minimum<<"\n"
                    <<"  %graph.neg."<<id<<" = icmp eq "<<left_type<<" "<<right<<", -1\n"
                    <<"  %graph.overflow."<<id<<" = and i1 %graph.min."<<id<<", %graph.neg."<<id<<"\n"
                    <<"  %graph.bad."<<id<<" = or i1 %graph.zero."<<id<<", %graph.overflow."<<id<<"\n"
                    <<"  br i1 %graph.bad."<<id<<", label %graph.fail."<<id<<", label %graph.valid."<<id<<"\n"
-                   <<"graph.fail."<<id<<":\n  call void @flow_graph_fail(i64 "<<active_operation_<<", ptr @flow.graph.division)\n  unreachable\n"
+                   <<"graph.fail."<<id<<":\n  call void @flow_graph_fail(i64 "<<active_operation_<<", ptr "<<reason<<")\n  unreachable\n"
                    <<"graph.valid."<<id<<":\n";
             }
             const auto result="%flow_arithmetic_"+std::to_string(temporary_++); out<<"  "<<result<<" = "<<instruction<<" "<<left_type<<" "<<left<<", "<<right<<"\n"; return {left_type,result};
@@ -881,16 +1253,27 @@ private:
                 const auto kind=text(field(*op->operand,"kind"));
                 if(kind=="writable_storage") out<<"  store ptr %flow_storage_ptr_"<<op->result_symbol<<", ptr "<<slot(op->result_symbol)<<"\n";
                 else if(kind=="string_literal") { const auto value=expression(*op->operand,out,"Text").second; if(value.empty()) throw std::runtime_error("unsupported structured string definition"); out<<"  store ptr "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
-                else { auto [type,value]=expression(*op->operand,out); if(value.empty()) throw std::runtime_error("unsupported structured value definition"); out<<"  store "<<type<<" "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
+                else { auto [type,value]=expression(*op->operand,out); if(value.empty()) throw std::runtime_error("unsupported structured value definition: " + kind + " operation " + std::to_string(op->id)); out<<"  store "<<type<<" "<<value<<", ptr "<<slot(op->result_symbol)<<"\n"; }
             } else if(op->kind=="call") {
+                if (call_results_.count(op->expression)) continue;
                 if(!callables_.count(op->callee_symbol))throw std::runtime_error("ordinary call target is unavailable");
                 const auto& function=callables_.at(op->callee_symbol); if(function.body_block<0)throw std::runtime_error("ordinary call definition is unavailable");
                 const auto& operands=array(field(find_json_operation(op->id),"operands"),"operation.operands");
                 if(operands.size()!=function.parameters.size())throw std::runtime_error("ordinary call operand count mismatch");
                 std::vector<std::pair<std::string,std::string>> args;
-                for(std::size_t index=0;index<operands.size();++index)args.push_back(expression(operands[index],out,function.parameters[index].second));
+                for(std::size_t index=0;index<operands.size();++index) {
+                    if (envelope_parameters_.count(function.parameters[index].first)) {
+                        const auto& operand = operands[index];
+                        if (text(field(operand, "kind")) != "identifier")
+                            throw std::runtime_error("envelope argument requires an existing immutable envelope");
+                        const int symbol = integer(field(operand, "symbol_id"), "envelope.symbol_id");
+                        if (!envelope_parameters_.count(symbol) || symbol_types_.at(symbol) != function.parameters[index].second)
+                            throw std::runtime_error("envelope argument type or projection mismatch");
+                        args.push_back(expression(operand, out));
+                    } else args.push_back(expression(operands[index],out,function.parameters[index].second));
+                }
                 for (std::size_t index=0; index<args.size(); ++index)
-                    if (args[index].first != llvm_type(function.parameters[index].second) || args[index].second.empty())
+                    if (args[index].first != symbol_llvm_type(function.parameters[index].first) || args[index].second.empty())
                         throw std::runtime_error("ordinary call argument carrier mismatch");
                 const auto result_type = llvm_type(function.result);
                 const auto result="%flow_call_"+std::to_string(op->id); out<<"  "<<result<<" = call "<<result_type<<" @"<<callable_name(function)<<"(";

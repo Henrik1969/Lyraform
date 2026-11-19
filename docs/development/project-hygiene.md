@@ -63,7 +63,7 @@ accidental nested directories
 
 ```text
 AGENTS.md
-    durable repository law
+    executor workflow under the applicable policy hierarchy
 
 docs/tasks/
     selectable missions plus lifecycle index
@@ -74,8 +74,11 @@ docs/architecture/decisions/
 docs/checkpoints/
     dated result evidence; never ambient task authority
 
+.mission-state/<mission-id>/<revision>/
+    portable identity-bound mission state and preserved revisions; never tracked
+
 .git/codex/runs/<mission-id>/
-    local launch manifest and state; never tracked
+    legacy adapter manifests and loop flags only; not portable goal evidence
 
 /tmp/lyraform-codex-$UID/<mission-id>/
     ephemeral transcripts and working artifacts
@@ -87,8 +90,8 @@ output/
     ignored local delivery/export area
 ```
 
-One tracked mission directly under `docs/tasks/` owns scope, permissions, and
-definition of done. A mission-specific run directory prevents stale or
+One selected mission directly under `docs/tasks/` records scope, authorized
+permissions and measurable goal criteria under the applicable policies. A mission-specific run directory prevents stale or
 cross-mission state from changing what an agent believes it may do. Curated
 output is moved to the tracked directory that owns its meaning only through an
 explicit mission with recorded provenance.
@@ -143,3 +146,10 @@ Archive old stages deliberately.
 Keep the entrance obvious.
 Keep the cockpit clean.
 ```
+
+## Governance binding
+
+Follow the [project policy map](../../Policies/README.md) and
+[executor entry point](../../AGENTS.md). This document is
+a scoped workflow adapter, not a separate policy authority. Existing presentation
+and hygiene constraints remain; local exceptions require explicit policy records.

@@ -1,0 +1,25 @@
+{
+  "format": "lyraform.host_disposition_policy_selection",
+  "version": 1,
+  "status": "selected",
+  "execution": "unsupported",
+  "module": {
+    "identity": "module:text_outcome_consumer",
+    "revision": "frontend-v2:disposition-v1:decls-12:ops-9"
+  },
+  "containment": {
+    "node_id": "quarantine",
+    "scope_kind": "activation"
+  },
+  "action": "report_and_fail",
+  "policy": {
+    "profile": "command-host.initial",
+    "revision": "1",
+    "authority": "lyraform.command-host-policy",
+    "provenance": {
+      "source": "Lyraform/compiler/examples/disposition/policy/text_outcome_consumer.host-policy.json",
+      "line": 1,
+      "column": 1
+    }
+  }
+}

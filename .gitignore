@@ -72,3 +72,13 @@ __pycache__/
 core
 core.*
 *~
+
+# Private, executor-neutral mission state (STATE-001).
+/.mission-state/
+
+# Private mission state at this repository or nested component scope.
+**/.mission-state/
+
+# Consolidated local branches and historical evidence: separate ownership.
+/worktrees/
+/history/

@@ -10,7 +10,7 @@ wire source.out => receiver.in
 policy source.label = "wire => stays text"
 policy source.limit = -7
 policy source.enabled = true
-fn transform(value : c_string): int {
+fn transform(value : c_string): int32 {
     return 42
 }
 main { return 0 }

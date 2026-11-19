@@ -1,11 +1,11 @@
 program fn_collatz_next
 
-fn collatz_next(n : int): int {
-    zero  : int(0)
-    two   : int(2)
-    three : int(3)
-    one   : int(1)
-    rem   : int(0)
+fn collatz_next(n : int32): int32 {
+    zero  : int32(0)
+    two   : int32(2)
+    three : int32(3)
+    one   : int32(1)
+    rem   : int32(0)
 
     n % two -> rem
 
@@ -17,8 +17,8 @@ fn collatz_next(n : int): int {
 }
 
 main {
-    n   : int(stdin.int())
-    one : int(1)
+    n   : int32(stdin.int())
+    one : int32(1)
 
     while n > one {
         print n

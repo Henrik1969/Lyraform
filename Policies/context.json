@@ -1,0 +1,140 @@
+{
+  "format": "development.policy-context.v1",
+  "project": "LyraForm",
+  "title": "Lyraform and Igor",
+  "shared_registry": "../../Policies/PROJECTS.json",
+  "shared_baseline": "1.3",
+  "parent_context": null,
+  "agent": "../AGENTS.md",
+  "policy_index": "README.md",
+  "local_policies": [
+    {
+      "path": "LOCAL-001.md",
+      "version": "1.1",
+      "status": "active policy map and scope record; not a conformance certificate"
+    },
+    {
+      "path": "STAGE-001.md",
+      "version": "1.1",
+      "status": "active reference to standing project procedure"
+    },
+    {
+      "path": "GAP-001.md",
+      "version": "1.1",
+      "status": "resolved by owner-authorized FrankenCore IDENTITY-001"
+    },
+    {
+      "path": "GAP-002.md",
+      "version": "1.1",
+      "status": "resolved by shared C++ indentation ruling v1.1"
+    },
+    {
+      "path": "EXECUTION-001.md",
+      "version": "1.0",
+      "status": "active local adaptation, explicitly authorized by the current request"
+    },
+    {
+      "path": "RUNNER-001.md",
+      "version": "1.0",
+      "status": "active adapter classification; no new mission-state exception"
+    },
+    {
+      "path": "PLACEMENT-001.md",
+      "version": "1.0",
+      "status": "active owner-authorized placement and identity ruling"
+    }
+  ],
+  "state_location": "../.mission-state/<mission-id>/<revision>/",
+  "capabilities": [
+    "libraries",
+    "cli"
+  ],
+  "audit": "AUDIT.md",
+  "evidence": [
+    {
+      "path": "../DISCLAIMER.md",
+      "sha256": "88edc39bfba3261d87cc0c206a21f902bdf3861a8bb92073209210642404c158",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../REFERENCES.md",
+      "sha256": "cf9c99b8d110943558dfdf2f7fa20e4c28444ff0a76c159119a74262553482aa",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../BRANCH_CONSOLIDATION_2026-09-13.md",
+      "sha256": "a65b4dc181f53c0e9b1afa97dce7549e66edc76221c6a85544004f8c8fc5476f",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../ALPHA-TESTING.md",
+      "sha256": "0cea08e8271649daecea64232c9ecc775a60a4ea8268e01f5f3932edbf240d58",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../LICENSE.md",
+      "sha256": "616aca9ed9f84d0ad2c5d9b1324fed253e9310e34993a0f2896ce4d108b19f89",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../BACKLOG.md",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../meta-discusions.md",
+      "sha256": "c31c285cc191f06f455f8eade4a4b29bac4efa4b3c5059f1bfb3637b419dc47b",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../LYRAFORM_MIGRATION_2026-09-13.md",
+      "sha256": "f2d31393002b5565756fe8d1fcd2da16b48226533ccb45ba7677f994f2980d19",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../ACKNOWLEDGEMENTS.md",
+      "sha256": "29a9f1cadf96a57e95ee10adbf59ba842625d42171b47cfc241d93b70f417f04",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../README.md",
+      "sha256": "505f94c28be4731373654092984ac76bbaadc59227e65d6ccbc2bb2e41c831d5",
+      "observed": "2026-10-17",
+      "previous_sha256": "9388179b63e0dee21517cf97916308c2705b46fd7da8bba97545acc73d0a6149",
+      "review": "Reviewed capability naming, tooling and health documentation update; original source preserved in shared history."
+    },
+    {
+      "path": "../CMakeLists.txt",
+      "sha256": "7c8e0384cfc77b352405582af7966809491a420f27738a6095a18a1729e722ae",
+      "observed": "2026-10-17",
+      "previous_sha256": "79706ca075f4f989413aba7b21db2ee26a411ba1827efb6aae4c71e2ba669d9a",
+      "review": "Reviewed capability naming, tooling and health documentation update; original source preserved in shared history."
+    },
+    {
+      "path": "../CHANGELOG.md",
+      "sha256": "3c12636c3f9bb3b2a857c383e55f3f2405c34b96b84174aa9df64ca15ff995e7",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "../LYRAFORM_HOUSEKEEPING_2026-09-14.md",
+      "sha256": "850f1b7c0fa874e48b633592d192222c2733ad22ca54a5add8e537c069946707",
+      "observed": "2026-10-17"
+    },
+    {
+      "path": "history/2026-10-17-consolidation/.github/copilot-instructions.md",
+      "sha256": "5a7b7133f098d6b521681241cc217b08785ee8926d3c797ff0e7fe51a7430815",
+      "observed": "2026-10-17",
+      "current_source": "../.github/copilot-instructions.md",
+      "note": "Pre-consolidation inspected source; current version adds policy binding only."
+    },
+    {
+      "path": "history/2026-10-17-consolidation/.github/instructions/project-presentation.instructions.md",
+      "sha256": "161fa0cac1f02d4263c6c832dd64c16851c758fcb26bc6def9e5527f805f7239",
+      "observed": "2026-10-17",
+      "current_source": "../.github/instructions/project-presentation.instructions.md",
+      "note": "Pre-consolidation inspected source; current version adds policy binding only."
+    }
+  ],
+  "open_decisions": [],
+  "runtime_compliance": "not-certified"
+}

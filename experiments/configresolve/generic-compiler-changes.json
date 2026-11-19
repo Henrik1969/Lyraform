@@ -1,0 +1,347 @@
+{
+  "format": "lyraform.generic-compiler-change-review.v1",
+  "changes": [
+    {
+      "path": "Flowanalyst/src/main.cpp",
+      "sha256": "83b8125859cf41108febd9328c24a2011196f0d7568404e2c0c7cd2402911aa7",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Generic finite ordinary-record admission now recognizes Text fields and establishes the execution contract from complete source coverage; no application-specific behavior."
+    },
+    {
+      "path": "Flowanalyst/CMakeLists.txt",
+      "sha256": "789a4c5229c0e8fe6083fa0f895237a9ad9bfe2140e227b5c57aff743704b19e",
+      "mission": "docs/tasks/source-disposition-graph-preservation-gate4.md",
+      "reason": "Generic typed disposition graph projection/preservation and execution admission; no configuration-specific compiler logic."
+    },
+    {
+      "path": "Flowanalyst/tests/run-target-preservation-tests.sh",
+      "sha256": "d0507ffe767b3078ee0e1e69ddfcbe3f9d5ecb90ea5085881695845d9f82b35f",
+      "mission": "docs/tasks/ordinary-record-admission-refusal.md",
+      "reason": "Generic refusal of unadmitted record literal operations and corresponding verification/evidence; no application behavior."
+    },
+    {
+      "path": "Flowanalyst/tests/run-record-admission-tests.sh",
+      "sha256": "901361ff0aa7e1e9e7653ff753a3edb03e652ddba542f9ee3dd5a59cc922f6df",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic admission and hostile-artifact coverage for the finite scalar/nested record bound, including a real LLVM binary, TinyVM binary, and explicit execution-contract refusal. Unsupported forms remain refused."
+    },
+    {
+      "path": "Flowanalyst/Policies/context.json",
+      "sha256": "f569e1bf1cc6ea8c64ee338754a06151fa6f8d6e8b2c638f33403f8bb322c6c3",
+      "mission": "docs/tasks/source-disposition-graph-preservation-gate4.md",
+      "reason": "Generic typed disposition graph projection/preservation and execution admission; no configuration-specific compiler logic."
+    },
+    {
+      "path": "Flowanalyst/Policies/AUDIT.md",
+      "sha256": "31f21bc26c11f7645352fd6ce555721e69f961ded1609b3012112c3d75d06bc3",
+      "mission": "docs/tasks/source-disposition-graph-preservation-gate4.md",
+      "reason": "Generic typed disposition graph projection/preservation and execution admission; no configuration-specific compiler logic."
+    },
+    {
+      "path": "Flowanalyst/tests/run-source-disposition-policy-tests.sh",
+      "sha256": "735fbe49964048cb6b77eb5fa5375c6cf5e2e9e0c7686d2a3441cd1acd72f12b",
+      "mission": "docs/tasks/source-disposition-graph-preservation-gate4.md",
+      "reason": "Reject unaccountable transformed-failure destinations under existing no-dangling-failure law; no application-specific behavior."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/source_disposition.hpp",
+      "sha256": "5f7b7708aab7e1be6bbd8081a52249241519fb7302a8a3b4bd26ef9e29bc6a25",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Preserve and validate atomic tagged producer return and exact owner; native callable carrier loading and unsupported extra-call refusal; no application behavior."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/disposition_facts.hpp",
+      "sha256": "f9ad479a0059d987a17478946136f24ce21ff8e5dbc3076eddb3c145bbce5438",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Preserve and validate atomic tagged producer return and exact owner; native callable carrier loading and unsupported extra-call refusal; no application behavior."
+    },
+    {
+      "path": "Flowanalyst/tests/run-disposition-graph-tests.py",
+      "sha256": "777654afcdb3ff91a6ad06211662e8216bbb982fb9cb94fa7888633bb4cf826e",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Preserve and validate atomic tagged producer return and exact owner; native callable carrier loading and unsupported extra-call refusal; no application behavior."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/disposition_graph.hpp",
+      "sha256": "cc88fbd7a44264bdae850703789dae85c3d3e9fe688a2380a12570b333349ce9",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Preserve and validate atomic tagged producer return and exact owner; native callable carrier loading and unsupported extra-call refusal; no application behavior."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/validate.hpp",
+      "sha256": "5280989bdaa3552973bcb629236a0c30b71b4c366c4a76777091e611ee226b5f",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic typed record literal construction operands, declared field identity/type validation, and corrected refused-operation coverage. New operands remain non-executable; existing compiler work preserved."
+    },
+    {
+      "path": "Flowbind/src/main.cpp",
+      "sha256": "1c120e367bff84f272c947ed091d8cd1c05fc8031869baebee4d629a4cb45b0b",
+      "mission": "docs/tasks/source-disposition-graph-preservation-gate4.md",
+      "reason": "Generic versioned failure-envelope parameter identity preservation; shared cross-stage and binding validation rejects contradictory callable or missing operation authority; no application-specific behavior."
+    },
+    {
+      "path": "Flowlower/src/prepare.cpp",
+      "sha256": "8074044725ddc1120b15d541ac75e8a085e9a83a3cf58e1e03870dbddac2661c",
+      "mission": "docs/tasks/source-disposition-graph-preservation-gate4.md",
+      "reason": "Generic typed disposition graph projection/preservation and execution admission; no configuration-specific compiler logic."
+    },
+    {
+      "path": "subprojects/TinyVM/tools/lower.cpp",
+      "sha256": "1dda17164edb359bfd312881216155abc9546eeff91b1f0defd99b58461e4299",
+      "mission": "docs/tasks/configresolve-record-result-branch.md",
+      "reason": "Generic TinyVM record-return callables allocate one stable private result tree and copy each control-flow return into it, preserving independent values without branch metadata aliasing."
+    },
+    {
+      "path": "Flowanalyst/tests/run-source-disposition-tests.sh",
+      "sha256": "7ddb23747ec4c96392b90c70d695c69063d75ccbe0f216938912eb05af7b60ce",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Generic envelope/payload isolation and native immutable-envelope callable ABI with real-source unit tests; public graph admission remains blocked; no application logic."
+    },
+    {
+      "path": "Flowtools/CMakeLists.txt",
+      "sha256": "825deea2473bd238ba418e9ee81b578be7585ce1df9b53356db474de3ab4c4eb",
+      "mission": "docs/tasks/source-activation-runtime-foundation.md",
+      "reason": "Private generic activation-frame C runtime and source-derived evidence tests; no application behavior or source execution claim."
+    },
+    {
+      "path": "Flowtools/Policies/context.json",
+      "sha256": "4857018d9dca5f0fa538e3ae05aa5c700716570663fc213d07bfca81f2e2f565",
+      "mission": "docs/tasks/source-activation-runtime-foundation.md",
+      "reason": "Private generic activation-frame C runtime and source-derived evidence tests; no application behavior or source execution claim."
+    },
+    {
+      "path": "Flowtools/Policies/AUDIT.md",
+      "sha256": "494a8a8984bc5e9bca22e63267d731d5739a5cecbec744dc49d72620166f9ccc",
+      "mission": "docs/tasks/source-activation-runtime-foundation.md",
+      "reason": "Private generic activation-frame C runtime and source-derived evidence tests; no application behavior or source execution claim."
+    },
+    {
+      "path": "Flowtools/reference/disposition/activation.c",
+      "sha256": "01442499b760353852e69e4e5ccba87f2a7a6c932347d30eb51285af571a76be",
+      "mission": "docs/tasks/source-activation-runtime-foundation.md",
+      "reason": "Private generic activation-frame C runtime and source-derived evidence tests; no application behavior or source execution claim."
+    },
+    {
+      "path": "Flowtools/reference/disposition/activation_tests.cpp",
+      "sha256": "bb3c25ab51e8105cc2daa76e7f66f39654c33ca8fb52808d65ae7b6c897d3095",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Preserve and validate atomic tagged producer return and exact owner; native callable carrier loading and unsupported extra-call refusal; no application behavior."
+    },
+    {
+      "path": "Flowtools/reference/disposition/README.md",
+      "sha256": "2963b1754e26b061e91911538de1ac7fde52e6932920c4d9de204fba50cd91dc",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Preserve and validate atomic tagged producer return and exact owner; native callable carrier loading and unsupported extra-call refusal; no application behavior."
+    },
+    {
+      "path": "Flowtools/reference/disposition/CMakeLists.txt",
+      "sha256": "5a0f3360bcc95c56b95b97f784b8144c00026a3ba3b5b72160828dfdf24b4d47",
+      "mission": "docs/tasks/source-activation-runtime-foundation.md",
+      "reason": "Private generic activation-frame C runtime and source-derived evidence tests; no application behavior or source execution claim."
+    },
+    {
+      "path": "Flowtools/reference/disposition/activation.h",
+      "sha256": "7ebf7d15bf82b1f694c6005831ee4b06f427a2fe68ac0df85485deed2d131e29",
+      "mission": "docs/tasks/source-activation-runtime-foundation.md",
+      "reason": "Private generic activation-frame C runtime and source-derived evidence tests; no application behavior or source execution claim."
+    },
+    {
+      "path": "Flowtools/reference/disposition/run-tests.sh",
+      "sha256": "1c57826b37e434ed315fe5050cd887ae73880615ffb82e5c50edcdc12615ae7b",
+      "mission": "docs/tasks/source-activation-runtime-foundation.md",
+      "reason": "Private generic activation-frame C runtime and source-derived evidence tests; no application behavior or source execution claim."
+    },
+    {
+      "path": "Flowlower/src/structured_plan.hpp",
+      "sha256": "21d6b0735215a061846724517142f0ef69c36f76977577c9f2ab40822ccfad10",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic private native record aggregate construction, value copies and field projection, tested by an uninstalled emitter unit adapter preserving the exact blocked source plan. Public admission unchanged; existing compiler work preserved. Boolean not now lowers through existing typed primitive operations; native/TinyVM record units verify true, false, nesting and hostile operand refusal."
+    },
+    {
+      "path": "Flowlower/src/main.cpp",
+      "sha256": "8f4ccb6adf71a3ae35fefef45b3b27afdb132bb1a59d2586c2a9ef314aa3c40d",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Native prepared-artifact execution explicitly refuses blocked or unadmitted callable plans; does not rely on unsupported signatures to prevent a false successful compile."
+    },
+    {
+      "path": "Flowlower/CMakeLists.txt",
+      "sha256": "a0a3e94215f614c1d162a872b31815c77319100c331a6bb4eeaa39dbff9f3898",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Generic envelope/payload isolation and native immutable-envelope callable ABI with real-source unit tests; public graph admission remains blocked; no application logic."
+    },
+    {
+      "path": "Flowlower/Policies/context.json",
+      "sha256": "f674822713a4115ee6af55e3928f059c0f1c5b8c687428270581ee59541fb594",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Generic envelope/payload isolation and native immutable-envelope callable ABI with real-source unit tests; public graph admission remains blocked; no application logic."
+    },
+    {
+      "path": "Flowlower/Policies/AUDIT.md",
+      "sha256": "1b28a6945bd691c26526b1a6b38000202d728ebff65e1929ffd6d3778f35bbbd",
+      "mission": "docs/tasks/source-recovery-execution.md",
+      "reason": "Generic envelope/payload isolation and native immutable-envelope callable ABI with real-source unit tests; public graph admission remains blocked; no application logic."
+    },
+    {
+      "path": "Flowlower/tests/callable-abi-unit.cpp",
+      "sha256": "30de4a9bdcef5eebc17d5bdccfacb85ce03a57b04f650de88be66a8ae9389aaf",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic private native record aggregate construction, value copies and field projection, tested by an uninstalled emitter unit adapter preserving the exact blocked source plan. Public admission unchanged; existing compiler work preserved."
+    },
+    {
+      "path": "Flowlower/tests/run-callable-abi-unit.py",
+      "sha256": "8a81111ca7b185142433af510c07d1328f0dc6eb39a5210b3ba33cb2b1c6686a",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic private native record aggregate construction, value copies and field projection, tested by an uninstalled emitter unit adapter preserving the exact blocked source plan. Public admission unchanged; existing compiler work preserved."
+    },
+    {
+      "path": "Flowanalyst/src/record_analysis.hpp",
+      "sha256": "147b09deda5c9e59f564d377bca3b90d29f22a677cfa0534fe352b708d98f88e",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic ADR 0068 local/nested record validation adds finite by-value type dependency checks and existing proven-function purity checks. All ordinary record execution stays refused pending typed value lowering; existing recovery work is preserved. Checks apply only to literal field construction, preserving provider result bindings."
+    },
+    {
+      "path": "Flowanalyst/tests/run-record-shape-tests.py",
+      "sha256": "89e6731efac2b11c94e7049250634be078e0bac7a81ad3f45614cab498bc8689",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic ADR 0068 local/nested record validation adds finite by-value type dependency checks and existing proven-function purity checks. All ordinary record execution stays refused pending typed value lowering; existing recovery work is preserved."
+    },
+    {
+      "path": "Lyraform/compiler/src/flowmini_ast_builder.cpp",
+      "sha256": "6cff046659c5b77dd519acc7ea9647ba25b52e05fe5b9a615a1f6f6a643253e4",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "ADR 0068 generic named-field completeness checks and consecutive-record parser boundary correction; executable ordinary records remain refused. Existing generic recovery changes in main.cpp are preserved."
+    },
+    {
+      "path": "Flowanalyst/src/record_types.hpp",
+      "sha256": "340d39be6583296750a037cb8dc3d3bddb4faa8c352c14b8a10e49e95364b869f",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic private ordinary record type catalog for finite int/Bool/Text/nested records, propagated with the lowering plan and validated across boundaries."
+    },
+    {
+      "path": "Flowanalyst/src/record_operands.hpp",
+      "sha256": "ad44d5b4fadffe1508e5ad2d7cf5eb13b4abde3f70eb6d744450b3b72823386f",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Generic record construction accepts immutable Text literals alongside typed integer and Boolean operands, preserving declared field identity/type validation."
+    },
+    {
+      "path": "Flowanalyst/tests/run-record-catalog-tests.py",
+      "sha256": "e9b587fff8483a01b3738e22969880ac3c22d0545351f6116bcd5349512cf5fa",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic private ordinary record type catalog for finite int/Bool/Text/nested records, propagated with the lowering plan and validated across boundaries."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/ordinary_record_types.hpp",
+      "sha256": "94fefff00a44d2299b622770c7be5da5f927d5b892f0dc657ff0642e6d2f2b1b",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic private ordinary record type catalog for finite int/Bool/nested records, propagated with the lowering plan and validated across boundaries; non-executable type metadata only, existing compiler work preserved."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/artifacts.hpp",
+      "sha256": "c17630ef8c3933d25a4f74dd4e5e0295a452e4ac88593f4a1a5170433a766363",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic typed record literal construction operands, declared field identity/type validation, and corrected refused-operation coverage. New operands remain non-executable; existing compiler work preserved."
+    },
+    {
+      "path": "Flowanalyst/src/record_operands.hpp",
+      "sha256": "ad44d5b4fadffe1508e5ad2d7cf5eb13b4abde3f70eb6d744450b3b72823386f",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Generic typed record reads and construction now include immutable Text fields while preserving local identity, private layout, and independent copies."
+    },
+    {
+      "path": "Flowanalyst/tests/run-record-operands-tests.py",
+      "sha256": "72aa9c4e379c7ac59bfaefde0239d03734ea2cc3c0093f620a7360191002dc60",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic typed record literal construction operands, declared field identity/type validation, and corrected refused-operation coverage. New operands remain non-executable; existing compiler work preserved."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/ordinary_record_operands.hpp",
+      "sha256": "ab2cfca488c8dd1220e6355d6990a849467ac5ecc8a55696dd73019976507dd4",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Generic shared validation accepts Text record literals with the finite scalar/nested execution contract and rejects malformed typed operands."
+    },
+    {
+      "path": "Flowanalyst/tests/run-record-projection-tests.py",
+      "sha256": "2c612a553e3b8cb79297f795c07d152acb04739f1a7804f161981e4e4ebfa63f",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic typed local record read/copy and nested field projection operands; validator binds reads to typed same-function definitions and declared fields. Non-executable representation; existing compiler work preserved."
+    },
+    {
+      "path": "Flowlower/tests/run-native-record-unit.py",
+      "sha256": "1f612a2fcb64a4deb3ca2fcd5e83492b763ff21dc678dfca3b662cf3befc5051",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic TinyVM finite record values use existing scalar slots and MOVE operations, with deep copies and typed projection. Uninstalled test adapter preserves blocked source plan and compares both engines/native results plus storage independence. Public admission unchanged. Boolean not now lowers through existing typed primitive operations; native/TinyVM record units verify true, false, nesting and hostile operand refusal."
+    },
+    {
+      "path": "subprojects/TinyVM/tests/record-value-unit.cpp",
+      "sha256": "d20d2052b6f3d04fa6991d50d7d376b396c3230a149a3022b4e6785367072ad4",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic TinyVM finite record values use existing scalar slots and MOVE operations, with deep copies and typed projection. Uninstalled test adapter preserves blocked source plan and compares both engines/native results plus storage independence. Public admission unchanged."
+    },
+    {
+      "path": "subprojects/TinyVM/CMakeLists.txt",
+      "sha256": "9506d4c834116c61bbeddf9e2716cb197c5645098c3564af6854318bab07a024",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic TinyVM finite record values use existing scalar slots and MOVE operations, with deep copies and typed projection. Uninstalled test adapter preserves blocked source plan and compares both engines/native results plus storage independence. Public admission unchanged."
+    },
+    {
+      "path": "subprojects/TinyVM/Policies/context.json",
+      "sha256": "29951fde3ebfaaf12fc0496e3581f5d88fbae948a812afa92428a066263eb5fb",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic TinyVM finite record values use existing scalar slots and MOVE operations, with deep copies and typed projection. Uninstalled test adapter preserves blocked source plan and compares both engines/native results plus storage independence. Public admission unchanged."
+    },
+    {
+      "path": "subprojects/TinyVM/Policies/AUDIT.md",
+      "sha256": "a85df2dd6b52980048a5fce07f42f0e2416ea6b60dbcbefc1609fbc152e09437",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic TinyVM finite record values use existing scalar slots and MOVE operations, with deep copies and typed projection. Uninstalled test adapter preserves blocked source plan and compares both engines/native results plus storage independence. Public admission unchanged."
+    },
+    {
+      "path": "Flowanalyst/tests/run-record-flow-tests.py",
+      "sha256": "711e48a9ca6104828e985c1898a68d676f14382cc5b64e81a9658a2310ed54f0",
+      "mission": "docs/tasks/ordinary-record-construction.md",
+      "reason": "Generic structured-control validation requires record reads to follow a local definition on every admitted control path, prevents branch/loop-local escapes, orphan record operations and overwrites. Public record execution remains blocked."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/scalar_semantics.hpp",
+      "sha256": "b33200d9687e8d5d37def8dbf6c36fde277552c161799fdae4e3296d73fb34d6",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Generic scalar admission recognizes immutable Text as a finite record field type; no ConfigResolve-specific semantics."
+    },
+    {
+      "path": "Flowcontracts/include/flowcontracts/scalar_analysis.hpp",
+      "sha256": "67c800c11ed9435b710771d3a56b242bd3c22507c218c733207ff60c8539736d",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Generic scalar expression inference classifies string literals as Text for typed record construction and flow validation."
+    },
+    {
+      "path": "experiments/configresolve/text-record.flow",
+      "sha256": "c6e43c44e5d71915a2fb1a98545fc83060a1f634ead5d1e25342f15317246dba",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Bounded source acceptance target for generic Text field construction and function projection."
+    },
+    {
+      "path": "experiments/configresolve/run-text-record-probe.py",
+      "sha256": "b19fbabbc60781c25b80a1c80b12e20bfdd15678fc3cfb23a8f080cdb7714033",
+      "mission": "docs/tasks/configresolve-text-value-record.md",
+      "reason": "Canonical native LLVM/TinyVM parity probe for a Text-bearing ordinary record."
+    },
+    {
+      "path": "Lyraform/compiler/src/flowmini_parser.cpp",
+      "sha256": "20d302687b2b71bb92045f707ab6087660acd776a06d21e158795866cc7bfcb6",
+      "mission": "docs/tasks/configresolve-tagged-value-boundary.md",
+      "reason": "Generic closed variant declaration parsing with unique typed cases; no ConfigResolve-specific lowering."
+    },
+    {
+      "path": "experiments/configresolve/tagged-value-declaration.flow",
+      "sha256": "a09666928b862a2baee4270f3562b9565fb88433cc4291ef66cb15fdb468ec13",
+      "mission": "docs/tasks/configresolve-tagged-value-boundary.md",
+      "reason": "Bounded source acceptance target for a closed five-case tagged scalar declaration."
+    },
+    {
+      "path": "experiments/configresolve/run-tagged-value-declaration-probe.py",
+      "sha256": "ea4d4df23b881d20c13385fa20c639a607053b5566807e1a3b7e5c682fa9244f",
+      "mission": "docs/tasks/configresolve-tagged-value-boundary.md",
+      "reason": "Positive and hostile source-boundary probe for generic variant declarations."
+    }
+  ]
+}

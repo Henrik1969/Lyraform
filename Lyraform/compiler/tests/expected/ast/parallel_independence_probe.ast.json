@@ -1,0 +1,365 @@
+{
+    "format": "flowmini.ast.v2",
+    "source_unit": {
+        "kind": "program",
+        "name": "parallel_independence_probe",
+        "location": {
+            "line": 1,
+            "column": 1
+        },
+        "declaration_count": 2,
+        "declaration_ids": [
+            0,
+            1
+        ],
+        "declarations": [
+            {
+                "id": 0,
+                "kind": "function",
+                "name": "square",
+                "parameter_count": 1,
+                "parameters": [
+                    {
+                        "name": "n",
+                        "type": "c_int",
+                        "type_ref": {
+                            "kind": "named",
+                            "text": "c_int",
+                            "payload": {
+                                "name_segments": [
+                                    "c_int"
+                                ]
+                            },
+                            "location": {
+                                "line": 4,
+                                "column": 15
+                            }
+                        },
+                        "location": {
+                            "line": 4,
+                            "column": 11
+                        }
+                    }
+                ],
+                "return_type": "c_int",
+                "return_type_ref": {
+                    "kind": "named",
+                    "text": "c_int",
+                    "payload": {
+                        "name_segments": [
+                            "c_int"
+                        ]
+                    },
+                    "location": {
+                        "line": 4,
+                        "column": 25
+                    }
+                },
+                "has_body": true,
+                "body_block": 0,
+                "location": {
+                    "line": 4,
+                    "column": 1
+                }
+            },
+            {
+                "id": 1,
+                "kind": "main_block",
+                "parameters": [],
+                "has_body": true,
+                "body_block": 1,
+                "location": {
+                    "line": 8,
+                    "column": 1
+                }
+            }
+        ]
+    },
+    "declaration_pool_size": 2,
+    "declaration_pool": [
+        {
+            "id": 0,
+            "kind": "function",
+            "name": "square",
+            "parameter_count": 1,
+            "parameters": [
+                {
+                    "name": "n",
+                    "type": "c_int",
+                    "type_ref": {
+                        "kind": "named",
+                        "text": "c_int",
+                        "payload": {
+                            "name_segments": [
+                                "c_int"
+                            ]
+                        },
+                        "location": {
+                            "line": 4,
+                            "column": 15
+                        }
+                    },
+                    "location": {
+                        "line": 4,
+                        "column": 11
+                    }
+                }
+            ],
+            "return_type": "c_int",
+            "return_type_ref": {
+                "kind": "named",
+                "text": "c_int",
+                "payload": {
+                    "name_segments": [
+                        "c_int"
+                    ]
+                },
+                "location": {
+                    "line": 4,
+                    "column": 25
+                }
+            },
+            "has_body": true,
+            "body_block": 0,
+            "location": {
+                "line": 4,
+                "column": 1
+            }
+        },
+        {
+            "id": 1,
+            "kind": "main_block",
+            "parameters": [],
+            "has_body": true,
+            "body_block": 1,
+            "location": {
+                "line": 8,
+                "column": 1
+            }
+        }
+    ],
+    "expression_pool_size": 9,
+    "expression_pool": [
+        {
+            "id": 0,
+            "kind": "binary",
+            "text": "*",
+            "payload": {
+                "operator": "*",
+                "left": 1,
+                "right": 2
+            },
+            "child_expressions": [
+                1,
+                2
+            ]
+        },
+        {
+            "id": 1,
+            "kind": "identifier",
+            "text": "n",
+            "payload": {
+                "name": "n"
+            },
+            "child_expressions": []
+        },
+        {
+            "id": 2,
+            "kind": "identifier",
+            "text": "n",
+            "payload": {
+                "name": "n"
+            },
+            "child_expressions": []
+        },
+        {
+            "id": 3,
+            "kind": "call",
+            "text": "square",
+            "payload": {
+                "base": 4,
+                "arguments": [
+                    5
+                ]
+            },
+            "child_expressions": [
+                4,
+                5
+            ]
+        },
+        {
+            "id": 4,
+            "kind": "identifier",
+            "text": "square",
+            "payload": {
+                "name": "square"
+            },
+            "child_expressions": []
+        },
+        {
+            "id": 5,
+            "kind": "integer_literal",
+            "text": "3",
+            "payload": {
+                "value_text": "3"
+            },
+            "child_expressions": []
+        },
+        {
+            "id": 6,
+            "kind": "call",
+            "text": "square",
+            "payload": {
+                "base": 7,
+                "arguments": [
+                    8
+                ]
+            },
+            "child_expressions": [
+                7,
+                8
+            ]
+        },
+        {
+            "id": 7,
+            "kind": "identifier",
+            "text": "square",
+            "payload": {
+                "name": "square"
+            },
+            "child_expressions": []
+        },
+        {
+            "id": 8,
+            "kind": "integer_literal",
+            "text": "7",
+            "payload": {
+                "value_text": "7"
+            },
+            "child_expressions": []
+        }
+    ],
+    "statement_pool_size": 3,
+    "statement_pool": [
+        {
+            "id": 0,
+            "kind": "return",
+            "payload": {
+                "value_expression": 0,
+                "source_form": "keyword_return"
+            },
+            "has_value": true,
+            "expression_ids": [
+                0
+            ],
+            "location": {
+                "line": 5,
+                "column": 5
+            }
+        },
+        {
+            "id": 1,
+            "kind": "let",
+            "payload": {
+                "name": "left",
+                "type_ref": {
+                    "kind": "named",
+                    "text": "c_int",
+                    "payload": {
+                        "name_segments": [
+                            "c_int"
+                        ]
+                    },
+                    "location": {
+                        "line": 9,
+                        "column": 12
+                    }
+                },
+                "initializer_expression": 3
+            },
+            "name": "left",
+            "type": "c_int",
+            "type_ref": {
+                "kind": "named",
+                "text": "c_int",
+                "payload": {
+                    "name_segments": [
+                        "c_int"
+                    ]
+                },
+                "location": {
+                    "line": 9,
+                    "column": 12
+                }
+            },
+            "has_initializer": true,
+            "expression_ids": [
+                3
+            ],
+            "location": {
+                "line": 9,
+                "column": 5
+            }
+        },
+        {
+            "id": 2,
+            "kind": "let",
+            "payload": {
+                "name": "right",
+                "type_ref": {
+                    "kind": "named",
+                    "text": "c_int",
+                    "payload": {
+                        "name_segments": [
+                            "c_int"
+                        ]
+                    },
+                    "location": {
+                        "line": 10,
+                        "column": 13
+                    }
+                },
+                "initializer_expression": 6
+            },
+            "name": "right",
+            "type": "c_int",
+            "type_ref": {
+                "kind": "named",
+                "text": "c_int",
+                "payload": {
+                    "name_segments": [
+                        "c_int"
+                    ]
+                },
+                "location": {
+                    "line": 10,
+                    "column": 13
+                }
+            },
+            "has_initializer": true,
+            "expression_ids": [
+                6
+            ],
+            "location": {
+                "line": 10,
+                "column": 5
+            }
+        }
+    ],
+    "block_pool_size": 2,
+    "block_pool": [
+        {
+            "id": 0,
+            "statements": [
+                0
+            ]
+        },
+        {
+            "id": 1,
+            "statements": [
+                1,
+                2
+            ]
+        }
+    ]
+}
